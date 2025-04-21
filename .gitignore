@@ -1,0 +1,33 @@
+# Composer
+/vendor/
+composer.lock
+
+# Dotenv
+.env
+
+# Docker
+docker-compose.override.yml
+*.pid
+*.log
+
+# Cache e arquivos temporários
+*.bak
+*.swp
+*.tmp
+*.cache
+.idea/
+.vscode/
+*.DS_Store
+
+# PHPUnit
+.phpunit.result.cache
+coverage/
+build/
+
+# Logs
+*.log
+logs/
+
+# Banco local (caso exista dump)
+*.sql
+*.sqlite

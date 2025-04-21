@@ -1,0 +1,21 @@
+{
+    "name": "publicare/publicare4",
+    "description": "CMS Público Brasileiro - Publicare 4",
+    "type": "project",
+    "require": {
+      "doctrine/dbal": "^3.7"
+    },
+    "autoload": {
+      "psr-4": {
+        "Configuracao\\": "configuracao/",
+        "Nucleo\\": "nucleo/"
+      }
+    },
+    "config": {
+      "platform": {
+        "php": "8.2"
+      },
+      "optimize-autoloader": true
+    }
+  }
+  
