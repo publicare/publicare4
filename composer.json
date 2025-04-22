@@ -7,8 +7,9 @@
     },
     "autoload": {
       "psr-4": {
-        "Configuracao\\": "configuracao/",
-        "Nucleo\\": "nucleo/"
+        "Nucleo\\": "src/Nucleo/",
+        "Configuracao\\": "src/Configuracao/",
+        "Seeds\\": "src/Seeds/"
       }
     },
     "config": {

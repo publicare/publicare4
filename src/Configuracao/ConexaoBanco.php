@@ -9,7 +9,7 @@ class ConexaoBanco
 {
     public static function conectar(): \Doctrine\DBAL\Connection
     {
-        $tipo = Ambiente::pegar('TIPO_BANCO', 'mysql');
+        $tipo = Ambiente::pegar('TIPO_BANCO', 'pgsql');
         $config = [
             'dbname'   => Ambiente::pegar('BANCO', 'publicare'),
             'user'     => Ambiente::pegar('USUARIO', 'root'),

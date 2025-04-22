@@ -8,7 +8,7 @@ class Ambiente
     {
         $valor = getenv($chave);
         if ($valor === false) {
-            $arquivoEnv = __DIR__ . '/../.env';
+            $arquivoEnv = __DIR__ . '/../../.env';
             if (file_exists($arquivoEnv)) {
                 foreach (file($arquivoEnv) as $linha) {
                     if (str_starts_with(trim($linha), "$chave=")) {
