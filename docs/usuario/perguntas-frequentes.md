@@ -25,6 +25,10 @@ Enquanto isso, seu site antigo continua funcionando como está.
 
 A regra do projeto é que **não**. Já funciona assim: quando você muda o endereço de uma página, o endereço antigo passa a levar automaticamente ao novo (redirecionamento permanente). Endereços já divulgados são tratados como compromisso: o plano inclui domínios antigos, histórico de endereços e redirecionamentos. A virada de um site só deve ser feita quando todos os endereços tiverem destino.
 
+## Posso trocar o domínio do meu site sem perder os links?
+
+Pode. O site pode ter vários domínios: o antigo continua funcionando e leva ao novo (redirecionamento permanente) ou mostra o mesmo conteúdo avisando qual é o oficial. Endereços de sistemas que acabaram também podem ser redirecionados. Hoje isso se faz por linha de comando; a tela de administração virá depois.
+
 ## É seguro?
 
 Segurança é critério de aceite do projeto. As peles rodam em ambiente restrito, o texto é protegido contra injeção de HTML, as entradas são validadas e há testes automáticos a cada mudança. Isso não dispensa as boas práticas de quem administra (senhas fortes, atualizações em dia, cópia de segurança). Se achar uma falha, veja a [política de segurança](../../SECURITY.md).

@@ -16,7 +16,11 @@ final class SiteRepositorio
     {
         $this->conexao->insert('site', ['nome' => $nome, 'pele' => $pele]);
         $id = (int) $this->conexao->lastInsertId();
-        $this->conexao->insert('dominio', ['host' => strtolower($host), 'site_id' => $id]);
+        $host = strtolower($host);
+        if (!Dominio::hostValido($host)) {
+            throw new \InvalidArgumentException("Domínio inválido: {$host}");
+        }
+        $this->conexao->insert('dominio', ['host' => $host, 'site_id' => $id, 'modo' => Dominio::PRINCIPAL]);
 
         return new Site($id, $nome, null, $pele);
     }
@@ -24,6 +28,13 @@ final class SiteRepositorio
     public function definirRaiz(int $siteId, int $objetoId): void
     {
         $this->conexao->update('site', ['objeto_raiz_id' => $objetoId], ['id' => $siteId]);
+    }
+
+    public function porId(int $id): ?Site
+    {
+        $linha = $this->conexao->fetchAssociative('SELECT * FROM site WHERE id = ?', [$id]);
+
+        return $linha === false ? null : $this->hidratar($linha);
     }
 
     public function porHost(string $host): ?Site

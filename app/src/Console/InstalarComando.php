@@ -30,7 +30,7 @@ final class InstalarComando extends Command
     {
         try {
             (new Instalador($this->caminhos))->instalar((string) $input->getOption('nome'), (string) $input->getOption('host'));
-        } catch (\RuntimeException $e) {
+        } catch (\RuntimeException | \InvalidArgumentException $e) {
             $output->writeln('<error>' . $e->getMessage() . '</error>');
 
             return Command::FAILURE;

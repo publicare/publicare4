@@ -8,7 +8,9 @@ use Doctrine\DBAL\Connection;
 use Pbl\Banco\Conexao;
 use Pbl\Consulta\MotorDeConsulta;
 use Pbl\Conteudo\ClasseRepositorio;
+use Pbl\Conteudo\DominioRepositorio;
 use Pbl\Conteudo\ObjetoRepositorio;
+use Pbl\Conteudo\RedirecionamentoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
 use Pbl\Linguagem\Compilador;
 use Pbl\Publicacao\FonteRepositorio;
@@ -22,6 +24,8 @@ final class Servicos
     public readonly ObjetoRepositorio $objetos;
     public readonly SiteRepositorio $sites;
     public readonly MotorDeConsulta $motor;
+    public readonly DominioRepositorio $dominios;
+    public readonly RedirecionamentoRepositorio $redirecionamentos;
     public readonly Publicador $publicador;
 
     public function __construct(Caminhos $caminhos, Connection $conexao)
@@ -30,6 +34,8 @@ final class Servicos
         $this->objetos = new ObjetoRepositorio($conexao);
         $this->sites = new SiteRepositorio($conexao);
         $this->motor = new MotorDeConsulta($conexao, $this->objetos);
+        $this->dominios = new DominioRepositorio($conexao);
+        $this->redirecionamentos = new RedirecionamentoRepositorio($conexao);
         $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor);
         $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador);

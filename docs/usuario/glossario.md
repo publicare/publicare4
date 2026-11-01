@@ -23,6 +23,8 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Cache** | Cópia pronta de uma página, guardada para ser entregue sem refazer o trabalho. |
 | **URL amigável** | Endereço legível de uma página (por exemplo, `/sobre`), em vez de números e símbolos. |
 | **Versão (histórico)** | Cada vez que um conteúdo é salvo, o Publicare guarda o estado anterior. Dá para ver o histórico e voltar a uma versão antiga; voltar cria uma versão nova, sem apagar nada. |
+| **Domínio principal** | O endereço oficial do site. Os outros domínios do mesmo site mostram o mesmo conteúdo (avisando qual é o oficial) ou levam direto ao principal. |
+| **Regra de redirecionamento** | Uma instrução que você cadastra: "quem pedir `/antigo` vai para `/novo`". Serve para endereços antigos que já não são uma página do site. |
 | **Redirecionamento** | Fazer um endereço antigo levar ao endereço novo, para não quebrar links já divulgados. |
 | **Migração (de banco)** | Ajuste interno nos dados guardados, feito ao instalar ou atualizar. |
 | **Cópia de segurança (backup)** | Cópia dos arquivos e dados para voltar atrás em caso de problema. |
