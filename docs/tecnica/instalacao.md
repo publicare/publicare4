@@ -71,6 +71,8 @@ server {
 }
 ```
 
+Os estilos da administração (`/_pbl/assets/…`, Bootstrap e `pbl.css`) são arquivos de verdade em `public/`: o `try_files $uri` os entrega direto, e o mesmo vale para o Apache (o `.htaccess` só manda ao `index.php` o que não é arquivo existente). Conferido no Apache de teste e no servidor embutido: `200 text/css`.
+
 Pontos que importam: a raiz é `public/`; **só `index.php` executa PHP** (qualquer outro `.php`, como um envio malicioso, dá 404); e as regras de `dados/`, `app/`, `vendor/` ficam de proteção extra caso alguém aponte a raiz para a pasta inteira.
 
 ### Outros servidores
@@ -79,7 +81,7 @@ Pontos que importam: a raiz é `public/`; **só `index.php` executa PHP** (qualq
 |---|---|
 | **Apache** (`mod_rewrite`, `.htaccess`) | testado (acima) |
 | **nginx + PHP-FPM** | testado (acima) |
-| Servidor embutido do PHP (`php -S`, usado por `make subir`) | só para desenvolvimento |
+| Servidor embutido do PHP (`php -S`, usado por `make subir`) | só para desenvolvimento (o `index.php` devolve os arquivos existentes de `public/` para ele entregar) |
 | LiteSpeed / OpenLiteSpeed | lê `.htaccess`: deve funcionar como o Apache, **não testado** |
 | Caddy / FrankenPHP | basta `try_files {path} /index.php` com a raiz em `public/`; **não testado** |
 

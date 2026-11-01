@@ -10,7 +10,7 @@ flowchart LR
     I --> A[Aplicacao]
     A --> S[Servicos: banco instalado]
     A -->|host| H[SiteRepositorio: domínio → site]
-    A -->|/_pbl/...| P[Painel: entrar, sair, início]
+    A -->|/_pbl/...| P[Painel: entrar, sair, telas da administração]
     A -->|URL validada| C[Caminhos::pagina]
     C --> F[(dados/cache/paginas/site/url.html)]
     F -->|existe e não venceu| R[Resposta 200]
@@ -40,6 +40,26 @@ flowchart LR
 
 O molde é compilado **uma vez** para PHP; o hash cobre o molde, a cadeia de layouts e a versão do formato do compilador. O PHP gerado só chama o `Runtime`; nada escrito no molde vira código.
 
+## Administração pelo navegador
+
+```mermaid
+flowchart LR
+    N[Navegador] -->|GET/POST /_pbl/objeto/id...| PA[Painel]
+    PA -->|sem sessão| E[303 /_pbl/entrar]
+    PA -->|sessão válida| T[TelasDeConteudo]
+    T -->|POST| CS{origem + CSRF}
+    CS -->|falhou| F[403]
+    CS --> PE{Permissoes::pode<br/>ação fixa da rota}
+    T -->|GET| PE
+    PE -->|não| F
+    PE -->|ver| MC[MotorDeConsulta: filhos em qualquer estado]
+    PE -->|editar| OR[ObjetoRepositorio::atualizar<br/>versão esperada, auditoria]
+    OR -->|ConflitoDeVersao| C409[409 com os dois textos]
+    OR --> PU[Publicador: página e pai] --> R[303 de volta à tela]
+```
+
+As telas são HTML montado no servidor, sem JavaScript, com o CSS do Bootstrap servido do próprio site (`public/_pbl/assets/`). Arquivo existente em `public/` é entregue direto pelo servidor web; o resto de `/_pbl/` vai para o `Painel`. Detalhes no [ADR 0012](../adr/0012-administracao-web.md) e no [fluxo 12](../fluxos/12-administracao-web.md).
+
 ## Modelo de dados
 
 | Tabela | Papel |
@@ -65,7 +85,7 @@ Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banc
 | Entrada | `Pbl\Aplicacao`, `public/index.php` | resolver host e URL, devolver arquivo do cache |
 | Conteúdo | `Pbl\Conteudo` | classes, objetos, sites; validação dos dados por tipo (`texto`, `numero`, `html`, `data`, `booleano`, `ref`); índice |
 | Instalação | `Pbl\Instalacao` | `Instalador` (atômico), `InstaladorWeb` (assistente em `/_pbl/instalar`, só antes de instalar), `Requisitos` |
-| Administração | `Pbl\Admin` | `Painel`: rotas sob `/_pbl/` (entrar, sair, início) com sessão, CSRF, limite de tentativas e cabeçalhos de segurança |
+| Administração | `Pbl\Admin` | `Painel`: rotas sob `/_pbl/` (entrar, sair) com sessão, CSRF, limite de tentativas e cabeçalhos de segurança; `TelasDeConteudo`: painel com os sites, navegação na árvore e edição de título e descrição ([ADR 0012](../adr/0012-administracao-web.md)); `Pagina`: HTML com Bootstrap local, escape e cabeçalhos |
 | Acesso | `Pbl\Acesso` | contas, senhas (argon2id), perfis por subárvore, `Permissoes::pode` (único ponto de decisão) e auditoria |
 | Busca | `Pbl\Busca` | normalização de texto (minúsculas e sem acento) usada na gravação e na consulta; relevância e grafias parecidas no [ADR 0010](../adr/0010-busca.md) |
 | Consulta | `Pbl\Consulta` | `Consulta` (o pedido) e `MotorDeConsulta` (a execução): filtros, ordem, referências, contagem, carga em lote. Único caminho para ler conteúdo em lista |
@@ -89,4 +109,4 @@ dados/
 
 ## O que ainda não existe
 
-Telas da administração, instalador web, atualizador, upload de arquivos, tela para gerir domínios e regras (hoje por linha de comando). Estão no [plano](../plano.md).
+A maior parte das telas da administração (criar, mover, mudar estado e apagar conteúdo, editar as propriedades, histórico, contas, domínios, regras e peles: hoje por linha de comando), atualizador e upload de arquivos. Estão no [plano](../plano.md).

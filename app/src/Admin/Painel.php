@@ -16,8 +16,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Rotas sob `/_pbl/` (o `_` nunca é válido em URL de conteúdo, então nada publicado colide com elas): entrar, sair e a página
- * inicial da administração, ainda mínima (as telas vêm na fase 5). Segurança conforme o ADR 0011: cookie `HttpOnly` +
+ * Rotas sob `/_pbl/` (o `_` nunca é válido em URL de conteúdo, então nada publicado colide com elas): entrar, sair e as telas
+ * da administração (ADR 0012, em `TelasDeConteudo`), que só recebem a requisição com sessão válida. Segurança conforme o ADR 0011: cookie `HttpOnly` +
  * `SameSite=Lax` (+ `Secure` e prefixo `__Host-` em HTTPS), token novo a cada login, CSRF em todo POST, conferência de origem,
  * limite de tentativas no servidor, resposta igual para login inexistente e senha errada e cabeçalhos de segurança.
  */
@@ -46,8 +46,14 @@ final class Painel
     {
         $caminho = rtrim($requisicao->getPathInfo(), '/');
         $metodo = $requisicao->getMethod();
+        // Id validado por expressão ancorada e sem ambiguidade antes de virar inteiro.
+        $objeto = preg_match('#^' . self::PREFIXO . '/objeto/([1-9][0-9]{0,9})(/editar)?$#D', $caminho, $m) === 1 ? (int) $m[1] : null;
+        $editar = $objeto !== null && ($m[2] ?? '') !== '';
         $resposta = match (true) {
-            $caminho === self::PREFIXO && $metodo === 'GET' => $this->inicio($requisicao),
+            $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s)),
+            $objeto !== null && !$editar && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->ver($s, $objeto, $requisicao)),
+            $objeto !== null && $editar && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->formulario($s, $objeto)),
+            $objeto !== null && $editar && $metodo === 'POST' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->salvar($s, $objeto, $requisicao)),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'GET' => $this->formularioDeEntrar($requisicao),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'POST' => $this->entrar($requisicao),
             $caminho === self::PREFIXO . '/sair' && $metodo === 'POST' => $this->sair($requisicao),
@@ -57,18 +63,21 @@ final class Painel
         return $this->protegida($resposta, $requisicao);
     }
 
-    private function inicio(Request $requisicao): Response
+    /**
+     * Toda tela da administração passa por aqui: sem sessão válida, vai para entrar (também no POST, que então não grava nada).
+     *
+     * @param \Closure(SessaoAtiva): Response $tela
+     */
+    private function comSessao(Request $requisicao, \Closure $tela): Response
     {
         $sessao = $this->sessaoDe($requisicao);
-        if ($sessao === null) {
-            return new RedirectResponse(self::PREFIXO . '/entrar', Response::HTTP_SEE_OTHER);
-        }
-        $u = $sessao->usuario;
-        $token = $this->h($this->csrf->daSessao($sessao->idHash));
 
-        return $this->pagina('Administração', '<p>Olá, <strong>' . $this->h($u->nome) . '</strong>.' . ($u->administrador ? ' Você é administrador.' : '') . '</p>'
-            . '<p>A administração do PBL4 está em construção. Por enquanto, o conteúdo se gerencia pela linha de comando.</p>'
-            . '<form method="post" action="' . self::PREFIXO . '/sair"><input type="hidden" name="_csrf" value="' . $token . '"><button type="submit">Sair</button></form>');
+        return $sessao === null ? new RedirectResponse(self::PREFIXO . '/entrar', Response::HTTP_SEE_OTHER) : $tela($sessao);
+    }
+
+    private function telas(): TelasDeConteudo
+    {
+        return new TelasDeConteudo($this->servicos, $this->rede, $this->csrf);
     }
 
     private function formularioDeEntrar(Request $requisicao, ?string $aviso = null, int $status = Response::HTTP_OK): Response
@@ -77,12 +86,12 @@ final class Painel
             return new RedirectResponse(self::PREFIXO . '/', Response::HTTP_SEE_OTHER);
         }
 
-        return $this->pagina('Entrar', ($aviso === null ? '' : '<p role="alert" class="erro">' . $this->h($aviso) . '</p>')
+        return $this->pagina('Entrar', ($aviso === null ? '' : '<div class="alert alert-danger" role="alert">' . $this->h($aviso) . '</div>')
             . '<form method="post" action="' . self::PREFIXO . '/entrar" autocomplete="on">'
             . '<input type="hidden" name="_csrf" value="' . $this->h($this->csrf->paraEntrar()) . '">'
-            . '<label>Login <input name="login" autocomplete="username" maxlength="64" required autofocus></label>'
-            . '<label>Senha <input name="senha" type="password" autocomplete="current-password" maxlength="1024" required></label>'
-            . '<button type="submit">Entrar</button></form>', $status);
+            . '<div class="mb-3"><label for="campo-login" class="form-label">Login</label><input id="campo-login" class="form-control" name="login" autocomplete="username" maxlength="64" required autofocus></div>'
+            . '<div class="mb-3"><label for="campo-senha" class="form-label">Senha</label><input id="campo-senha" class="form-control" name="senha" type="password" autocomplete="current-password" maxlength="1024" required></div>'
+            . '<button type="submit" class="btn btn-primary">Entrar</button></form>', $status);
     }
 
     private function entrar(Request $requisicao): Response

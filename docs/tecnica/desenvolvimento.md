@@ -44,10 +44,12 @@ app/src/        código do produto
   Publicacao/   Renderizador, Publicador, fonte de dados dos moldes
   Conversao/    conversor de moldes PBL3 → PBL4
   Instalacao/   instalador
+  Acesso/       contas, sessão, CSRF, permissões, auditoria
+  Admin/        telas da administração (/_pbl/)
   Console/      comandos de bin/pbl
 app/recursos/   arquivos que viajam com o produto (pele básica)
 bin/pbl         linha de comando
-public/         front controller (index.php)
+public/         front controller (index.php) e _pbl/assets/ (CSS da administração: Bootstrap local + pbl.css)
 tests/          PHPUnit
 docs/           documentação (usuário, técnica, ADRs, fluxos)
 ```

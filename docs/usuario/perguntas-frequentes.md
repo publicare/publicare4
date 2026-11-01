@@ -31,11 +31,15 @@ A regra do projeto é que **não**. Já funciona assim: quando você muda o ende
 
 ## Quem pode editar o quê?
 
-Cada pessoa recebe um **papel numa seção** do site: leitor (só vê), autor (cria e edita o que ele mesmo criou) ou editor (edita tudo, publica e apaga). O papel vale também para tudo dentro da seção, e se a pessoa tiver papéis diferentes em níveis diferentes, vale o mais forte. Só o administrador geral cuida de contas, domínios e aparência. As senhas são guardadas de forma que nem a equipe consegue lê-las. Hoje as contas se criam por linha de comando; o login pelo navegador vem a seguir.
+Cada pessoa recebe um **papel numa seção** do site: leitor (só vê), autor (cria e edita o que ele mesmo criou) ou editor (edita tudo, publica e apaga). O papel vale também para tudo dentro da seção, e se a pessoa tiver papéis diferentes em níveis diferentes, vale o mais forte. Só o administrador geral cuida de contas, domínios e aparência. As senhas são guardadas de forma que nem a equipe consegue lê-las. Hoje as contas e os papéis se criam por linha de comando. Na administração pelo navegador, cada pessoa só vê as seções que recebeu, e o sistema confere o papel a cada pedido (não basta esconder o botão).
 
 ## Como o login é protegido?
 
 A senha é guardada de um jeito que nem a equipe consegue ler; cada login cria uma sessão nova, que vence sozinha por inatividade ou depois de 12 horas; depois de 5 senhas erradas o login é bloqueado por alguns minutos (mesmo trocando de navegador); e os formulários são protegidos contra pedidos forjados por outros sites. A mensagem de erro é a mesma tanto para login que não existe quanto para senha errada, para não revelar quem tem conta. Ative sempre o HTTPS no site.
+
+## O que já dá para fazer pela administração?
+
+Entre em `/_pbl/` com seu login. Você vê os sites e as seções que pode acessar, anda pelas páginas (inclusive as que ainda não estão no ar) e, se o seu papel permitir, corrige o **título** e a **descrição** de uma página. Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou a mesma página enquanto você editava, aparece um aviso com as duas versões, e você escolhe. Criar, mover, publicar e apagar páginas ainda se faz por linha de comando.
 
 ## Posso trocar o domínio do meu site sem perder os links?
 
