@@ -1,0 +1,89 @@
+name: CI
+
+# Nada entra na main sem passar aqui. O mesmo que `make qa` local, mais verificações de dependências,
+# documentação e changelog. Repositório público: minutos gratuitos.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qa:
+    name: Testes e análise estática (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pdo_sqlite, sodium
+          coverage: none
+          tools: composer:v2
+      - name: Cache do Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ matrix.php }}-
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Testes (PHPUnit)
+        run: vendor/bin/phpunit
+      - name: Análise estática (PHPStan nível 8)
+        run: vendor/bin/phpstan analyse --memory-limit=512M --no-progress
+
+  dependencias:
+    name: Dependências (composer.json, lock e vulnerabilidades)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, sodium
+          coverage: none
+          tools: composer:v2
+      - name: composer.json válido e lock em dia
+        run: composer validate --strict
+      - name: Vulnerabilidades conhecidas
+        run: composer audit --locked
+
+  changelog:
+    name: CHANGELOG atualizado
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Mudança no produto exige entrada no CHANGELOG.md
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          ROTULOS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          mudou=$(git diff --name-only "$BASE"...HEAD)
+          if ! echo "$mudou" | grep -qE '^(app/|bin/|public/|composer\.json)'; then
+            echo "Sem mudança no produto: changelog não exigido."; exit 0
+          fi
+          if echo "$ROTULOS" | grep -q 'sem-changelog'; then
+            echo "Rótulo sem-changelog presente: dispensado."; exit 0
+          fi
+          if echo "$mudou" | grep -qx 'CHANGELOG.md'; then
+            echo "CHANGELOG.md atualizado."; exit 0
+          fi
+          echo "::error file=CHANGELOG.md::Este PR muda o produto (app/, bin/, public/ ou composer.json) mas não atualiza o CHANGELOG.md. Adicione uma linha em 'Não lançado' ou use o rótulo sem-changelog."
+          exit 1

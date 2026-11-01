@@ -1,14 +1,26 @@
-# PBL4 — documentação de design
+# Documentação do PBL4
 
-PBL4 é a retomada do Publicare e uma **plataforma low-code de sites, dados e fluxos** para sistemas pequenos de órgãos públicos ([ADR 0003](adr/0003-plataforma-low-code.md)). Mantém as ideias do PBL3 (classes definidas pelo admin, árvore de objetos, perfis por subárvore, workflow, templates em português) e troca a implementação. O rascunho anterior do `publicare4` (abr/2025) foi descartado.
+PBL4 é a retomada do Publicare: uma **plataforma livre para sites, dados e fluxos**. Escolha o caminho que serve a você.
 
-Objetivos:
+## Para quem usa
 
-1. Amadurecer o core e o sistema de templates (PBL).
-2. Instalador web para usuário leigo, sem conhecimento de PBL.
-3. Editor interno de templates, layouts e peles.
+Quer entender o projeto ou criar e cuidar de um site, sem programar.
 
-## Índice
+- [Publicare para quem usa](usuario/README.md): [o que é](usuario/o-que-e.md), [estado do projeto](usuario/estado-do-projeto.md), [glossário](usuario/glossario.md), [perguntas frequentes](usuario/perguntas-frequentes.md), [como participar](usuario/como-participar.md)
+
+## Para quem instala e desenvolve
+
+- [Documentação técnica](tecnica/README.md): [desenvolvimento](tecnica/desenvolvimento.md), [arquitetura](tecnica/arquitetura.md), [linha de comando](tecnica/cli.md), [segurança](tecnica/seguranca.md)
+- [Linguagem de moldes PBL4](linguagem-pbl4.md): gramática, comandos e conversão do PBL3
+
+## Para quem colabora e mantém
+
+- [Como colaborar](../CONTRIBUTING.md) · [Código de Conduta](../CODE_OF_CONDUCT.md) · [Política de segurança](../SECURITY.md)
+- [Versionamento](versionamento.md) · [Releases e release notes](releases.md) · [CHANGELOG](../CHANGELOG.md)
+
+## Projeto e design
+
+Objetivos: amadurecer o núcleo e a linguagem de moldes; instalador web para quem não é técnico; editor de peles; atualização automática segura.
 
 **Decisões (ADRs)**
 - [0003 — Plataforma low-code de sites, dados e fluxos](adr/0003-plataforma-low-code.md) (vigente)
@@ -21,7 +33,7 @@ Objetivos:
 - [0001 — Sem framework full-stack](adr/0001-base-p3-sem-framework.md) (parcialmente substituído)
 - [0002 — Schema: evolução aditiva](adr/0002-schema-evolucao-aditiva.md) (substituído)
 
-**Fluxos** (como é hoje no p3 → como fica no PBL4)
+**Fluxos** (como era no PBL3 → como fica no PBL4)
 1. [Requisição pública](fluxos/01-requisicao-publica.md)
 2. [Compilação do PBL](fluxos/02-compilacao-pbl.md)
 3. [Instalação](fluxos/03-instalacao.md)
@@ -34,16 +46,12 @@ Objetivos:
 10. [Formulários, fluxos, participação e pagamento](fluxos/10-formularios-fluxos-participacao.md)
 11. [Atualização automática](fluxos/11-atualizacao.md)
 
-Cada fluxo traz a seção "Hoje (PBL3)" e o desenho PBL4 alinhado aos ADRs 0003 a 0009.
-
-**Referência**
-- [Linguagem PBL4](linguagem-pbl4.md): gramática, comandos e conversão do PBL3
-
 **Plano**
 - [Fases e questões em aberto](plano.md)
 
 ## Convenções
 
-- Referências `arquivo:linha` apontam para o `publicare3` (repo irmão) no estado de 2021-03.
-- Diagramas em Mermaid.
-- Estado atual do `src/` deste repo: rascunho antigo (migrações com UUID). Será substituído na Fase 0, depois que este design for aprovado.
+- Os fluxos trazem a seção "Hoje (PBL3)" e o desenho do PBL4; onde divergirem, valem os ADRs.
+- Referências `arquivo:linha` nos fluxos apontam para o `publicare3` (repositório irmão).
+- Diagramas em Mermaid. Links relativos.
+- Repositório público: **sem nome de cliente, órgão ou dado de terceiros**.

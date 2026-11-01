@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Vulnerabilidade de segurança
+    url: https://github.com/publicare/publicare4/security/advisories/new
+    about: Relate em particular, sem abrir issue pública.
