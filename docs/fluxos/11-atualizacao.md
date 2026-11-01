@@ -26,6 +26,8 @@ flowchart TD
     R --> S[Sai da manutenção e mostra o motivo]
 ```
 
+> **Estado:** o caminho pela linha de comando (verificar, baixar, conferir, extrair, backup, manutenção, troca, migrar, conferir, volta atrás) está implementado; veja [atualização](../tecnica/atualizacao.md). Na troca real usamos `rename` de cada pasta (`app/`, `vendor/`, …) com o código antigo guardado em `dados/atualizacao/anterior/`, em vez de `releases/` com links; o botão no painel e a verificação periódica dependem da administração.
+
 ### Layout de pastas
 
 ```

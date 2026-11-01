@@ -40,7 +40,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Recurso | Estado |
 |---|---|
 | Busca com várias palavras, relevância e correção de erros de digitação ("você quis dizer…") | 🗓️ |
-| Atualização automática com cópia de segurança | 🗓️ |
+| Atualização automática com cópia de segurança | 🔨 (já funciona por linha de comando, com assinatura, cópia do banco e volta atrás; falta o botão no painel e a primeira versão publicada) |
 | Restante da administração: criar, mover, publicar e apagar páginas, editar todos os campos, ver o histórico, cuidar de contas e domínios | 🔨 |
 | Editor de peles | 🗓️ |
 | Galeria de peles prontas para instalar | 🗓️ |

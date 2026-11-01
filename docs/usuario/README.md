@@ -25,7 +25,7 @@ Quando cada recurso ficar pronto, ele ganha um guia curto, com passos e imagens:
 4. Criar tipos de conteúdo próprios (notícias, eventos, biblioteca…)
 5. Publicar, despublicar e agendar
 6. Receber formulários, inscrições e consultas públicas
-7. Atualizar o site com um clique e fazer backup
+7. Atualizar o site e fazer backup (já funciona por comando: [como atualizar](atualizar.md); o clique no painel vem depois)
 8. Migrar um site feito em uma versão anterior do Publicare
 
 Quer ajudar a escrever ou testar algum? Veja [Como participar](como-participar.md).

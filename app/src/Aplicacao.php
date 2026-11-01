@@ -6,6 +6,7 @@ namespace Pbl;
 
 use Pbl\Acesso\Rede;
 use Pbl\Admin\Painel;
+use Pbl\Atualizacao\Manutencao;
 use Pbl\Conteudo\Dominio;
 use Pbl\Instalacao\Instalador;
 use Pbl\Instalacao\InstaladorWeb;
@@ -30,6 +31,12 @@ final class Aplicacao
 
     public function tratar(Request $requisicao): Response
     {
+        if (Manutencao::ativa($this->caminhos)) {
+            $r = $this->texto('Site em manutenção: voltamos em instantes.', Response::HTTP_SERVICE_UNAVAILABLE);
+            $r->headers->set('Retry-After', '60');
+
+            return $r;
+        }
         if ($this->servicos === null && InstaladorWeb::atende($requisicao) && !(new Instalador($this->caminhos))->instalado()) {
             return (new InstaladorWeb($this->caminhos))->tratar($requisicao);
         }
