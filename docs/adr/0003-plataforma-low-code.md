@@ -41,7 +41,7 @@ O que passar do limite usa pontos de extensão (módulos com interface estável 
 Uma só definição de consulta (filtros, ordem, limite, `expand`) usada pela **busca do portal, pelos filtros do admin e pelos templates/relatórios**. Filtros sobre objeto referenciado usam consulta em duas etapas ou `WITH`; resultados caros podem ir para cache. Nunca tabela temporária física.
 
 ### 5. Sites
-`site` é entidade: vários domínios → uma raiz, idioma, pele padrão. Objetos pertencem a um site; **classes, templates e peles são globais** (reutilizáveis entre sites, com sobrescrita por site).
+`site` é entidade: vários domínios → uma raiz, idioma, pele padrão. A unicidade de `url_amigavel` é **por site** (`UNIQUE (site_id, url_amigavel)`), nunca global: o mesmo endereço pode existir em portais diferentes que dividem o banco. Objetos pertencem a um site; **classes, templates e peles são globais** (reutilizáveis entre sites, com sobrescrita por site).
 
 ### 6. Fluxos e formulários como dados
 Estados, transições, quem aprova, prazos e notificações são definidos por classe ou pasta. Formulários públicos e internos são declarativos (campos, validação, anexos, captcha). Notificação por e-mail, depois WhatsApp/webhook. Participação pública (cadastro, token, moderação) é capacidade do núcleo (ADR 0004); inscrição paga usa conectores (ADR 0005). Ver fluxo 10. Modelos prontos no instalador (consulta pública, cadastro, almoxarifado…).

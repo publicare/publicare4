@@ -48,11 +48,15 @@ final class Gerador
                     . "    }\n";
             } elseif ($no instanceof NoColecao) {
                 $filho = '$o' . ($nivel + 1);
+                // Em `aleatorio` a janela (inicio/limite) vale depois de embaralhar; a consulta traz todos os candidatos.
+                $params = $no->aleatorio ? array_diff_key($no->params, ['inicio' => 1, 'limite' => 1]) : $no->params;
                 $consulta = $no->tipo === 'localizar'
-                    ? "\$r->localizar({$o}, " . $this->mapa($no->params, $nivel) . ')'
-                    : "\$r->filhos({$o}, " . $this->mapa($no->params, $nivel) . ')';
+                    ? "\$r->localizar({$o}, " . $this->mapa($params, $nivel) . ')'
+                    : "\$r->filhos({$o}, " . $this->mapa($params, $nivel) . ')';
                 if ($no->aleatorio) {
-                    $consulta = "\$r->embaralhar({$consulta})";
+                    $consulta = "\$r->embaralhar({$consulta}, "
+                        . $this->expr($no->params['inicio'] ?? new ExprLiteral(0), $nivel) . ', '
+                        . $this->expr($no->params['limite'] ?? new ExprLiteral(-1), $nivel) . ')';
                 }
                 $codigo .= "    \$l{$nivel} = {$consulta};\n"
                     . "    \$r->abrirColecao(count(\$l{$nivel}));\n"

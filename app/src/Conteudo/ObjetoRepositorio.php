@@ -44,6 +44,7 @@ final class ObjetoRepositorio
                 'pai_id' => $paiId,
                 'caminho' => '',
                 'titulo' => $titulo,
+                'titulo_busca' => mb_strtolower($titulo),
                 'url_amigavel' => $urlAmigavel,
                 'status' => $status,
                 'dados' => json_encode($dados, JSON_THROW_ON_ERROR),
@@ -160,7 +161,7 @@ final class ObjetoRepositorio
             }
         }
         if (isset($f['busca']) && $f['busca'] !== '') {
-            $consulta['where'][] = "LOWER(o.titulo) LIKE :busca ESCAPE '!'";
+            $consulta['where'][] = "o.titulo_busca LIKE :busca ESCAPE '!'";
             $consulta['params']['busca'] = ['%' . $this->escaparLike(mb_strtolower($f['busca'])) . '%', ParameterType::STRING];
         }
 
@@ -275,16 +276,24 @@ final class ObjetoRepositorio
         return array_map($this->hidratar(...), $linhas);
     }
 
-    public function temFilhos(int $id): bool
+    /** O objeto precisa ser do site informado (um molde não sonda a estrutura de outro site) e ter filhos visíveis. */
+    public function temFilhos(int $id, int $siteId): bool
     {
-        return $this->conexao->fetchOne('SELECT 1 FROM objeto WHERE pai_id = ? AND status = ? LIMIT 1', [$id, 'publicado']) !== false;
+        $agora = gmdate('c');
+
+        return $this->conexao->fetchOne(
+            'SELECT 1 FROM objeto f JOIN objeto p ON p.id = f.pai_id'
+            . ' WHERE f.pai_id = ? AND p.site_id = ? AND f.site_id = ? AND f.status = ?'
+            . ' AND (f.data_publicacao IS NULL OR f.data_publicacao <= ?) AND (f.data_validade IS NULL OR f.data_validade >= ?) LIMIT 1',
+            [$id, $siteId, $siteId, 'publicado', $agora, $agora],
+        ) !== false;
     }
 
     /** Primeiro objeto publicado do site com esse título (sem diferenciar maiúsculas). */
     public function porTitulo(int $siteId, string $titulo): ?Objeto
     {
         $linha = $this->conexao->fetchAssociative(
-            'SELECT * FROM objeto WHERE site_id = ? AND status = ? AND LOWER(titulo) = ? ORDER BY id LIMIT 1',
+            'SELECT * FROM objeto WHERE site_id = ? AND status = ? AND titulo_busca = ? ORDER BY id LIMIT 1',
             [$siteId, 'publicado', mb_strtolower($titulo)],
         );
 

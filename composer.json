@@ -5,6 +5,7 @@
     "license": "MIT",
     "require": {
         "php": ">=8.2",
+        "ext-mbstring": "*",
         "ext-pdo": "*",
         "ext-sodium": "*",
         "doctrine/dbal": "^4.0",

@@ -85,8 +85,9 @@ final class FonteRepositorio implements FonteDeDados
     public function temFilhos(array $objeto, ?int $id): bool
     {
         $alvo = $id ?? ($objeto['id'] ?? null);
+        $site = $objeto['site'] ?? null;
 
-        return is_int($alvo) && $this->objetos->temFilhos($alvo);
+        return is_int($alvo) && is_int($site) && $this->objetos->temFilhos($alvo, $site);
     }
 
     /**

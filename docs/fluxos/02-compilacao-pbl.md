@@ -44,7 +44,7 @@ flowchart LR
 Princípios:
 1. **Três estágios separados** (Lexer, Parser, Gerador) e uma **gramática EBNF** documentada (comandos, tipos de parâmetro `s|v|n|m|d`, operadores).
 2. **Registro de comandos**: cada comando é uma classe (nome, parâmetros, nó de AST, geração). Sem editar array gigante.
-3. **Compilar uma vez**: PHP gerado em `cache/<hash do conteúdo>.php`; request faz `include` (opcache). Invalida ao salvar a pele. É uma camada nova que se soma ao cache de página e de dados (que o PBL já tinha e o PBL4 mantém: cache de página publicada, ADR 0003 §8, e cache de consultas/listas com driver de disco, memcached ou Redis).
+3. **Compilar uma vez**: PHP gerado em `cache/<hash>.php`; request faz `include` (opcache). O hash cobre o molde, a cadeia de layouts **e a versão do formato do compilador** (`Compilador::FORMATO`, que sobe quando o gerador ou o runtime mudam): atualizar o PBL4 nunca reaproveita PHP gerado por um compilador antigo. Invalida também ao salvar a pele. É uma camada nova que se soma ao cache de página e de dados (que o PBL já tinha e o PBL4 mantém: cache de página publicada, ADR 0003 §8, e cache de consultas/listas com driver de disco, memcached ou Redis).
 4. **Erros como exceção** (`PblSyntaxError` com arquivo e linha); nunca `exit`. O editor usa o mesmo validador em modo "compilar sem executar".
 5. **Escape por padrão**: `ECO` escapa (`htmlspecialchars` com `ENT_QUOTES|ENT_SUBSTITUTE`, UTF-8); `ECOCRU` é explícito para HTML confiável. É quebra de compatibilidade: acompanha uma **ferramenta de migração** que varre moldes antigos e propõe a troca.
 6. **Sem PHP cru** no molde (rejeitado no lexer); contexto de execução explícito (`objeto`, `pilha`, `loop`), sem `$GLOBALS`.

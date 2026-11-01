@@ -203,4 +203,38 @@ final class ConsultaTest extends TestCase
         self::assertNull($this->fonte->objeto($ctx, '', '', 'Vencido'));
         self::assertSame('No prazo', $this->fonte->objeto($ctx, (string) $ok->id, '', '')['titulo'] ?? null);
     }
+
+    public function testCamposDoSistemaVencemPropriedadesAntigasDaClasse(): void
+    {
+        $o = new \Pbl\Conteudo\Objeto(42, 1, 7, 3, '/42/', 'Real', 'real', 'publicado', ['id' => 999, 'site' => 2, 'titulo' => 'Falso', 'pai' => 1]);
+
+        $c = ContextoDeObjeto::de($o, 'pagina');
+
+        self::assertSame(42, $c['id']);
+        self::assertSame(1, $c['site']);
+        self::assertSame('Real', $c['titulo']);
+        self::assertSame(3, $c['pai']);
+    }
+
+    public function testTemFilhoNaoSondaOutroSiteNemFilhosInvisiveis(): void
+    {
+        self::assertTrue($this->fonte->temFilhos(['id' => $this->id['a'], 'site' => 1], $this->id['raiz']));
+        self::assertFalse($this->fonte->temFilhos(['id' => $this->id['outro'], 'site' => 1], $this->id['outro']), 'objeto de outro site');
+        self::assertFalse($this->fonte->temFilhos(['id' => 1, 'site' => 2], $this->id['raiz']), 'site 2 perguntando pelo objeto do site 1');
+
+        $pai = $this->objetos->criar(5, $this->pagina, null, 'Pai', '', []);
+        $this->objetos->criar(5, $this->pagina, $pai->id, 'Vencido', 'v', [], 'publicado', ['data_validade' => gmdate('c', time() - 60)]);
+        self::assertFalse($this->fonte->temFilhos(['id' => $pai->id, 'site' => 5], null), 'só filho vencido não conta');
+    }
+
+    public function testBuscaEPorTituloIgnoramMaiusculasUnicode(): void
+    {
+        $this->objetos->criar(1, $this->pagina, null, 'Árvore de Natal', 'arvore', []);
+        $this->objetos->criar(1, $this->pagina, null, 'ÓRGÃO Público', 'orgao', []);
+
+        self::assertContains('Árvore de Natal', $this->titulos(['busca' => 'árvore']));
+        self::assertContains('Árvore de Natal', $this->titulos(['busca' => 'ÁRVORE']));
+        self::assertContains('ÓRGÃO Público', $this->titulos(['busca' => 'órgão']));
+        self::assertSame('ÓRGÃO Público', $this->fonte->objeto(['site' => 1], '', '', 'órgão público')['titulo'] ?? null);
+    }
 }

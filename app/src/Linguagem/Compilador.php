@@ -11,11 +11,14 @@ namespace Pbl\Linguagem;
 final class Compilador
 {
     private const MAX_HERANCA = 5;
+    /** Sobe quando o gerador ou o runtime mudam o formato do PHP gerado: invalida todo o cache compilado. */
+    public const FORMATO = 1;
 
     public function __construct(
         private readonly string $pastaCache,
         private readonly Parser $parser = new Parser(),
         private readonly Gerador $gerador = new Gerador(),
+        private readonly int $formato = self::FORMATO,
     ) {
     }
 
@@ -28,7 +31,7 @@ final class Compilador
     /** @return \Closure(array<string, mixed>, Runtime): string */
     public function carregar(string $fonte, ?Resolvedor $resolvedor = null): \Closure
     {
-        $chave = hash('sha256', implode("\0", $this->cadeia($fonte, $resolvedor)));
+        $chave = hash('sha256', 'pbl4-formato-' . $this->formato . "\0" . implode("\0", $this->cadeia($fonte, $resolvedor)));
         $arquivo = $this->pastaCache . '/' . $chave . '.php';
         if (!is_file($arquivo)) {
             $this->gravarAtomico($arquivo, $this->compilar($fonte, $resolvedor));
@@ -100,6 +103,7 @@ final class Compilador
      */
     private function blocosDoFilho(array $arvore): array
     {
+        $this->exigirBlocosUnicos($arvore, []);
         $blocos = [];
         foreach ($arvore as $no) {
             if ($no instanceof NoBloco) {
@@ -115,6 +119,30 @@ final class Compilador
         }
 
         return $blocos;
+    }
+
+    /**
+     * Um nome de bloco só pode aparecer uma vez no molde filho, inclusive aninhado (`bloco a` dentro de `bloco a`
+     * faria a substituição se repetir sem fim).
+     *
+     * @param list<No> $nos
+     * @param array<string, true> $vistos
+     */
+    private function exigirBlocosUnicos(array $nos, array $vistos): void
+    {
+        foreach ($nos as $no) {
+            if ($no instanceof NoBloco) {
+                if (isset($vistos[$no->nome])) {
+                    throw new ErroSintaxe("Bloco repetido: {$no->nome}", $no->linha);
+                }
+                $vistos[$no->nome] = true;
+                $this->exigirBlocosUnicos($no->corpo, $vistos);
+            } elseif ($no instanceof NoSe) {
+                $this->exigirBlocosUnicos(array_merge($no->entao, $no->senao), $vistos);
+            } elseif ($no instanceof NoRepetir || $no instanceof NoColecao || $no instanceof NoSemResultado || $no instanceof NoUsarObjeto || $no instanceof NoTemFilho) {
+                $this->exigirBlocosUnicos($no->corpo, $vistos);
+            }
+        }
     }
 
     /**
