@@ -219,4 +219,71 @@ final class InstaladorWebTest extends TestCase
         self::assertStringContainsString('/_pbl/entrar', $t->getDisplay());
         self::assertTrue(Servicos::doBancoInstalado($this->caminhos)->usuarios->autenticar('root', self::SENHA)?->administrador);
     }
+
+    public function testAtrasDeProxyQueTerminaOHttpsOInstaladorAindaFunciona(): void
+    {
+        $this->darPosse();
+        // O PHP recebe em http; o navegador (e o Origin) são https. Ainda não existe rede.json.
+        $r = (new Aplicacao($this->caminhos))->tratar(Request::create('http://novo.exemplo.org/_pbl/instalar', 'POST', $this->formulario(), [], [], ['HTTP_ORIGIN' => 'https://novo.exemplo.org']));
+
+        self::assertSame(200, $r->getStatusCode(), (string) $r->getContent());
+        self::assertTrue((new Instalador($this->caminhos))->instalado());
+    }
+
+    public function testOrigemDeOutroHostContinuaRecusadaNoInstalador(): void
+    {
+        $this->darPosse();
+        $r = (new Aplicacao($this->caminhos))->tratar(Request::create('http://novo.exemplo.org/_pbl/instalar', 'POST', $this->formulario(), [], [], ['HTTP_ORIGIN' => 'https://evil.example']));
+
+        self::assertSame(403, $r->getStatusCode());
+    }
+
+    public function testAvisoDeConfiguracaoDoServidorNaoViraUmFalsoCertoENemBloqueia(): void
+    {
+        $itens = (new Requisitos($this->caminhos))->verificar();
+        $aviso = array_values(array_filter($itens, static fn (array $i): bool => str_starts_with($i['nome'], 'Confira')));
+
+        self::assertCount(1, $aviso);
+        self::assertFalse($aviso[0]['ok'], 'não finge ter conferido');
+        self::assertFalse($aviso[0]['obrigatorio']);
+        self::assertTrue((new Requisitos($this->caminhos))->tudoCerto(), 'aviso não bloqueia a instalação');
+        $this->darPosse();
+        self::assertStringContainsString('⚠', (string) $this->req('GET')->getContent());
+    }
+
+    public function testPastaInternaSemPermissaoImpedeInstalarAntesDeFecharOInstalador(): void
+    {
+        $this->caminhos->garantirDados();
+        $cache = $this->caminhos->cache();
+        chmod($cache, 0555);
+        try {
+            if (is_writable($cache)) {
+                self::markTestSkipped('executando como root: não dá para tirar a permissão de escrita');
+            }
+            try {
+                (new Instalador($this->caminhos))->instalar('Site', 'novo.exemplo.org');
+                self::fail('deveria recusar');
+            } catch (\RuntimeException $e) {
+                self::assertStringContainsString('não consegue gravar', $e->getMessage());
+            }
+            self::assertFalse((new Instalador($this->caminhos))->instalado());
+        } finally {
+            chmod($cache, 0775);
+        }
+        (new Instalador($this->caminhos))->instalar('Site', 'novo.exemplo.org');
+        self::assertTrue((new Instalador($this->caminhos))->instalado(), 'corrigida a permissão, instala');
+    }
+
+    public function testFalhaAoPublicarDepoisDeInstalarViraAvisoESiteContinuaInstalado(): void
+    {
+        $this->darPosse();
+        file_put_contents($this->caminhos->cache() . '/paginas', 'um arquivo onde deveria haver uma pasta');
+
+        $r = $this->req('POST', '/_pbl/instalar', $this->formulario());
+
+        self::assertSame(200, $r->getStatusCode());
+        self::assertStringContainsString('foi instalado, mas não conseguiu publicar', (string) $r->getContent());
+        self::assertTrue((new Instalador($this->caminhos))->instalado());
+        self::assertNotNull(Servicos::doBancoInstalado($this->caminhos)->usuarios->autenticar('admin', self::SENHA), 'o administrador existe');
+    }
 }

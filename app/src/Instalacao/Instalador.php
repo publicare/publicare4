@@ -46,6 +46,11 @@ final class Instalador
             throw new \InvalidArgumentException('O nome do site não pode ser vazio');
         }
         $this->caminhos->garantirDados();
+        foreach ([$this->caminhos->config(), $this->caminhos->cache(), $this->caminhos->uploads(), $this->caminhos->peles()] as $pasta) {
+            if (!is_writable($pasta)) {
+                throw new \RuntimeException("O PBL4 não consegue gravar em {$pasta}. Dê permissão de escrita a essa pasta e tente de novo.");
+            }
+        }
         Segredo::obter($this->caminhos);
         $this->copiarPeleBasica();
 

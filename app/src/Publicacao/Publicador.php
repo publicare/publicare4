@@ -29,7 +29,7 @@ final class Publicador
     {
         $arquivo = $this->caminhos->pagina($site->id, $objeto->urlAmigavel);
         $pasta = dirname($arquivo);
-        if (!is_dir($pasta) && !mkdir($pasta, 0775, true) && !is_dir($pasta)) {
+        if (!is_dir($pasta) && !@mkdir($pasta, 0775, true) && !is_dir($pasta)) {
             throw new \RuntimeException("Não foi possível criar {$pasta}");
         }
         $this->gravar($arquivo, $this->renderizador->renderizar($site, $objeto));

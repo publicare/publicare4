@@ -65,7 +65,7 @@ final class InstaladorWeb
 
     private function instalar(Request $requisicao, Requisitos $requisitos, Rede $rede, Csrf $csrf, bool $seguro): Response
     {
-        if (!$this->temPosse() || !$rede->origemConfere($requisicao) || !$csrf->conferirEntrar((string) $requisicao->request->get('_csrf', ''))) {
+        if (!$this->temPosse() || !$rede->origemConfere($requisicao, true) || !$csrf->conferirEntrar((string) $requisicao->request->get('_csrf', ''))) {
             return Pagina::resposta('Pedido recusado', '<p>O pedido não pôde ser confirmado. Volte, confira a prova de posse e tente de novo.</p>', Response::HTTP_FORBIDDEN, $seguro);
         }
         $campos = [
@@ -98,16 +98,23 @@ final class InstaladorWeb
         }
 
         // Instalado: publica as páginas de exemplo e desliga a prova de posse (o instalador também some pela trava).
-        $servicos = Servicos::doBancoInstalado($this->caminhos);
-        foreach ($servicos->sites->todos() as $site) {
-            $servicos->publicador->publicarSite($site);
+        $aviso = '';
+        try {
+            $servicos = Servicos::doBancoInstalado($this->caminhos);
+            foreach ($servicos->sites->todos() as $site) {
+                $servicos->publicador->publicarSite($site);
+            }
+        } catch (\Throwable) {
+            // O site já está instalado (o instalador não volta): a publicação pode ser refeita depois, sem refazer nada.
+            $aviso = '<p role="alert" class="erro">O PBL4 foi instalado, mas não conseguiu publicar as páginas de exemplo agora. '
+                . 'Dê permissão de escrita à pasta <code>dados/cache/</code> e rode <code>php bin/pbl publicar</code> (ou republique pela administração).</p>';
         }
         @unlink($this->caminhos->dados() . '/' . self::ARQUIVO_DE_POSSE);
 
-        return Pagina::resposta('PBL4 instalado', '<p class="ok">Tudo pronto.</p><ul>'
+        return Pagina::resposta('PBL4 instalado', '<p class="ok">Tudo pronto.</p>' . $aviso . '<ul>'
             . '<li><a href="/">Ver o site</a></li><li><a href="/_pbl/entrar">Entrar na administração</a> com o login <strong>' . Pagina::h($campos['login']) . '</strong></li></ul>'
             . '<h2>Antes de seguir</h2><ul>'
-            . '<li>Use <strong>HTTPS</strong> no endereço do site (o login só fica totalmente protegido assim).</li>'
+            . '<li>Use <strong>HTTPS</strong> no endereço do site (o login só fica totalmente protegido assim). Se o site fica atrás de um proxy (como o Cloudflare), crie <code>dados/config/rede.json</code> para o login funcionar (veja o guia de instalação).</li>'
             . '<li>Confirme que só a pasta <code>public/</code> é a raiz do site no servidor.</li>'
             . '<li>Guarde a senha em um gerenciador de senhas. O PBL4 não consegue recuperá-la.</li></ul>', Response::HTTP_OK, $seguro);
     }
@@ -119,11 +126,12 @@ final class InstaladorWeb
     {
         $linhas = '';
         foreach ($requisitos->verificar() as $item) {
-            $linhas .= '<tr><td class="' . ($item['ok'] ? 'ok' : 'no') . '">' . ($item['ok'] ? '✔' : '✘') . '</td><td><strong>' . Pagina::h($item['nome']) . '</strong><br>' . Pagina::h($item['detalhe']) . '</td></tr>';
+            $marca = $item['ok'] ? '✔' : ($item['obrigatorio'] ? '✘' : '⚠');
+            $linhas .= '<tr><td class="' . ($item['ok'] ? 'ok' : ($item['obrigatorio'] ? 'no' : 'aviso')) . '">' . $marca . '</td><td><strong>' . Pagina::h($item['nome']) . '</strong><br>' . Pagina::h($item['detalhe']) . '</td></tr>';
         }
         $corpo = '<h2>1. Requisitos do servidor</h2><table>' . $linhas . '</table>';
         if (!$requisitos->tudoCerto() || $csrf === null) {
-            return Pagina::resposta('Instalar o PBL4', $corpo . '<p class="erro">Corrija os itens marcados com ✘ e recarregue esta página.</p>', $status, $seguro);
+            return Pagina::resposta('Instalar o PBL4', $corpo . '<p class="erro">Corrija os itens marcados com ✘ e recarregue esta página. Os marcados com ⚠ são avisos: não impedem a instalação.</p>', $status, $seguro);
         }
         $corpo .= '<h2>2. Prove que você é o dono do servidor</h2>';
         if (!$this->temPosse()) {

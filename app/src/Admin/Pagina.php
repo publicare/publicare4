@@ -20,7 +20,7 @@ final class Pagina
             . '<meta name="robots" content="noindex"><title>' . self::h($titulo) . ' — PBL4</title>'
             . '<style>body{font:16px/1.5 system-ui,sans-serif;max-width:34rem;margin:3rem auto;padding:0 1rem;color:#1d1d1b}'
             . 'label{display:block;margin:.75rem 0}input{display:block;width:100%;padding:.5rem;font:inherit;box-sizing:border-box}'
-            . 'button{margin-top:1rem;padding:.5rem 1rem;font:inherit}.erro{color:#a40000}.ok{color:#146c2e}.no{color:#a40000}'
+            . 'button{margin-top:1rem;padding:.5rem 1rem;font:inherit}.erro{color:#a40000}.ok{color:#146c2e}.no{color:#a40000}.aviso{color:#8a5a00}'
             . 'table{border-collapse:collapse;width:100%}td{padding:.25rem .5rem;border-bottom:1px solid #ddd;vertical-align:top}code{background:#f0f0ee;padding:0 .25rem}</style>'
             . '</head><body><h1>' . self::h($titulo) . '</h1>' . $corpo . '</body></html>';
 
