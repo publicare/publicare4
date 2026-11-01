@@ -11,7 +11,20 @@ final class Parser
         'eco_limite' => ['texto', 'limite', 'inicio'],
         'formatadata' => ['valor', 'formato'],
         'filhos' => ['nome', 'classes', 'ordem', 'inicio', 'limite'],
+        'localizar' => ['nome', 'classes', 'ordem', 'inicio', 'limite', 'pai', 'niveis', 'campo', 'valor', 'busca'],
+        'usarobjeto' => ['id', 'url', 'titulo'],
+        'temfilho' => ['id'],
     ];
+
+    /** comando de abertura => [tipo da coleção, aleatório] */
+    private const COLECOES = [
+        'filhos' => ['filhos', false],
+        'aleatorio' => ['filhos', true],
+        'localizar' => ['localizar', false],
+        'localizaraleatorio' => ['localizar', true],
+    ];
+
+    private const FECHAVEIS = ['se', 'repetir', 'filhos', 'aleatorio', 'localizar', 'localizaraleatorio', 'semfilhos', 'naolocalizado', 'usarobjeto', 'temfilho', 'bloco'];
 
     public function __construct(
         private readonly Lexer $lexer = new Lexer(),
@@ -23,7 +36,7 @@ final class Parser
     public function analisar(string $fonte): array
     {
         $raiz = [];
-        /** @var list<array{no: NoSe|NoRepetir|NoFilhos|NoSemResultado|NoBloco, nome: string, linha: int, naSenao: bool}> $pilha */
+        /** @var list<array{no: NoSe|NoRepetir|NoColecao|NoSemResultado|NoUsarObjeto|NoTemFilho|NoBloco, nome: string, linha: int, naSenao: bool}> $pilha */
         $pilha = [];
         $primeiro = true;
 
@@ -113,11 +126,26 @@ final class Parser
                     $pilha[] = ['no' => new NoRepetir($var, $ini, $fim), 'nome' => 'repetir', 'linha' => $linha, 'naSenao' => false];
                     break;
                 case 'filhos':
-                    $pilha[] = ['no' => new NoFilhos($this->parametros($nome, $resto, $linha, [])), 'nome' => 'filhos', 'linha' => $linha, 'naSenao' => false];
+                case 'aleatorio':
+                case 'localizar':
+                case 'localizaraleatorio':
+                    [$tipo, $aleatorio] = self::COLECOES[$nome];
+                    $pilha[] = ['no' => new NoColecao($tipo, $this->parametros($tipo, $resto, $linha, []), $aleatorio), 'nome' => $nome, 'linha' => $linha, 'naSenao' => false];
+                    break;
+                case 'usarobjeto':
+                    $params = $this->parametros($nome, $resto, $linha, []);
+                    if ($params === []) {
+                        throw new ErroSintaxe('usarobjeto exige id, url ou titulo', $linha);
+                    }
+                    $pilha[] = ['no' => new NoUsarObjeto($params), 'nome' => $nome, 'linha' => $linha, 'naSenao' => false];
+                    break;
+                case 'temfilho':
+                    $pilha[] = ['no' => new NoTemFilho($this->parametros($nome, $resto, $linha, [])), 'nome' => $nome, 'linha' => $linha, 'naSenao' => false];
                     break;
                 case 'semfilhos':
+                case 'naolocalizado':
                     $this->semArgumentos($nome, $resto, $linha);
-                    $pilha[] = ['no' => new NoSemResultado(), 'nome' => 'semfilhos', 'linha' => $linha, 'naSenao' => false];
+                    $pilha[] = ['no' => new NoSemResultado(), 'nome' => $nome, 'linha' => $linha, 'naSenao' => false];
                     break;
                 case 'bloco':
                     $id = strtolower($resto);
@@ -144,11 +172,11 @@ final class Parser
     }
 
     /**
-     * @param list<array{no: NoSe|NoRepetir|NoFilhos|NoSemResultado|NoBloco, nome: string, linha: int, naSenao: bool}> $pilha
+     * @param list<array{no: NoSe|NoRepetir|NoColecao|NoSemResultado|NoUsarObjeto|NoTemFilho|NoBloco, nome: string, linha: int, naSenao: bool}> $pilha
      */
     private function fechar(string $nome, string $resto, int $linha, array &$pilha, \Closure $adicionar): void
     {
-        if ($resto !== '' || !in_array($nome, ['se', 'repetir', 'filhos', 'semfilhos', 'bloco'], true)) {
+        if ($resto !== '' || !in_array($nome, self::FECHAVEIS, true)) {
             throw new ErroSintaxe("Fechamento inválido: /{$nome}", $linha);
         }
         $topo = array_pop($pilha);

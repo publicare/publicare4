@@ -104,13 +104,7 @@ final class ObjetoRepositorio
      */
     public function filhos(int $paiId, ?array $classeIds, string $ordem, int $inicio, int $limite): array
     {
-        $partes = preg_split('/\s+/', trim($ordem)) ?: [];
-        $coluna = strtolower($partes[0] ?? '');
-        if (!in_array($coluna, ['id', 'titulo', 'criado_em', 'atualizado_em'], true)) {
-            $coluna = 'id';
-        }
-        $direcao = strtolower($partes[1] ?? '') === 'desc' ? 'DESC' : 'ASC';
-
+        $ordenacao = $this->ordenacao($ordem);
         $sql = 'SELECT * FROM objeto WHERE status = ? AND pai_id = ?';
         $params = ['publicado', $paiId];
         $tipos = [\Doctrine\DBAL\ParameterType::STRING, \Doctrine\DBAL\ParameterType::INTEGER];
@@ -119,9 +113,96 @@ final class ObjetoRepositorio
             $params[] = $classeIds;
             $tipos[] = \Doctrine\DBAL\ArrayParameterType::INTEGER;
         }
-        $sql .= " ORDER BY {$coluna} {$direcao}, id ASC LIMIT " . max(1, $limite) . ' OFFSET ' . max(0, $inicio);
+        $sql .= " ORDER BY {$ordenacao}, id ASC LIMIT " . max(1, $limite) . ' OFFSET ' . max(0, $inicio);
 
         return array_map($this->hidratar(...), $this->conexao->executeQuery($sql, $params, $tipos)->fetchAllAssociative());
+    }
+
+    /**
+     * Busca publicada num site: subárvore (`pai`, `niveis`), classes, igualdade em campo indexado
+     * (`campo`/`valor`) e texto no título (`busca`). Subconjunto seguro; o motor único é a fase 1.
+     *
+     * @param array{classeIds?: list<int>, pai?: int, niveis?: int, campo?: string, valor?: string, busca?: string, ordem?: string, inicio?: int, limite?: int} $f
+     * @return list<Objeto>
+     */
+    public function localizar(int $siteId, array $f): array
+    {
+        $sql = 'SELECT o.* FROM objeto o WHERE o.site_id = ? AND o.status = ?';
+        $params = [$siteId, 'publicado'];
+        $tipos = [\Doctrine\DBAL\ParameterType::INTEGER, \Doctrine\DBAL\ParameterType::STRING];
+
+        if (isset($f['pai']) && $f['pai'] >= 0) {
+            $caminhoPai = $this->conexao->fetchOne('SELECT caminho FROM objeto WHERE id = ? AND site_id = ?', [$f['pai'], $siteId]);
+            if ($caminhoPai === false) {
+                return [];
+            }
+            $sql .= " AND o.caminho LIKE ? ESCAPE '!' AND o.id <> ?";
+            $params[] = $this->escaparLike((string) $caminhoPai) . '%';
+            $params[] = $f['pai'];
+            $tipos[] = \Doctrine\DBAL\ParameterType::STRING;
+            $tipos[] = \Doctrine\DBAL\ParameterType::INTEGER;
+            if (isset($f['niveis']) && $f['niveis'] > 0) {
+                $barras = substr_count((string) $caminhoPai, '/') + $f['niveis'];
+                $sql .= " AND (LENGTH(o.caminho) - LENGTH(REPLACE(o.caminho, '/', ''))) <= ?";
+                $params[] = $barras;
+                $tipos[] = \Doctrine\DBAL\ParameterType::INTEGER;
+            }
+        }
+        if (isset($f['classeIds'])) {
+            $sql .= ' AND o.classe_id IN (?)';
+            $params[] = $f['classeIds'];
+            $tipos[] = \Doctrine\DBAL\ArrayParameterType::INTEGER;
+        }
+        if (isset($f['campo'], $f['valor'])) {
+            $sql .= ' AND EXISTS (SELECT 1 FROM objeto_indice i WHERE i.objeto_id = o.id AND i.chave = ? AND (i.texto = ?' . (is_numeric($f['valor']) ? ' OR i.numero = ?' : '') . '))';
+            array_push($params, $f['campo'], $f['valor']);
+            array_push($tipos, \Doctrine\DBAL\ParameterType::STRING, \Doctrine\DBAL\ParameterType::STRING);
+            if (is_numeric($f['valor'])) {
+                $params[] = (float) $f['valor'];
+                $tipos[] = \Doctrine\DBAL\ParameterType::STRING;
+            }
+        }
+        if (isset($f['busca']) && $f['busca'] !== '') {
+            $sql .= " AND LOWER(o.titulo) LIKE ? ESCAPE '!'";
+            $params[] = '%' . $this->escaparLike(mb_strtolower($f['busca'])) . '%';
+            $tipos[] = \Doctrine\DBAL\ParameterType::STRING;
+        }
+        $sql .= ' ORDER BY ' . $this->ordenacao($f['ordem'] ?? '', 'o.') . ', o.id ASC LIMIT ' . max(1, $f['limite'] ?? 100) . ' OFFSET ' . max(0, $f['inicio'] ?? 0);
+
+        return array_map($this->hidratar(...), $this->conexao->executeQuery($sql, $params, $tipos)->fetchAllAssociative());
+    }
+
+    public function temFilhos(int $id): bool
+    {
+        return $this->conexao->fetchOne('SELECT 1 FROM objeto WHERE pai_id = ? AND status = ? LIMIT 1', [$id, 'publicado']) !== false;
+    }
+
+    /** Primeiro objeto publicado do site com esse título (sem diferenciar maiúsculas). */
+    public function porTitulo(int $siteId, string $titulo): ?Objeto
+    {
+        $linha = $this->conexao->fetchAssociative(
+            'SELECT * FROM objeto WHERE site_id = ? AND status = ? AND LOWER(titulo) = ? ORDER BY id LIMIT 1',
+            [$siteId, 'publicado', mb_strtolower($titulo)],
+        );
+
+        return $linha === false ? null : $this->hidratar($linha);
+    }
+
+    /** Ordenação por lista fechada de colunas: nada do molde chega ao SQL como texto livre. */
+    private function ordenacao(string $ordem, string $prefixo = ''): string
+    {
+        $partes = preg_split('/\s+/', trim($ordem)) ?: [];
+        $coluna = strtolower($partes[0] ?? '');
+        if (!in_array($coluna, ['id', 'titulo', 'criado_em', 'atualizado_em'], true)) {
+            $coluna = 'id';
+        }
+
+        return $prefixo . $coluna . (strtolower($partes[1] ?? '') === 'desc' ? ' DESC' : ' ASC');
+    }
+
+    private function escaparLike(string $texto): string
+    {
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $texto);
     }
 
     /** @return list<Objeto> publicados do site cujo caminho começa com o prefixo (a própria subárvore). */

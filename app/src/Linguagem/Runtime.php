@@ -161,22 +161,82 @@ final class Runtime
 
     /**
      * @param array<string, mixed> $objeto
+     * @param array<string, mixed> $p
      * @return list<array<string, mixed>>
      */
-    public function filhos(array $objeto, mixed $classes, mixed $ordem, mixed $inicio, mixed $limite): array
+    public function filhos(array $objeto, array $p): array
     {
-        if ($this->fonte === null) {
-            return [];
-        }
-        $l = is_numeric($limite) ? (int) $limite : -1;
+        return $this->fonte?->filhos($objeto, $this->filtros($p)) ?? [];
+    }
 
-        return $this->fonte->filhos(
-            $objeto,
-            $this->texto($classes),
-            $this->texto($ordem),
-            is_numeric($inicio) ? max(0, (int) $inicio) : 0,
-            $l < 0 || $l > self::LIMITE_LACO ? self::LIMITE_LACO : $l,
-        );
+    /**
+     * @param array<string, mixed> $objeto
+     * @param array<string, mixed> $p
+     * @return list<array<string, mixed>>
+     */
+    public function localizar(array $objeto, array $p): array
+    {
+        return $this->fonte?->localizar($objeto, $this->filtros($p)) ?? [];
+    }
+
+    /**
+     * @param array<string, mixed> $objeto
+     * @param array<string, mixed> $p
+     * @return array<string, mixed>|null
+     */
+    public function objeto(array $objeto, array $p): ?array
+    {
+        return $this->fonte?->objeto($objeto, $this->texto($p['id'] ?? ''), $this->texto($p['url'] ?? ''), $this->texto($p['titulo'] ?? ''));
+    }
+
+    /**
+     * @param array<string, mixed> $objeto
+     * @param array<string, mixed> $p
+     */
+    public function temFilhos(array $objeto, array $p): bool
+    {
+        $id = $p['id'] ?? null;
+
+        return $this->fonte?->temFilhos($objeto, is_numeric($id) ? (int) $id : null) ?? false;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $lista
+     * @return list<array<string, mixed>>
+     */
+    public function embaralhar(array $lista): array
+    {
+        shuffle($lista);
+
+        return $lista;
+    }
+
+    /**
+     * Normaliza e limita os parâmetros do molde antes de chegarem à fonte de dados.
+     *
+     * @param array<string, mixed> $p
+     * @return array<string, int|string>
+     */
+    private function filtros(array $p): array
+    {
+        $f = [];
+        foreach (['classes', 'ordem', 'campo', 'valor', 'busca'] as $chave) {
+            if (isset($p[$chave]) && $this->texto($p[$chave]) !== '') {
+                $f[$chave] = $this->texto($p[$chave]);
+            }
+        }
+        foreach (['inicio', 'pai', 'niveis'] as $chave) {
+            if (isset($p[$chave]) && is_numeric($p[$chave])) {
+                $f[$chave] = (int) $p[$chave];
+            }
+        }
+        $limite = isset($p['limite']) && is_numeric($p['limite']) ? (int) $p['limite'] : -1;
+        $f['limite'] = $limite < 0 || $limite > self::LIMITE_LACO ? self::LIMITE_LACO : $limite;
+        if (isset($f['inicio'])) {
+            $f['inicio'] = max(0, (int) $f['inicio']);
+        }
+
+        return $f;
     }
 
     public function abrirColecao(int $total): void

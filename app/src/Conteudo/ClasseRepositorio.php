@@ -9,6 +9,8 @@ use Doctrine\DBAL\Connection;
 final class ClasseRepositorio
 {
     public const TIPOS = ['texto', 'numero', 'html'];
+    /** Nomes que o contexto do molde já usa (`#id`, `#titulo`...). */
+    public const RESERVADOS = ['id', 'titulo', 'url', 'classe', 'site', 'pai', 'filhos'];
 
     public function __construct(private readonly Connection $conexao)
     {
@@ -22,7 +24,7 @@ final class ClasseRepositorio
         }
         $normalizadas = [];
         foreach ($propriedades as $p) {
-            if (preg_match('/^[a-z][a-z0-9_]*$/', $p['nome']) !== 1 || in_array($p['nome'], ['titulo', 'url', 'filhos'], true)) {
+            if (preg_match('/^[a-z][a-z0-9_]*$/', $p['nome']) !== 1 || in_array($p['nome'], self::RESERVADOS, true)) {
                 throw new \InvalidArgumentException("Nome de propriedade inválido: {$p['nome']}");
             }
             if (!in_array($p['tipo'], self::TIPOS, true)) {

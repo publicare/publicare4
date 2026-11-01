@@ -21,10 +21,14 @@ comando    = "=" , expr
            | "var" , variavel , "=" , expr
            | "se" , condicao | "senao" | "/se"
            | "repetir" , variavel , "=" , "[" , expr , "," , expr , "]" | "/repetir"
-           | "filhos" , [ params ] | "/filhos" | "semfilhos" | "/semfilhos"
+           | colecao , [ params ] | "/" , colecao
+           | "semfilhos" | "/semfilhos" | "naolocalizado" | "/naolocalizado"
+           | "usarobjeto" , params | "/usarobjeto"
+           | "temfilho" , [ params ] | "/temfilho"
            | "estende" , string
            | "bloco" , nome | "/bloco"
            | "incluir" , params ;
+colecao    = "filhos" | "aleatorio" | "localizar" | "localizaraleatorio" ;
 condicao   = [ "[" ] , expr , [ comparador , expr ] , [ "]" ] ;
 comparador = "==" | "=" | "!=" | "<" | ">" | "<=" | ">=" ;
 params     = nome , "=" , expr , { nome , "=" , expr } ;
@@ -39,7 +43,7 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 
 | Elemento | Significado |
 |---|---|
-| `#campo` | campo do objeto corrente (`#titulo`, `#url`, `#id`, `#classe` e os campos da classe). Dentro de `filhos`, o objeto corrente é o filho. Campo inexistente é vazio. |
+| `#campo` | campo do objeto corrente (`#id`, `#titulo`, `#url`, `#classe`, `#site`, `#pai` e os campos da classe; esses nomes são reservados). Dentro de `filhos`, o objeto corrente é o filho. Campo inexistente é vazio. |
 | `$variavel` | variável do molde, criada por `var` ou `repetir`; compartilhada com os moldes incluídos; vazia se não definida. Não toca em variáveis do PHP. |
 | `%MACRO` | `DIA`, `MES`, `ANO`, `DATA` (dd/mm/aaaa); em laço de coleção: `INDICE` (1..n) e `FIM`/`QUANTIDADE` (total). Macro desconhecida é erro de sintaxe. |
 | `.` | concatenação (texto). `+ - * /` aritmética; texto não numérico vale 0; divisão por zero dá vazio. |
@@ -58,7 +62,12 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `<@se cond@>…<@senao@>…<@/se@>` | condicional |
 | `<@repetir $i=[a,b]@>…<@/repetir@>` | laço numérico inclusivo |
 | `<@filhos [classes="a,b"] [ordem="titulo desc"] [inicio=n] [limite=n]@>…<@/filhos@>` | laço sobre filhos **publicados**; `ordem` aceita `id`, `titulo`, `criado_em`, `atualizado_em` e `desc` |
-| `<@semfilhos@>…<@/semfilhos@>` | executa se o último laço de coleção não achou nada |
+| `<@aleatorio …@>…<@/aleatorio@>` | como `filhos`, em ordem aleatória |
+| `<@localizar [classes=…] [pai=n] [niveis=n] [campo=… valor=…] [busca=…] [ordem=…] [inicio=n] [limite=n]@>…<@/localizar@>` | laço sobre objetos **publicados do mesmo site**: `pai` limita à subárvore (excluindo o próprio pai) e `niveis` à profundidade; `campo`+`valor` é igualdade em propriedade **indexável** da classe; `busca` procura o texto no título (sem diferenciar maiúsculas; `%` e `_` são literais). Subconjunto seguro; o motor de consulta completo vem na fase 1 |
+| `<@localizaraleatorio …@>…<@/localizaraleatorio@>` | como `localizar`, em ordem aleatória |
+| `<@semfilhos@>…<@/semfilhos@>` / `<@naolocalizado@>…<@/naolocalizado@>` | executa se o último laço de coleção não achou nada (são sinônimos) |
+| `<@usarobjeto id=n \| url="…" \| titulo="…"@>…<@/usarobjeto@>` | troca o objeto corrente dentro do bloco; objeto inexistente, de outro site ou não publicado: o bloco não roda |
+| `<@temfilho [id=n]@>…<@/temfilho@>` | executa se o objeto (corrente ou `id=`) tem filhos publicados |
 | `<@estende "layout"@>` + `<@bloco nome@>…<@/bloco@>` | herança de layout |
 | `<@incluir arquivo="parte"@>` | inclui outro molde da mesma pele |
 
@@ -75,20 +84,20 @@ Nomes de layout e de `incluir` são caminhos relativos à pasta da pele (`a-z 0-
 
 ## Do PBL3 para o PBL4
 
-A tabela orienta o conversor de moldes (fase 2c). Estado: ✅ nesta versão, ⏳ próximo PR da fase 2, ❌ não será portado.
+A tabela orienta o conversor de moldes (fase 2c). Estado: ✅ nesta versão, ⏳ depois (conversor ou fases seguintes), ❌ não será portado.
 
 | PBL3 | PBL4 | |
 |---|---|---|
 | `eco` (sem escape) | `ecocru` (preserva a saída) ou `eco` (modo seguro do conversor) | ✅ |
 | `ecoe` (`htmlentities`) | `eco` | ✅ |
 | `=`, `eco_limite`, `formatadata`, `var`, `se/senao`, `repetir` | mesmos nomes; fechamento `\x` ou `/x` vira `/x` | ✅ |
-| `filhos`, `semfilhos` | `filhos`, `semfilhos` (`nome=` é ignorado) | ✅ |
+| `filhos`, `semfilhos`, `aleatorio`, `naolocalizado` | mesmos nomes (`nome=` é ignorado) | ✅ |
 | `incluir arquivo=…` | `incluir arquivo=…` (nome de molde da pele, não caminho do servidor) | ✅ |
-| `#cod_objeto`, `#cod_pai` | `#id`, `#pai` | ⏳ |
-| `localizar`, `naolocalizado`, `aleatorio`, `localizaraleatorio` | consulta (depende do motor de consulta, fase 1) | ⏳ |
-| `usarobjeto`, `temfilho` | idem | ⏳ |
-| `usarblob`, `linkblob`, `downloadblob`, `tamanhoblob`, `iconeblob`, `tipoblob`, `srcblob`, `srcthumb`, `iconeclasse` | comandos de arquivo/imagem | ⏳ |
-| `config`, macros `ROOT`, `PERFIL`, `CONFIG`, `USUARIO` | só valores públicos e seguros do site; usuário/perfil depois da fase 3 | ⏳ |
+| `#cod_objeto`, `#cod_pai` | `#id`, `#pai` (feito pelo conversor) | ⏳ |
+| `localizar`, `localizaraleatorio` | `localizar`/`localizaraleatorio` com o subconjunto acima; `condicao`, `like`, `ilike` e `tags` em SQL livre **não** existem: o conversor os marca para revisão e a fase 1 traz filtros equivalentes | ✅ (parcial) |
+| `usarobjeto titulo=…`/`cod_objeto=…`, `temfilho cod_objeto=…` | `usarobjeto titulo=…`/`id=…`, `temfilho id=…` | ✅ |
+| `usarblob`, `linkblob`, `downloadblob`, `tamanhoblob`, `iconeblob`, `tipoblob`, `srcblob`, `srcthumb`, `iconeclasse` | comandos de arquivo/imagem: entram com o upload e a entrega de blobs (fluxo 7) | ⏳ |
+| `config`, macros `ROOT`, `PERFIL`, `CONFIG`, `USUARIO` | só valores públicos e seguros do site (configuração de site); usuário/perfil depois da fase 3 | ⏳ |
 | `executar` (inclui script PHP e chama função) | **módulo** com interface estável (ADR 0005); o conversor aponta cada uso | ❌ |
 | `protegido`, `incluimenu` | área protegida e menu do admin: fase 3 e 5 | ❌ |
 | `$_GET`, `$GLOBALS` e PHP cru nos moldes | sem equivalente (sandbox) | ❌ |
