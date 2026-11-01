@@ -5,14 +5,14 @@
 | Etapa | Fases | Por quê |
 |---|---|---|
 | **Núcleo mínimo (MVP)** | 0, 1, 2, 3, 4 | produto instalável, seguro e que se atualiza: dados, linguagem PBL4 com cache, segurança básica, instalador com pele inicial e atualizador (ADR 0006). Segurança entra no MVP porque o produto nasce exposto na internet. |
-| **Em seguida** | 5, 6, 9 | editor/galeria de peles (ADR 0007), formulários e fluxos declarativos (a identidade low-code) e importador PBL3 para migrar sites existentes |
+| **Em seguida** | 5, 6, 9 | editor/galeria de peles (ADR 0007), formulários e fluxos declarativos (a identidade low-code), importador PBL3 para migrar sites existentes e peles de saída JSON/headless (ADR 0009) |
 | **Após tração** | 7, 8 e ADR 0008 | identidade pública, pagamentos e módulos, peles pagas e comunidade: só com demanda real |
 
-Decisões que **não podem esperar** o MVP, porque custam muito mais depois: layout `app/` + `dados/`, chave pública de assinatura embutida e verificação de pacote, `objeto` JSON + `caminho` materializado, aplicação sem DDL em runtime, sandbox e escape no PBL4.
+Decisões que **não podem esperar** o MVP, porque custam muito mais depois: **tipo de saída da pele** no manifesto e no cache (ADR 0009), layout `app/` + `dados/`, chave pública de assinatura embutida e verificação de pacote, `objeto` JSON + `caminho` materializado, aplicação sem DDL em runtime, sandbox e escape no PBL4.
 
 Primeiro critério de validação: um site real hoje em PBL3 rodando no PBL4 (via conversor de moldes e, depois, importador).
 
-## Fases (revisadas pelos ADRs 0003 a 0008)
+## Fases (revisadas pelos ADRs 0003 a 0009)
 
 | Fase | Entrega | Critério de pronto |
 |---|---|---|
