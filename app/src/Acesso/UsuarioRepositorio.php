@@ -93,6 +93,7 @@ final class UsuarioRepositorio implements Autenticador
             throw new \InvalidArgumentException($problema);
         }
         $this->conexao->update('usuario', ['senha_hash' => $this->hash($senha)], ['id' => $id]);
+        $this->encerrarSessoes($id); // trocar a senha derruba quem estiver logado com a antiga
         $this->auditoria?->registrar('senha.trocar', $ator, $id);
     }
 
@@ -102,6 +103,9 @@ final class UsuarioRepositorio implements Autenticador
             throw new \InvalidArgumentException("Usuário {$id} não existe");
         }
         $this->conexao->update('usuario', ['ativo' => $ativo ? 1 : 0], ['id' => $id]);
+        if (!$ativo) {
+            $this->encerrarSessoes($id);
+        }
         $this->auditoria?->registrar($ativo ? 'usuario.ativar' : 'usuario.desativar', $ator, $id);
     }
 
@@ -139,6 +143,11 @@ final class UsuarioRepositorio implements Autenticador
         }
 
         return $saida;
+    }
+
+    private function encerrarSessoes(int $usuarioId): void
+    {
+        $this->conexao->delete('sessao', ['usuario_id' => $usuarioId]);
     }
 
     /**

@@ -20,4 +20,4 @@ Para quem **instala, opera e desenvolve** o PBL4. Se você quer entender o proje
 
 ## Estado
 
-O núcleo (instalação, modelo de conteúdo, linguagem de moldes, publicação em cache, conversor de moldes) funciona e é coberto por testes. Ainda não há autenticação, administração web, instalador web nem atualizador. Veja o [estado do projeto](../usuario/estado-do-projeto.md) e o [plano](../plano.md).
+O núcleo (instalação, modelo de conteúdo, linguagem de moldes, publicação em cache, conversor de moldes) funciona e é coberto por testes. O login da equipe (sessão, CSRF, limite de tentativas) e as permissões já existem; ainda não há telas de administração, instalador web nem atualizador. Veja o [estado do projeto](../usuario/estado-do-projeto.md) e o [plano](../plano.md).

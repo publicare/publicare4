@@ -36,6 +36,11 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - **Auditoria das alterações de conteúdo**: criar, atualizar, mudar de estado e mover registram quem fez e quais campos mudaram (só os nomes, nunca o conteúdo). (#20)
 - Comando `bin/pbl usuario` (criar, senha, ativar, desativar, listar, conceder, revogar, acessos, auditoria); a senha é pedida de forma oculta (ou lida da entrada padrão), nunca por argumento. (#20)
 - ADR 0011 (autenticação, sessão, permissões e auditoria). (#20)
+- **Entrar e sair pelo navegador** (`/_pbl/entrar`, `/_pbl/sair`, `/_pbl/`), com **sessão própria**: cookie `__Host-pbl4` (`HttpOnly`, `Secure`, `SameSite=Lax`; em HTTP puro, de desenvolvimento, `pbl4` sem `Secure`), token aleatório de 32 bytes **guardado só como hash** no banco, **token novo a cada login**, expiração por inatividade (30 min) e por tempo absoluto (12 h). Trocar a senha ou desativar a conta derruba as sessões. A administração em si ainda é uma página mínima; as telas vêm depois. (#21)
+- **Proteção contra pedidos forjados (CSRF)** em todo POST (token ligado à sessão; no formulário de entrar, token assinado por hora) mais conferência de `Origin`/`Referer`. (#21)
+- **Limite de tentativas de login no servidor**: 5 falhas por login ou 30 por IP em 15 minutos bloqueiam (HTTP 429 com `Retry-After`), sem poder ser contornado descartando o cookie. Login e IP ficam só como hash. A resposta é a mesma para login inexistente e senha errada. (#21)
+- **Cabeçalhos de segurança** na administração (`no-store`, CSP restritiva, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, HSTS em HTTPS) e **segredo do site** gerado na instalação em `dados/config/segredo` (permissão 0600). Atrás de proxy (Cloudflare, nginx), `dados/config/rede.json` diz qual cabeçalho traz o IP real e se o HTTPS vem em `X-Forwarded-Proto`. (#21)
+- Auditoria de entradas, falhas, bloqueios e saídas, sem senha, login digitado nem IP em texto. (#21)
 - Documentação de design (ADRs 0003 a 0009, fluxos e plano), documentação para quem usa e técnica, guia de colaboração, política de segurança, versionamento e pipeline automática de testes.
 
 ### Alterado
@@ -58,6 +63,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ### Segurança
 - Onde o PHP não tem Argon2 e a reserva é bcrypt, a senha passa antes por SHA-256: o bcrypt só considera os 72 primeiros bytes, e senhas longas iguais no começo seriam tratadas como a mesma. Hashes bcrypt antigos continuam entrando e são regravados. (#20)
+- A administração fica sob o prefixo reservado `/_pbl/`, cujo `_` nunca é válido em URL de conteúdo: nada publicado colide com ela. Servir uma página pública continua sem tocar em sessão, usuário nem segredo. (#21)
 - Permissões não dependem mais de texto vindo da requisição (a falha do PBL3 em que quem podia `edit` executava a administração de usuários não é possível por construção): a ação é um valor fixo do código e a decisão usa só usuário, ação e objeto. Usuário inativo não pode nada; perfis não passam de um site para outro nem para fora da subárvore. (#20)
 - Redirecionamentos cadastrados só aceitam destino no próprio site ou `https://` (sem `//`, `javascript:`, `http:`, credenciais, `..`, quebra de linha ou barra invertida); nomes de domínio são validados rótulo a rótulo, sem regex que cause *backtracking*. (#19)
 - O redirecionamento de endereços antigos só vai para o caminho do próprio site (nunca para URL externa) e só se o conteúdo de destino estiver publicado e vigente. (#18)

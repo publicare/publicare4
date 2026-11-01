@@ -24,6 +24,7 @@ As palavras que o Publicare usa, em linguagem simples.
 | **URL amigável** | Endereço legível de uma página (por exemplo, `/sobre`), em vez de números e símbolos. |
 | **Versão (histórico)** | Cada vez que um conteúdo é salvo, o Publicare guarda o estado anterior. Dá para ver o histórico e voltar a uma versão antiga; voltar cria uma versão nova, sem apagar nada. |
 | **Papel (perfil)** | O que alguém pode fazer numa seção do site: **leitor** (só vê), **autor** (cria e edita o que ele mesmo criou) ou **editor** (edita tudo, publica e apaga). O papel vale para a seção e tudo que está dentro dela; o **administrador** tem todos os poderes no site inteiro. |
+| **Sessão** | O período em que você está "logado". Termina ao sair, depois de 30 minutos sem usar ou 12 horas depois de entrar, e também se a sua senha for trocada ou a conta desativada. |
 | **Auditoria** | O registro de quem fez o quê e quando (criar conta, trocar senha, dar acesso…). Só acrescenta, nunca guarda senha, e não pode ser editado pelo sistema. |
 | **Domínio principal** | O endereço oficial do site. Os outros domínios do mesmo site mostram o mesmo conteúdo (avisando qual é o oficial) ou levam direto ao principal. |
 | **Regra de redirecionamento** | Uma instrução que você cadastra: "quem pedir `/antigo` vai para `/novo`". Serve para endereços antigos que já não são uma página do site. |

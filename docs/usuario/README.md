@@ -2,7 +2,7 @@
 
 Esta parte é para quem **quer criar e cuidar de um site** (ou de um pequeno sistema na internet) e não precisa saber programar. Se você é desenvolvedor, vá para a [documentação técnica](../tecnica/README.md).
 
-> **Estado do projeto:** o Publicare 4 está em construção. Hoje ainda **não existe** a tela de administração nem o instalador para quem não é técnico. Esta documentação diz o que é o projeto, para onde ele vai e o que já funciona, e ganha os passos de uso conforme cada parte fica pronta. Veja [Estado do projeto](estado-do-projeto.md).
+> **Estado do projeto:** o Publicare 4 está em construção. Hoje ainda **não existe** a tela de administração completa (só o login) nem o instalador para quem não é técnico. Esta documentação diz o que é o projeto, para onde ele vai e o que já funciona, e ganha os passos de uso conforme cada parte fica pronta. Veja [Estado do projeto](estado-do-projeto.md).
 
 ## Comece por aqui
 

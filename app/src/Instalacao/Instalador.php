@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pbl\Instalacao;
 
+use Pbl\Acesso\Segredo;
 use Pbl\Banco\Conexao;
 use Pbl\Banco\Migrador;
 use Pbl\Caminhos;
@@ -40,6 +41,7 @@ final class Instalador
             throw new \InvalidArgumentException('O nome do site não pode ser vazio');
         }
         $this->caminhos->garantirDados();
+        Segredo::obter($this->caminhos);
         $this->copiarPeleBasica();
 
         $conexao = Conexao::sqlite($this->caminhos->banco());

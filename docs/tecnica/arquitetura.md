@@ -10,6 +10,7 @@ flowchart LR
     I --> A[Aplicacao]
     A --> S[Servicos: banco instalado]
     A -->|host| H[SiteRepositorio: domínio → site]
+    A -->|/_pbl/...| P[Painel: entrar, sair, início]
     A -->|URL validada| C[Caminhos::pagina]
     C --> F[(dados/cache/paginas/site/url.html)]
     F -->|existe e não venceu| R[Resposta 200]
@@ -52,6 +53,7 @@ O molde é compilado **uma vez** para PHP; o hash cobre o molde, a cadeia de lay
 | `redirecionamento` | regras manuais por site (exatas ou por prefixo, 301/302) |
 | `dominio` | host → site, com `modo` (`principal`, `servir`, `redirecionar`) |
 | `usuario`, `acesso`, `auditoria` | equipe, perfil de um usuário numa subárvore e o registro de ações (só acrescenta) |
+| `sessao`, `tentativa_login` | sessões da administração (só o hash do token) e falhas de login (só hashes) |
 | `schema_versao` | migrações já aplicadas |
 
 Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banco em uso normal só precisa de `SELECT/INSERT/UPDATE/DELETE` ([ADR 0003](../adr/0003-plataforma-low-code.md)). A subárvore de um objeto sai do prefixo do `caminho`, o que também limita cada consulta ao seu site.
@@ -62,6 +64,7 @@ Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banc
 |---|---|---|
 | Entrada | `Pbl\Aplicacao`, `public/index.php` | resolver host e URL, devolver arquivo do cache |
 | Conteúdo | `Pbl\Conteudo` | classes, objetos, sites; validação dos dados por tipo (`texto`, `numero`, `html`, `data`, `booleano`, `ref`); índice |
+| Administração | `Pbl\Admin` | `Painel`: rotas sob `/_pbl/` (entrar, sair, início) com sessão, CSRF, limite de tentativas e cabeçalhos de segurança |
 | Acesso | `Pbl\Acesso` | contas, senhas (argon2id), perfis por subárvore, `Permissoes::pode` (único ponto de decisão) e auditoria |
 | Busca | `Pbl\Busca` | normalização de texto (minúsculas e sem acento) usada na gravação e na consulta; relevância e grafias parecidas no [ADR 0010](../adr/0010-busca.md) |
 | Consulta | `Pbl\Consulta` | `Consulta` (o pedido) e `MotorDeConsulta` (a execução): filtros, ordem, referências, contagem, carga em lote. Único caminho para ler conteúdo em lista |
@@ -85,4 +88,4 @@ dados/
 
 ## O que ainda não existe
 
-Sessão e login pelo navegador, administração web, instalador web, atualizador, upload de arquivos, tela para gerir domínios e regras (hoje por linha de comando). Estão no [plano](../plano.md).
+Telas da administração, instalador web, atualizador, upload de arquivos, tela para gerir domínios e regras (hoje por linha de comando). Estão no [plano](../plano.md).

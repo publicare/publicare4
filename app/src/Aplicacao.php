@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pbl;
 
+use Pbl\Acesso\Rede;
+use Pbl\Admin\Painel;
 use Pbl\Conteudo\Dominio;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -48,6 +50,11 @@ final class Aplicacao
 
         if ($dominio->modo === Dominio::REDIRECIONAR && $canonico !== null) {
             return new RedirectResponse($this->noDominio($requisicao, $canonico), Response::HTTP_MOVED_PERMANENTLY);
+        }
+
+        if (Painel::atende($requisicao)) {
+            // Administração (entrar, sair…). Só aqui o segredo do site e as sessões entram em jogo: a página pública não depende deles.
+            return (new Painel($servicos, new Rede($this->caminhos), $servicos->csrf(), $servicos->sessoes(), $servicos->limiteDeTentativas()))->tratar($requisicao);
         }
 
         $pedido = rawurldecode($requisicao->getPathInfo());

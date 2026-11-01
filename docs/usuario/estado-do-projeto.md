@@ -8,7 +8,7 @@
 
 ## Resumo honesto
 
-O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve** e a quem quer **acompanhar ou testar**; ainda **não** serve para colocar um site no ar sem ajuda técnica. Não há tela de administração, e a instalação é por linha de comando.
+O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve** e a quem quer **acompanhar ou testar**; ainda **não** serve para colocar um site no ar sem ajuda técnica. Já dá para a equipe entrar pelo navegador, mas a tela de administração ainda é só uma página de boas-vindas; o conteúdo e as contas se gerenciam por linha de comando, que também é como se instala.
 
 ## O que já funciona
 
@@ -27,6 +27,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Mudar o endereço de uma página sem quebrar o antigo (o antigo passa a levar ao novo) | ✅ |
 | Mover uma página (com tudo que está dentro dela) na árvore | ✅ |
 | Contas da equipe com senha segura e papéis por seção do site (leitor, autor, editor) e administrador geral, com registro de quem fez o quê (por linha de comando) | ✅ |
+| Entrar e sair pelo navegador, com sessão segura e proteção contra tentativas em massa e contra pedidos forjados (a tela de administração ainda é só uma página de boas-vindas) | ✅ |
 | Busca que ignora maiúsculas e acentos (`presidencia` acha `Presidência`) | ✅ |
 | Ligar conteúdos entre si (uma notícia aponta para seu autor) e, nos moldes, mostrar, filtrar e ordenar pelo conteúdo apontado | ✅ |
 | Consultas com até três condições, comparações (maior, menor, contém) e carga rápida de listas | ✅ |
@@ -36,7 +37,6 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Recurso | Estado |
 |---|---|
 | Busca com várias palavras, relevância e correção de erros de digitação ("você quis dizer…") | 🗓️ |
-| Entrar pelo navegador (login com sessão segura, proteção contra tentativas em massa) | 🗓️ |
 | Instalador pelo navegador, para quem não é técnico | 🗓️ |
 | Atualização automática com cópia de segurança | 🗓️ |
 | Tela de administração e editor de peles | 🗓️ |
