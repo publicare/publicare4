@@ -28,6 +28,7 @@
 9. **Fronteira do low-code**: validar com 2 ou 3 sistemas reais (consulta pública, evento pago, biblioteca) o que cabe em configuração e o que vira módulo.
 10. **Pagamentos**: quais conectores entram primeiro (PIX/cartão/boleto); fiscal e recorrência ficam fora.
 11. **LGPD**: política padrão de retenção e anonimização de participantes.
+14. **Marketplace (ADR 0008)**: só com tração; definir licenciamento, loja, termos e divisão de receita antes de abrir a autores.
 13. **Peles**: formato final do `pele.json`, custódia da chave do catálogo, política para peles de comunidade.
 12. **Atualizador**: custódia da chave de assinatura, pacote diferencial, política de rollback de migrações (fluxo 11).
 

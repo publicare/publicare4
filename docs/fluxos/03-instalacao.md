@@ -17,7 +17,7 @@ flowchart TD
     R1 --> R2[2 Banco: SQLite padrão, ou MySQL/Postgres; testar conexão, criar se permitido]
     R2 --> R3[3 Portal: nome, URL detectada, idioma]
     R3 --> R4[4 Administrador: login, e-mail, senha forte]
-    R4 --> R5[5 Conteúdo inicial: escolher pele de exemplo]
+    R4 --> R5[5 Pele inicial: galeria pública com prévias, ou pele básica embutida]
     R5 --> X[Executar: migrações, seeds, escrever config, criar pastas, gerar .htaccess]
     X --> L[Gravar install.lock]
     L --> F[6 Fim: checklist de segurança e link para o admin]
@@ -25,6 +25,7 @@ flowchart TD
 
 Requisitos:
 - **Nenhum conhecimento de PBL**: o passo 5 entrega um portal funcionando com uma pele pronta, editável depois pelo editor (fluxo 4).
+- **Pele inicial pela galeria**: o passo 5 consulta o catálogo público (ADR 0007), mostra miniaturas e prévias e instala a escolhida como ponto de partida. Sem internet (ou catálogo fora do ar), oferece só a **pele básica embutida no pacote**; o usuário troca depois pela galeria. No futuro a mesma tela pode exibir peles avançadas pagas e de comunidade (ADR 0008), sempre depois das gratuitas.
 - **Roda em hospedagem compartilhada**: distribuição em zip com `vendor/` incluso; sem terminal. Requisitos mostrados em linguagem clara, com o que fazer em cada falha.
 - **Banco**: SQLite sem nenhuma configuração é o caminho de leigo; MySQL/Postgres para portais grandes. O usuário de banco da aplicação só precisa de `SELECT/INSERT/UPDATE/DELETE` (sem DDL em runtime, ADR 0003); as migrações usam credencial própria só durante instalação/atualização.
 - **Migrações** (ADR 0003) executam dentro de transação quando o driver permite; falha não deixa meio-instalado.

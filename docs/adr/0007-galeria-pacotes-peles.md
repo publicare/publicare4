@@ -19,7 +19,8 @@ Peles (e templates) são o que dá cara ao site. O leigo precisa **escolher uma 
 6. **Compatibilidade declarada**: a pele lista as classes e campos de que depende; na instalação o sistema mostra o que falta ou sobra e **mapeia** campos (ex.: `titulo` → `nome`). Instalar não altera conteúdo do site.
 7. **Personalização sem perder atualizações**: o usuário edita uma **cópia filha** (sobrescritas) da pele instalada. A pele original continua intacta e atualizável pelo canal; as sobrescritas são aplicadas por cima. Atualização de pele mostra o diff contra as sobrescritas e permite reverter.
 8. **Atualização, remoção e uso**: peles instaladas aparecem com versão e aviso de nova versão; remover mostra os objetos/sites que usam e exige substituta (fluxo 4). Peles são globais, com escolha por site (ADR 0003 §5).
-9. **Publicação por terceiros** (futuro): peles de comunidade entram na galeria por revisão e assinatura do mantenedor do catálogo.
+9. **Instalador**: o passo de pele inicial usa esta galeria, com a pele básica embutida como fallback sem internet (fluxo 3).
+10. **Publicação por terceiros, peles pagas e comunidades abertas** (futuro): ver [ADR 0008](0008-marketplace-comunidade.md).
 
 ## Consequências
 
