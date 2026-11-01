@@ -243,11 +243,16 @@ final class SessaoCsrfRedeTest extends TestCase
 
     public function testHashesFicticiosTemOsMesmosParametrosDosHashesReais(): void
     {
-        $realA = password_get_info(password_hash('a', PASSWORD_ARGON2ID));
-        $realB = password_get_info(password_hash('a', PASSWORD_BCRYPT));
+        // Os custos são fixos no código (não os padrões do PHP, que mudam: o bcrypt foi de 10 para 12 no PHP 8.4).
+        self::assertSame(UsuarioRepositorio::OPCOES_ARGON2ID, password_get_info(UsuarioRepositorio::HASH_FICTICIO_ARGON2ID)['options'], 'ao mudar o custo, regenere o hash fictício');
+        self::assertSame(UsuarioRepositorio::OPCOES_BCRYPT, password_get_info(UsuarioRepositorio::HASH_FICTICIO_BCRYPT)['options']);
 
-        self::assertSame($realA['options'], password_get_info(UsuarioRepositorio::HASH_FICTICIO_ARGON2ID)['options'], 'se o PHP mudar o custo padrão, regenere a constante');
-        self::assertSame($realB['options'], password_get_info(UsuarioRepositorio::HASH_FICTICIO_BCRYPT)['options']);
+        $u = $this->usuarios->criar('custo', 'custo@exemplo.org', 'Custo', 'uma senha bem longa 2026');
+        $guardado = (string) $this->con->fetchOne('SELECT senha_hash FROM usuario WHERE id = ?', [$u->id]);
+        self::assertSame(UsuarioRepositorio::OPCOES_ARGON2ID, password_get_info($guardado)['options'], 'o hash real tem o mesmo custo do fictício');
+        $bcrypt = new UsuarioRepositorio($this->con, null, PASSWORD_BCRYPT);
+        $b = $bcrypt->criar('custob', 'custob@exemplo.org', 'Custo B', 'uma senha bem longa 2026');
+        self::assertSame(UsuarioRepositorio::OPCOES_BCRYPT, password_get_info((string) $this->con->fetchOne('SELECT senha_hash FROM usuario WHERE id = ?', [$b->id]))['options']);
         self::assertSame('argon2id', password_get_info(UsuarioRepositorio::HASH_FICTICIO_ARGON2ID)['algoName']);
         self::assertFalse(password_verify('qualquer senha', UsuarioRepositorio::HASH_FICTICIO_ARGON2ID));
         self::assertFalse(password_verify('qualquer senha', UsuarioRepositorio::HASH_FICTICIO_BCRYPT));

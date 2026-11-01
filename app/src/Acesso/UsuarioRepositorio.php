@@ -13,8 +13,15 @@ final class UsuarioRepositorio implements Autenticador
      * Hashes de mentira, prontos, para login inexistente pagar o MESMO custo de um login que existe (gerá-los na hora custaria um
      * hash a mais e revelaria pelo tempo quais logins existem). Têm os mesmos parâmetros dos hashes reais; um teste confere isso.
      */
-    public const HASH_FICTICIO_ARGON2ID = '$argon2id$v=19$m=65536,t=4,p=1$SXdwQVAuQkJna3ZtU2ZYRw$EP1kR1NUCl3IMxkyMYD04tJ3SL0DezoFGt1obgo4Z/k';
-    public const HASH_FICTICIO_BCRYPT = '$2y$10$DxofQot2X7ktF6i0MEoqgeMrQai/3GAGBP4u.R5fXphF2YD.6foui';
+    public const HASH_FICTICIO_ARGON2ID = '$argon2id$v=19$m=65536,t=4,p=1$Qk80eGR1dVk3SGNCcDF1aw$J8BRG2pKuW1ZMgMnwjGPjP+OdHOxHfRjR5or+Udksnk';
+    public const HASH_FICTICIO_BCRYPT = '$2y$12$ozxPHcQgIfOiMVKkQNZ7vO7GRN3mZ9Bwou75yjEirwnLpwzjRjabO';
+
+    /**
+     * Custos **fixos** (não os padrões do PHP, que mudam entre versões: o bcrypt foi de 10 para 12 no PHP 8.4). Mudar estes valores
+     * exige regenerar os hashes fictícios acima; um teste confere que os dois andam juntos.
+     */
+    public const OPCOES_ARGON2ID = ['memory_cost' => 65536, 'time_cost' => 4, 'threads' => 1];
+    public const OPCOES_BCRYPT = ['cost' => 12];
 
     private readonly string $algoritmo;
 
@@ -83,7 +90,7 @@ final class UsuarioRepositorio implements Autenticador
         if ($l === false || !$confere || (int) $l['ativo'] !== 1) {
             return null;
         }
-        if ($bruto || password_needs_rehash($hash, $this->algoritmo)) {
+        if ($bruto || password_needs_rehash($hash, $this->algoritmo, $this->opcoes())) {
             $this->conexao->update('usuario', ['senha_hash' => $this->hash($senha)], ['id' => $l['id']]);
         }
         $this->conexao->update('usuario', ['ultimo_acesso' => gmdate('c')], ['id' => $l['id']]);
@@ -167,7 +174,7 @@ final class UsuarioRepositorio implements Autenticador
 
     private function hash(string $senha): string
     {
-        return password_hash($this->preparar($senha, $this->algoritmo), $this->algoritmo);
+        return password_hash($this->preparar($senha, $this->algoritmo), $this->algoritmo, $this->opcoes());
     }
 
     /**
@@ -185,6 +192,12 @@ final class UsuarioRepositorio implements Autenticador
         $antigo = strlen($senha) <= 72 && password_verify($senha, $hash);
 
         return [$antigo, $antigo];
+    }
+
+    /** @return array<string, int> */
+    private function opcoes(): array
+    {
+        return $this->algoritmo === PASSWORD_BCRYPT ? self::OPCOES_BCRYPT : self::OPCOES_ARGON2ID;
     }
 
     private function hashFicticio(): string
