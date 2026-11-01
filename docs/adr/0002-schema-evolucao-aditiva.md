@@ -1,6 +1,6 @@
 # ADR 0002 — Schema: evolução aditiva sobre o modelo do p3
 
-Status: proposto (2026-11-01)
+Status: **substituído** pelo [ADR 0003](0003-plataforma-low-code.md) (2026-11-01). Mantido como registro da análise do schema do p3; as tabelas novas listadas aqui seguem como ideia.
 
 ## Decisão
 

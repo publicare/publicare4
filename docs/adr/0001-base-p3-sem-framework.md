@@ -1,6 +1,6 @@
 # ADR 0001 — publicare3 como base; sem framework full-stack
 
-Status: proposto (2026-11-01)
+Status: parcialmente substituído pelo [ADR 0003](0003-plataforma-low-code.md) (2026-11-01). Seguem válidos os itens 3–5 (sem framework, peças soltas, PHP 8.2+); os itens 1–2 (p3 como base, schema do p3) foram substituídos.
 
 ## Contexto
 

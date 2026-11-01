@@ -1,22 +1,22 @@
 # Plano e questões em aberto
 
-## Fases
+## Fases (revisadas pelo ADR 0003)
 
 | Fase | Entrega | Critério de pronto |
 |---|---|---|
-| **0 — Base e segurança** | Docker de dev (php 8.2 + MySQL/Postgres); p3 portado para a estrutura do PBL4 rodando; correções críticas: path traversal (`/include/font`, `/html/objects`), upload, regex de permissão, `password_hash`, CSRF, SQL parametrizado nas rotas expostas, sem `var_dump` ao visitante | portal de seed sobe em container; suíte de segurança verde |
-| **1 — Rede de testes + parser** | Corpus de moldes e golden files; Lexer, Parser, Gerador; gramática EBNF; erros como exceção | saída idêntica ao p3 no corpus |
-| **2 — Templates maduros** | Cache compilado, escape por padrão (+ migrador de moldes), herança de layout, `TemplateResolver` | sem `eval` por request; layouts com blocos |
-| **3 — Instalador** | Assistente web + CLI, migrações, seeds, pele inicial, `install.lock` | leigo instala em hospedagem compartilhada sem terminal |
-| **4 — Editor de peles** | Editor, validação, preview, versionamento, import/export, assistente "criar pele" | editar e reverter pele sem tocar em FTP |
-| **5 — Core** | Repositórios com DBAL, tipos 8.2, fim da duplicação `Banco`/`DBLayer`, phpstan e CI | sem concatenação de SQL |
-
-Ordem de dependência: 0 → 1 → (2, 3 em paralelo) → 4 → 5 contínuo.
+| **0 — Tracer bullet** | Docker de dev; instalar com SQLite; criar classe → criar objeto → renderizar com template PBL4 → publicar → servir do cache | fluxo ponta a ponta com testes |
+| **1 — Núcleo de dados** | `objeto` + JSON, caminho materializado, `objeto_indice`, hidratação em lote, motor de consulta, versões, sites e domínios | consultas dos 3 contextos sobre o mesmo motor |
+| **2 — PBL4 (linguagem)** | Lexer, Parser, gramática, sandbox, escape, herança de layout, cache compilado; conversor de moldes PBL3 | moldes de teste convertem e renderizam |
+| **3 — Segurança e acesso** | Autenticação moderna, CSRF, permissões por subárvore e campo, auditoria, aplicação sem DDL | revisão de segurança sem críticos |
+| **4 — Instalador** | Assistente web + CLI, SQLite por padrão, modelos prontos, `install.lock` | leigo instala em hospedagem compartilhada |
+| **5 — Admin e editor de peles** | API-first, admin, editor de peles (blocos + PBL), versionamento, import/export | editar e reverter pele sem FTP |
+| **6 — Fluxos e formulários** | Estados e transições como dado, formulários declarativos, notificações, participação pública | sistema pequeno (cadastro com aprovação) montado sem código |
+| **7 — Importador PBL3** | Conteúdo, classes, versões, usuários, blobs; teste com bases do corpus | site real migrado e conferido |
 
 ## Questões em aberto
 
 1. **Multi-subsite**: mecanismo conhecido (host → `cod_objeto` raiz, ajuste de `parentesco`; tabela `dominio`, ADR 0002). Falta especificar o corte do parentesco, objeto em mais de um domínio e canônico, curinga.
-2. **Nomes físicos**: `bd.tabelas` (config) é a indireção real; `campo_ref` aponta metadado do `objeto`. Testar com um mapa de nomes arbitrários (ex.: prefixos aleatórios) sem depender de Oracle.
+2. **Nomes físicos** (agora opção de instalação, ADR 0003): `bd.tabelas` (config) é a indireção real; `campo_ref` aponta metadado do `objeto`. Testar com um mapa de nomes arbitrários (ex.: prefixos aleatórios) sem depender de Oracle.
 3. **Corpus real**: existe em repositórios **privados** do mantenedor (centenas de moldes PBL e dumps). Não entra neste repo público; ver nota abaixo.
 4. **Branch mais recente do p3**: `master` (2021-03), `psr4`, `3.6.0`, `v3.x`; confirmar de qual partir.
 5. **Peles por FTP**: política de sincronização com `pele_arquivo`.
