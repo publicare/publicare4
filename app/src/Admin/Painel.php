@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Rotas sob `/_pbl/` (o `_` nunca é válido em URL de conteúdo, então nada publicado colide com elas): entrar, sair e as telas
- * da administração (ADR 0012, em `TelasDeConteudo`), que só recebem a requisição com sessão válida. Segurança conforme o ADR 0011: cookie `HttpOnly` +
+ * da administração (ADR 0012, em `TelasDeConteudo` e `TelasDeClasses`), que só recebem a requisição com sessão válida. Segurança conforme o ADR 0011: cookie `HttpOnly` +
  * `SameSite=Lax` (+ `Secure` e prefixo `__Host-` em HTTPS), token novo a cada login, CSRF em todo POST, conferência de origem,
  * limite de tentativas no servidor, resposta igual para login inexistente e senha errada e cabeçalhos de segurança.
  */
@@ -49,11 +49,13 @@ final class Painel
         // Id validado por expressão ancorada e sem ambiguidade antes de virar inteiro.
         $objeto = preg_match('#^' . self::PREFIXO . '/objeto/([1-9][0-9]{0,9})(/editar)?$#D', $caminho, $m) === 1 ? (int) $m[1] : null;
         $editar = $objeto !== null && ($m[2] ?? '') !== '';
+        $rotaDeClasse = TelasDeClasses::rota(self::PREFIXO, $caminho, $metodo);
         $resposta = match (true) {
             $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s)),
             $objeto !== null && !$editar && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->ver($s, $objeto, $requisicao)),
             $objeto !== null && $editar && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->formulario($s, $objeto)),
             $objeto !== null && $editar && $metodo === 'POST' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->salvar($s, $objeto, $requisicao)),
+            $rotaDeClasse !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeClasses($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeClasse, $requisicao)),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'GET' => $this->formularioDeEntrar($requisicao),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'POST' => $this->entrar($requisicao),
             $caminho === self::PREFIXO . '/sair' && $metodo === 'POST' => $this->sair($requisicao),

@@ -53,6 +53,15 @@ final class Permissoes
     }
 
     /**
+     * Criar, alterar e apagar classes (tipos de conteúdo). As classes valem para todos os sites da instalação e mudam o que
+     * todas as seções podem guardar, então só o administrador global modela tipos; nenhum perfil por subárvore dá esse poder.
+     */
+    public function podeModelarClasses(Usuario $usuario): bool
+    {
+        return $usuario->ativo && $usuario->administrador;
+    }
+
+    /**
      * O perfil mais forte que o usuário tem sobre o objeto (nele ou em algum ancestral), ou null. A ancestralidade é conferida
      * em PHP pelo prefixo do `caminho` (o mesmo resultado em qualquer banco, sem concatenação de SQL).
      */
