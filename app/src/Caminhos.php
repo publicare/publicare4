@@ -10,6 +10,8 @@ namespace Pbl;
  */
 final class Caminhos
 {
+    public const URL_VALIDA = '/^(?:|[a-z0-9]+(?:[a-z0-9\-]*[a-z0-9])?(?:\/[a-z0-9]+(?:[a-z0-9\-]*[a-z0-9])?)*)$/';
+
     public readonly string $raiz;
 
     public function __construct(string $raiz)
@@ -45,6 +47,24 @@ final class Caminhos
     public function peles(): string
     {
         return $this->dados() . '/peles';
+    }
+
+    public function cachePbl(): string
+    {
+        return $this->cache() . '/pbl';
+    }
+
+    /**
+     * Arquivo da página publicada no cache. A URL é validada: nada de `..`, barras duplas ou
+     * caracteres fora de [a-z0-9-/], então o caminho nunca sai de `dados/cache/paginas/`.
+     */
+    public function pagina(int $siteId, string $urlAmigavel): string
+    {
+        if (preg_match(self::URL_VALIDA, $urlAmigavel) !== 1) {
+            throw new \InvalidArgumentException('URL inválida');
+        }
+
+        return $this->cache() . "/paginas/{$siteId}/" . ($urlAmigavel === '' ? 'index' : $urlAmigavel) . '.html';
     }
 
     public function banco(): string
