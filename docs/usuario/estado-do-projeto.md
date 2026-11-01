@@ -21,6 +21,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Vários sites e domínios no mesmo programa | ✅ |
 | Conversor de moldes do Publicare antigo (PBL3) para o novo, com relatório | ✅ |
 | Proteções de segurança básicas nos moldes e nas URLs | ✅ |
+| Busca que ignora maiúsculas e acentos (`presidencia` acha `Presidência`) | ✅ |
 | Ligar conteúdos entre si (uma notícia aponta para seu autor) e, nos moldes, mostrar, filtrar e ordenar pelo conteúdo apontado | ✅ |
 | Consultas com até três condições, comparações (maior, menor, contém) e carga rápida de listas | ✅ |
 
@@ -28,6 +29,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 
 | Recurso | Estado |
 |---|---|
+| Busca com várias palavras, relevância e correção de erros de digitação ("você quis dizer…") | 🗓️ |
 | Histórico de versões de cada conteúdo e redirecionamento de endereços antigos | 🔨 |
 | Login seguro, papéis (autor, editor, administrador) e permissões | 🗓️ |
 | Instalador pelo navegador, para quem não é técnico | 🗓️ |

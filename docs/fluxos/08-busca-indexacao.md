@@ -6,6 +6,8 @@
 - Exige Java e processo externo: inviável para o público do instalador (fluxo 3).
 - Postgres no schema usa a extensão `unaccent`, o que indica buscas sem acento.
 
+> **Atualização:** o desenho em três níveis (normalizar, relevância, grafias parecidas) está no [ADR 0010](../adr/0010-busca.md). O **nível A já está implementado**: a busca por título e por propriedades de texto ignora maiúsculas e acentos, igual em todos os bancos. A tabela de opções abaixo continua valendo para o driver de portais grandes.
+
 ## PBL4 (a decidir; não bloqueia as Fases 0–4)
 
 Meta: busca que funcione **sem serviço externo** na instalação padrão.

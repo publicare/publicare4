@@ -53,6 +53,7 @@ Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banc
 |---|---|---|
 | Entrada | `Pbl\Aplicacao`, `public/index.php` | resolver host e URL, devolver arquivo do cache |
 | Conteúdo | `Pbl\Conteudo` | classes, objetos, sites; validação dos dados por tipo (`texto`, `numero`, `html`, `data`, `booleano`, `ref`); índice |
+| Busca | `Pbl\Busca` | normalização de texto (minúsculas e sem acento) usada na gravação e na consulta; relevância e grafias parecidas no [ADR 0010](../adr/0010-busca.md) |
 | Consulta | `Pbl\Consulta` | `Consulta` (o pedido) e `MotorDeConsulta` (a execução): filtros, ordem, referências, contagem, carga em lote. Único caminho para ler conteúdo em lista |
 | Linguagem | `Pbl\Linguagem` | compilar e executar moldes (PBL4) em ambiente restrito |
 | Publicação | `Pbl\Publicacao` | renderizar, gravar e limpar o cache; ligar o runtime ao banco |
