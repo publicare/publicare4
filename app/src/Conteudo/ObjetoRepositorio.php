@@ -259,6 +259,22 @@ final class ObjetoRepositorio
         return [$joins, implode(', ', $itens), $params];
     }
 
+    /**
+     * Todos os objetos do site abaixo do caminho, em qualquer estado. Usado para limpar do cache o que deixou
+     * de estar visível (despublicado, vencido, rascunho).
+     *
+     * @return list<Objeto>
+     */
+    public function todosDaSubarvore(int $siteId, string $caminhoRaiz): array
+    {
+        $linhas = $this->conexao->fetchAllAssociative(
+            "SELECT * FROM objeto WHERE site_id = ? AND caminho LIKE ? ESCAPE '!' ORDER BY id",
+            [$siteId, $this->escaparLike($caminhoRaiz) . '%'],
+        );
+
+        return array_map($this->hidratar(...), $linhas);
+    }
+
     public function temFilhos(int $id): bool
     {
         return $this->conexao->fetchOne('SELECT 1 FROM objeto WHERE pai_id = ? AND status = ? LIMIT 1', [$id, 'publicado']) !== false;

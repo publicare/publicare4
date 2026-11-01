@@ -25,4 +25,12 @@ final class Objeto
         public readonly ?string $dataValidade = null,
     ) {
     }
+
+    /** Publicado e dentro da vigência (`data_publicacao` já chegou, `data_validade` ainda não passou). */
+    public function visivel(string $agoraIso): bool
+    {
+        return $this->status === 'publicado'
+            && ($this->dataPublicacao === null || $this->dataPublicacao <= $agoraIso)
+            && ($this->dataValidade === null || $this->dataValidade >= $agoraIso);
+    }
 }
