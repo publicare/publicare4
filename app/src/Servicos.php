@@ -37,12 +37,12 @@ final class Servicos
     public function __construct(Caminhos $caminhos, Connection $conexao)
     {
         $this->classes = new ClasseRepositorio($conexao);
-        $this->objetos = new ObjetoRepositorio($conexao);
+        $this->auditoria = new Auditoria($conexao);
+        $this->objetos = new ObjetoRepositorio($conexao, $this->auditoria);
         $this->sites = new SiteRepositorio($conexao);
         $this->motor = new MotorDeConsulta($conexao, $this->objetos);
         $this->dominios = new DominioRepositorio($conexao);
         $this->redirecionamentos = new RedirecionamentoRepositorio($conexao);
-        $this->auditoria = new Auditoria($conexao);
         $this->usuarios = new UsuarioRepositorio($conexao, $this->auditoria);
         $this->permissoes = new Permissoes($conexao);
         $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor);

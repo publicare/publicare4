@@ -9,10 +9,13 @@ use Doctrine\DBAL\Connection;
 /** Contas da equipe, perfis por subárvore e senhas (argon2id). */
 final class UsuarioRepositorio implements Autenticador
 {
-    private static ?string $hashFicticio = null;
+    private ?string $hashFicticio = null;
+    private readonly string $algoritmo;
 
-    public function __construct(private readonly Connection $conexao, private readonly ?Auditoria $auditoria = null)
+    /** @param string|null $algoritmo `PASSWORD_ARGON2ID` ou `PASSWORD_BCRYPT`; padrão: argon2id se o PHP tiver, senão bcrypt */
+    public function __construct(private readonly Connection $conexao, private readonly ?Auditoria $auditoria = null, ?string $algoritmo = null)
     {
+        $this->algoritmo = $algoritmo ?? (defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT);
     }
 
     public function criar(string $login, string $email, string $nome, string $senha, bool $administrador = false, string $ator = 'sistema'): Usuario
@@ -36,7 +39,7 @@ final class UsuarioRepositorio implements Autenticador
             throw new \InvalidArgumentException("O login {$login} já existe");
         }
         $this->conexao->insert('usuario', [
-            'login' => $login, 'email' => $email, 'nome' => trim($nome), 'senha_hash' => self::hash($senha),
+            'login' => $login, 'email' => $email, 'nome' => trim($nome), 'senha_hash' => $this->hash($senha),
             'administrador' => $administrador ? 1 : 0, 'ativo' => 1, 'criado_em' => gmdate('c'),
         ]);
         $id = (int) $this->conexao->lastInsertId();
@@ -69,13 +72,13 @@ final class UsuarioRepositorio implements Autenticador
     {
         $l = $this->conexao->fetchAssociative('SELECT * FROM usuario WHERE login = ?', [mb_strtolower(trim($login))]);
         // Login inexistente também paga o custo de uma verificação de hash: o tempo não revela se a conta existe.
-        $hash = $l === false ? self::hashFicticio() : (string) $l['senha_hash'];
-        $confere = password_verify($senha, $hash);
+        $hash = $l === false ? $this->hashFicticio() : (string) $l['senha_hash'];
+        [$confere, $bruto] = $this->conferir($senha, $hash);
         if ($l === false || !$confere || (int) $l['ativo'] !== 1) {
             return null;
         }
-        if (password_needs_rehash($hash, self::algoritmo())) {
-            $this->conexao->update('usuario', ['senha_hash' => self::hash($senha)], ['id' => $l['id']]);
+        if ($bruto || password_needs_rehash($hash, $this->algoritmo)) {
+            $this->conexao->update('usuario', ['senha_hash' => $this->hash($senha)], ['id' => $l['id']]);
         }
         $this->conexao->update('usuario', ['ultimo_acesso' => gmdate('c')], ['id' => $l['id']]);
 
@@ -89,7 +92,7 @@ final class UsuarioRepositorio implements Autenticador
         if ($problema !== null) {
             throw new \InvalidArgumentException($problema);
         }
-        $this->conexao->update('usuario', ['senha_hash' => self::hash($senha)], ['id' => $id]);
+        $this->conexao->update('usuario', ['senha_hash' => $this->hash($senha)], ['id' => $id]);
         $this->auditoria?->registrar('senha.trocar', $ator, $id);
     }
 
@@ -138,20 +141,40 @@ final class UsuarioRepositorio implements Autenticador
         return $saida;
     }
 
-    private static function algoritmo(): string
+    /**
+     * O bcrypt só enxerga os 72 primeiros bytes da senha: duas senhas longas iguais no começo seriam a mesma. Por isso, no bcrypt, a
+     * senha passa antes por SHA-256 (em base64, sem byte nulo), o que preserva a senha inteira. O argon2id não tem esse limite.
+     */
+    private function preparar(string $senha, string $algoritmo): string
     {
-        // Argon2id quando o PHP foi compilado com ele (imagem oficial e a maioria das hospedagens); senão, bcrypt.
-        return defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT;
+        return $algoritmo === PASSWORD_BCRYPT ? base64_encode(hash('sha256', $senha, true)) : $senha;
     }
 
-    private static function hash(string $senha): string
+    private function hash(string $senha): string
     {
-        return password_hash($senha, self::algoritmo());
+        return password_hash($this->preparar($senha, $this->algoritmo), $this->algoritmo);
     }
 
-    private static function hashFicticio(): string
+    /**
+     * @return array{bool, bool} [confere, só conferiu pelo formato antigo (bcrypt sem pré-hash) e precisa ser regravado]
+     */
+    private function conferir(string $senha, string $hash): array
     {
-        return self::$hashFicticio ??= self::hash(bin2hex(random_bytes(16)));
+        if (!str_starts_with($hash, '$2y$')) {
+            return [password_verify($senha, $hash), false];
+        }
+        if (password_verify($this->preparar($senha, PASSWORD_BCRYPT), $hash)) {
+            return [true, false];
+        }
+        // Hash bcrypt de antes do pré-hash: só vale para senha que cabia nos 72 bytes (senão a verificação truncaria).
+        $antigo = strlen($senha) <= 72 && password_verify($senha, $hash);
+
+        return [$antigo, $antigo];
+    }
+
+    private function hashFicticio(): string
+    {
+        return $this->hashFicticio ??= $this->hash(bin2hex(random_bytes(16)));
     }
 
     /** @param array<string, mixed> $l */

@@ -303,4 +303,50 @@ final class AcessoTest extends TestCase
 
         return null;
     }
+
+    public function testBcryptDeReservaNaoTruncaSenhasLongas(): void
+    {
+        $bcrypt = new UsuarioRepositorio($this->con, $this->auditoria, PASSWORD_BCRYPT);
+        $prefixo = str_repeat('x', 72);
+        $bcrypt->criar('longa', 'longa@exemplo.org', 'Longa', $prefixo . 'AAAA-final-certo');
+
+        self::assertStringStartsWith('$2y$', (string) $this->con->fetchOne("SELECT senha_hash FROM usuario WHERE login = 'longa'"));
+        self::assertNotNull($bcrypt->autenticar('longa', $prefixo . 'AAAA-final-certo'));
+        self::assertNull($bcrypt->autenticar('longa', $prefixo . 'BBBB-final-errado'), 'mesmo começo de 72 bytes, final diferente: não entra');
+        self::assertNull($bcrypt->autenticar('longa', $prefixo), 'só o começo também não');
+    }
+
+    public function testHashBcryptSemPreHashAntigoAindaEntraEViraNovo(): void
+    {
+        $bcrypt = new UsuarioRepositorio($this->con, $this->auditoria, PASSWORD_BCRYPT);
+        $u = $bcrypt->criar('velha', 'velha@exemplo.org', 'Velha', self::SENHA);
+        $this->con->update('usuario', ['senha_hash' => password_hash(self::SENHA, PASSWORD_BCRYPT, ['cost' => 4])], ['id' => $u->id]);
+
+        self::assertNotNull($bcrypt->autenticar('velha', self::SENHA));
+
+        $depois = (string) $this->con->fetchOne('SELECT senha_hash FROM usuario WHERE id = ?', [$u->id]);
+        self::assertFalse(password_verify(self::SENHA, $depois), 'regravado com o pré-hash');
+        self::assertNotNull($bcrypt->autenticar('velha', self::SENHA));
+    }
+
+    public function testAlteracoesDeConteudoVaoParaAAuditoriaSemOConteudo(): void
+    {
+        $ana = $this->usuario('ana');
+        $objetos = new ObjetoRepositorio($this->con, $this->auditoria);
+        $classe = (new ClasseRepositorio($this->con))->criar('nota', [['nome' => 'texto', 'tipo' => 'texto']]);
+        $o = $objetos->criar(1, $classe, null, 'Título confidencial', 'nota', ['texto' => 'segredo do conteúdo'], 'privado', ['criado_por' => $ana->id]);
+        $objetos->atualizar($o->id, ['status' => 'publicado', 'dados' => ['texto' => 'outro segredo']], 'ajuste', null, false, $ana->id);
+        $filho = $objetos->criar(1, $classe, null, 'Filho', 'filho', []);
+        $objetos->mover($filho->id, $o->id, 'organiza', $ana->id);
+
+        $acoes = array_column($this->auditoria->recentes(), 'acao');
+        self::assertSame(['objeto.mover', 'objeto.criar', 'objeto.estado', 'objeto.atualizar', 'objeto.criar', 'usuario.criar'], $acoes);
+        $linhas = $this->con->fetchAllAssociative("SELECT * FROM auditoria WHERE acao LIKE 'objeto.%' ORDER BY id");
+        self::assertSame('usuario:' . $ana->id, $linhas[0]['ator']);
+        self::assertStringContainsString('dados.texto', (string) $linhas[1]['detalhe'], 'diz QUE campo mudou');
+        $tudo = json_encode($linhas, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        foreach (['Título confidencial', 'segredo do conteúdo', 'outro segredo'] as $conteudo) {
+            self::assertStringNotContainsString($conteudo, $tudo, 'o conteúdo não vai para a auditoria');
+        }
+    }
 }

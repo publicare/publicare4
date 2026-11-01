@@ -20,7 +20,7 @@ No PBL3 a autenticação e as permissões tinham falhas graves: senha com `md5`,
 - Permissão por campo (fluxo 6) fica para depois, quando houver editor de classes.
 
 ### 3. Senhas
-`password_hash` com **argon2id** e `password_needs_rehash` a cada login. Mínimo de 10 caracteres (sem limite superior baixo), verificação com `password_verify`, e a senha **nunca** passa por escape de HTML. Senhas `md5` do PBL3 são aceitas só pelo importador, marcadas como legadas, e trocadas por argon2id no primeiro acesso.
+`password_hash` com **argon2id** e `password_needs_rehash` a cada login. Mínimo de 10 caracteres (sem limite superior baixo), verificação com `password_verify`, e a senha **nunca** passa por escape de HTML. Onde o PHP não tem Argon2 a reserva é bcrypt, que só considera os 72 primeiros bytes: nesse caso a senha passa antes por SHA-256 (em base64), para senhas longas iguais no começo não serem confundidas. Senhas `md5` do PBL3 são aceitas só pelo importador, marcadas como legadas, e trocadas por argon2id no primeiro acesso.
 
 ### 4. Sessão (própria, não a do PHP)
 - Tabela `sessao (id_hash, usuario_id, criado_em, expira_em, ultimo_uso)`; o cookie leva um token de 32 bytes aleatórios e o banco guarda só o **hash** dele.

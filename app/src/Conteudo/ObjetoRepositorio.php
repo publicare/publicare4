@@ -7,6 +7,7 @@ namespace Pbl\Conteudo;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use Pbl\Acesso\Auditoria;
 use Pbl\Busca\Texto;
 
 /**
@@ -18,7 +19,7 @@ final class ObjetoRepositorio
     /** Estados de um objeto (fluxo 5). Só `publicado` aparece ao público. */
     public const STATUS = ['privado', 'submetido', 'rejeitado', 'publicado', 'apagado'];
 
-    public function __construct(private readonly Connection $conexao)
+    public function __construct(private readonly Connection $conexao, private readonly ?Auditoria $auditoria = null)
     {
     }
 
@@ -78,6 +79,7 @@ final class ObjetoRepositorio
             $this->conexao->update('objeto', ['caminho' => $caminho], ['id' => $id]);
             $this->indexar($id, $classe, $dados);
             $this->registrarVersao($id, 'criação', $meta['criado_por'] ?? null);
+            $this->auditar('objeto.criar', $meta['criado_por'] ?? null, $id, ['classe' => $classe->nome, 'estado' => $status]);
 
             return new Objeto($id, $siteId, $classe->id, $paiId, $caminho, $titulo, $urlAmigavel, $status, $dados, $meta['peso'] ?? 0, $meta['descricao'] ?? '', $meta['data_publicacao'] ?? null, $meta['data_validade'] ?? null, 1, $meta['criado_por'] ?? null);
         });
@@ -229,6 +231,15 @@ final class ObjetoRepositorio
             }
             $this->conexao->update('objeto', $linha, ['id' => $id]);
             $this->registrarVersao($id, $motivo, $usuarioId);
+            // Só os NOMES do que mudou, nunca o conteúdo (título, texto, dados pessoais ficam fora da auditoria).
+            $campos = array_values(array_diff(array_keys($linha), ['versao', 'atualizado_em', 'titulo_busca', 'titulo_norm', 'dados']));
+            foreach (array_keys($mudancas['dados'] ?? []) as $propriedade) {
+                $campos[] = 'dados.' . $propriedade;
+            }
+            $this->auditar('objeto.atualizar', $usuarioId, $id, ['versao' => $atual->versao + 1, 'campos' => implode(',', $campos), 'motivo' => $motivo === '' ? null : mb_substr($motivo, 0, 120)]);
+            if (isset($linha['status']) && $linha['status'] !== $atual->status) {
+                $this->auditar('objeto.estado', $usuarioId, $id, ['de' => $atual->status, 'para' => (string) $linha['status']]);
+            }
 
             return $this->porId($id) ?? throw new \RuntimeException('Objeto sumiu durante a atualização');
         });
@@ -258,6 +269,7 @@ final class ObjetoRepositorio
             }
             $this->conexao->update('objeto', ['pai_id' => $novoPaiId, 'versao' => $o->versao + 1, 'atualizado_em' => gmdate('c')], ['id' => $id]);
             $this->registrarVersao($id, $motivo, $usuarioId);
+            $this->auditar('objeto.mover', $usuarioId, $id, ['de' => $o->paiId, 'para' => $novoPaiId]);
 
             return $this->porId($id) ?? throw new \RuntimeException('Objeto sumiu durante a movimentação');
         });
@@ -337,6 +349,12 @@ final class ObjetoRepositorio
         $this->conexao->delete('url_historico', ['site_id' => $atual->siteId, 'url_amigavel' => $nova]);
         $this->conexao->delete('url_historico', ['site_id' => $atual->siteId, 'url_amigavel' => $atual->urlAmigavel]);
         $this->conexao->insert('url_historico', ['site_id' => $atual->siteId, 'url_amigavel' => $atual->urlAmigavel, 'objeto_id' => $atual->id, 'criado_em' => gmdate('c')]);
+    }
+
+    /** @param array<string, scalar|null> $detalhe */
+    private function auditar(string $acao, ?int $usuarioId, int $objetoId, array $detalhe): void
+    {
+        $this->auditoria?->registrar($acao, $usuarioId === null ? 'sistema' : 'usuario:' . $usuarioId, $usuarioId, $objetoId, $detalhe);
     }
 
     /** Grava o estado atual do objeto como uma linha de `objeto_versao`. */

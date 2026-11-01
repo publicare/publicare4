@@ -26,7 +26,7 @@ sequenceDiagram
 ## PBL4
 
 > **Decisões detalhadas:** [ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md).
-> **Implementado (fase 3a):** contas e senhas (argon2id), perfis por subárvore com herança pelo `caminho`, `Permissoes::pode` (ação por enum, nunca texto da requisição), autoria nas versões, auditoria que só acrescenta e `bin/pbl usuario`. **Falta (3b):** sessão própria com cookie `__Host-pbl4`, tela/rota de entrar e sair, CSRF, limite de tentativas no servidor, cabeçalhos de segurança, segredo do site, recuperação de senha.
+> **Implementado (fase 3a):** contas e senhas (argon2id), perfis por subárvore com herança pelo `caminho`, `Permissoes::pode` (ação por enum, nunca texto da requisição), autoria nas versões, auditoria que só acrescenta (contas, acessos e alterações de conteúdo, sem o conteúdo) e `bin/pbl usuario`. **Falta (3b):** sessão própria com cookie `__Host-pbl4`, tela/rota de entrar e sair, CSRF, limite de tentativas no servidor, cabeçalhos de segurança, segredo do site, recuperação de senha.
 
 ```mermaid
 flowchart LR

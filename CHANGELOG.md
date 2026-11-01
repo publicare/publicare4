@@ -33,6 +33,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - **Contas da equipe** (`usuario`) com senha guardada em **argon2id** (bcrypt onde o PHP não tem argon2), política de senha (10 a 1024 caracteres, sem senhas óbvias nem igual ao login), atualização automática do hash e verificação que não revela se o login existe (mesmo custo de tempo). (#20)
 - **Perfis por seção da árvore**: `leitor`, `autor` (cria e edita só o que ele criou) e `editor` (edita, publica, apaga), concedidos num conteúdo e herdados por tudo abaixo dele; vale o mais forte; **administrador global** à parte. `Permissoes::pode` é o único ponto de decisão e a ação é um identificador fixo do código, nunca texto da requisição. (#20)
 - **Autoria**: cada conteúdo guarda quem o criou e cada versão guarda quem a fez. **Auditoria** que só acrescenta (criar conta, trocar senha, ativar/desativar, conceder/revogar acesso), sem nunca registrar senha. (#20)
+- **Auditoria das alterações de conteúdo**: criar, atualizar, mudar de estado e mover registram quem fez e quais campos mudaram (só os nomes, nunca o conteúdo). (#20)
 - Comando `bin/pbl usuario` (criar, senha, ativar, desativar, listar, conceder, revogar, acessos, auditoria); a senha é pedida de forma oculta (ou lida da entrada padrão), nunca por argumento. (#20)
 - ADR 0011 (autenticação, sessão, permissões e auditoria). (#20)
 - Documentação de design (ADRs 0003 a 0009, fluxos e plano), documentação para quem usa e técnica, guia de colaboração, política de segurança, versionamento e pipeline automática de testes.
@@ -56,6 +57,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - Página com `data_validade` vencida continuava sendo servida do cache. (#10)
 
 ### Segurança
+- Onde o PHP não tem Argon2 e a reserva é bcrypt, a senha passa antes por SHA-256: o bcrypt só considera os 72 primeiros bytes, e senhas longas iguais no começo seriam tratadas como a mesma. Hashes bcrypt antigos continuam entrando e são regravados. (#20)
 - Permissões não dependem mais de texto vindo da requisição (a falha do PBL3 em que quem podia `edit` executava a administração de usuários não é possível por construção): a ação é um valor fixo do código e a decisão usa só usuário, ação e objeto. Usuário inativo não pode nada; perfis não passam de um site para outro nem para fora da subárvore. (#20)
 - Redirecionamentos cadastrados só aceitam destino no próprio site ou `https://` (sem `//`, `javascript:`, `http:`, credenciais, `..`, quebra de linha ou barra invertida); nomes de domínio são validados rótulo a rótulo, sem regex que cause *backtracking*. (#19)
 - O redirecionamento de endereços antigos só vai para o caminho do próprio site (nunca para URL externa) e só se o conteúdo de destino estiver publicado e vigente. (#18)
