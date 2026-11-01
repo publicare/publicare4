@@ -19,7 +19,7 @@ O público do PBL4 inclui quem instala por FTP em hospedagem compartilhada e nã
 6. **Aplicação atômica com rollback** (fluxo 11): modo manutenção, checagem de espaço e permissões, backup, staging, troca, migrações, health-check e, se falhar, retorno à versão anterior.
 7. **Código separado dos dados.** O pacote só contém o que é substituível (`app/`, `vendor/`, assets, migrações). Configuração, uploads, peles do site, cache e banco SQLite ficam em `dados/`, nunca tocados pela atualização.
 8. **Migrações compatíveis (expandir/contrair).** Cada versão aceita o schema da anterior, o que torna o rollback de código possível depois de migrar. Migração destrutiva só duas versões depois.
-9. **Escopo futuro**: o mesmo mecanismo serve a módulos (ADR 0005) e peles de galeria, com canal e chave próprios.
+9. **Escopo**: o mesmo mecanismo (manifesto assinado, pacote verificado, quarentena) serve a **peles de galeria** ([ADR 0007](0007-galeria-pacotes-peles.md)) e, depois, a módulos (ADR 0005), com catálogo próprio.
 
 ## Segurança
 

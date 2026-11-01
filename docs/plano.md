@@ -9,7 +9,7 @@
 | **2 — PBL4 (linguagem)** | Lexer, Parser, gramática, sandbox, escape, herança de layout, cache compilado; conversor de moldes PBL3 | moldes de teste convertem e renderizam |
 | **3 — Segurança e acesso** | Autenticação moderna, CSRF, permissões por subárvore e campo, auditoria, aplicação sem DDL | revisão de segurança sem críticos |
 | **4 — Instalador e atualizador** | Assistente web + CLI, SQLite por padrão, modelos prontos, `install.lock`; layout `app/`+`dados/`; atualizador com manifesto assinado, backup e rollback (ADR 0006) | leigo instala em hospedagem compartilhada e atualiza com um clique, com rollback testado |
-| **5 — Admin e editor de peles** | API-first, admin, editor de peles (blocos + PBL), versionamento, import/export | editar e reverter pele sem FTP |
+| **5 — Admin e editor de peles** | API-first, admin, editor de peles (blocos + PBL), versionamento, import/export, galeria de peles por CDN, pele filha (ADR 0007) | instalar pele da galeria ou de arquivo, personalizar e reverter sem FTP |
 | **6 — Fluxos e formulários** | Estados e transições como dado, formulários declarativos, notificações, agregações (fluxo 10) | sistema pequeno (cadastro com aprovação, enquete) montado sem código |
 | **7 — Identidade pública** | `participante`, cadastro por token, modos anônimo/identificado, LGPD (ADR 0004) | consulta pública com cadastro funcionando |
 | **8 — Pagamentos e módulos** | Interface de gateway, cobrança, webhooks idempotentes, conector simulado, pontos de extensão (ADR 0005) | evento com inscrição paga ponta a ponta com conector de teste |
@@ -28,6 +28,7 @@
 9. **Fronteira do low-code**: validar com 2 ou 3 sistemas reais (consulta pública, evento pago, biblioteca) o que cabe em configuração e o que vira módulo.
 10. **Pagamentos**: quais conectores entram primeiro (PIX/cartão/boleto); fiscal e recorrência ficam fora.
 11. **LGPD**: política padrão de retenção e anonimização de participantes.
+13. **Peles**: formato final do `pele.json`, custódia da chave do catálogo, política para peles de comunidade.
 12. **Atualizador**: custódia da chave de assinatura, pacote diferencial, política de rollback de migrações (fluxo 11).
 
 ## Corpus de regressão (nota)
