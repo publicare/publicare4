@@ -30,6 +30,7 @@ Requisitos:
 - **Migrações** (ADR 0003) executam dentro de transação quando o driver permite; falha não deixa meio-instalado.
 - **Seeds completos**: tipos de dado, perfis, status, `infoperfil`, classes base, usuário admin (hash seguro), site e domínio, objeto raiz, pele padrão e templates.
 - **Modelos prontos** escolhidos no passo 5: portal institucional, consulta pública, evento com inscrição, biblioteca, cadastro com aprovação (fluxo 10).
+- **Layout de pastas** `app/` (substituível) e `dados/` (config, uploads, peles, cache, SQLite), requisito do atualizador (ADR 0006, fluxo 11); a chave pública de assinatura de releases já vem embutida.
 - **Config**: gerada a partir de modelo; segredos fora do docroot quando possível.
 - **Trava**: `install.lock` + 403/remoção de `/instalar`; a verificação de schema em runtime **nunca** reinstala sozinha.
 - **Pós-instalação**: checklist (`display_errors` off, permissões, remover pasta de instalação, HTTPS) e exportação do relatório.
