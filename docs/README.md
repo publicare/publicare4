@@ -12,6 +12,8 @@ Objetivos:
 
 **Decisões (ADRs)**
 - [0003 — Plataforma low-code de sites, dados e fluxos](adr/0003-plataforma-low-code.md) (vigente)
+- [0004 — Identidade pública](adr/0004-identidade-publica.md) (vigente)
+- [0005 — Pagamentos e conectores](adr/0005-pagamentos-conectores.md) (vigente)
 - [0001 — Sem framework full-stack](adr/0001-base-p3-sem-framework.md) (parcialmente substituído)
 - [0002 — Schema: evolução aditiva](adr/0002-schema-evolucao-aditiva.md) (substituído)
 
@@ -25,8 +27,9 @@ Objetivos:
 7. [Upload e blobs](fluxos/07-upload-blobs.md)
 8. [Busca e indexação](fluxos/08-busca-indexacao.md)
 9. [Armazenamento, referências e consulta](fluxos/09-armazenamento-consulta.md)
+10. [Formulários, fluxos, participação e pagamento](fluxos/10-formularios-fluxos-participacao.md)
 
-Os fluxos 1–8 descrevem o PBL3 e o desenho-alvo inicial; onde divergirem, vale o ADR 0003.
+Cada fluxo traz a seção "Hoje (PBL3)" e o desenho PBL4 alinhado aos ADRs 0003 a 0005.
 
 **Plano**
 - [Fases e questões em aberto](plano.md)

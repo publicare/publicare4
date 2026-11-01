@@ -16,7 +16,9 @@ Meta: busca que funcione **sem serviço externo** na instalação padrão.
 | B. FULLTEXT do MySQL / `tsvector` do Postgres atrás de uma interface | ranking e performance melhores | dois dialetos para manter |
 | C. Lucene/Meilisearch opcional | melhor para portais grandes (100k+ objetos) | exige serviço externo |
 
-Recomendação inicial: interface `BuscaInterface` com **B como padrão** (um driver por banco) e C como driver opcional para portais grandes.
+Recomendação inicial: interface `BuscaInterface` com **B como padrão** (um driver por banco: FTS5 no SQLite, FULLTEXT no MySQL, `tsvector` no Postgres) e C como driver opcional para portais grandes.
+
+A busca textual devolve ids que seguem o mesmo caminho do motor de consulta (fluxo 9): o escopo da subárvore do site e as facetas (tema, autor, ano) vêm de `objeto_indice`, e o texto vem do driver. A biblioteca virtual usa exatamente essa combinação.
 
 ```mermaid
 flowchart LR

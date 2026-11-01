@@ -33,4 +33,5 @@ sequenceDiagram
 6. **Recuperação de senha** por e-mail com token de uso único e prazo.
 7. **Auditoria** das ações sensíveis (`auditoria`).
 8. LDAP preservado como opção; fluxo idêntico depois da autenticação.
-9. Estrutura de perfis e `infoperfil` mantida (compatibilidade com sites existentes).
+9. Estrutura de perfis por subárvore mantida; `infoperfil` evolui para permissões por **rota e por campo** (o importador converte as existentes).
+10. **Visitantes cadastrados não são usuários do admin**: população separada (`participante`), com cadastro por token, LGPD e modos anônimo/identificado (ADR 0004).

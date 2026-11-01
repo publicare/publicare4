@@ -44,3 +44,14 @@ Regras:
 | Busca do portal | visitante | texto + filtros simples; só publicados, não vencidos, não protegidos |
 | Filtros do admin | editor | filtros por campo e por referência, respeitando permissão da subárvore |
 | Template/relatório | autor da pele | comando de lista do PBL com a mesma definição de consulta; exporta CSV/PDF/RSS |
+
+## Caminho materializado e escopo de busca
+
+`objeto.caminho` guarda a trilha completa (`/1/45/230/`), com índice por prefixo. Ele substitui `parentesco` e cumpre os dois papéis dele:
+
+1. **Exibição da árvore** a partir da raiz do site: breadcrumb, menu e `ROOT` do PBL cortam o caminho na raiz resolvida pelo domínio (fluxo 1).
+2. **Redução da população nas buscas**: toda consulta leva implicitamente `caminho LIKE '<caminho da raiz>%'` (site ou seção), de modo que listas, busca e relatórios só enxergam a subárvore pedida. É o filtro mais seletivo e entra sempre no plano de execução.
+
+Mover um objeto reescreve o caminho da subárvore (uma atualização por prefixo, em transação). `objeto_indice` repete o caminho (ou o id do site) para que o filtro de escopo seja resolvido na própria tabela de índice.
+
+Objeto servido por mais de um domínio: o domínio é só uma raiz de entrada; o objeto continua tendo um caminho único e uma URL canônica (a do site dono).

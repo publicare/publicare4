@@ -40,4 +40,4 @@ Segurança:
 - Conteúdo de usuário **nunca** passa pelo compilador; só moldes de pele.
 - Preferência: moldes não executam PHP cru (fluxo 2, item 6).
 
-Fonte de verdade: `pele_arquivo` no banco (ADR 0002); o disco é cache compilado. Questão em aberto: política para quem ainda edita por FTP (reimportar do disco ou ignorar).
+Peles são globais, com sobrescrita por site (ADR 0003, §5). Fonte de verdade: `pele_arquivo` no banco; o disco é cache compilado. Questão em aberto: política para quem ainda edita por FTP (reimportar do disco ou ignorar).

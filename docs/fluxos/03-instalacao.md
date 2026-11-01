@@ -14,7 +14,7 @@
 flowchart TD
     S[Acesso sem configuração] --> I[/instalar/]
     I --> R1[1 Requisitos: PHP, extensões, escrita em config/ uploads/ cache/]
-    R1 --> R2[2 Banco: MySQL ou Postgres, testar conexão, criar se permitido]
+    R1 --> R2[2 Banco: SQLite padrão, ou MySQL/Postgres; testar conexão, criar se permitido]
     R2 --> R3[3 Portal: nome, URL detectada, idioma]
     R3 --> R4[4 Administrador: login, e-mail, senha forte]
     R4 --> R5[5 Conteúdo inicial: escolher pele de exemplo]
@@ -26,8 +26,10 @@ flowchart TD
 Requisitos:
 - **Nenhum conhecimento de PBL**: o passo 5 entrega um portal funcionando com uma pele pronta, editável depois pelo editor (fluxo 4).
 - **Roda em hospedagem compartilhada**: distribuição em zip com `vendor/` incluso; sem terminal. Requisitos mostrados em linguagem clara, com o que fazer em cada falha.
-- **Migrações** (ADR 0002) executam dentro de transação quando o driver permite; falha não deixa meio-instalado.
-- **Seeds completos**: tipos de dado, perfis, status, `infoperfil`, classes base, usuário admin (hash seguro), objeto raiz, pele padrão e templates.
+- **Banco**: SQLite sem nenhuma configuração é o caminho de leigo; MySQL/Postgres para portais grandes. O usuário de banco da aplicação só precisa de `SELECT/INSERT/UPDATE/DELETE` (sem DDL em runtime, ADR 0003); as migrações usam credencial própria só durante instalação/atualização.
+- **Migrações** (ADR 0003) executam dentro de transação quando o driver permite; falha não deixa meio-instalado.
+- **Seeds completos**: tipos de dado, perfis, status, `infoperfil`, classes base, usuário admin (hash seguro), site e domínio, objeto raiz, pele padrão e templates.
+- **Modelos prontos** escolhidos no passo 5: portal institucional, consulta pública, evento com inscrição, biblioteca, cadastro com aprovação (fluxo 10).
 - **Config**: gerada a partir de modelo; segredos fora do docroot quando possível.
 - **Trava**: `install.lock` + 403/remoção de `/instalar`; a verificação de schema em runtime **nunca** reinstala sozinha.
 - **Pós-instalação**: checklist (`display_errors` off, permissões, remover pasta de instalação, HTTPS) e exportação do relatório.

@@ -38,7 +38,8 @@ Princípios:
 5. **Escape por padrão**: `ECO` escapa (`htmlspecialchars` com `ENT_QUOTES|ENT_SUBSTITUTE`, UTF-8); `ECOCRU` é explícito para HTML confiável. É quebra de compatibilidade: acompanha uma **ferramenta de migração** que varre moldes antigos e propõe a troca.
 6. **Sem PHP cru** no molde (rejeitado no lexer); contexto de execução explícito (`objeto`, `pilha`, `loop`), sem `$GLOBALS`.
 7. **Herança de layout**: `<@estende "base"@>` e `<@bloco nome@>…<@/bloco@>` (Fase 2).
-8. **Compatibilidade**: modo legado permite rodar moldes p3 existentes até a migração; testes de caracterização (golden files) garantem saída idêntica.
+8. **Compatibilidade por conversão**: não há modo de execução legado (ADR 0003). Um **conversor** traduz moldes PBL3 para PBL4 (inclusive a troca `ECO` → `ECOCRU` onde o conteúdo era HTML confiável); golden files verificam que a saída renderizada permanece equivalente.
+9. **Extensão**: módulos registram comandos e tipos de campo novos pelo registro do item 2.
 
 ### Corpus de testes
 Branch `2.9.2` do repo `publicare` (≈8 moldes: `basic_header/footer`, `view_basic`, `view_mapasite`, `view_rss`…). Existe um corpus muito maior de moldes reais em repositórios privados do mantenedor; ele não é commitado aqui (ver `plano.md`, nota sobre corpus).

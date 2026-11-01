@@ -61,10 +61,10 @@ flowchart LR
     CTX --> PM[permissões e listas pendentes/vencidos limitadas à subárvore]
 ```
 
-Regras a especificar com exatidão (ver questões em aberto):
-- Como o `parentesco` é "ajustado" a partir da raiz (corte da trilha acima da raiz no breadcrumb/menu/`ROOT`; objetos fora da subárvore dão 404 no domínio).
-- Se o mesmo objeto pode ser servido por mais de um domínio e qual é o canônico (SEO, links absolutos).
-- Subdomínio curinga e domínios de desenvolvimento.
+Regras (ADR 0003, fluxo 9):
+- O ajuste de `parentesco` tinha duas funções: **exibir a árvore a partir da raiz** do domínio e **reduzir a população de registros nas buscas**. No PBL4 ambas vêm do `caminho` materializado: a raiz do domínio corta a trilha em breadcrumb, menu e `ROOT`, e toda consulta fica restrita à subárvore. Objeto fora da subárvore dá 404 no domínio.
+- O mesmo objeto pode ser alcançado por mais de um domínio, mas tem **uma URL canônica** (a do site dono); os demais domínios emitem `rel=canonical`.
+- Subdomínio curinga e domínios de desenvolvimento: configuráveis na tabela `dominio` (padrão, apelido, desenvolvimento).
 
 Todo `portal.objroot` do p3 deixa de ser global e passa a ser lido do **contexto do portal** da requisição.
 
@@ -86,6 +86,7 @@ flowchart LR
 Regras:
 - **Router único** com whitelist de rotas; sem `include` de caminho vindo da URL.
 - **`TemplateResolver`** é a única classe que conhece a ordem de resolução (a do diagrama acima), lendo `pele_arquivo` (fluxo 4) e usando cache compilado (fluxo 2).
-- `url_amigavel` resolvida dentro do escopo do portal (ver questão de multi-subsite no ADR 0002).
+- `url_amigavel` resolvida dentro do escopo do site (ADR 0003, §5).
+- Rotas de **formulários públicos** e de **webhooks** (pagamento) são registradas no mesmo router, com CSRF e limites próprios (fluxo 10).
 - Erros: página 404/403/500 do tema; detalhes só em log, nunca ao visitante.
 - Front controller único `public/index.php`, que na ausência de configuração entra no instalador (fluxo 3).

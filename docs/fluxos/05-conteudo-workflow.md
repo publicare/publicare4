@@ -29,6 +29,8 @@ Versões em `versaoobjeto`; ações registradas em `logobjeto` e `logworkflow`. 
 
 ## PBL4
 
+- **Dados em `objeto` (JSON)** validados pela definição da classe, com `caminho` materializado no lugar de `cod_pai`+`parentesco` e `objeto_indice` para filtros (fluxo 9); versões em tabela própria.
+- **Workflow como configuração**: os estados acima são o padrão; classes e pastas podem definir estados, transições, prazos e notificações próprios (fluxo 10).
 - **Serviços de domínio** (`ObjetoRepository`, `WorkflowService`, `VersaoService`) com testes; controllers finos.
 - **Máquina de estados explícita**: transições permitidas por perfil, validadas no serviço, não na tela.
 - **Sanitização por tipo** (HTML permitido via lista de tags para `Texto Avanc.`).

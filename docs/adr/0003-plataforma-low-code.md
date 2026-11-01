@@ -1,6 +1,6 @@
 # ADR 0003 — PBL4 é uma plataforma low-code de sites, dados e fluxos
 
-Status: proposto (2026-11-01). Substitui o ADR 0002 e os itens 1–2 do ADR 0001.
+Status: proposto (2026-11-01). Substitui o ADR 0002 e os itens 1–2 do ADR 0001. Complementado pelos ADRs [0004](0004-identidade-publica.md) (identidade pública) e [0005](0005-pagamentos-conectores.md) (pagamentos e conectores).
 
 ## Contexto
 
@@ -11,10 +11,21 @@ O PBL4 não é uma modernização do PBL3: mantém as ideias, troca a implementa
 ## Decisão
 
 ### 1. Definição do produto
-Plataforma para **montar sites e pequenos sistemas de dados e fluxos sem código**: tipos de dado (classes), formulários declarativos, listas/filtros/relatórios, fluxos com estados e notificações, participação pública, API JSON. O portal é um uso entre outros. Limite declarado: sistemas pequenos a médios; o que passar disso usa pontos de extensão por código (módulos/ganchos), não scripts soltos nem inflar o núcleo.
+Plataforma para **montar sites e pequenos sistemas de dados e fluxos sem código**: tipos de dado (classes), formulários declarativos, listas/filtros/relatórios, fluxos com estados e notificações, participação pública, API JSON. O portal é um uso entre outros. Limite declarado: sistemas pequenos a médios.
+
+Usos típicos que o núcleo deve cobrir sem código: consulta pública e enquetes; biblioteca virtual (acervo com anexos, busca e facetas); eventos com programação (salas, mesas, palestrantes, valores), inscrição, pagamento e avaliação; cadastros internos com aprovação; formulários de contato e denúncia com moderação.
+
+| Declarativo (configuração) | Extensão por código (módulo) |
+|---|---|
+| classes e campos, validações, formulários | conectores de pagamento (ADR 0005) |
+| estados, transições, prazos, quem aprova | cálculos e regras entre várias tabelas |
+| listagens, filtros, relatórios, exportação | integrações com sistemas externos |
+| notificações por e-mail, permissões | tipos de campo e comandos PBL novos |
+
+O que passar do limite usa pontos de extensão (módulos com interface estável e ganchos), não scripts soltos nem inflar o núcleo.
 
 ### 2. Armazenamento
-- **`objeto`** com os dados em coluna **JSON**, validados pela definição da classe; **caminho materializado** (`/1/45/230/`) no lugar de `parentesco`; versões em tabela própria.
+- **`objeto`** com os dados em coluna **JSON**, validados pela definição da classe; **caminho materializado** (`/1/45/230/`) no lugar de `parentesco`, indexado por prefixo; versões em tabela própria. O caminho cumpre os dois papéis do `parentesco`: exibir a árvore a partir da raiz do site e **reduzir a população de registros nas buscas** (toda consulta é limitada a uma subárvore). Ver fluxo 9.
 - **`objeto_indice`**: tabela de **schema fixo** com colunas tipadas (texto, número, data, id de referência), preenchida ao salvar só para propriedades marcadas "indexável". Serve a filtros e ordenação sem os 8 joins do EAV.
 - **Sem DDL em runtime por padrão.** O usuário de banco da aplicação precisa apenas de `SELECT/INSERT/UPDATE/DELETE`. Criar classe, campo ou fluxo é inserir configuração.
 - **Tabelas físicas por classe** (alto volume): recurso opcional e desligado por padrão, com credencial de migração separada fora da config do site e **modo de revisão** que só exporta o SQL para um DBA aplicar. Identificadores gerados, tipos em lista fechada, sem `DROP` pela interface, pré-visualização, backup e auditoria.
@@ -33,7 +44,7 @@ Uma só definição de consulta (filtros, ordem, limite, `expand`) usada pela **
 `site` é entidade: vários domínios → uma raiz, idioma, pele padrão. Objetos pertencem a um site; **classes, templates e peles são globais** (reutilizáveis entre sites, com sobrescrita por site).
 
 ### 6. Fluxos e formulários como dados
-Estados, transições, quem aprova, prazos e notificações são definidos por classe ou pasta. Formulários públicos e internos são declarativos (campos, validação, anexos, captcha). Notificação por e-mail, depois WhatsApp/webhook. Participação pública (cadastro, token, moderação) é capacidade do núcleo. Modelos prontos no instalador (consulta pública, cadastro, almoxarifado…).
+Estados, transições, quem aprova, prazos e notificações são definidos por classe ou pasta. Formulários públicos e internos são declarativos (campos, validação, anexos, captcha). Notificação por e-mail, depois WhatsApp/webhook. Participação pública (cadastro, token, moderação) é capacidade do núcleo (ADR 0004); inscrição paga usa conectores (ADR 0005). Ver fluxo 10. Modelos prontos no instalador (consulta pública, cadastro, almoxarifado…).
 
 ### 7. Templates
 Linguagem PBL em português, mas bem construída: Lexer, Parser, gramática, sandbox, escape por padrão, herança de layout, compilação com cache. Edição de leigo por **blocos visuais**; PBL no modo avançado. Um **conversor** traduz moldes PBL3 (não há modo de execução legado).

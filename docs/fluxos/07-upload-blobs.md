@@ -23,6 +23,7 @@ flowchart TD
 ```
 
 - **Armazenamento fora do docroot** (ou diretório com execução de PHP desligada) e **nome interno gerado**; o nome original é só metadado escapado.
+- Anexos de objeto guardam o **id do blob** no JSON do objeto; o blob mantém dono, tamanho e hash. Anexos de formulário público seguem a mesma política e entram em quarentena até moderação.
 - **Whitelist** configurável de tipos por classe; SVG sanitizado ou servido como download.
 - **Entrega sempre por controller**, com cabeçalhos seguros e checagem de permissão do objeto dono.
 - **Miniaturas** com `escapeshellarg` ou biblioteca (GD/Imagick), cache em disco.
