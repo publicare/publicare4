@@ -9,7 +9,20 @@ use Doctrine\DBAL\Connection;
 /** Contas da equipe, perfis por subárvore e senhas (argon2id). */
 final class UsuarioRepositorio implements Autenticador
 {
-    private ?string $hashFicticio = null;
+    /**
+     * Hashes de mentira, prontos, para login inexistente pagar o MESMO custo de um login que existe (gerá-los na hora custaria um
+     * hash a mais e revelaria pelo tempo quais logins existem). Têm os mesmos parâmetros dos hashes reais; um teste confere isso.
+     */
+    public const HASH_FICTICIO_ARGON2ID = '$argon2id$v=19$m=65536,t=4,p=1$Qk80eGR1dVk3SGNCcDF1aw$J8BRG2pKuW1ZMgMnwjGPjP+OdHOxHfRjR5or+Udksnk';
+    public const HASH_FICTICIO_BCRYPT = '$2y$12$ozxPHcQgIfOiMVKkQNZ7vO7GRN3mZ9Bwou75yjEirwnLpwzjRjabO';
+
+    /**
+     * Custos **fixos** (não os padrões do PHP, que mudam entre versões: o bcrypt foi de 10 para 12 no PHP 8.4). Mudar estes valores
+     * exige regenerar os hashes fictícios acima; um teste confere que os dois andam juntos.
+     */
+    public const OPCOES_ARGON2ID = ['memory_cost' => 65536, 'time_cost' => 4, 'threads' => 1];
+    public const OPCOES_BCRYPT = ['cost' => 12];
+
     private readonly string $algoritmo;
 
     /** @param string|null $algoritmo `PASSWORD_ARGON2ID` ou `PASSWORD_BCRYPT`; padrão: argon2id se o PHP tiver, senão bcrypt */
@@ -77,7 +90,7 @@ final class UsuarioRepositorio implements Autenticador
         if ($l === false || !$confere || (int) $l['ativo'] !== 1) {
             return null;
         }
-        if ($bruto || password_needs_rehash($hash, $this->algoritmo)) {
+        if ($bruto || password_needs_rehash($hash, $this->algoritmo, $this->opcoes())) {
             $this->conexao->update('usuario', ['senha_hash' => $this->hash($senha)], ['id' => $l['id']]);
         }
         $this->conexao->update('usuario', ['ultimo_acesso' => gmdate('c')], ['id' => $l['id']]);
@@ -93,6 +106,7 @@ final class UsuarioRepositorio implements Autenticador
             throw new \InvalidArgumentException($problema);
         }
         $this->conexao->update('usuario', ['senha_hash' => $this->hash($senha)], ['id' => $id]);
+        $this->encerrarSessoes($id); // trocar a senha derruba quem estiver logado com a antiga
         $this->auditoria?->registrar('senha.trocar', $ator, $id);
     }
 
@@ -102,6 +116,9 @@ final class UsuarioRepositorio implements Autenticador
             throw new \InvalidArgumentException("Usuário {$id} não existe");
         }
         $this->conexao->update('usuario', ['ativo' => $ativo ? 1 : 0], ['id' => $id]);
+        if (!$ativo) {
+            $this->encerrarSessoes($id);
+        }
         $this->auditoria?->registrar($ativo ? 'usuario.ativar' : 'usuario.desativar', $ator, $id);
     }
 
@@ -141,6 +158,11 @@ final class UsuarioRepositorio implements Autenticador
         return $saida;
     }
 
+    private function encerrarSessoes(int $usuarioId): void
+    {
+        $this->conexao->delete('sessao', ['usuario_id' => $usuarioId]);
+    }
+
     /**
      * O bcrypt só enxerga os 72 primeiros bytes da senha: duas senhas longas iguais no começo seriam a mesma. Por isso, no bcrypt, a
      * senha passa antes por SHA-256 (em base64, sem byte nulo), o que preserva a senha inteira. O argon2id não tem esse limite.
@@ -152,7 +174,7 @@ final class UsuarioRepositorio implements Autenticador
 
     private function hash(string $senha): string
     {
-        return password_hash($this->preparar($senha, $this->algoritmo), $this->algoritmo);
+        return password_hash($this->preparar($senha, $this->algoritmo), $this->algoritmo, $this->opcoes());
     }
 
     /**
@@ -172,9 +194,15 @@ final class UsuarioRepositorio implements Autenticador
         return [$antigo, $antigo];
     }
 
+    /** @return array<string, int> */
+    private function opcoes(): array
+    {
+        return $this->algoritmo === PASSWORD_BCRYPT ? self::OPCOES_BCRYPT : self::OPCOES_ARGON2ID;
+    }
+
     private function hashFicticio(): string
     {
-        return $this->hashFicticio ??= $this->hash(bin2hex(random_bytes(16)));
+        return $this->algoritmo === PASSWORD_BCRYPT ? self::HASH_FICTICIO_BCRYPT : self::HASH_FICTICIO_ARGON2ID;
     }
 
     /** @param array<string, mixed> $l */

@@ -26,7 +26,25 @@ sequenceDiagram
 ## PBL4
 
 > **Decisões detalhadas:** [ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md).
-> **Implementado (fase 3a):** contas e senhas (argon2id), perfis por subárvore com herança pelo `caminho`, `Permissoes::pode` (ação por enum, nunca texto da requisição), autoria nas versões, auditoria que só acrescenta (contas, acessos e alterações de conteúdo, sem o conteúdo) e `bin/pbl usuario`. **Falta (3b):** sessão própria com cookie `__Host-pbl4`, tela/rota de entrar e sair, CSRF, limite de tentativas no servidor, cabeçalhos de segurança, segredo do site, recuperação de senha.
+> **Implementado (fase 3a):** contas e senhas (argon2id), perfis por subárvore com herança pelo `caminho`, `Permissoes::pode` (ação por enum, nunca texto da requisição), autoria nas versões, auditoria que só acrescenta (contas, acessos e alterações de conteúdo, sem o conteúdo) e `bin/pbl usuario`. **Implementado (fase 3b):** sessão própria (cookie `__Host-pbl4`, hash do token no banco, token novo a cada login, expira por inatividade e por tempo absoluto), `/_pbl/entrar` e `/_pbl/sair`, CSRF, limite de tentativas no servidor, cabeçalhos de segurança e segredo do site. **Falta:** recuperação de senha por e-mail, dois fatores, permissão por campo e as telas da administração (fase 5).
+
+```mermaid
+sequenceDiagram
+    participant V as Navegador
+    participant A as Aplicacao /_pbl/entrar
+    participant L as LimiteDeTentativas
+    participant U as UsuarioRepositorio
+    participant S as SessaoRepositorio
+    V->>A: POST login, senha, _csrf (+ Origin)
+    A->>A: confere Origin e CSRF (403 se falhar)
+    A->>L: bloqueado? (login e IP, só como hash)
+    L-->>A: sim → 429 Retry-After
+    A->>U: autenticar (mesmo custo se o login não existe)
+    U-->>A: não → registra falha, 401 igual para qualquer motivo
+    U-->>A: sim → limpa contador do login
+    A->>S: encerra sessão do cookie antigo e cria token novo
+    S-->>V: Set-Cookie __Host-pbl4 (HttpOnly, Secure, SameSite=Lax) + 303
+```
 
 ```mermaid
 flowchart LR

@@ -2,7 +2,7 @@
 
 Plataforma livre para **sites, dados e fluxos**, sucessora do Publicare/PBL3. Pensada para quem monta portais e pequenos sistemas (consulta pública, biblioteca, eventos, cadastros) **sem programar**, em hospedagem comum, com moldes de aparência seguros e atualização simples.
 
-> **Estado:** em construção (versão `0.x`, ainda sem lançamento). Já funcionam o modelo de conteúdo, a linguagem de moldes, a publicação em cache e o conversor de moldes do PBL3. **Ainda não há** tela de administração, login nem instalador web. Veja o [estado do projeto](docs/usuario/estado-do-projeto.md).
+> **Estado:** em construção (versão `0.x`, ainda sem lançamento). Já funcionam o modelo de conteúdo, a linguagem de moldes, a publicação em cache e o conversor de moldes do PBL3. A equipe já entra pelo navegador (`/_pbl/entrar`), mas **ainda não há** tela de administração completa nem instalador web. Veja o [estado do projeto](docs/usuario/estado-do-projeto.md).
 
 ## Por onde começar
 

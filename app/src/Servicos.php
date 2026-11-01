@@ -6,6 +6,10 @@ namespace Pbl;
 
 use Doctrine\DBAL\Connection;
 use Pbl\Acesso\Auditoria;
+use Pbl\Acesso\Csrf;
+use Pbl\Acesso\LimiteDeTentativas;
+use Pbl\Acesso\Segredo;
+use Pbl\Acesso\SessaoRepositorio;
 use Pbl\Acesso\Permissoes;
 use Pbl\Acesso\UsuarioRepositorio;
 use Pbl\Banco\Conexao;
@@ -34,7 +38,9 @@ final class Servicos
     public readonly Permissoes $permissoes;
     public readonly Publicador $publicador;
 
-    public function __construct(Caminhos $caminhos, Connection $conexao)
+    private ?string $segredo = null;
+
+    public function __construct(private readonly Caminhos $caminhos, private readonly Connection $conexao)
     {
         $this->classes = new ClasseRepositorio($conexao);
         $this->auditoria = new Auditoria($conexao);
@@ -48,6 +54,27 @@ final class Servicos
         $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor);
         $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador);
+    }
+
+    /** Segredo do site (criado na primeira vez se ainda não existir). Lido só quando preciso, para a área pública não depender dele. */
+    public function segredo(): string
+    {
+        return $this->segredo ??= Segredo::obter($this->caminhos);
+    }
+
+    public function sessoes(?\Closure $relogio = null): SessaoRepositorio
+    {
+        return new SessaoRepositorio($this->conexao, $this->usuarios, $relogio);
+    }
+
+    public function csrf(?\Closure $relogio = null): Csrf
+    {
+        return new Csrf($this->segredo(), $relogio);
+    }
+
+    public function limiteDeTentativas(?\Closure $relogio = null): LimiteDeTentativas
+    {
+        return new LimiteDeTentativas($this->conexao, $this->segredo(), $relogio);
     }
 
     public static function doBancoInstalado(Caminhos $caminhos): self

@@ -15,6 +15,11 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 | **Isolamento entre sites** | Consultas e `usarobjeto`/`temfilho` sempre dentro do site do objeto corrente; campos do sistema (`#id`, `#site`…) vencem dados da classe | `FonteRepositorio`, `ContextoDeObjeto` |
 | **Vigência** | Conteúdo fora do período não é publicado, não aparece em consultas e sai do cache (inclusive por vencimento sem republicar) | `Objeto::visivel`, `.expira` |
 | **Redirecionamento de URL antiga** | Só para caminho relativo do próprio site, montado a partir da URL validada do objeto (nunca de texto da requisição, exceto a query string); só se o destino está publicado e vigente | `Aplicacao`, `ObjetoRepositorio::urlAtualDoHistorico` |
+| **Sessão** | Token de 32 bytes aleatórios, só o SHA-256 no banco; cookie `__Host-pbl4` (`HttpOnly`, `Secure`, `SameSite=Lax`, sem `Domain`); token novo a cada login e o antigo é encerrado (contra fixação); expira em 30 min sem uso e em 12 h; trocar senha ou desativar derruba as sessões; sair só por POST com CSRF | `SessaoRepositorio`, `Painel` |
+| **CSRF** | Token ligado à sessão (HMAC do id da sessão com o segredo do site), `hash_equals`, mais `Origin`/`Referer` conferidos; no formulário de entrar, token assinado por hora | `Csrf`, `Rede` |
+| **Força bruta** | 5 falhas por login ou 30 por IP em 15 min bloqueiam (429 + `Retry-After`) no servidor; login e IP só como HMAC; resposta igual para login inexistente e senha errada; auditoria sem login digitado nem IP | `LimiteDeTentativas`, `Painel` |
+| **Cabeçalhos da administração** | `Cache-Control: no-store`, CSP restritiva (`default-src 'none'`, `frame-ancestors 'none'`, `form-action 'self'`), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: same-origin`, HSTS em HTTPS | `Painel` |
+| **Segredo do site** | 32 bytes em `dados/config/segredo`, permissão 0600, fora do Git, criado na instalação | `Segredo` |
 | **Contas e senhas** | Senha em argon2id (bcrypt de reserva, com SHA-256 antes para não truncar em 72 bytes), política de tamanho e de senhas óbvias, hash atualizado no login, verificação com o mesmo custo para login que não existe, nunca registrada na auditoria | `UsuarioRepositorio`, `SenhaPolitica` |
 | **Permissões** | `Permissoes::pode(usuário, ação, objeto)`: ação é um enum fixo do código (nunca texto da requisição), perfil herdado pelo `caminho` conferido em PHP, o mais forte vence, o autor edita só o que criou, usuário inativo nada, nada cruza de site | `Permissoes`, `Perfil`, `Acao` |
 | **Auditoria** | Tabela que só acrescenta; registra contas, acessos, entradas e saídas e as alterações de conteúdo (criar, atualizar, estado, mover) com **os nomes dos campos, nunca o conteúdo**; sem senha, token, login digitado nem IP em texto | `Auditoria` |
@@ -34,13 +39,25 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 
 | Item | Previsto |
 |---|---|
-| Sessão própria, tela de entrar/sair, CSRF, limite de tentativas no servidor, cabeçalhos de segurança, segredo do site | fase 3b ([ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md)) |
+| Recuperação de senha por e-mail, autenticação em dois fatores | depois da fase 4 ([ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md)) |
 | Permissão por campo | com o editor de classes |
 | Upload seguro (lista de tipos, fora do `docroot`) | com o upload (fluxo 7) |
 | Atualização com pacote **assinado** (Ed25519), verificação e *rollback* | fase 4 ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | Cabeçalhos de segurança (CSP etc.) e HTTPS forçado | com a administração web |
 
-Até lá, **não exponha o PBL4 em produção** para conteúdo que não seja o da publicação estática de páginas.
+## Atrás de um proxy (Cloudflare, nginx)
+
+Com `"confiar_proto": true`, a conferência de origem usa o esquema e a porta que o visitante enxerga (`X-Forwarded-Proto` e, se existir, `X-Forwarded-Port`), e não os da conexão com o proxy; sem a configuração, esses cabeçalhos são ignorados.
+
+O IP real e o HTTPS chegam em cabeçalhos que só podem ser confiados se você disser que o proxy existe. Crie `dados/config/rede.json`:
+
+```json
+{"cabecalho_ip": "CF-Connecting-IP", "confiar_proto": true}
+```
+
+Sem o arquivo, vale só o que o servidor enxerga (o IP do proxy, o que faria o limite de tentativas tratar todos os visitantes como um só). Use **HTTPS** na administração: sem ele o cookie não recebe `Secure` nem o prefixo `__Host-`.
+
+Até a administração ter as telas, **não exponha o PBL4 em produção** para conteúdo que não seja o da publicação estática de páginas.
 
 ## Princípios
 

@@ -1,6 +1,6 @@
 # ADR 0011 — Autenticação, sessão, permissões e auditoria
 
-Status: em implementação (2026-11-01). Itens 1, 2, 3, 7 e 10 implementados (fase 3a); sessão, CSRF, limite de tentativas, cabeçalhos e segredo (itens 4 a 6 e 8) na fase 3b. Detalha o [fluxo 6](../fluxos/06-autenticacao-permissoes.md); complementa o [ADR 0004](0004-identidade-publica.md) (visitantes cadastrados, que ficam separados da equipe).
+Status: implementado (2026-11-01), fases 3a e 3b. Ficam para depois: recuperação de senha por e-mail, autenticação em dois fatores, visitantes cadastrados (ADR 0004) e permissão por campo. Detalha o [fluxo 6](../fluxos/06-autenticacao-permissoes.md); complementa o [ADR 0004](0004-identidade-publica.md) (visitantes cadastrados, que ficam separados da equipe).
 
 ## Contexto
 
