@@ -15,6 +15,9 @@ use Pbl\Busca\Texto;
  */
 final class ObjetoRepositorio
 {
+    /** Estados de um objeto (fluxo 5). Só `publicado` aparece ao público. */
+    public const STATUS = ['privado', 'submetido', 'rejeitado', 'publicado', 'apagado'];
+
     public function __construct(private readonly Connection $conexao)
     {
     }
@@ -22,15 +25,27 @@ final class ObjetoRepositorio
     /**
      * @param array<string, string|int|float|bool> $dados
      * @param array{peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null} $meta
+     * @param bool $liberarUrl true = tomar de propósito um endereço que hoje redireciona para outro objeto
      */
-    public function criar(int $siteId, Classe $classe, ?int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'publicado', array $meta = []): Objeto
+    public function criar(int $siteId, Classe $classe, ?int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'publicado', array $meta = [], bool $liberarUrl = false): Objeto
     {
         if (!\Pbl\Caminhos::urlValida($urlAmigavel)) {
             throw new \InvalidArgumentException("URL amigável inválida: {$urlAmigavel}");
         }
+        if (!in_array($status, self::STATUS, true)) {
+            throw new \InvalidArgumentException("Estado inválido: {$status}");
+        }
         $dados = $this->validar($siteId, $classe, $dados);
 
-        return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta): Objeto {
+        return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta, $liberarUrl): Objeto {
+            // Um endereço que redireciona para outro conteúdo não pode ser tomado por acidente: o cache da página nova passaria
+            // na frente do histórico e o link antigo deixaria de levar ao conteúdo original.
+            if ($this->conexao->fetchOne('SELECT objeto_id FROM url_historico WHERE site_id = ? AND url_amigavel = ?', [$siteId, $urlAmigavel]) !== false) {
+                if (!$liberarUrl) {
+                    throw new \InvalidArgumentException("A URL {$urlAmigavel} era de outro objeto e hoje redireciona para ele; é preciso liberá-la de propósito");
+                }
+                $this->conexao->delete('url_historico', ['site_id' => $siteId, 'url_amigavel' => $urlAmigavel]);
+            }
             $caminhoPai = '/';
             if ($paiId !== null) {
                 $caminhoPai = (string) $this->conexao->fetchOne('SELECT caminho FROM objeto WHERE id = ? AND site_id = ?', [$paiId, $siteId]);
@@ -61,6 +76,7 @@ final class ObjetoRepositorio
             $caminho = $caminhoPai . $id . '/';
             $this->conexao->update('objeto', ['caminho' => $caminho], ['id' => $id]);
             $this->indexar($id, $classe, $dados);
+            $this->registrarVersao($id, 'criação');
 
             return new Objeto($id, $siteId, $classe->id, $paiId, $caminho, $titulo, $urlAmigavel, $status, $dados, $meta['peso'] ?? 0, $meta['descricao'] ?? '', $meta['data_publicacao'] ?? null, $meta['data_validade'] ?? null);
         });
@@ -150,6 +166,190 @@ final class ObjetoRepositorio
         );
 
         return array_map($this->hidratar(...), $linhas);
+    }
+
+    /**
+     * Altera um objeto e guarda uma nova versão. `dados` é mesclado sobre os atuais (valor `null` remove a propriedade);
+     * as demais chaves substituem o valor. Se a URL muda, a antiga vira redirecionamento 301 para o objeto
+     * (`url_historico`). `$versaoEsperada` evita sobrescrever o trabalho de outra pessoa.
+     *
+     * @param array{titulo?: string, url_amigavel?: string, status?: string, dados?: array<string, string|int|float|bool|null>, peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null} $mudancas
+     * @throws ConflitoDeVersao se a versão atual não for a esperada
+     */
+    public function atualizar(int $id, array $mudancas, string $motivo = '', ?int $versaoEsperada = null, bool $liberarUrl = false): Objeto
+    {
+        return $this->conexao->transactional(function () use ($id, $mudancas, $motivo, $versaoEsperada, $liberarUrl): Objeto {
+            $atual = $this->porId($id) ?? throw new \InvalidArgumentException("Objeto {$id} não existe");
+            if ($versaoEsperada !== null && $versaoEsperada !== $atual->versao) {
+                throw new ConflitoDeVersao($versaoEsperada, $atual->versao);
+            }
+            $linha = ['versao' => $atual->versao + 1, 'atualizado_em' => gmdate('c')];
+
+            if (isset($mudancas['titulo']) && $mudancas['titulo'] !== $atual->titulo) {
+                $linha['titulo'] = $mudancas['titulo'];
+                $linha['titulo_busca'] = mb_strtolower($mudancas['titulo']);
+                $linha['titulo_norm'] = Texto::normalizar($mudancas['titulo']);
+            }
+            if (isset($mudancas['url_amigavel']) && $mudancas['url_amigavel'] !== $atual->urlAmigavel) {
+                $this->trocarUrl($atual, $mudancas['url_amigavel'], $liberarUrl);
+                $linha['url_amigavel'] = $mudancas['url_amigavel'];
+            }
+            if (isset($mudancas['status'])) {
+                if (!in_array($mudancas['status'], self::STATUS, true)) {
+                    throw new \InvalidArgumentException("Estado inválido: {$mudancas['status']}");
+                }
+                $linha['status'] = $mudancas['status'];
+            }
+            foreach (['peso', 'descricao'] as $campo) {
+                if (array_key_exists($campo, $mudancas)) {
+                    $linha[$campo] = $mudancas[$campo];
+                }
+            }
+            foreach (['data_publicacao', 'data_validade'] as $campo) {
+                if (array_key_exists($campo, $mudancas)) {
+                    $linha[$campo] = $mudancas[$campo];
+                }
+            }
+            if (isset($mudancas['dados'])) {
+                $classe = (new ClasseRepositorio($this->conexao))->porId($atual->classeId)
+                    ?? throw new \RuntimeException("Classe {$atual->classeId} não existe");
+                $novos = $atual->dados;
+                foreach ($mudancas['dados'] as $chave => $valor) {
+                    if ($valor === null) {
+                        unset($novos[$chave]);
+                    } else {
+                        $novos[$chave] = $valor;
+                    }
+                }
+                $novos = $this->validar($atual->siteId, $classe, $novos);
+                $linha['dados'] = json_encode($novos, JSON_THROW_ON_ERROR);
+                $this->conexao->delete('objeto_indice', ['objeto_id' => $id]);
+                $this->indexar($id, $classe, $novos);
+            }
+            $this->conexao->update('objeto', $linha, ['id' => $id]);
+            $this->registrarVersao($id, $motivo);
+
+            return $this->porId($id) ?? throw new \RuntimeException('Objeto sumiu durante a atualização');
+        });
+    }
+
+    /**
+     * Muda o objeto de pai (e a subárvore junto). A URL amigável não depende da árvore, então nenhum endereço muda.
+     */
+    public function mover(int $id, ?int $novoPaiId, string $motivo = 'mover'): Objeto
+    {
+        return $this->conexao->transactional(function () use ($id, $novoPaiId, $motivo): Objeto {
+            $o = $this->porId($id) ?? throw new \InvalidArgumentException("Objeto {$id} não existe");
+            $caminhoPai = '/';
+            if ($novoPaiId !== null) {
+                $pai = $this->porId($novoPaiId);
+                if ($pai === null || $pai->siteId !== $o->siteId) {
+                    throw new \InvalidArgumentException("Pai {$novoPaiId} não existe neste site");
+                }
+                if (str_starts_with($pai->caminho, $o->caminho)) {
+                    throw new \InvalidArgumentException('Um objeto não pode ser movido para dentro de si mesmo');
+                }
+                $caminhoPai = $pai->caminho;
+            }
+            $novo = $caminhoPai . $id . '/';
+            foreach ($this->conexao->fetchAllAssociative("SELECT id, caminho FROM objeto WHERE site_id = ? AND caminho LIKE ? ESCAPE '!'", [$o->siteId, $this->escaparLike($o->caminho) . '%']) as $d) {
+                $this->conexao->update('objeto', ['caminho' => $novo . substr((string) $d['caminho'], strlen($o->caminho))], ['id' => $d['id']]);
+            }
+            $this->conexao->update('objeto', ['pai_id' => $novoPaiId, 'versao' => $o->versao + 1, 'atualizado_em' => gmdate('c')], ['id' => $id]);
+            $this->registrarVersao($id, $motivo);
+
+            return $this->porId($id) ?? throw new \RuntimeException('Objeto sumiu durante a movimentação');
+        });
+    }
+
+    /**
+     * Histórico do objeto, da versão mais nova para a mais antiga.
+     *
+     * @return list<array{versao: int, titulo: string, status: string, motivo: string, criado_em: string}>
+     */
+    public function versoes(int $id): array
+    {
+        $linhas = $this->conexao->fetchAllAssociative('SELECT versao, titulo, status, motivo, criado_em FROM objeto_versao WHERE objeto_id = ? ORDER BY versao DESC', [$id]);
+
+        return array_map(static fn (array $l): array => [
+            'versao' => (int) $l['versao'], 'titulo' => (string) $l['titulo'], 'status' => (string) $l['status'],
+            'motivo' => (string) ($l['motivo'] ?? ''), 'criado_em' => (string) $l['criado_em'],
+        ], $linhas);
+    }
+
+    /**
+     * Volta o conteúdo de uma versão antiga **como uma nova versão** (o histórico nunca é apagado). O pai atual é mantido.
+     */
+    public function restaurar(int $id, int $versao, string $motivo = ''): Objeto
+    {
+        $v = $this->conexao->fetchAssociative('SELECT * FROM objeto_versao WHERE objeto_id = ? AND versao = ?', [$id, $versao]);
+        $atual = $this->porId($id);
+        if ($v === false || $atual === null) {
+            throw new \InvalidArgumentException("Versão {$versao} do objeto {$id} não existe");
+        }
+        /** @var array<string, string|int|float|null> $dados */
+        $dados = json_decode((string) $v['dados'], true, 512, JSON_THROW_ON_ERROR);
+        foreach (array_keys($atual->dados) as $chave) {
+            $dados[$chave] ??= null;
+        }
+
+        return $this->atualizar($id, [
+            'titulo' => (string) $v['titulo'],
+            'url_amigavel' => (string) $v['url_amigavel'],
+            'status' => (string) $v['status'],
+            'dados' => $dados,
+            'peso' => (int) $v['peso'],
+            'descricao' => $v['descricao'] === null ? '' : (string) $v['descricao'],
+            'data_publicacao' => $v['data_publicacao'] === null ? null : (string) $v['data_publicacao'],
+            'data_validade' => $v['data_validade'] === null ? null : (string) $v['data_validade'],
+        ], $motivo !== '' ? $motivo : "restaurada a versão {$versao}");
+    }
+
+    /**
+     * Se `$url` é o endereço antigo de um objeto visível, devolve o endereço atual dele (para o 301). Nunca devolve a
+     * própria URL pedida nem de objeto fora do ar.
+     */
+    public function urlAtualDoHistorico(int $siteId, string $url): ?string
+    {
+        $id = $this->conexao->fetchOne('SELECT objeto_id FROM url_historico WHERE site_id = ? AND url_amigavel = ?', [$siteId, $url]);
+        $objeto = $id === false ? null : $this->porId((int) $id);
+        if ($objeto === null || $objeto->siteId !== $siteId || !$objeto->visivel(gmdate('c')) || $objeto->urlAmigavel === $url) {
+            return null;
+        }
+
+        return $objeto->urlAmigavel;
+    }
+
+    private function trocarUrl(Objeto $atual, string $nova, bool $liberarUrl): void
+    {
+        if (!\Pbl\Caminhos::urlValida($nova)) {
+            throw new \InvalidArgumentException("URL amigável inválida: {$nova}");
+        }
+        if ($this->conexao->fetchOne('SELECT id FROM objeto WHERE site_id = ? AND url_amigavel = ? AND id <> ?', [$atual->siteId, $nova, $atual->id]) !== false) {
+            throw new \InvalidArgumentException("A URL já é usada por outro objeto: {$nova}");
+        }
+        $dono = $this->conexao->fetchOne('SELECT objeto_id FROM url_historico WHERE site_id = ? AND url_amigavel = ?', [$atual->siteId, $nova]);
+        if ($dono !== false && (int) $dono !== $atual->id && !$liberarUrl) {
+            throw new \InvalidArgumentException("A URL {$nova} era de outro objeto e hoje redireciona para ele; é preciso liberá-la de propósito");
+        }
+        $this->conexao->delete('url_historico', ['site_id' => $atual->siteId, 'url_amigavel' => $nova]);
+        $this->conexao->delete('url_historico', ['site_id' => $atual->siteId, 'url_amigavel' => $atual->urlAmigavel]);
+        $this->conexao->insert('url_historico', ['site_id' => $atual->siteId, 'url_amigavel' => $atual->urlAmigavel, 'objeto_id' => $atual->id, 'criado_em' => gmdate('c')]);
+    }
+
+    /** Grava o estado atual do objeto como uma linha de `objeto_versao`. */
+    private function registrarVersao(int $id, string $motivo): void
+    {
+        $o = $this->conexao->fetchAssociative('SELECT * FROM objeto WHERE id = ?', [$id]);
+        if ($o === false) {
+            return;
+        }
+        $this->conexao->insert('objeto_versao', [
+            'objeto_id' => $id, 'versao' => $o['versao'], 'titulo' => $o['titulo'], 'url_amigavel' => $o['url_amigavel'],
+            'status' => $o['status'], 'dados' => $o['dados'], 'peso' => $o['peso'], 'descricao' => $o['descricao'],
+            'data_publicacao' => $o['data_publicacao'], 'data_validade' => $o['data_validade'], 'pai_id' => $o['pai_id'],
+            'motivo' => $motivo === '' ? null : mb_substr($motivo, 0, 300), 'criado_em' => gmdate('c'),
+        ]);
     }
 
     /**
@@ -277,6 +477,7 @@ final class ObjetoRepositorio
             (string) ($linha['descricao'] ?? ''),
             isset($linha['data_publicacao']) ? (string) $linha['data_publicacao'] : null,
             isset($linha['data_validade']) ? (string) $linha['data_validade'] : null,
+            (int) ($linha['versao'] ?? 1),
         );
     }
 }

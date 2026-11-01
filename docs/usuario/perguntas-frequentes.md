@@ -23,7 +23,7 @@ Enquanto isso, seu site antigo continua funcionando como está.
 
 ## Os endereços (links) do meu site vão quebrar?
 
-A regra do projeto é que **não**. Endereços já divulgados são tratados como compromisso: o plano inclui domínios antigos, histórico de endereços e redirecionamentos. A virada de um site só deve ser feita quando todos os endereços tiverem destino.
+A regra do projeto é que **não**. Já funciona assim: quando você muda o endereço de uma página, o endereço antigo passa a levar automaticamente ao novo (redirecionamento permanente). Endereços já divulgados são tratados como compromisso: o plano inclui domínios antigos, histórico de endereços e redirecionamentos. A virada de um site só deve ser feita quando todos os endereços tiverem destino.
 
 ## É seguro?
 

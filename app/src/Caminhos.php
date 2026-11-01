@@ -22,7 +22,8 @@ final class Caminhos
 
     public static function urlValida(string $url): bool
     {
-        return strlen($url) <= self::URL_TAMANHO_MAXIMO && preg_match(self::URL_VALIDA, $url) === 1;
+        // `index` é reservada: a página inicial do site é gravada no cache como `index.html`.
+        return $url !== 'index' && strlen($url) <= self::URL_TAMANHO_MAXIMO && preg_match(self::URL_VALIDA, $url) === 1;
     }
 
     public readonly string $raiz;
@@ -78,6 +79,12 @@ final class Caminhos
         }
 
         return $this->cache() . "/paginas/{$siteId}/" . ($urlAmigavel === '' ? 'index' : $urlAmigavel) . '.html';
+    }
+
+    /** Pasta das páginas publicadas de um site. */
+    public function paginasDoSite(int $siteId): string
+    {
+        return $this->cache() . "/paginas/{$siteId}";
     }
 
     public function banco(): string

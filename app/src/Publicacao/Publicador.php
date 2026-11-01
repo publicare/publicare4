@@ -54,16 +54,48 @@ final class Publicador
         }
         $agora = gmdate('c');
         $total = 0;
+        $publicadas = [];
         foreach ($this->objetos->todosDaSubarvore($site->id, $raiz->caminho) as $objeto) {
             if ($objeto->visivel($agora)) {
-                $this->publicar($site, $objeto);
+                try {
+                    $this->publicar($site, $objeto);
+                } catch (\InvalidArgumentException) {
+                    continue; // endereço inválido (dado antigo): não derruba a publicação do site inteiro
+                }
+                $publicadas[$objeto->urlAmigavel] = true;
                 $total++;
             } else {
                 $this->remover($site, $objeto);
             }
         }
+        $this->limparOrfas($site, $publicadas);
 
         return $total;
+    }
+
+    /**
+     * Remove do cache as páginas cujo endereço não pertence mais a nenhum objeto publicado (o objeto mudou de URL ou saiu
+     * da árvore). O endereço antigo continua respondendo por redirecionamento (histórico de URLs).
+     *
+     * @param array<string, true> $publicadas URLs que devem existir
+     */
+    private function limparOrfas(Site $site, array $publicadas): void
+    {
+        $pasta = $this->caminhos->paginasDoSite($site->id);
+        if (!is_dir($pasta)) {
+            return;
+        }
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($pasta, \FilesystemIterator::SKIP_DOTS));
+        foreach ($it as $f) {
+            if (!$f instanceof \SplFileInfo || !str_ends_with($f->getFilename(), '.html')) {
+                continue;
+            }
+            $relativo = substr($f->getPathname(), strlen($pasta) + 1, -5);
+            if (!isset($publicadas[$relativo === 'index' ? '' : $relativo])) {
+                @unlink($f->getPathname());
+                @unlink($f->getPathname() . '.expira');
+            }
+        }
     }
 
     private function remover(Site $site, Objeto $objeto): void

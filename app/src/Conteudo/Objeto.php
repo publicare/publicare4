@@ -23,6 +23,7 @@ final class Objeto
         public readonly string $descricao = '',
         public readonly ?string $dataPublicacao = null,
         public readonly ?string $dataValidade = null,
+        public readonly int $versao = 1,
     ) {
     }
 

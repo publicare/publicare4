@@ -68,6 +68,8 @@ Regras (ADR 0003, fluxo 9):
 
 ### URLs legadas e domínios antigos (de-para)
 
+> **Implementado (fase 1b):** o **histórico de URLs** (`url_historico`) e o **301** do endereço antigo para o atual, com a query string mantida, só para caminho do site e só se o destino está publicado e vigente; tomar um endereço que redireciona para outro conteúdo (ao criar ou ao alterar) exige liberação explícita; a publicação remove do cache as páginas de endereços que mudaram. **Ainda falta:** domínios antigos e apelidos (servir/redirecionar) e as regras manuais de redirecionamento (próximo PR).
+
 URL e domínio divulgados, impressos ou citados em outros sites são **contrato permanente**: trocar de domínio, renomear ou mover um objeto não pode quebrar endereços já distribuídos (material impresso não se reimprime). O PBL3 já teve uma camada de de-para de domínios com esse papel; o PBL4 a torna parte do núcleo:
 
 - **Domínios antigos e apelidos** (tabela `dominio`): cada host aponta para um site, com política `servir` (mesmo conteúdo, com `rel=canonical`) ou `redirecionar` (301 para o domínio canônico), preservando caminho e consulta.
