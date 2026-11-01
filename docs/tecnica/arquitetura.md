@@ -41,7 +41,7 @@ O molde é compilado **uma vez** para PHP; o hash cobre o molde, a cadeia de lay
 |---|---|
 | `site`, `dominio` | sites e os domínios que levam a eles (vários domínios para um site) |
 | `classe` | tipos de conteúdo e suas propriedades (JSON) |
-| `objeto` | os conteúdos: dados em JSON, `caminho` materializado (`/1/45/230/`), metadados (`peso`, `descricao`, vigência), `titulo_busca` |
+| `objeto` | os conteúdos: dados em JSON, `caminho` materializado (`/1/45/230/`), metadados (`peso`, `descricao`, vigência), `titulo_norm` |
 | `objeto_indice` | valores tipados só das propriedades marcadas como **indexáveis** (as `ref` sempre); é o que permite filtrar e ordenar, inclusive pelo campo de um objeto apontado, com `JOIN`s e sem tabela temporária |
 | `schema_versao` | migrações já aplicadas |
 

@@ -11,7 +11,7 @@ Quem pesquisa num portal digita sem acento, em maiúsculas, em outra ordem das p
 Busca em **três níveis**, cada um útil sozinho, todos **dentro do banco** (SQLite, MySQL ou PostgreSQL) e sem serviço externo na instalação padrão.
 
 ### Nível A — normalizar (implementado)
-`Pbl\Busca\Texto::normalizar()`: minúsculas, sem acentos, espaços reduzidos, feito **em PHP** na gravação e na consulta, com mapa próprio. O resultado é igual nos três bancos e não depende de `intl` nem de `unaccent`. Guardado em `objeto.titulo_busca` e `objeto_indice.texto_norm`; o operador `contem` e o parâmetro `busca` usam essas colunas.
+`Pbl\Busca\Texto::normalizar()`: minúsculas, sem acentos, espaços reduzidos, feito **em PHP** na gravação e na consulta, com mapa próprio. O resultado é igual nos três bancos e não depende de `intl` nem de `unaccent`. Guardado em `objeto.titulo_norm` e `objeto_indice.texto_norm` (colunas novas; `titulo_busca`, a antiga, não é reescrita, para a versão anterior do código continuar funcionando se for preciso voltar atrás). A normalização pode alongar o texto (`ß`→`ss`), então as colunas têm o dobro do tamanho das originais; o operador `contem` e o parâmetro `busca` usam essas colunas.
 
 ### Nível B — busca de verdade
 - Tabela `objeto_termo (objeto_id, termo, peso)`: os termos normalizados de cada objeto, com peso por campo (título 3, descrição 2, texto 1), preenchida ao salvar e ao publicar, **só para objetos publicados e vigentes**, sempre com o site.

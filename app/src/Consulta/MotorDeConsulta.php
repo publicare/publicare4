@@ -200,11 +200,11 @@ final class MotorDeConsulta
         }
     }
 
-    /** `x1.texto` → `x1.texto_norm`, `o.titulo` → `o.titulo_busca`; outras colunas não têm versão normalizada. */
+    /** `x1.texto` → `x1.texto_norm`, `o.titulo` → `o.titulo_norm`; outras colunas não têm versão normalizada. */
     private function colunaNormalizada(string $expressao): ?string
     {
         if (str_ends_with($expressao, '.titulo')) {
-            return $expressao . '_busca';
+            return $expressao . '_norm';
         }
 
         return str_ends_with($expressao, '.texto') ? $expressao . '_norm' : null;

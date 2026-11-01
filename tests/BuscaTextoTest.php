@@ -55,8 +55,9 @@ final class BuscaTextoTest extends TestCase
 
         (new Migrador($con))->migrar();
 
-        self::assertSame('presidencia da republica', $con->fetchOne('SELECT titulo_busca FROM objeto WHERE id = 1'));
+        self::assertSame('presidencia da republica', $con->fetchOne('SELECT titulo_norm FROM objeto WHERE id = 1'));
         self::assertSame('acao do orgao', $con->fetchOne("SELECT texto_norm FROM objeto_indice WHERE objeto_id = 1 AND chave = 'resumo'"));
+        self::assertSame('presidência da república', $con->fetchOne('SELECT titulo_busca FROM objeto WHERE id = 1'), 'a coluna antiga não é reescrita (rollback)');
     }
 
     public function testBuscaPorTituloPropriedadeEObjetoReferenciadoIgnoraMaiusculasEAcentos(): void
@@ -86,5 +87,41 @@ final class BuscaTextoTest extends TestCase
         self::assertSame(['Relatório da Presidência'], $buscar('autor.titulo', 'joao conceicao'), 'título do objeto referenciado');
         self::assertSame([], $buscar('titulo', 'inexistente'));
         self::assertSame([], $buscar('resumo', '%'), 'curinga é literal');
+    }
+
+    public function testVersaoAnteriorDoCodigoContinuaAchandoPeloTituloDepoisDaMigracao(): void
+    {
+        $con = Conexao::memoria();
+        (new Migrador($con))->migrar();
+        $classes = new ClasseRepositorio($con);
+        $objetos = new ObjetoRepositorio($con);
+        $objetos->criar(1, $classes->criar('pagina', []), null, 'Presidência da República', 'p', []);
+
+        // o código anterior (M003) procurava por mb_strtolower(titulo) em titulo_busca
+        $antigo = $con->fetchOne('SELECT id FROM objeto WHERE site_id = 1 AND titulo_busca = ?', [mb_strtolower('Presidência da República')]);
+
+        self::assertNotFalse($antigo);
+    }
+
+    public function testNormalizarPodeAlongarEAsColunasEOIndiceAguentam(): void
+    {
+        $con = Conexao::memoria();
+        (new Migrador($con))->migrar();
+        $classes = new ClasseRepositorio($con);
+        $objetos = new ObjetoRepositorio($con);
+        $classe = $classes->criar('doc', [['nome' => 'texto', 'tipo' => 'texto', 'indexavel' => true]]);
+        $titulo = str_repeat('ß', 300);
+        $longo = str_repeat('æ', 498) . 'fim'; // 501 caracteres: o índice guarda os 500 primeiros (termina em "fi")
+
+        $o = $objetos->criar(1, $classe, null, $titulo, 'longo', ['texto' => $longo]);
+
+        self::assertSame(600, mb_strlen((string) $con->fetchOne('SELECT titulo_norm FROM objeto WHERE id = ?', [$o->id])), 'título de 300 ß vira 600 caracteres, sem corte');
+        $norm = (string) $con->fetchOne("SELECT texto_norm FROM objeto_indice WHERE objeto_id = ? AND chave = 'texto'", [$o->id]);
+        self::assertSame(998, mb_strlen($norm), '498 × "ae" + "fi": a expansão não é cortada');
+        self::assertStringEndsWith('fi', $norm, 'o que cabia nos 500 caracteres originais continua pesquisável até o fim');
+
+        $motor = new MotorDeConsulta($con, $objetos);
+        $achados = $motor->buscar(new Consulta(siteId: 1, classeIds: [$classe->id], filtros: [new Filtro('texto', 'contem', 'aefi')]));
+        self::assertCount(1, $achados, 'a busca acha o trecho do fim do texto indexado');
     }
 }

@@ -45,7 +45,8 @@ final class ObjetoRepositorio
                 'pai_id' => $paiId,
                 'caminho' => '',
                 'titulo' => $titulo,
-                'titulo_busca' => Texto::normalizar($titulo),
+                'titulo_busca' => mb_strtolower($titulo), // legado: a versão anterior do código ainda lê esta coluna
+                'titulo_norm' => Texto::normalizar($titulo),
                 'url_amigavel' => $urlAmigavel,
                 'status' => $status,
                 'dados' => json_encode($dados, JSON_THROW_ON_ERROR),
@@ -127,7 +128,7 @@ final class ObjetoRepositorio
     public function porTitulo(int $siteId, string $titulo): ?Objeto
     {
         $linha = $this->conexao->fetchAssociative(
-            'SELECT * FROM objeto WHERE site_id = ? AND status = ? AND titulo_busca = ? ORDER BY id LIMIT 1',
+            'SELECT * FROM objeto WHERE site_id = ? AND status = ? AND titulo_norm = ? ORDER BY id LIMIT 1',
             [$siteId, 'publicado', Texto::normalizar($titulo)],
         );
 
@@ -235,11 +236,13 @@ final class ObjetoRepositorio
             }
             $valor = $dados[$p['nome']];
             $numerico = in_array($p['tipo'], ['numero', 'booleano', 'ref'], true);
+            // Corta o original em 500 e só então normaliza: o fim do texto que cabe no índice continua pesquisável.
+            $texto = mb_substr((string) $valor, 0, 500);
             $this->conexao->insert('objeto_indice', [
                 'objeto_id' => $id,
                 'chave' => $p['nome'],
-                'texto' => $numerico ? null : mb_substr((string) $valor, 0, 500),
-                'texto_norm' => $numerico ? null : mb_substr(Texto::normalizar((string) $valor), 0, 500),
+                'texto' => $numerico ? null : $texto,
+                'texto_norm' => $numerico ? null : Texto::normalizar($texto),
                 'numero' => $numerico ? (float) $valor : null,
             ]);
         }
