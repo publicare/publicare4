@@ -47,6 +47,8 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 
 ## Atrás de um proxy (Cloudflare, nginx)
 
+Com `"confiar_proto": true`, a conferência de origem usa o esquema e a porta que o visitante enxerga (`X-Forwarded-Proto` e, se existir, `X-Forwarded-Port`), e não os da conexão com o proxy; sem a configuração, esses cabeçalhos são ignorados.
+
 O IP real e o HTTPS chegam em cabeçalhos que só podem ser confiados se você disser que o proxy existe. Crie `dados/config/rede.json`:
 
 ```json

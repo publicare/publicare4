@@ -62,6 +62,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - Página com `data_validade` vencida continuava sendo servida do cache. (#10)
 
 ### Segurança
+- O login inexistente paga o mesmo custo de hash que um existente com um hash fictício **pronto** (antes era gerado na hora, o que revelava pelo tempo quais logins existem); a conferência de `Origin` atrás de proxy que termina o HTTPS compara com o esquema e a porta públicos, não com os do servidor de trás. (#21)
 - Onde o PHP não tem Argon2 e a reserva é bcrypt, a senha passa antes por SHA-256: o bcrypt só considera os 72 primeiros bytes, e senhas longas iguais no começo seriam tratadas como a mesma. Hashes bcrypt antigos continuam entrando e são regravados. (#20)
 - A administração fica sob o prefixo reservado `/_pbl/`, cujo `_` nunca é válido em URL de conteúdo: nada publicado colide com ela. Servir uma página pública continua sem tocar em sessão, usuário nem segredo. (#21)
 - Permissões não dependem mais de texto vindo da requisição (a falha do PBL3 em que quem podia `edit` executava a administração de usuários não é possível por construção): a ação é um valor fixo do código e a decisão usa só usuário, ação e objeto. Usuário inativo não pode nada; perfis não passam de um site para outro nem para fora da subárvore. (#20)

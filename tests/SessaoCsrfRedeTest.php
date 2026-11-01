@@ -218,4 +218,48 @@ final class SessaoCsrfRedeTest extends TestCase
             Ajuda::apagar($raiz);
         }
     }
+
+    public function testOrigemAtrasDeProxyQueTerminaOHttpsComparaComAPortaPublica(): void
+    {
+        $raiz = Ajuda::pastaTemporaria();
+        try {
+            mkdir($raiz . '/dados/config', 0775, true);
+            file_put_contents($raiz . '/dados/config/rede.json', '{"confiar_proto": true}');
+            $rede = new Rede(new Caminhos($raiz));
+            // O navegador está em https://www.exemplo.org (443); o proxy fala com o PHP em http, porta 80.
+            $atras = static fn (array $cabecalhos): Request => Request::create('http://www.exemplo.org/_pbl/entrar', 'POST', [], [], [], ['HTTP_X_FORWARDED_PROTO' => 'https'] + $cabecalhos);
+
+            self::assertTrue($rede->origemConfere($atras(['HTTP_ORIGIN' => 'https://www.exemplo.org'])), 'login atrás do Cloudflare/nginx funciona');
+            self::assertFalse($rede->origemConfere($atras(['HTTP_ORIGIN' => 'http://www.exemplo.org'])), 'esquema diferente do público');
+            self::assertFalse($rede->origemConfere($atras(['HTTP_ORIGIN' => 'https://www.exemplo.org:8080'])), 'porta diferente da pública');
+            self::assertTrue($rede->origemConfere($atras(['HTTP_ORIGIN' => 'https://www.exemplo.org:8443', 'HTTP_X_FORWARDED_PORT' => '8443'])));
+            self::assertFalse($rede->origemConfere($atras(['HTTP_ORIGIN' => 'https://evil.example'])));
+            // Sem confiar no proxy, o cabeçalho X-Forwarded-Proto é ignorado: o esquema é o da conexão.
+            self::assertFalse((new Rede(new Caminhos(sys_get_temp_dir() . '/sem-config-pbl4')))->origemConfere($atras(['HTTP_ORIGIN' => 'https://www.exemplo.org'])));
+        } finally {
+            Ajuda::apagar($raiz);
+        }
+    }
+
+    public function testHashesFicticiosTemOsMesmosParametrosDosHashesReais(): void
+    {
+        $realA = password_get_info(password_hash('a', PASSWORD_ARGON2ID));
+        $realB = password_get_info(password_hash('a', PASSWORD_BCRYPT));
+
+        self::assertSame($realA['options'], password_get_info(UsuarioRepositorio::HASH_FICTICIO_ARGON2ID)['options'], 'se o PHP mudar o custo padrão, regenere a constante');
+        self::assertSame($realB['options'], password_get_info(UsuarioRepositorio::HASH_FICTICIO_BCRYPT)['options']);
+        self::assertSame('argon2id', password_get_info(UsuarioRepositorio::HASH_FICTICIO_ARGON2ID)['algoName']);
+        self::assertFalse(password_verify('qualquer senha', UsuarioRepositorio::HASH_FICTICIO_ARGON2ID));
+        self::assertFalse(password_verify('qualquer senha', UsuarioRepositorio::HASH_FICTICIO_BCRYPT));
+    }
+
+    public function testLoginInexistenteEOutroAlgoritmoNaoGeramHashNaHora(): void
+    {
+        $argon = $this->usuarios;
+        $bcrypt = new UsuarioRepositorio($this->con, null, PASSWORD_BCRYPT);
+
+        self::assertNull($argon->autenticar('fantasma', 'qualquer senha longa'));
+        self::assertNull($bcrypt->autenticar('fantasma', 'qualquer senha longa'));
+        self::assertNull($bcrypt->autenticar('ana', 'senha errada nada a ver'), 'conta existente com argon2id, repositório em bcrypt: só recusa');
+    }
 }

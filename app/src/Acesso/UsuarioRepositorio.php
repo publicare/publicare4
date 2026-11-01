@@ -9,7 +9,13 @@ use Doctrine\DBAL\Connection;
 /** Contas da equipe, perfis por subárvore e senhas (argon2id). */
 final class UsuarioRepositorio implements Autenticador
 {
-    private ?string $hashFicticio = null;
+    /**
+     * Hashes de mentira, prontos, para login inexistente pagar o MESMO custo de um login que existe (gerá-los na hora custaria um
+     * hash a mais e revelaria pelo tempo quais logins existem). Têm os mesmos parâmetros dos hashes reais; um teste confere isso.
+     */
+    public const HASH_FICTICIO_ARGON2ID = '$argon2id$v=19$m=65536,t=4,p=1$SXdwQVAuQkJna3ZtU2ZYRw$EP1kR1NUCl3IMxkyMYD04tJ3SL0DezoFGt1obgo4Z/k';
+    public const HASH_FICTICIO_BCRYPT = '$2y$10$DxofQot2X7ktF6i0MEoqgeMrQai/3GAGBP4u.R5fXphF2YD.6foui';
+
     private readonly string $algoritmo;
 
     /** @param string|null $algoritmo `PASSWORD_ARGON2ID` ou `PASSWORD_BCRYPT`; padrão: argon2id se o PHP tiver, senão bcrypt */
@@ -183,7 +189,7 @@ final class UsuarioRepositorio implements Autenticador
 
     private function hashFicticio(): string
     {
-        return $this->hashFicticio ??= $this->hash(bin2hex(random_bytes(16)));
+        return $this->algoritmo === PASSWORD_BCRYPT ? self::HASH_FICTICIO_BCRYPT : self::HASH_FICTICIO_ARGON2ID;
     }
 
     /** @param array<string, mixed> $l */

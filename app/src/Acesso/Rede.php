@@ -43,6 +43,23 @@ final class Rede
         return $requisicao->server->getString('REMOTE_ADDR', '0.0.0.0');
     }
 
+    /**
+     * A porta que o visitante enxerga. Atrás de proxy de confiança (o HTTPS termina nele e o PHP recebe, por exemplo, na 80), vale
+     * `X-Forwarded-Port` se vier, senão a padrão do esquema público; sem proxy declarado, a porta da própria conexão.
+     */
+    private function portaPublica(Request $requisicao, string $esquemaPublico): int
+    {
+        if (!($this->config['confiar_proto'] ?? false)) {
+            return (int) $requisicao->getPort();
+        }
+        $informada = (string) $requisicao->headers->get('X-Forwarded-Port', '');
+        if (ctype_digit($informada) && (int) $informada > 0 && (int) $informada < 65536) {
+            return (int) $informada;
+        }
+
+        return $esquemaPublico === 'https' ? 443 : 80;
+    }
+
     public function seguro(Request $requisicao): bool
     {
         return $requisicao->isSecure()
@@ -63,8 +80,11 @@ final class Rede
         if (!is_array($partes) || !isset($partes['host'], $partes['scheme'])) {
             return false; // inclui o `Origin: null` de contextos sem origem
         }
+        $esquemaPublico = $this->seguro($requisicao) ? 'https' : 'http';
         $porta = $partes['port'] ?? ($partes['scheme'] === 'https' ? 443 : 80);
 
-        return strtolower($partes['host']) === strtolower($requisicao->getHost()) && $porta === $requisicao->getPort();
+        return strtolower($partes['scheme']) === $esquemaPublico
+            && strtolower($partes['host']) === strtolower($requisicao->getHost())
+            && $porta === $this->portaPublica($requisicao, $esquemaPublico);
     }
 }
