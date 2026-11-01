@@ -1,0 +1,12 @@
+# PBL4: todo endereço que não é um arquivo existente vai para o controlador (index.php).
+Options -Indexes
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+# Nunca servir arquivos ocultos nem de configuração.
+<FilesMatch "^\.(?!well-known)|\.(env|json|lock|sqlite|log|bak|sql)$">
+    Require all denied
+</FilesMatch>

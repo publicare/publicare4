@@ -41,6 +41,11 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - **Limite de tentativas de login no servidor**: 5 falhas por login ou 30 por IP em 15 minutos bloqueiam (HTTP 429 com `Retry-After`), sem poder ser contornado descartando o cookie. Login e IP ficam só como hash. A resposta é a mesma para login inexistente e senha errada. (#21)
 - **Cabeçalhos de segurança** na administração (`no-store`, CSP restritiva, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, HSTS em HTTPS) e **segredo do site** gerado na instalação em `dados/config/segredo` (permissão 0600). Atrás de proxy (Cloudflare, nginx), `dados/config/rede.json` diz qual cabeçalho traz o IP real e se o HTTPS vem em `X-Forwarded-Proto`. (#21)
 - Auditoria de entradas, falhas, bloqueios e saídas, sem senha, login digitado nem IP em texto. (#21)
+- **Instalador pelo navegador** (`/_pbl/instalar`): lista os requisitos do servidor em linguagem simples, pede o nome do site, o endereço e a conta de administrador, e instala (SQLite, pele básica, páginas de exemplo, páginas já publicadas). Só funciona com a **prova de posse** (o arquivo vazio `dados/instalar.liberar`), com CSRF e conferência de origem; é atômico (falhou, tenta de novo) e some depois de instalar. `bin/pbl instalar` também cria o administrador (`--admin-login`, senha pedida de forma oculta). (#22)
+- **Compatível com Apache e nginx**, conferido em servidores de verdade (instalação pelo navegador, site, login, pastas internas protegidas e `.php` estranho que não executa): configuração de referência do nginx com PHP-FPM em `docker/nginx-teste/pbl4.conf` e ambientes de teste `docker compose --profile apache|nginx`. (#22)
+- O instalador funciona atrás de proxy que termina o HTTPS (confere só o host da origem), não marca como ✔ o que não consegue verificar (a proteção de `dados/` é um aviso ⚠ para conferir), confere as pastas antes de instalar e trata falha ao publicar as páginas de exemplo como aviso, sem deixar o site sem recuperação. (#22)
+- **`.htaccess`** para hospedagem comum: `public/.htaccess` (controlador único, sem listagem de pastas, sem arquivos ocultos) e `.htaccess` da raiz (nega `app/`, `dados/`, `vendor/` etc. e serve a partir de `public/`). Conferidos num Apache 2.4 de verdade (`docker compose --profile apache`). (#22)
+- Guias novos: [Como instalar](docs/usuario/instalar.md) (para quem usa) e [Instalação e hospedagem](docs/tecnica/instalacao.md) (Apache, nginx, proxy). (#22)
 - Documentação de design (ADRs 0003 a 0009, fluxos e plano), documentação para quem usa e técnica, guia de colaboração, política de segurança, versionamento e pipeline automática de testes.
 
 ### Alterado
@@ -62,6 +67,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - Página com `data_validade` vencida continuava sendo servida do cache. (#10)
 
 ### Segurança
+- O instalador web exige prova de posse (`dados/instalar.liberar`), CSRF e origem, não reflete a senha, escapa o que foi digitado e fecha depois de instalar; `dados/`, `app/` e `vendor/` não são servidos mesmo quando o site é enviado inteiro. (#22)
 - Os custos de hash de senha são **fixos no código** (argon2id 64 MB, 4 passos; bcrypt 12), não os padrões do PHP: o bcrypt mudou de 10 para 12 no PHP 8.4 e um hash fictício com custo antigo deixaria o login inexistente mais rápido que o real. (#21)
 - O login inexistente paga o mesmo custo de hash que um existente com um hash fictício **pronto** (antes era gerado na hora, o que revelava pelo tempo quais logins existem); a conferência de `Origin` atrás de proxy que termina o HTTPS compara com o esquema e a porta públicos, não com os do servidor de trás. (#21)
 - Onde o PHP não tem Argon2 e a reserva é bcrypt, a senha passa antes por SHA-256: o bcrypt só considera os 72 primeiros bytes, e senhas longas iguais no começo seriam tratadas como a mesma. Hashes bcrypt antigos continuam entrando e são regravados. (#20)

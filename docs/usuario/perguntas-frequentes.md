@@ -8,9 +8,13 @@ Sim. O Publicare é software livre, com licença MIT: pode usar, estudar, modifi
 
 O objetivo do projeto é que **não**: criar páginas, tipos de conteúdo, menus e formulários será por tela, sem código. **Hoje**, porém, ainda não há essa tela, então o uso exige conhecimento técnico. Veja o [estado do projeto](estado-do-projeto.md).
 
+## Como instalo?
+
+Pelo navegador, com um assistente: veja [Como instalar](instalar.md). Hoje ainda é preciso enviar o código você mesmo (o pacote pronto chega na primeira versão, a `0.1.0`).
+
 ## Onde posso hospedar?
 
-A meta é uma hospedagem comum, daquelas que oferecem PHP e permitem enviar arquivos, sem terminal. Os requisitos são **PHP 8.2 ou mais novo** e um banco de dados (o padrão é SQLite, que não precisa de servidor; MySQL e PostgreSQL também serão suportados).
+Funciona em servidores **Apache** (a maioria das hospedagens compartilhadas) e **nginx**, ambos testados. A meta é uma hospedagem comum, daquelas que oferecem PHP e permitem enviar arquivos, sem terminal. Os requisitos são **PHP 8.2 ou mais novo** e um banco de dados (o padrão é SQLite, que não precisa de servidor; MySQL e PostgreSQL também serão suportados).
 
 ## E o meu site feito no Publicare antigo?
 

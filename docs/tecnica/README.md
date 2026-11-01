@@ -6,6 +6,7 @@ Para quem **instala, opera e desenvolve** o PBL4. Se você quer entender o proje
 |---|---|
 | [Desenvolvimento](desenvolvimento.md) | Ambiente, comandos `make`, testes, análise estática e fluxo de trabalho |
 | [Arquitetura](arquitetura.md) | Como uma requisição vira página; camadas, tabelas e pastas |
+| [Instalação e hospedagem](instalacao.md) | Requisitos, assistente web, Apache, nginx, proxy |
 | [Linha de comando](cli.md) | Comandos de `bin/pbl` |
 | [Linguagem de moldes PBL4](../linguagem-pbl4.md) | Gramática, comandos, ordenação e conversão do PBL3 |
 | [Segurança](seguranca.md) | Defesas em vigor, modelo de ameaças e como relatar falhas |

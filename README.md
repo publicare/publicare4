@@ -8,7 +8,7 @@ Plataforma livre para **sites, dados e fluxos**, sucessora do Publicare/PBL3. Pe
 
 | Você é… | Vá para |
 |---|---|
-| Quem vai **usar** o Publicare | [docs/usuario](docs/usuario/README.md) |
+| Quem vai **usar** o Publicare | [docs/usuario](docs/usuario/README.md) · [Como instalar](docs/usuario/instalar.md) |
 | Quem **instala ou desenvolve** | [docs/tecnica](docs/tecnica/README.md) |
 | Quem quer **colaborar** | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | Quem achou uma **falha de segurança** | [SECURITY.md](SECURITY.md) |

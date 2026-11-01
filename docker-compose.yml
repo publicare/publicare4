@@ -10,6 +10,44 @@ services:
       - "8080:8080"
     command: php -S 0.0.0.0:8080 -t public public/index.php
 
+  # Apache com .htaccess, para conferir como o site se comporta numa hospedagem comum:
+  #   docker compose --profile apache up -d apache   (raiz = pasta do projeto, http://localhost:8081)
+  #   docker compose --profile apache up -d apache-public   (raiz = public/, http://localhost:8082)
+  apache:
+    build: ./docker/apache
+    profiles: ["apache"]
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "8081:80"
+
+  apache-public:
+    build: ./docker/apache
+    profiles: ["apache"]
+    volumes:
+      - .:/var/www/pbl4
+      - ./docker/apache/publico.conf:/etc/apache2/sites-enabled/000-default.conf:ro
+    ports:
+      - "8082:80"
+
+  # nginx + PHP-FPM, para conferir o PBL4 atrás de nginx:
+  #   docker compose --profile nginx up -d --build nginx   (raiz = public/, http://localhost:8083)
+  fpm:
+    build: ./docker/fpm
+    profiles: ["nginx"]
+    volumes:
+      - .:/var/www/pbl4
+
+  nginx:
+    image: nginx:stable
+    profiles: ["nginx"]
+    depends_on: [fpm]
+    volumes:
+      - .:/var/www/pbl4:ro
+      - ./docker/nginx-teste/pbl4.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8083:80"
+
   mysql:
     image: mysql:8.4
     profiles: ["mysql"]

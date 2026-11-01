@@ -66,8 +66,11 @@ final class Rede
             || (($this->config['confiar_proto'] ?? false) && strtolower((string) $requisicao->headers->get('X-Forwarded-Proto', '')) === 'https');
     }
 
-    /** A origem do POST (cabeçalho `Origin`, ou `Referer` se não houver) é este mesmo site? Sem nenhum dos dois, o token CSRF decide. */
-    public function origemConfere(Request $requisicao): bool
+    /**
+     * A origem do POST (cabeçalho `Origin`, ou `Referer` se não houver) é este mesmo site? Sem nenhum dos dois, o token CSRF decide.
+     * Com `$soOHost`, só o host é comparado (esquema e porta ficam de fora).
+     */
+    public function origemConfere(Request $requisicao, bool $soOHost = false): bool
     {
         $origem = $requisicao->headers->get('Origin');
         if ($origem === null || $origem === '') {
@@ -79,6 +82,11 @@ final class Rede
         $partes = parse_url($origem);
         if (!is_array($partes) || !isset($partes['host'], $partes['scheme'])) {
             return false; // inclui o `Origin: null` de contextos sem origem
+        }
+        if ($soOHost) {
+            // Para o instalador, que roda antes de qualquer rede.json existir: atrás de um proxy que termina o HTTPS o PHP não sabe
+            // o esquema nem a porta públicos. A prova de posse e o token CSRF seguem exigidos; aqui basta a origem ser este mesmo host.
+            return strtolower($partes['host']) === strtolower($requisicao->getHost());
         }
         $esquemaPublico = $this->seguro($requisicao) ? 'https' : 'http';
         $porta = $partes['port'] ?? ($partes['scheme'] === 'https' ? 443 : 80);

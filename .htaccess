@@ -1,0 +1,12 @@
+# PBL4: se o site foi enviado inteiro (e a raiz do servidor é esta pasta, não public/), isto protege o que não pode ser público
+# e manda o resto para public/. O recomendado é apontar a raiz do site para a pasta public/.
+Options -Indexes
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Código, dados e ferramentas: nunca pelo navegador.
+    RewriteRule ^(app|dados|vendor|bin|tests|docs|docker|\.git|\.github)(/|$) - [F,L]
+    RewriteRule ^(composer\.(json|lock)|Makefile|phpunit\.xml\.dist|phpstan\.neon|docker-compose\.yml|CHANGELOG\.md|\.editorconfig|\.gitignore)$ - [F,L]
+    # O resto é servido a partir de public/.
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

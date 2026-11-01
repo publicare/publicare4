@@ -7,6 +7,8 @@ namespace Pbl;
 use Pbl\Acesso\Rede;
 use Pbl\Admin\Painel;
 use Pbl\Conteudo\Dominio;
+use Pbl\Instalacao\Instalador;
+use Pbl\Instalacao\InstaladorWeb;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,6 +30,9 @@ final class Aplicacao
 
     public function tratar(Request $requisicao): Response
     {
+        if ($this->servicos === null && InstaladorWeb::atende($requisicao) && !(new Instalador($this->caminhos))->instalado()) {
+            return (new InstaladorWeb($this->caminhos))->tratar($requisicao);
+        }
         try {
             $servicos = $this->servicos ?? Servicos::doBancoInstalado($this->caminhos);
         } catch (\RuntimeException) {

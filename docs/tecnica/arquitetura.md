@@ -64,6 +64,7 @@ Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banc
 |---|---|---|
 | Entrada | `Pbl\Aplicacao`, `public/index.php` | resolver host e URL, devolver arquivo do cache |
 | Conteúdo | `Pbl\Conteudo` | classes, objetos, sites; validação dos dados por tipo (`texto`, `numero`, `html`, `data`, `booleano`, `ref`); índice |
+| Instalação | `Pbl\Instalacao` | `Instalador` (atômico), `InstaladorWeb` (assistente em `/_pbl/instalar`, só antes de instalar), `Requisitos` |
 | Administração | `Pbl\Admin` | `Painel`: rotas sob `/_pbl/` (entrar, sair, início) com sessão, CSRF, limite de tentativas e cabeçalhos de segurança |
 | Acesso | `Pbl\Acesso` | contas, senhas (argon2id), perfis por subárvore, `Permissoes::pode` (único ponto de decisão) e auditoria |
 | Busca | `Pbl\Busca` | normalização de texto (minúsculas e sem acento) usada na gravação e na consulta; relevância e grafias parecidas no [ADR 0010](../adr/0010-busca.md) |
