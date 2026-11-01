@@ -8,14 +8,15 @@
 
 ## Resumo honesto
 
-O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve** e a quem quer **acompanhar ou testar**; ainda **não** serve para colocar um site no ar sem ajuda técnica. Já dá para instalar e entrar pelo navegador, ver os sites, andar pelas páginas e corrigir o título e a descrição de uma página. Criar, mover, publicar ou apagar páginas, mudar os campos de um conteúdo e cuidar das contas ainda se faz por linha de comando.
+O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve** e a quem quer **acompanhar ou testar**; ainda **não** serve para colocar um site no ar sem ajuda técnica. Já dá para instalar e entrar pelo navegador, ver os sites, andar pelas páginas, corrigir o título e a descrição de uma página e, se você é administrador, criar e ajustar os **tipos de conteúdo** (quais campos uma notícia ou um evento tem). Criar, mover, publicar ou apagar páginas, preencher os campos de um conteúdo e cuidar das contas ainda se faz por linha de comando.
 
 ## O que já funciona
 
 | Recurso | Estado |
 |---|---|
 | Instalar (por linha de comando) com um site de exemplo | ✅ |
-| Criar tipos de conteúdo e conteúdos em árvore | ✅ (por código; sem tela ainda) |
+| Criar conteúdos em árvore | ✅ (por código; sem tela ainda) |
+| Tipos de conteúdo pelo navegador (só administrador): criar, descrever, dizer que tipos podem ficar dentro, adicionar campos, mudar rótulo, ordem e obrigatório, arquivar campo e apagar tipo sem uso, sem nunca apagar dado guardado | ✅ (a exigência de "obrigatório" e de "tipos que podem ficar dentro" ao salvar um conteúdo vem com as telas de conteúdo) |
 | Linguagem de moldes para montar páginas (listas, menus, herança de layout) | ✅ |
 | Publicar as páginas e entregá-las prontas, com cache | ✅ |
 | Vários sites e domínios no mesmo programa | ✅ |

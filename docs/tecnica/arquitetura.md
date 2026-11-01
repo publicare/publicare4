@@ -58,6 +58,8 @@ flowchart LR
     OR --> PU[Publicador: página e pai] --> R[303 de volta à tela]
 ```
 
+Os tipos de conteúdo (`/_pbl/classes`, `/_pbl/classe/{id}/...`) seguem a mesma receita em `TelasDeClasses`, com `Permissoes::podeModelarClasses` no lugar de `pode` e `ClasseRepositorio` (versão esperada, regra de não apagar valores) no lugar de `ObjetoRepositorio`; veja o [fluxo 12](../fluxos/12-administracao-web.md).
+
 As telas são HTML montado no servidor, sem JavaScript, com o CSS do Bootstrap servido do próprio site (`public/_pbl/assets/`). Arquivo existente em `public/` é entregue direto pelo servidor web; o resto de `/_pbl/` vai para o `Painel`. Detalhes no [ADR 0012](../adr/0012-administracao-web.md) e no [fluxo 12](../fluxos/12-administracao-web.md).
 
 ## Modelo de dados
@@ -65,7 +67,7 @@ As telas são HTML montado no servidor, sem JavaScript, com o CSS do Bootstrap s
 | Tabela | Papel |
 |---|---|
 | `site`, `dominio` | sites e os domínios que levam a eles (vários domínios para um site) |
-| `classe` | tipos de conteúdo e suas propriedades (JSON) |
+| `classe` | tipos de conteúdo (valem para a instalação toda): propriedades em JSON (com rótulo, obrigatório e arquivada opcionais), descrição, filhos aceitos e versão |
 | `objeto` | os conteúdos: dados em JSON, `caminho` materializado (`/1/45/230/`), metadados (`peso`, `descricao`, vigência), `titulo_norm` |
 | `objeto_indice` | valores tipados só das propriedades marcadas como **indexáveis** (as `ref` sempre); é o que permite filtrar e ordenar, inclusive pelo campo de um objeto apontado, com `JOIN`s e sem tabela temporária |
 | `objeto_versao` | histórico: uma linha por estado salvo de cada objeto (a atual inclusive), com o motivo |
@@ -85,7 +87,7 @@ Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banc
 | Entrada | `Pbl\Aplicacao`, `public/index.php` | resolver host e URL, devolver arquivo do cache |
 | Conteúdo | `Pbl\Conteudo` | classes, objetos, sites; validação dos dados por tipo (`texto`, `numero`, `html`, `data`, `booleano`, `ref`); índice |
 | Instalação | `Pbl\Instalacao` | `Instalador` (atômico), `InstaladorWeb` (assistente em `/_pbl/instalar`, só antes de instalar), `Requisitos` |
-| Administração | `Pbl\Admin` | `Painel`: rotas sob `/_pbl/` (entrar, sair) com sessão, CSRF, limite de tentativas e cabeçalhos de segurança; `TelasDeConteudo`: painel com os sites, navegação na árvore e edição de título e descrição ([ADR 0012](../adr/0012-administracao-web.md)); `Pagina`: HTML com Bootstrap local, escape e cabeçalhos |
+| Administração | `Pbl\Admin` | `Painel`: rotas sob `/_pbl/` (entrar, sair) com sessão, CSRF, limite de tentativas e cabeçalhos de segurança; `TelasDeConteudo`: painel com os sites, navegação na árvore e edição de título e descrição ([ADR 0012](../adr/0012-administracao-web.md)); `TelasDeClasses`: tipos de conteúdo (só administrador; campo com valores é arquivado, nunca apagado); `Pagina`: HTML com Bootstrap local, escape e cabeçalhos |
 | Acesso | `Pbl\Acesso` | contas, senhas (argon2id), perfis por subárvore, `Permissoes::pode` (único ponto de decisão) e auditoria |
 | Busca | `Pbl\Busca` | normalização de texto (minúsculas e sem acento) usada na gravação e na consulta; relevância e grafias parecidas no [ADR 0010](../adr/0010-busca.md) |
 | Consulta | `Pbl\Consulta` | `Consulta` (o pedido) e `MotorDeConsulta` (a execução): filtros, ordem, referências, contagem, carga em lote. Único caminho para ler conteúdo em lista |
@@ -109,4 +111,4 @@ dados/
 
 ## O que ainda não existe
 
-A maior parte das telas da administração (criar, mover, mudar estado e apagar conteúdo, editar as propriedades, histórico, contas, domínios, regras e peles: hoje por linha de comando), atualizador e upload de arquivos. Estão no [plano](../plano.md).
+A maior parte das telas da administração (criar, mover, mudar estado e apagar conteúdo, preencher as propriedades de um objeto, histórico, contas, domínios, regras e peles: hoje por linha de comando), atualizador e upload de arquivos. Estão no [plano](../plano.md).

@@ -36,6 +36,7 @@ Regras:
 5. **Snapshot opcional** de campos de exibição na própria referência (p.ex. título) para listas baratas; atualizado por evento quando o referenciado muda.
 6. **Cache** de listas caras (ids) invalidado por mudança nas classes envolvidas.
 7. **Sem DDL em runtime**; tabela física por classe é opção avançada com credencial de migração separada ou SQL exportado para DBA (ver ADR 0003).
+8. **Mudar a classe não reescreve dados** (fase 5c): como os valores vivem no JSON do objeto, remover um campo ou trocar o tipo exigiria converter ou apagar valores. A regra é não fazer nenhum dos dois: campo com valor (no objeto ou em versão antiga) só pode ser **arquivado** (continua na definição, então a validação, o índice e os moldes seguem iguais) e campo sem valor pode ser removido ou mudar de tipo livremente ([ADR 0012](../adr/0012-administracao-web.md) §6).
 
 ## Os três usos, um motor
 

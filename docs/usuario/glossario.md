@@ -7,8 +7,9 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Site** | Um conjunto de páginas que responde por um ou mais endereços (domínios). Um mesmo Publicare pode ter vários sites. |
 | **Domínio** | O endereço na internet (por exemplo, `meusite.org.br`). |
 | **Objeto / conteúdo** | Qualquer coisa que você cria: uma página, uma notícia, um evento, um documento. |
-| **Classe (tipo de conteúdo)** | O "molde de formulário" de um tipo de conteúdo: diz quais campos ele tem (título, resumo, data…). Ex.: "Notícia", "Evento". |
-| **Propriedade (campo)** | Cada informação de um tipo de conteúdo: texto, número, data, sim/não ou ligação (referência) para outro conteúdo. |
+| **Classe (tipo de conteúdo)** | O "molde de formulário" de um tipo de conteúdo: diz quais campos ele tem (título, resumo, data…) e que tipos podem ficar dentro dele. Ex.: "Notícia", "Evento". Vale para todos os sites da instalação; só o administrador cria e altera, em **Tipos de conteúdo**. |
+| **Propriedade (campo)** | Cada informação de um tipo de conteúdo: texto, número, data, sim/não ou ligação (referência) para outro conteúdo. Tem um **nome técnico** (o que os moldes usam, não muda depois de criado) e um **rótulo** (o nome que a equipe vê). |
+| **Campo arquivado** | Campo que saiu dos formulários mas cujos valores continuam guardados (e os moldes continuam mostrando). É o jeito de "tirar" um campo que já tem valores sem perder nada; dá para voltá-lo a ativo. |
 | **Referência** | Uma propriedade que aponta para outro conteúdo (uma notícia aponta para seu autor). Dá para mostrar, filtrar e ordenar pelo conteúdo apontado (por exemplo, notícias ordenadas pelo nome do autor). Só aponta para conteúdo do mesmo site. |
 | **Busca sem acento** | A busca trata `Presidência`, `presidencia` e `PRESIDÊNCIA` como a mesma palavra. |
 | **Consulta** | Um pedido de lista de conteúdos com filtros e ordem (por exemplo, "eventos da Sala 1, em ordem de data"). |

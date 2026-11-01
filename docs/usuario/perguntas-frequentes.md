@@ -39,7 +39,15 @@ A senha é guardada de um jeito que nem a equipe consegue ler; cada login cria u
 
 ## O que já dá para fazer pela administração?
 
-Entre em `/_pbl/` com seu login. Você vê os sites e as seções que pode acessar, anda pelas páginas (inclusive as que ainda não estão no ar) e, se o seu papel permitir, corrige o **título** e a **descrição** de uma página. Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou a mesma página enquanto você editava, aparece um aviso com as duas versões, e você escolhe. Criar, mover, publicar e apagar páginas ainda se faz por linha de comando.
+Entre em `/_pbl/` com seu login. Você vê os sites e as seções que pode acessar, anda pelas páginas (inclusive as que ainda não estão no ar) e, se o seu papel permitir, corrige o **título** e a **descrição** de uma página. Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou a mesma página enquanto você editava, aparece um aviso com as duas versões, e você escolhe. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). Criar, mover, publicar e apagar páginas ainda se faz por linha de comando.
+
+## Como crio um tipo de conteúdo novo (por exemplo, "Evento")?
+
+Se você é administrador, clique em **Tipos de conteúdo** na barra da administração e em **Novo tipo de conteúdo**. Dê um nome técnico (minúsculas, como `evento`) e uma descrição; depois adicione os campos (data, local…), um de cada vez. Para cada campo você escolhe o rótulo que a equipe vai ver, o tipo, a ordem e se é obrigatório. Os tipos valem para todos os sites da instalação.
+
+## Posso apagar um campo ou mudar o tipo dele?
+
+Se nenhum conteúdo tem valor nesse campo, sim. Se já tem, o Publicare **não deixa apagar nem trocar o tipo**, para nada se perder: você pode **arquivar** o campo (ele sai dos formulários e os valores ficam guardados; dá para voltar atrás) e, se precisar de outro tipo, criar um campo novo. Antes de arquivar, a tela mostra quantos conteúdos têm valor. Um tipo de conteúdo inteiro só pode ser apagado quando nenhum conteúdo o usa.
 
 ## Posso trocar o domínio do meu site sem perder os links?
 

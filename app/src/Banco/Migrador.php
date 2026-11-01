@@ -14,6 +14,7 @@ use Pbl\Banco\Migracoes\M005VersoesEHistoricoDeUrls;
 use Pbl\Banco\Migracoes\M006DominiosERedirecionamentos;
 use Pbl\Banco\Migracoes\M007Acesso;
 use Pbl\Banco\Migracoes\M008Sessoes;
+use Pbl\Banco\Migracoes\M009ClassesNaAdministracao;
 
 /**
  * Aplica migrações pendentes. É o único componente que cria tabelas: o usuário de banco da
@@ -28,7 +29,7 @@ final class Migrador
     /** @param list<Migracao>|null $migracoes */
     public function __construct(private readonly Connection $conexao, ?array $migracoes = null)
     {
-        $this->migracoes = $migracoes ?? [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada(), new M005VersoesEHistoricoDeUrls(), new M006DominiosERedirecionamentos(), new M007Acesso(), new M008Sessoes()];
+        $this->migracoes = $migracoes ?? [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada(), new M005VersoesEHistoricoDeUrls(), new M006DominiosERedirecionamentos(), new M007Acesso(), new M008Sessoes(), new M009ClassesNaAdministracao()];
     }
 
     /** @return list<int> versões aplicadas nesta chamada */
