@@ -7,7 +7,7 @@ main { max-width: 60rem; }
 .aviso { color: #8a5a00; }
 
 /* Formulários simples (instalador): rótulo envolvendo o campo, sem classes de framework. */
-main label:not(.form-label) { display: block; margin: .75rem 0; }
+main label:not(.form-label):not(.form-check-label):not(.visually-hidden) { display: block; margin: .75rem 0; }
 main label:not(.form-label) > input:not([type="hidden"]) {
   display: block; width: 100%; padding: .375rem .75rem; font: inherit;
   border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius);
@@ -19,3 +19,6 @@ main table:not(.table) td { padding: .25rem .5rem; border-bottom: 1px solid var(
 
 /* Barra de navegação: o formulário de sair fica na mesma linha. */
 .navbar form { margin: 0; }
+
+/* Tipos de conteúdo: a coluna de ordem dos campos não precisa ser larga. */
+.campo-ordem { width: 5rem; }
