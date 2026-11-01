@@ -10,6 +10,7 @@ use Pbl\Banco\Migracoes\M001Base;
 use Pbl\Banco\Migracoes\M002Metadados;
 use Pbl\Banco\Migracoes\M003TituloBusca;
 use Pbl\Banco\Migracoes\M004BuscaNormalizada;
+use Pbl\Banco\Migracoes\M005VersoesEHistoricoDeUrls;
 
 /**
  * Aplica migrações pendentes. É o único componente que cria tabelas: o usuário de banco da
@@ -24,7 +25,7 @@ final class Migrador
     /** @param list<Migracao>|null $migracoes */
     public function __construct(private readonly Connection $conexao, ?array $migracoes = null)
     {
-        $this->migracoes = $migracoes ?? [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada()];
+        $this->migracoes = $migracoes ?? [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada(), new M005VersoesEHistoricoDeUrls()];
     }
 
     /** @return list<int> versões aplicadas nesta chamada */

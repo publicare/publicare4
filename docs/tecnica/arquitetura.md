@@ -13,7 +13,9 @@ flowchart LR
     A -->|URL validada| C[Caminhos::pagina]
     C --> F[(dados/cache/paginas/site/url.html)]
     F -->|existe e não venceu| R[Resposta 200]
-    F -->|não existe ou venceu| N[404]
+    F -->|não existe ou venceu| UH[(url_historico)]
+    UH -->|endereço antigo de conteúdo no ar| M[301 para o endereço atual]
+    UH -->|nenhum| N[404]
 ```
 
 A requisição pública **só lê um arquivo pronto**: ela não monta página nem consulta conteúdo. O banco é consultado apenas para descobrir o site pelo domínio.
@@ -43,6 +45,8 @@ O molde é compilado **uma vez** para PHP; o hash cobre o molde, a cadeia de lay
 | `classe` | tipos de conteúdo e suas propriedades (JSON) |
 | `objeto` | os conteúdos: dados em JSON, `caminho` materializado (`/1/45/230/`), metadados (`peso`, `descricao`, vigência), `titulo_norm` |
 | `objeto_indice` | valores tipados só das propriedades marcadas como **indexáveis** (as `ref` sempre); é o que permite filtrar e ordenar, inclusive pelo campo de um objeto apontado, com `JOIN`s e sem tabela temporária |
+| `objeto_versao` | histórico: uma linha por estado salvo de cada objeto (a atual inclusive), com o motivo |
+| `url_historico` | endereço antigo → objeto; a `Aplicacao` responde 301 para o endereço atual |
 | `schema_versao` | migrações já aplicadas |
 
 Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banco em uso normal só precisa de `SELECT/INSERT/UPDATE/DELETE` ([ADR 0003](../adr/0003-plataforma-low-code.md)). A subárvore de um objeto sai do prefixo do `caminho`, o que também limita cada consulta ao seu site.
@@ -75,4 +79,4 @@ dados/
 
 ## O que ainda não existe
 
-Autenticação e permissões, administração web, instalador web, atualizador, upload de arquivos, versões de objeto, redirecionamento de URLs antigas. Estão no [plano](../plano.md).
+Autenticação e permissões, administração web, instalador web, atualizador, upload de arquivos, domínios antigos e regras manuais de redirecionamento. Estão no [plano](../plano.md).

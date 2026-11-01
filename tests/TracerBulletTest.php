@@ -172,4 +172,51 @@ final class TracerBulletTest extends TestCase
 
         self::assertSame(404, $this->pegar('/sobre')->getStatusCode());
     }
+
+    public function testUrlAntigaRedirecionaEPaginaOrfaSaiDoCache(): void
+    {
+        $servicos = Servicos::doBancoInstalado($this->caminhos);
+        $site = $servicos->sites->porHost('teste.local');
+        $classe = $servicos->classes->porNome('pagina');
+        self::assertNotNull($site);
+        self::assertNotNull($classe);
+        $guia = $servicos->objetos->criar($site->id, $classe, $site->objetoRaizId, 'Guia', 'guia', ['resumo' => 'r']);
+        $servicos->publicador->publicarSite($site);
+        self::assertSame(200, $this->pegar('/guia')->getStatusCode());
+
+        $servicos->objetos->atualizar($guia->id, ['url_amigavel' => 'manual'], 'novo endereço');
+        $servicos->publicador->publicarSite($site);
+
+        self::assertFileDoesNotExist($this->caminhos->pagina($site->id, 'guia'), 'a página do endereço antigo saiu do cache');
+        self::assertSame(200, $this->pegar('/manual')->getStatusCode());
+        self::assertSame(200, $this->pegar('/')->getStatusCode(), 'a página inicial continua');
+        $antigo = $this->pegar('/guia?aba=2');
+        self::assertSame(301, $antigo->getStatusCode());
+        self::assertSame('/manual?aba=2', $antigo->headers->get('Location'), 'redireciona para caminho relativo e mantém a consulta');
+
+        // tira do ar: o endereço antigo não redireciona para uma página que não existe
+        $servicos->objetos->atualizar($guia->id, ['status' => 'privado']);
+        $servicos->publicador->publicarSite($site);
+        self::assertSame(404, $this->pegar('/guia')->getStatusCode());
+        self::assertSame(404, $this->pegar('/manual')->getStatusCode());
+    }
+
+    public function testRedirecionamentoNuncaVaiParaForaDoSite(): void
+    {
+        $servicos = Servicos::doBancoInstalado($this->caminhos);
+        $site = $servicos->sites->porHost('teste.local');
+        $classe = $servicos->classes->porNome('pagina');
+        self::assertNotNull($site);
+        self::assertNotNull($classe);
+        $o = $servicos->objetos->criar($site->id, $classe, $site->objetoRaizId, 'X', 'x', []);
+        $servicos->objetos->atualizar($o->id, ['url_amigavel' => 'y']);
+        $servicos->publicador->publicarSite($site);
+
+        $r = $this->pegar('/x?next=//evil.example');
+
+        self::assertSame(301, $r->getStatusCode());
+        self::assertStringStartsWith('/y', (string) $r->headers->get('Location'));
+        self::assertStringNotContainsString('://', explode('?', (string) $r->headers->get('Location'))[0]);
+        self::assertStringStartsNotWith('//', (string) $r->headers->get('Location'));
+    }
 }

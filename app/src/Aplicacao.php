@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pbl;
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -37,6 +38,14 @@ final class Aplicacao
             return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
         }
         if (!is_file($arquivo)) {
+            // Endereço antigo de um conteúdo que mudou de URL: 301 para o endereço atual (só caminho relativo, validado).
+            $atual = $servicos->objetos->urlAtualDoHistorico($site->id, $url);
+            if ($atual !== null) {
+                $consulta = $requisicao->getQueryString();
+
+                return new RedirectResponse('/' . $atual . ($consulta === null || $consulta === '' ? '' : '?' . $consulta), Response::HTTP_MOVED_PERMANENTLY);
+            }
+
             return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
         }
         if (is_file($arquivo . '.expira') && trim((string) file_get_contents($arquivo . '.expira')) < gmdate('c')) {

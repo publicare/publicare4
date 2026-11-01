@@ -46,6 +46,8 @@ final class CaminhosTest extends TestCase
         yield 'hífen no meio' => ['a-b-c', true];
         yield 'hífen duplo' => ['a--b', true];
         yield 'número' => ['2026/11/01-edital', true];
+        yield 'index é reservada (página inicial no cache)' => ['index', false];
+        yield 'index dentro de pasta pode' => ['guia/index', true];
         yield 'hífen no começo' => ['-a', false];
         yield 'hífen no fim' => ['a-', false];
         yield 'barra no começo' => ['/a', false];

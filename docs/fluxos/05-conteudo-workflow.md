@@ -29,6 +29,19 @@ Versões em `versaoobjeto`; ações registradas em `logobjeto` e `logworkflow`. 
 
 ## PBL4
 
+> **Implementado (fase 1b):** histórico de versões (`objeto_versao`, uma linha por estado salvo, a atual inclusive), `atualizar` com mesclagem de dados e reindexação, `restaurar` (como nova versão), `mover` com a subárvore, proteção contra conflito (`versaoEsperada`) e os estados `privado`, `submetido`, `rejeitado`, `publicado`, `apagado`. Ainda falta: as **transições com permissão por perfil**, o quem-mudou (depende do login, fase 3), a fila de pendentes e as notificações (fase 6).
+
+```mermaid
+flowchart LR
+    S[Salvar] --> C{Versão esperada = atual?}
+    C -- não --> E[Conflito: recusa]
+    C -- sim --> V[Valida tipos e URL]
+    V --> U[(objeto: nova versão)]
+    V --> H[(objeto_versao: retrato)]
+    V -->|URL mudou| UH[(url_historico: endereço antigo → objeto)]
+    V --> I[(objeto_indice refeito)]
+```
+
 - **Dados em `objeto` (JSON)** validados pela definição da classe, com `caminho` materializado no lugar de `cod_pai`+`parentesco` e `objeto_indice` para filtros (fluxo 9); versões em tabela própria.
 - **Workflow como configuração**: os estados acima são o padrão; classes e pastas podem definir estados, transições, prazos e notificações próprios (fluxo 10).
 - **Serviços de domínio** (`ObjetoRepository`, `WorkflowService`, `VersaoService`) com testes; controllers finos.
