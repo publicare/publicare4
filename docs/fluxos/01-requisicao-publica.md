@@ -87,6 +87,7 @@ Regras:
 - **Router único** com whitelist de rotas; sem `include` de caminho vindo da URL.
 - **`TemplateResolver`** é a única classe que conhece a ordem de resolução (a do diagrama acima), lendo `pele_arquivo` (fluxo 4) e usando cache compilado (fluxo 2).
 - `url_amigavel` resolvida dentro do escopo do site (ADR 0003, §5).
+- A pele de saída é escolhida por prefixo/extensão (`/api/v1/…`, `.json`) ou `Accept`: HTML, JSON, RSS etc. (ADR 0009).
 - Rotas de **formulários públicos** e de **webhooks** (pagamento) são registradas no mesmo router, com CSRF e limites próprios (fluxo 10).
 - Erros: página 404/403/500 do tema; detalhes só em log, nunca ao visitante.
 - Front controller único `public/index.php`, que na ausência de configuração entra no instalador (fluxo 3).
