@@ -26,6 +26,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Redirecionar endereços antigos que não são páginas atuais (de sistemas que acabaram, com `.php` ou maiúsculas) | ✅ (por linha de comando) |
 | Mudar o endereço de uma página sem quebrar o antigo (o antigo passa a levar ao novo) | ✅ |
 | Mover uma página (com tudo que está dentro dela) na árvore | ✅ |
+| Contas da equipe com senha segura e papéis por seção do site (leitor, autor, editor) e administrador geral, com registro de quem fez o quê (por linha de comando) | ✅ |
 | Busca que ignora maiúsculas e acentos (`presidencia` acha `Presidência`) | ✅ |
 | Ligar conteúdos entre si (uma notícia aponta para seu autor) e, nos moldes, mostrar, filtrar e ordenar pelo conteúdo apontado | ✅ |
 | Consultas com até três condições, comparações (maior, menor, contém) e carga rápida de listas | ✅ |
@@ -35,7 +36,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Recurso | Estado |
 |---|---|
 | Busca com várias palavras, relevância e correção de erros de digitação ("você quis dizer…") | 🗓️ |
-| Login seguro, papéis (autor, editor, administrador) e permissões | 🗓️ |
+| Entrar pelo navegador (login com sessão segura, proteção contra tentativas em massa) | 🗓️ |
 | Instalador pelo navegador, para quem não é técnico | 🗓️ |
 | Atualização automática com cópia de segurança | 🗓️ |
 | Tela de administração e editor de peles | 🗓️ |
