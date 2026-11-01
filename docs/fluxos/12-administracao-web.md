@@ -8,7 +8,7 @@
 
 ## PBL4
 
-> **Decisões:** [ADR 0012](../adr/0012-administracao-web.md). **Implementado (fase 5a):** painel com os sites e seções que a pessoa pode ver, navegação na árvore (só leitura, com conteúdo fora do ar) e edição de título e descrição com proteção contra edição simultânea e republicação. **Falta:** criar, mover, mudar estado, apagar, editar propriedades, histórico na tela, contas, domínios, redirecionamentos e peles.
+> **Decisões:** [ADR 0012](../adr/0012-administracao-web.md). **Implementado (fase 5a):** painel com os sites e seções que a pessoa pode ver, navegação na árvore (só leitura, com conteúdo fora do ar) e edição de título e descrição com proteção contra edição simultânea e republicação. **(fase 5c):** tipos de conteúdo (classes): listar, criar, editar campos e apagar, sem nunca apagar valor guardado. **Falta:** criar, mover, mudar estado, apagar, preencher propriedades de um objeto, histórico na tela, contas, domínios, redirecionamentos e peles.
 
 ### Ver um conteúdo
 
@@ -57,3 +57,31 @@ sequenceDiagram
 3. **Edição simultânea** é recusada com as duas versões à vista; salvar de novo é uma decisão consciente.
 4. **Republicação** imediata da página editada e da página-mãe; outras páginas que citam o título (menus em outras seções) mudam na próxima publicação do site.
 5. **Visual**: Bootstrap 5 local (só CSS), sem JavaScript, servido direto pelo servidor web a partir de `public/_pbl/assets/`.
+
+### Editar um tipo de conteúdo (fase 5c)
+
+```mermaid
+sequenceDiagram
+    participant V as Navegador
+    participant T as TelasDeClasses
+    participant A as Permissoes
+    participant C as ClasseRepositorio
+    V->>T: GET /_pbl/classe/3/editar
+    T->>A: podeModelarClasses(usuário)? não → 403
+    T->>C: usoDasPropriedades (objetos e versões com valor em cada campo)
+    T-->>V: formulário com versao=4; campo em uso: tipo fixo, sem "remover"
+    V->>T: POST campos, versao=4, _csrf (+ Origin)
+    T->>T: origem e CSRF (403), permissão (403 + classe.negado)
+    T->>T: valida (422): tipo trocado ou remoção de campo com valor → recusado com a contagem
+    T-->>V: arquivando campo com valores? tela de confirmação com a contagem (nada gravado)
+    V->>T: POST confirmar=1
+    T->>C: atualizar(3, versaoEsperada=4, campos, descrição, filhas)
+    C->>C: repete a regra "nada some"; UPDATE ... WHERE versao = 4
+    C-->>T: ConflitoDeVersao → 409, nada gravado
+    C-->>T: ok (versão 5); auditoria classe.atualizar com os nomes do que mudou
+    T-->>V: 303 /_pbl/classe/3/editar?ok=salva
+```
+
+6. **Classes são da instalação**, não de um site; só o administrador global as altera. Os demais veem a lista.
+7. **Arquivar, não apagar**: campo com valores sai dos formulários e mantém os dados; remover ou trocar o tipo só vale para campo que nunca teve valor.
+8. **Apagar tipo** só sem conteúdo e sem outro tipo que dependa dele.

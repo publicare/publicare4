@@ -110,7 +110,7 @@ final class ClasseRepositorioTest extends TestCase
                 $this->classes->criar('caso_' . count($this->classes->todas()), $props, $meta);
                 self::fail($caso);
             } catch (\InvalidArgumentException) {
-                self::assertTrue(true);
+                self::assertCount(1, $this->classes->todas(), "{$caso}: nada foi criado");
             }
         }
         $propria = $this->classes->criar('pasta', [], ['filhas' => ['pasta']]);

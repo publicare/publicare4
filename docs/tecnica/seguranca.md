@@ -20,6 +20,7 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 | **Força bruta** | 5 falhas por login ou 30 por IP em 15 min bloqueiam (429 + `Retry-After`) no servidor; login e IP só como HMAC; resposta igual para login inexistente e senha errada; auditoria sem login digitado nem IP | `LimiteDeTentativas`, `Painel` |
 | **Cabeçalhos da administração** | `Cache-Control: no-store`, CSP restritiva (`default-src 'none'`, `style-src 'self'`, sem `script-src` e sem `unsafe-inline`, `frame-ancestors 'none'`, `form-action 'self'`), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: same-origin`, HSTS em HTTPS | `Pagina` |
 | **Telas da administração** | Toda rota exige sessão (sem ela, 303 para entrar) e decide com `Permissoes::pode` e uma ação fixa do código, também no POST (esconder o botão não é a defesa); sem permissão e objeto inexistente dão o mesmo 403; id da URL validado por expressão ancorada; todo POST confere origem e CSRF antes de tudo; campos só como texto, UTF-8 válido, sem caracteres de controle, com teto de tamanho; toda saída escapada (título hostil vira texto); gravação só por `ObjetoRepositorio::atualizar` com versão esperada (409 em edição simultânea); auditoria com nomes de campos e motivo fixo, e registro de tentativa de edição negada | `TelasDeConteudo`, `Painel` |
+| **Tipos de conteúdo na administração** | Só o administrador global altera (`Permissoes::podeModelarClasses`, em toda rota e no POST); os demais veem só a lista, sem contagem de uso, e recebem o mesmo 403 para tipo existente ou não; origem e CSRF antes de tudo; nomes técnicos validados por regex ancorada e com teto, rótulo e descrição como texto UTF-8 sem caracteres de controle e com teto; chaves do formulário só são lidas para os campos que a classe já tem; campo com valor (hoje ou em versão antiga) não é removido nem muda de tipo, só arquivado, com confirmação, e a regra se repete no repositório; apagar tipo só sem objetos e sem dependentes; versão esperada (409); auditoria só com nomes de tipo e de campo | `TelasDeClasses`, `ClasseRepositorio` |
 | **Estilos da administração** | Bootstrap 5.3.8 (só CSS) servido do próprio site, sem CDN; arquivo idêntico à release oficial, com SHA-256 registrado em `public/_pbl/assets/PROVENIENCIA.md` e conferido por teste; nenhum JavaScript | `public/_pbl/assets/` |
 | **Instalador web** | Só antes de instalar; prova de posse (`dados/instalar.liberar`), CSRF, origem, escape de tudo, senha nunca refletida, atômico; some depois (404) | `InstaladorWeb` |
 | **Pastas internas** | `.htaccess` (e a raiz em `public/`): `dados/`, `app/`, `vendor/`, `composer.*` não são servidos (403 no Apache testado) | `.htaccess` |
@@ -45,7 +46,7 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 | Item | Previsto |
 |---|---|
 | Recuperação de senha por e-mail, autenticação em dois fatores | depois da fase 4 ([ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md)) |
-| Permissão por campo | com o editor de classes |
+| Permissão por campo | com as telas de objetos (o editor de classes já existe, sem permissão por campo) |
 | Upload seguro (lista de tipos, fora do `docroot`) | com o upload (fluxo 7) |
 | Botão de atualizar no painel (reautenticação, janela de escrita) | com a administração ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | HTTPS forçado na administração (hoje é recomendação) | a decidir |
@@ -63,7 +64,7 @@ O IP real e o HTTPS chegam em cabeçalhos que só podem ser confiados se você d
 
 Sem o arquivo, vale só o que o servidor enxerga (o IP do proxy, o que faria o limite de tentativas tratar todos os visitantes como um só). Use **HTTPS** na administração: sem ele o cookie não recebe `Secure` nem o prefixo `__Host-`.
 
-A administração ainda está no começo (ver e editar título e descrição). Até ela ficar completa e passar por revisão de segurança, **não exponha o PBL4 em produção** para conteúdo que não seja o da publicação estática de páginas.
+A administração ainda está no começo (ver e editar título e descrição, tipos de conteúdo). Até ela ficar completa e passar por revisão de segurança, **não exponha o PBL4 em produção** para conteúdo que não seja o da publicação estática de páginas.
 
 ## Princípios
 
