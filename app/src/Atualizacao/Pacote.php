@@ -75,7 +75,7 @@ final class Pacote
                     throw new ErroDeAtualizacao("O arquivo {$limpo} não confere com o PACOTE.json");
                 }
                 $obtidos[$limpo] = $hash;
-                @chmod($alvo, 0644);
+                @chmod($alvo, str_starts_with($limpo, 'bin/') ? 0755 : 0644); // o lançador bin/pbl precisa continuar executável
             }
             $faltando = array_diff_key($esperados, $obtidos);
             if ($faltando !== []) {

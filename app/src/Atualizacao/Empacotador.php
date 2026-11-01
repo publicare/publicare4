@@ -51,7 +51,7 @@ final class Empacotador
         foreach (array_keys($hashes) as $relativo) {
             $z->addFile($arquivos[$relativo], $relativo);
             $z->setMtimeName($relativo, $fixo);
-            $z->setExternalAttributesName($relativo, \ZipArchive::OPSYS_UNIX, 0100644 << 16);
+            $z->setExternalAttributesName($relativo, \ZipArchive::OPSYS_UNIX, (str_starts_with($relativo, 'bin/') ? 0100755 : 0100644) << 16);
         }
         $z->close();
 

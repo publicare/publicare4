@@ -47,6 +47,9 @@ final class AtualizadorTest extends TestCase
         file_put_contents($raiz . '/app/src/Versao.php', "<?php\nfinal class Versao { public const ATUAL = '{$versao}'; }\n");
         file_put_contents($raiz . '/app/src/marcador.txt', $marcador);
         file_put_contents($raiz . '/vendor/autoload.php', '<?php');
+        mkdir($raiz . '/bin', 0775, true);
+        file_put_contents($raiz . '/bin/pbl', '#!/usr/bin/env php');
+        chmod($raiz . '/bin/pbl', 0755);
         file_put_contents($raiz . '/composer.json', '{"require":{"php":">=8.2"}}');
         file_put_contents($raiz . '/composer.lock', '{}');
         file_put_contents($raiz . '/LICENSE', 'MIT');
@@ -90,10 +93,45 @@ final class AtualizadorTest extends TestCase
 
         self::assertSame('0.2.0', $r->para);
         self::assertSame('codigo novo', file_get_contents($raiz . '/app/src/marcador.txt'));
+        self::assertTrue(is_executable($raiz . '/bin/pbl'), 'o lançador continua executável');
         self::assertSame('meu', file_get_contents($raiz . '/dados/meu-arquivo.txt'), 'dados/ intocado');
         self::assertSame('BANCO', file_get_contents($r->bancoCopiadoPara), 'cópia do banco');
         self::assertSame('codigo velho', file_get_contents($raiz . '/dados/atualizacao/anterior/app/src/marcador.txt'), 'código antigo guardado');
         self::assertFalse(Manutencao::ativa(new Caminhos($raiz)), 'manutenção desligada no fim');
+    }
+
+    public function testCopiaDoBancoSqliteEhConsistenteELegivel(): void
+    {
+        [, $manifesto] = $this->publicar('0.2.0', 'novo');
+        $raiz = $this->projeto('0.1.0', 'velho');
+        mkdir($raiz . '/dados', 0775, true);
+        $c = \Pbl\Banco\Conexao::sqlite($raiz . '/dados/pbl4.sqlite');
+        $c->executeStatement('CREATE TABLE t (v TEXT)');
+        $c->executeStatement("INSERT INTO t VALUES ('importante')");
+        $a = $this->atualizador($raiz);
+
+        $r = $a->aplicar($a->verificar($manifesto), $manifesto);
+
+        self::assertSame('importante', \Pbl\Banco\Conexao::sqlite($r->bancoCopiadoPara)->fetchOne('SELECT v FROM t'));
+    }
+
+    public function testFalhaAoCopiarOBancoDesligaAManutencaoENaoTrocaNada(): void
+    {
+        [, $manifesto] = $this->publicar('0.2.0', 'novo');
+        $raiz = $this->projeto('0.1.0', 'velho');
+        mkdir($raiz . '/dados', 0775, true);
+        file_put_contents($raiz . '/dados/backups', 'um arquivo onde deveria haver uma pasta');
+        file_put_contents($raiz . '/dados/pbl4.sqlite', 'BANCO');
+        $a = $this->atualizador($raiz);
+
+        try {
+            @$a->aplicar($a->verificar($manifesto), $manifesto);
+            self::fail('deveria falhar');
+        } catch (ErroDeAtualizacao) {
+            $this->addToAssertionCount(1);
+        }
+        self::assertSame('velho', file_get_contents($raiz . '/app/src/marcador.txt'));
+        self::assertFalse(Manutencao::ativa(new Caminhos($raiz)));
     }
 
     public function testFalhaDepoisDaTrocaDevolveOCodigoAntigo(): void

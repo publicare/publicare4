@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pbl\Atualizacao;
 
+use Pbl\Banco\Conexao;
 use Pbl\Caminhos;
 use Pbl\Versao;
 
@@ -86,10 +87,12 @@ final class Atualizador
         Pacote::extrair($zip, $trabalho . '/novo', $m->versao);
         @unlink($zip);
 
-        $backup = $this->copiarBanco($m->versao);
+        // Manutenção antes da cópia: com o site respondendo 503 o banco não recebe escritas novas durante o backup.
         Manutencao::ligar($this->caminhos, "Atualizando para {$m->versao}");
+        $backup = '';
         $trocados = [];
         try {
+            $backup = $this->copiarBanco($m->versao);
             $trocados = $this->trocar($trabalho);
             ($this->conferirNovo)($this->caminhos->raiz);
         } catch (\Throwable $e) {
@@ -152,8 +155,14 @@ final class Atualizador
             throw new ErroDeAtualizacao('Não foi possível criar dados/backups/');
         }
         $destino = $pasta . '/pbl4-' . $this->versaoAtual . '-antes-de-' . $versao . '-' . gmdate('Ymd-His') . '.sqlite';
-        if (!@copy($banco, $destino)) {
-            throw new ErroDeAtualizacao('Não foi possível copiar o banco: a atualização não começou.');
+        try {
+            // VACUUM INTO gera uma cópia consistente mesmo com o arquivo aberto por outro processo (SQLite 3.27+).
+            Conexao::sqlite($banco)->executeStatement('VACUUM INTO ' . "'" . str_replace("'", "''", $destino) . "'");
+        } catch (\Throwable) {
+            @unlink($destino);
+            if (!@copy($banco, $destino)) {
+                throw new ErroDeAtualizacao('Não foi possível copiar o banco: a atualização não começou.');
+            }
         }
         @chmod($destino, 0600);
 
