@@ -7,6 +7,7 @@ namespace Pbl\Consulta;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use Pbl\Busca\Texto;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
 
@@ -189,13 +190,24 @@ final class MotorDeConsulta
                     ? "(({$texto} IS NULL OR {$texto} <> :{$tv}) AND ({$numero} IS NULL OR {$numero} <> :{$nv}))"
                     : "({$texto} IS NULL OR {$texto} <> :{$tv})";
             case 'contem':
-                $emTitulo = $f->campo === 'titulo';
-                $this->param($q, $tv, '%' . $this->escaparLike($emTitulo ? mb_strtolower($f->valor) : $f->valor) . '%', ParameterType::STRING);
+                // Título e propriedades de texto têm uma coluna normalizada (minúsculas, sem acento): a busca ignora ambos.
+                $normalizada = $this->colunaNormalizada($texto);
+                $this->param($q, $tv, '%' . $this->escaparLike($normalizada === null ? $f->valor : Texto::normalizar($f->valor)) . '%', ParameterType::STRING);
 
-                return ($emTitulo ? 'o.titulo_busca' : $texto) . " LIKE :{$tv} ESCAPE '!'";
+                return ($normalizada ?? $texto) . " LIKE :{$tv} ESCAPE '!'";
             default: // < > <= >=
                 return $numerico ? "{$numero} {$f->operador} :{$nv}" : "{$texto} {$f->operador} :{$tv}";
         }
+    }
+
+    /** `x1.texto` → `x1.texto_norm`, `o.titulo` → `o.titulo_busca`; outras colunas não têm versão normalizada. */
+    private function colunaNormalizada(string $expressao): ?string
+    {
+        if (str_ends_with($expressao, '.titulo')) {
+            return $expressao . '_busca';
+        }
+
+        return str_ends_with($expressao, '.texto') ? $expressao . '_norm' : null;
     }
 
     /** @param array<string, mixed> $q */

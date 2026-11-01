@@ -21,9 +21,11 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - **Ordenar pelo objeto referenciado** (`ordem="autor.titulo"`) numa única consulta, **sem tabela temporária**; nulos sempre por último, igual em qualquer banco. (#15)
 - Nos moldes: `#autor.titulo` (campo do objeto referenciado), `expandir="autor"` (carrega as referências de uma lista em lote), `#temfilhos`, e em `localizar` os parâmetros `op`, `campo2`/`valor2`/`op2` e `campo3`/`valor3`/`op3`. (#15)
 - Conversor de moldes: `condicao` com até três comparações ligadas por `and` e operadores `>`, `<`, `>=`, `<=`, `!=` e `<>`. (#15)
+- **Busca que ignora maiúsculas e acentos**: `presidencia`, `PRESIDÊNCIA` e `Presidência` acham o mesmo conteúdo. Vale para o título, para as propriedades de texto indexáveis e para o título de objetos referenciados (`campo="autor.titulo" op="contem"`), igual em SQLite, MySQL e PostgreSQL. Os dados que já existiam são recalculados pela migração. ADR 0010 desenha a busca com relevância e tolerância a erros de grafia. (#17)
 - Documentação de design (ADRs 0003 a 0009, fluxos e plano), documentação para quem usa e técnica, guia de colaboração, política de segurança, versionamento e pipeline automática de testes.
 
 ### Alterado
+- `contem` e `busca=` agora ignoram acentos, não só maiúsculas (antes `árvore` não achava `Arvore`). (#17)
 - Internamente, a consulta de objetos saiu de `ObjetoRepositorio` e foi para o `MotorDeConsulta`; `#temfilhos` deixou de ser um aviso do conversor. (#15)
 - A sintaxe dos moldes mudou em relação ao rascunho inicial: `<@eco titulo@>` agora é `<@eco #titulo@>` e `<@repetir filhos@>` virou `<@filhos@>`. (#6)
 

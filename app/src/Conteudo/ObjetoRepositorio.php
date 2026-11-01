@@ -7,6 +7,7 @@ namespace Pbl\Conteudo;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use Pbl\Busca\Texto;
 
 /**
  * Objetos com dados em JSON validados pela classe, caminho materializado (substitui `parentesco`)
@@ -44,7 +45,7 @@ final class ObjetoRepositorio
                 'pai_id' => $paiId,
                 'caminho' => '',
                 'titulo' => $titulo,
-                'titulo_busca' => mb_strtolower($titulo),
+                'titulo_busca' => Texto::normalizar($titulo),
                 'url_amigavel' => $urlAmigavel,
                 'status' => $status,
                 'dados' => json_encode($dados, JSON_THROW_ON_ERROR),
@@ -127,7 +128,7 @@ final class ObjetoRepositorio
     {
         $linha = $this->conexao->fetchAssociative(
             'SELECT * FROM objeto WHERE site_id = ? AND status = ? AND titulo_busca = ? ORDER BY id LIMIT 1',
-            [$siteId, 'publicado', mb_strtolower($titulo)],
+            [$siteId, 'publicado', Texto::normalizar($titulo)],
         );
 
         return $linha === false ? null : $this->hidratar($linha);
@@ -238,6 +239,7 @@ final class ObjetoRepositorio
                 'objeto_id' => $id,
                 'chave' => $p['nome'],
                 'texto' => $numerico ? null : mb_substr((string) $valor, 0, 500),
+                'texto_norm' => $numerico ? null : mb_substr(Texto::normalizar((string) $valor), 0, 500),
                 'numero' => $numerico ? (float) $valor : null,
             ]);
         }
