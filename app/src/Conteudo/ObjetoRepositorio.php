@@ -24,7 +24,7 @@ final class ObjetoRepositorio
      */
     public function criar(int $siteId, Classe $classe, ?int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'publicado', array $meta = []): Objeto
     {
-        if (preg_match(\Pbl\Caminhos::URL_VALIDA, $urlAmigavel) !== 1) {
+        if (!\Pbl\Caminhos::urlValida($urlAmigavel)) {
             throw new \InvalidArgumentException("URL amigável inválida: {$urlAmigavel}");
         }
         $this->validar($classe, $dados);

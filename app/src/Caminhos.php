@@ -10,7 +10,20 @@ namespace Pbl;
  */
 final class Caminhos
 {
-    public const URL_VALIDA = '/^(?:|[a-z0-9]+(?:[a-z0-9\-]*[a-z0-9])?(?:\/[a-z0-9]+(?:[a-z0-9\-]*[a-z0-9])?)*)$/';
+    /**
+     * URL amigável: segmentos `a-z 0-9 -` separados por `/`, sem hífen nas pontas do segmento. Os quantificadores
+     * são possessivos e as classes não se sobrepõem, então não há backtracking (uma versão anterior com
+     * `[a-z0-9]+(?:[a-z0-9\-]*[a-z0-9])?` estourava o limite do PCRE com ~90 caracteres). Confira o tamanho
+     * com `URL_TAMANHO_MAXIMO` antes de usar.
+     */
+    public const URL_VALIDA = '/^(?:|[a-z0-9]++(?:-++[a-z0-9]++)*+(?:\/[a-z0-9]++(?:-++[a-z0-9]++)*+)*+)$/D';
+
+    public const URL_TAMANHO_MAXIMO = 300;
+
+    public static function urlValida(string $url): bool
+    {
+        return strlen($url) <= self::URL_TAMANHO_MAXIMO && preg_match(self::URL_VALIDA, $url) === 1;
+    }
 
     public readonly string $raiz;
 
@@ -60,7 +73,7 @@ final class Caminhos
      */
     public function pagina(int $siteId, string $urlAmigavel): string
     {
-        if (preg_match(self::URL_VALIDA, $urlAmigavel) !== 1) {
+        if (!self::urlValida($urlAmigavel)) {
             throw new \InvalidArgumentException('URL inválida');
         }
 
