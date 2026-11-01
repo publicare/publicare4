@@ -8,15 +8,15 @@ use Doctrine\DBAL\Connection;
 
 final class ClasseRepositorio
 {
-    public const TIPOS = ['texto', 'numero', 'html'];
+    public const TIPOS = ['texto', 'numero', 'html', 'data', 'booleano', 'ref'];
     /** Nomes que o contexto do molde já usa (`#id`, `#titulo`...). */
-    public const RESERVADOS = ['id', 'titulo', 'url', 'url_amigavel', 'classe', 'classe_id', 'site', 'pai', 'filhos', 'peso', 'descricao', 'data_publicacao', 'data_validade', 'status', 'apagado'];
+    public const RESERVADOS = ['id', 'titulo', 'url', 'url_amigavel', 'classe', 'classe_id', 'site', 'pai', 'filhos', 'peso', 'descricao', 'data_publicacao', 'data_validade', 'status', 'apagado', 'temfilhos'];
 
     public function __construct(private readonly Connection $conexao)
     {
     }
 
-    /** @param list<array{nome: string, tipo: string, indexavel?: bool}> $propriedades */
+    /** @param list<array{nome: string, tipo: string, indexavel?: bool, classe?: string}> $propriedades */
     public function criar(string $nome, array $propriedades): Classe
     {
         if (preg_match('/^[a-z][a-z0-9_]*$/', $nome) !== 1) {
@@ -30,7 +30,18 @@ final class ClasseRepositorio
             if (!in_array($p['tipo'], self::TIPOS, true)) {
                 throw new \InvalidArgumentException("Tipo de propriedade inválido: {$p['tipo']}");
             }
-            $normalizadas[] = ['nome' => $p['nome'], 'tipo' => $p['tipo'], 'indexavel' => $p['indexavel'] ?? false];
+            $normalizada = ['nome' => $p['nome'], 'tipo' => $p['tipo'], 'indexavel' => $p['indexavel'] ?? false];
+            if ($p['tipo'] === 'ref') {
+                // Referência sem índice não serve para ordenar nem filtrar pelo objeto apontado: fica sempre indexada.
+                $normalizada['indexavel'] = true;
+                if (isset($p['classe'])) {
+                    if ($this->porNome($p['classe']) === null) {
+                        throw new \InvalidArgumentException("A referência {$p['nome']} aponta para uma classe que não existe: {$p['classe']}");
+                    }
+                    $normalizada['classe'] = $p['classe'];
+                }
+            }
+            $normalizadas[] = $normalizada;
         }
         $this->conexao->insert('classe', ['nome' => $nome, 'propriedades' => json_encode($normalizadas, JSON_THROW_ON_ERROR)]);
 
@@ -54,7 +65,7 @@ final class ClasseRepositorio
     /** @param array<string, mixed> $linha */
     private function hidratar(array $linha): Classe
     {
-        /** @var list<array{nome: string, tipo: string, indexavel: bool}> $props */
+        /** @var list<array{nome: string, tipo: string, indexavel: bool, classe?: string}> $props */
         $props = json_decode((string) $linha['propriedades'], true, 512, JSON_THROW_ON_ERROR);
 
         return new Classe((int) $linha['id'], (string) $linha['nome'], $props);

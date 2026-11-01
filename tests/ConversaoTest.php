@@ -6,6 +6,7 @@ namespace Pbl\Testes;
 
 use Pbl\Banco\Conexao;
 use Pbl\Banco\Migrador;
+use Pbl\Consulta\MotorDeConsulta;
 use Pbl\Conteudo\ClasseRepositorio;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conversao\Aviso;
@@ -119,7 +120,7 @@ PBL);
 
     public function testCondicaoComplexaLikeETagsNaoSaemEmSilencio(): void
     {
-        $r = $this->converter('<@localizar classes=["a"] condicao=["x=1 and y=2"] like=["titulo","%a%"] tags=["z"]@><@/localizar@>');
+        $r = $this->converter('<@localizar classes=["a"] condicao=["x=1 or y=2"] like=["titulo","%a%"] tags=["z"]@><@/localizar@>');
 
         self::assertTrue($r->valido);
         self::assertSame(3, $r->contar(Aviso::REVISAR));
@@ -190,7 +191,7 @@ PBL);
 
         $pasta = Ajuda::pastaTemporaria();
         try {
-            $fonte = new FonteRepositorio($objetos, $classes);
+            $fonte = new FonteRepositorio($objetos, $classes, new MotorDeConsulta($con, $objetos));
             $html = ((new Compilador($pasta))->carregar($r->saida))(ContextoDeObjeto::de($raiz, 'pagina'), new Runtime($fonte));
 
             self::assertSame('<ul><li><a href="/inicio">Início</a></li><li><a href="/contato">Contato</a></li></ul>', $html);
@@ -305,5 +306,35 @@ PBL);
             Ajuda::apagar($origem);
             Ajuda::apagar($raiz);
         }
+    }
+
+    public function testCondicoesMultiplasEOperadoresViramCamposNumerados(): void
+    {
+        $r = $this->converter('<@localizar classes=["evento"] condicao=["local=\'Sala 1\' and vagas>=10 and ativo<>0"] pai=[1]@><@/localizar@>');
+
+        self::assertTrue($r->valido);
+        self::assertStringContainsString('campo="local" valor="Sala 1" campo2="vagas" op2=">=" valor2="10" campo3="ativo" op3="!=" valor3="0"', $r->saida);
+        self::assertSame(['ativo', 'local', 'vagas'], array_values(array_unique($r->camposIndexaveis)) === ['local', 'vagas', 'ativo'] ? ['ativo', 'local', 'vagas'] : $r->camposIndexaveis);
+        self::assertSame(0, $r->contar(Aviso::REVISAR));
+    }
+
+    public function testQuatroCondicoesOuOrFicamParaRevisao(): void
+    {
+        $quatro = $this->converter('<@localizar classes=["a"] condicao=["a=1 and b=2 and c=3 and d=4"]@><@/localizar@>');
+        $ou = $this->converter('<@localizar classes=["a"] condicao=["a=1 or b=2"]@><@/localizar@>');
+
+        self::assertSame(1, $quatro->contar(Aviso::REVISAR));
+        self::assertSame(1, $ou->contar(Aviso::REVISAR));
+        self::assertStringContainsString('<@-- REVISAR', $ou->saida);
+    }
+
+    public function testTemfilhosAgoraExisteNoContextoEExpressaoComReferenciaPassa(): void
+    {
+        $r = $this->converter('<@se [#temfilhos==1]@>x<@/se@><@= #autor.titulo@>');
+
+        self::assertSame(0, $r->contar(Aviso::REVISAR));
+        self::assertTrue($r->valido);
+        self::assertStringContainsString('#temfilhos == 1', $r->saida);
+        self::assertStringContainsString('#autor.titulo', $r->saida);
     }
 }

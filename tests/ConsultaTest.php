@@ -7,6 +7,7 @@ namespace Pbl\Testes;
 use Doctrine\DBAL\Connection;
 use Pbl\Banco\Conexao;
 use Pbl\Banco\Migrador;
+use Pbl\Consulta\MotorDeConsulta;
 use Pbl\Conteudo\Classe;
 use Pbl\Conteudo\ClasseRepositorio;
 use Pbl\Conteudo\ObjetoRepositorio;
@@ -31,7 +32,7 @@ final class ConsultaTest extends TestCase
         (new Migrador($this->con))->migrar();
         $classes = new ClasseRepositorio($this->con);
         $this->objetos = new ObjetoRepositorio($this->con);
-        $this->fonte = new FonteRepositorio($this->objetos, $classes);
+        $this->fonte = new FonteRepositorio($this->objetos, $classes, new MotorDeConsulta($this->con, $this->objetos));
         $this->pagina = $classes->criar('pagina', []);
         $this->evento = $classes->criar('evento', [
             ['nome' => 'local', 'tipo' => 'texto', 'indexavel' => true],

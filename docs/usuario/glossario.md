@@ -8,7 +8,9 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Domínio** | O endereço na internet (por exemplo, `meusite.org.br`). |
 | **Objeto / conteúdo** | Qualquer coisa que você cria: uma página, uma notícia, um evento, um documento. |
 | **Classe (tipo de conteúdo)** | O "molde de formulário" de um tipo de conteúdo: diz quais campos ele tem (título, resumo, data…). Ex.: "Notícia", "Evento". |
-| **Propriedade (campo)** | Cada informação de um tipo de conteúdo: texto, número, data, sim/não ou ligação para outro conteúdo. |
+| **Propriedade (campo)** | Cada informação de um tipo de conteúdo: texto, número, data, sim/não ou ligação (referência) para outro conteúdo. |
+| **Referência** | Uma propriedade que aponta para outro conteúdo (uma notícia aponta para seu autor). Dá para mostrar, filtrar e ordenar pelo conteúdo apontado (por exemplo, notícias ordenadas pelo nome do autor). Só aponta para conteúdo do mesmo site. |
+| **Consulta** | Um pedido de lista de conteúdos com filtros e ordem (por exemplo, "eventos da Sala 1, em ordem de data"). |
 | **Árvore** | A organização em níveis: uma seção contém páginas, que podem conter outras páginas. |
 | **Pele** | A aparência do site: cores, layout, cabeçalho e rodapé. Trocar a pele muda o visual, não o conteúdo. |
 | **Molde (template)** | O arquivo, escrito na linguagem PBL, que diz como montar uma página dentro de uma pele. |

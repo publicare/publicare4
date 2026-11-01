@@ -16,9 +16,15 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - Comandos de consulta nos moldes: `localizar`, `aleatorio`, `localizaraleatorio`, `usarobjeto`, `temfilho`, `naolocalizado`. (#7)
 - **Conversor de moldes PBL3 → PBL4** (`bin/pbl converter-moldes`) com relatório do que precisa de revisão. (#8)
 - Metadados do objeto (`peso`, `descricao`, `data_publicacao`, `data_validade`) e ordenação por vários campos, inclusive por propriedade indexável. Objetos fora da vigência não aparecem. (#8)
+- **Referências entre conteúdos**: novos tipos de propriedade `ref` (aponta para outro objeto **do mesmo site**, opcionalmente de uma classe), `data` e `booleano`, todos validados ao salvar. (#15)
+- **Motor de consulta único** (`Consulta` + `MotorDeConsulta`): o portal, os moldes e, depois, o admin e a API consultam conteúdo pelo mesmo caminho. Filtra por coluna do objeto, propriedade indexável ou **campo de um objeto referenciado** (`autor.cargo`), com operadores `=`, `!=`, `<`, `>`, `<=`, `>=` e `contem`, até três condições, contagem para paginação e visão de admin (`apenasVisiveis: false`). (#15)
+- **Ordenar pelo objeto referenciado** (`ordem="autor.titulo"`) numa única consulta, **sem tabela temporária**; nulos sempre por último, igual em qualquer banco. (#15)
+- Nos moldes: `#autor.titulo` (campo do objeto referenciado), `expandir="autor"` (carrega as referências de uma lista em lote), `#temfilhos`, e em `localizar` os parâmetros `op`, `campo2`/`valor2`/`op2` e `campo3`/`valor3`/`op3`. (#15)
+- Conversor de moldes: `condicao` com até três comparações ligadas por `and` e operadores `>`, `<`, `>=`, `<=`, `!=` e `<>`. (#15)
 - Documentação de design (ADRs 0003 a 0009, fluxos e plano), documentação para quem usa e técnica, guia de colaboração, política de segurança, versionamento e pipeline automática de testes.
 
 ### Alterado
+- Internamente, a consulta de objetos saiu de `ObjetoRepositorio` e foi para o `MotorDeConsulta`; `#temfilhos` deixou de ser um aviso do conversor. (#15)
 - A sintaxe dos moldes mudou em relação ao rascunho inicial: `<@eco titulo@>` agora é `<@eco #titulo@>` e `<@repetir filhos@>` virou `<@filhos@>`. (#6)
 
 ### Corrigido
@@ -31,6 +37,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - Página com `data_validade` vencida continuava sendo servida do cache. (#10)
 
 ### Segurança
+- Uma propriedade `ref` só aceita objeto do mesmo site (e da classe indicada); seguir uma referência numa consulta também fica dentro do site. Consulta com campo inválido ou junções demais é recusada, e nenhum texto do molde entra no SQL. (#15)
 - A validação de URL tinha *backtracking* catastrófico (~93 caracteres esgotavam o limite do PCRE, ~4 ms de CPU por requisição em endereço público). Reescrita com classes disjuntas, quantificadores possessivos e teto de 300 caracteres. (#9)
 - Campos do sistema (`#id`, `#site`, `#pai`…) vencem propriedades antigas da classe com o mesmo nome: impede um molde de ler objetos de outro site. (#11)
 - `temfilho id=` e `usarobjeto` só enxergam objetos do mesmo site e dentro da vigência. (#10, #11)

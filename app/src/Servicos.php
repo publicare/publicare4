@@ -6,10 +6,12 @@ namespace Pbl;
 
 use Doctrine\DBAL\Connection;
 use Pbl\Banco\Conexao;
+use Pbl\Consulta\MotorDeConsulta;
 use Pbl\Conteudo\ClasseRepositorio;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
 use Pbl\Linguagem\Compilador;
+use Pbl\Publicacao\FonteRepositorio;
 use Pbl\Publicacao\Publicador;
 use Pbl\Publicacao\Renderizador;
 
@@ -19,6 +21,7 @@ final class Servicos
     public readonly ClasseRepositorio $classes;
     public readonly ObjetoRepositorio $objetos;
     public readonly SiteRepositorio $sites;
+    public readonly MotorDeConsulta $motor;
     public readonly Publicador $publicador;
 
     public function __construct(Caminhos $caminhos, Connection $conexao)
@@ -26,7 +29,9 @@ final class Servicos
         $this->classes = new ClasseRepositorio($conexao);
         $this->objetos = new ObjetoRepositorio($conexao);
         $this->sites = new SiteRepositorio($conexao);
-        $renderizador = new Renderizador($caminhos, $this->objetos, $this->classes, new Compilador($caminhos->cachePbl()));
+        $this->motor = new MotorDeConsulta($conexao, $this->objetos);
+        $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor);
+        $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador);
     }
 

@@ -71,6 +71,17 @@ final class LinguagemTest extends TestCase
                 return null;
             }
 
+            public function referencia(array $objeto, string $propriedade): ?array
+            {
+                foreach ($this->filhos as $f) {
+                    if (($f['id'] ?? null) === ($objeto[$propriedade] ?? 0)) {
+                        return $f;
+                    }
+                }
+
+                return null;
+            }
+
             public function temFilhos(array $objeto, ?int $id): bool
             {
                 return $this->filhos !== [] && ($id === null || $id > 0);
