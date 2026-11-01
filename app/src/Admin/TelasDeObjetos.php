@@ -686,10 +686,10 @@ final class TelasDeObjetos
     private function campoDePropriedade(array $p, string $valor, array $erros): string
     {
         $chave = 'dados.' . $p['nome'];
-        $id = 'campo-dados-' . $p['nome']; // nome de propriedade: [a-z][a-z0-9_]*, seguro em id e name
-        $nome = 'dados[' . $p['nome'] . ']';
+        // O nome de propriedade já é [a-z][a-z0-9_]* (ClasseRepositorio), mas é dado do banco: escapado mesmo assim.
+        $id = 'campo-dados-' . $p['nome'];
         $classe = $this->invalido($erros, $chave);
-        $comum = ' id="' . $id . '" name="' . $nome . '"' . $this->descrito($erros, $chave, true);
+        $comum = ' id="' . Pagina::h($id) . '" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '"' . $this->descrito($erros, $chave, true);
         [$controle, $ajuda] = match ($p['tipo']) {
             'numero' => ['<input class="form-control' . $classe . '"' . $comum . ' inputmode="decimal" value="' . Pagina::h($valor) . '">', 'Número (use vírgula ou ponto para decimais). Vazio = sem valor.'],
             'data' => ['<input class="form-control' . $classe . '"' . $comum . ' maxlength="25" value="' . Pagina::h($valor) . '">', 'Data no formato aaaa-mm-dd, com hora opcional (2026-12-31 18:30). Vazio = sem valor.'],
@@ -709,10 +709,10 @@ final class TelasDeObjetos
      */
     private function campo(string $chave, string $rotulo, string $controle, array $erros, string $ajuda = '', ?string $id = null): string
     {
-        $id ??= 'campo-' . $chave;
-        $base = $this->idDe($chave);
+        $id ??= 'campo-' . $this->idDe($chave);
+        $base = Pagina::h($this->idDe($chave));
 
-        return '<div class="mb-3"><label for="' . $id . '" class="form-label">' . Pagina::h($rotulo) . '</label>' . $controle
+        return '<div class="mb-3"><label for="' . Pagina::h($id) . '" class="form-label">' . Pagina::h($rotulo) . '</label>' . $controle
             . ($ajuda === '' ? '' : '<div id="ajuda-' . $base . '" class="form-text">' . $ajuda . '</div>')
             . (isset($erros[$chave]) ? '<div id="erro-' . $base . '" class="invalid-feedback d-block">' . Pagina::h($erros[$chave]) . '</div>' : '') . '</div>';
     }
@@ -728,10 +728,10 @@ final class TelasDeObjetos
     {
         $ids = [];
         if ($temAjuda) {
-            $ids[] = 'ajuda-' . $this->idDe($chave);
+            $ids[] = 'ajuda-' . Pagina::h($this->idDe($chave));
         }
         if (isset($erros[$chave])) {
-            $ids[] = 'erro-' . $this->idDe($chave);
+            $ids[] = 'erro-' . Pagina::h($this->idDe($chave));
         }
 
         return ($ids === [] ? '' : ' aria-describedby="' . implode(' ', $ids) . '"') . (isset($erros[$chave]) ? ' aria-invalid="true"' : '');
@@ -1066,8 +1066,10 @@ final class TelasDeObjetos
         }
         $pai = $this->pai($novo);
         $ok = $this->sincronizar($novo, $pai);
+        // Volta para a página-mãe se a pessoa pode vê-la (quem cuida só desta seção fica na própria página, agora na lixeira).
+        $destino = $pai !== null && $this->pode($sessao, Acao::Ver, $pai) ? $pai : $novo;
 
-        return new RedirectResponse($this->link($pai->id ?? $novo->id) . '?salvo=' . ($ok ? 'apagado' : 'aviso'), Response::HTTP_SEE_OTHER);
+        return new RedirectResponse($this->link($destino->id) . '?salvo=' . ($ok ? 'apagado' : 'aviso'), Response::HTTP_SEE_OTHER);
     }
 
     private function recuperar(SessaoAtiva $sessao, int $id, Request $r): Response

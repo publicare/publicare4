@@ -584,6 +584,12 @@ final class AdminObjetosTest extends TestCase
         self::assertCount(1, $this->auditoria('objeto.apagar.negado'));
         self::assertCount(1, $this->auditoria('objeto.recuperar.negado'));
 
+        $this->post($editor, '/_pbl/objeto/' . $pai->id . '/recuperar', ['versao' => (string) $this->obj($pai->id)->versao]);
+        $this->post($editor, '/_pbl/objeto/' . $pai->id . '/apagar', ['versao' => (string) $this->obj($pai->id)->versao]);
+        $secao = $this->post($editor, '/_pbl/objeto/' . $this->sobre->id . '/apagar', ['versao' => (string) $this->sobre->versao]);
+        self::assertSame('/_pbl/objeto/' . $this->sobre->id . '?salvo=apagado', $secao->headers->get('Location'), 'sem ver a página-mãe, volta para a própria');
+        $this->post($editor, '/_pbl/objeto/' . $this->sobre->id . '/recuperar', ['versao' => (string) $this->obj($this->sobre->id)->versao]);
+
         $velha = $this->evento('Versão velha');
         $this->s->objetos->atualizar($velha->id, ['titulo' => 'Mudou'], 'outra');
         self::assertSame(409, $this->post($editor, '/_pbl/objeto/' . $velha->id . '/apagar', ['versao' => (string) $velha->versao])->getStatusCode());
