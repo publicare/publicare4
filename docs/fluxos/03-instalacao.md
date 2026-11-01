@@ -8,6 +8,8 @@
 - `db/dados_iniciais.sql` não cria admin (objeto raiz referencia `cod_usuario=1` inexistente), nem `infoperfil`, pele ou templates.
 - Passos manuais do leigo: composer, vhost + rewrite, escrever `config`, criar banco, importar SQL, inserir admin com `md5()`, criar `html/template/*`.
 
+> **Implementado (fase 4a):** o assistente em `/_pbl/instalar` (requisitos, prova de posse, site e administrador, instalar, lembretes de segurança), a instalação atômica, o `bin/pbl instalar` com administrador e os `.htaccess`. **Falta:** escolher MySQL/PostgreSQL, a galeria de peles no passo 5 (fase 5), o pacote `.zip` com `vendor/` (release `0.1.0`) e o atualizador (próximo).
+
 ## PBL4: assistente web em 6 passos (e `bin/pbl instalar` equivalente em CLI)
 
 ```mermaid
