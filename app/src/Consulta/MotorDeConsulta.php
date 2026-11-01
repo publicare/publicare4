@@ -25,7 +25,7 @@ final class MotorDeConsulta
     private const COLUNAS = [
         'id' => 'id', 'titulo' => 'titulo', 'peso' => 'peso', 'descricao' => 'descricao',
         'data_publicacao' => 'data_publicacao', 'data_validade' => 'data_validade',
-        'criado_em' => 'criado_em', 'atualizado_em' => 'atualizado_em',
+        'criado_em' => 'criado_em', 'atualizado_em' => 'atualizado_em', 'status' => 'status',
     ];
     private const MAX_JUNCOES = 8;
     private const MAX_ORDENS = 4;

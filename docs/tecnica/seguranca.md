@@ -19,7 +19,7 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 | **CSRF** | Token ligado à sessão (HMAC do id da sessão com o segredo do site), `hash_equals`, mais `Origin`/`Referer` conferidos; no formulário de entrar, token assinado por hora | `Csrf`, `Rede` |
 | **Força bruta** | 5 falhas por login ou 30 por IP em 15 min bloqueiam (429 + `Retry-After`) no servidor; login e IP só como HMAC; resposta igual para login inexistente e senha errada; auditoria sem login digitado nem IP | `LimiteDeTentativas`, `Painel` |
 | **Cabeçalhos da administração** | `Cache-Control: no-store`, CSP restritiva (`default-src 'none'`, `style-src 'self'`, sem `script-src` e sem `unsafe-inline`, `frame-ancestors 'none'`, `form-action 'self'`), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: same-origin`, HSTS em HTTPS | `Pagina` |
-| **Telas da administração** | Toda rota exige sessão (sem ela, 303 para entrar) e decide com `Permissoes::pode` e uma ação fixa do código, também no POST (esconder o botão não é a defesa); sem permissão e objeto inexistente dão o mesmo 403; id da URL validado por expressão ancorada; todo POST confere origem e CSRF antes de tudo; campos só como texto, UTF-8 válido, sem caracteres de controle, com teto de tamanho; toda saída escapada (título hostil vira texto); gravação só por `ObjetoRepositorio::atualizar` com versão esperada (409 em edição simultânea); auditoria com nomes de campos e motivo fixo, e registro de tentativa de edição negada | `TelasDeConteudo`, `Painel` |
+| **Telas da administração** | Toda rota exige sessão (sem ela, 303 para entrar) e decide com `Permissoes::pode` e uma ação fixa do código, também no POST (esconder o botão não é a defesa): ver e histórico `Ver`; criar `Criar` no pai; editar e restaurar `Editar`; estado e datas `Publicar`; mover, lixeira e tirar da lixeira `Apagar` (mover também `Criar` no destino). Sem permissão e objeto inexistente dão o mesmo 403; sub-rota e id da URL validados por expressão ancorada e lista fixa (o resto é 404, até sem sessão); todo POST confere origem e CSRF antes de tudo; campos só como texto, UTF-8 válido, sem caracteres de controle, com teto de tamanho e validados pelo tipo da propriedade (obrigatórios exigidos; arquivados nunca tocados, nem por formulário forjado); tipo do filho conferido contra os aceitos pelo pai também no POST; referência só para conteúdo do mesmo site que a pessoa pode ver, com a mesma mensagem para "não existe" e "sem permissão"; ordem e filtros da lista só de listas fixas; toda saída escapada (título hostil e HTML guardado viram texto); gravação só pelo `ObjetoRepositorio` com versão esperada (409 em edição simultânea, também em estado, mover, lixeira e restaurar); a regra da lixeira (nada fora dela sob pai apagado) conferida na mesma transação, com a linha do pai travada, e reconferida depois de gravar (desfaz e dá 409 se uma corrida escapou); auditoria com nomes de campos e motivo fixo, e registro de tentativa negada (`objeto.<ação>.negado`, só ids) | `TelasDeObjetos`, `TelasDeConteudo`, `Painel` |
 | **Tipos de conteúdo na administração** | Só o administrador global altera (`Permissoes::podeModelarClasses`, em toda rota e no POST); os demais veem só a lista, sem contagem de uso, e recebem o mesmo 403 para tipo existente ou não; origem e CSRF antes de tudo; nomes técnicos validados por regex ancorada e com teto, rótulo e descrição como texto UTF-8 sem caracteres de controle e com teto; chaves do formulário só são lidas para os campos que a classe já tem; campo com valor (hoje ou em versão antiga) não é removido nem muda de tipo, só arquivado, com confirmação, e a regra se repete no repositório; apagar tipo só sem objetos e sem dependentes; versão esperada (409); auditoria só com nomes de tipo e de campo | `TelasDeClasses`, `ClasseRepositorio` |
 | **Estilos da administração** | Bootstrap 5.3.8 (só CSS) servido do próprio site, sem CDN; arquivo idêntico à release oficial, com SHA-256 registrado em `public/_pbl/assets/PROVENIENCIA.md` e conferido por teste; nenhum JavaScript | `public/_pbl/assets/` |
 | **Instalador web** | Só antes de instalar; prova de posse (`dados/instalar.liberar`), CSRF, origem, escape de tudo, senha nunca refletida, atômico; some depois (404) | `InstaladorWeb` |
@@ -46,11 +46,13 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 | Item | Previsto |
 |---|---|
 | Recuperação de senha por e-mail, autenticação em dois fatores | depois da fase 4 ([ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md)) |
-| Permissão por campo | com as telas de objetos (o editor de classes já existe, sem permissão por campo) |
+| Permissão por campo | a decidir (o modelo de classes não tem permissão por campo; as telas de objetos tratam todos os campos não arquivados igual) |
 | Upload seguro (lista de tipos, fora do `docroot`) | com o upload (fluxo 7) |
 | Botão de atualizar no painel (reautenticação, janela de escrita) | com a administração ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | HTTPS forçado na administração (hoje é recomendação) | a decidir |
-| Telas de criar, mover, mudar estado e apagar conteúdo, com as mesmas defesas | próximas fatias da fase 5 ([ADR 0012](../adr/0012-administracao-web.md)) |
+| Telas de contas, domínios e peles, com as mesmas defesas | próximas fatias da fase 5 ([ADR 0012](../adr/0012-administracao-web.md)) |
+| `ObjetoRepositorio` repetir as regras de tipos aceitos e de campos obrigatórios (hoje só as telas exigem; a linha de comando não) | a decidir |
+| Saneamento por tipo do HTML guardado em propriedades `html` (hoje o molde decide se mostra com escape ou cru; quem edita pode gravar HTML) | com o editor ([fluxo 5](../fluxos/05-conteudo-workflow.md)) |
 
 ## Atrás de um proxy (Cloudflare, nginx)
 
@@ -64,7 +66,7 @@ O IP real e o HTTPS chegam em cabeçalhos que só podem ser confiados se você d
 
 Sem o arquivo, vale só o que o servidor enxerga (o IP do proxy, o que faria o limite de tentativas tratar todos os visitantes como um só). Use **HTTPS** na administração: sem ele o cookie não recebe `Secure` nem o prefixo `__Host-`.
 
-A administração ainda está no começo (ver e editar título e descrição, tipos de conteúdo). Até ela ficar completa e passar por revisão de segurança, **não exponha o PBL4 em produção** para conteúdo que não seja o da publicação estática de páginas.
+A administração ainda não está completa (já cuida do conteúdo e dos tipos de conteúdo; faltam contas, domínios e peles). Até ela ficar completa e passar por revisão de segurança, **não exponha o PBL4 em produção** para conteúdo que não seja o da publicação estática de páginas.
 
 ## Princípios
 

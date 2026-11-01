@@ -170,7 +170,7 @@ final class AdminConteudoTest extends TestCase
     public function testIdsMalFormadosNaoSaoRotas(): void
     {
         $token = $this->token('admin');
-        foreach (['/_pbl/objeto/0', '/_pbl/objeto/01', '/_pbl/objeto/abc', '/_pbl/objeto/1/apagar', '/_pbl/objeto/12345678901', '/_pbl/objeto/-1'] as $caminho) {
+        foreach (['/_pbl/objeto/0', '/_pbl/objeto/01', '/_pbl/objeto/abc', '/_pbl/objeto/1/inexistente', '/_pbl/objeto/1/editar/2', '/_pbl/objeto/1/Editar', '/_pbl/objeto/12345678901', '/_pbl/objeto/-1'] as $caminho) {
             self::assertSame(404, $this->req('GET', $caminho, $token)->getStatusCode(), $caminho);
         }
         self::assertSame(404, $this->req('POST', '/_pbl/objeto/' . $this->sobre->id, $token)->getStatusCode(), 'ver não aceita POST');

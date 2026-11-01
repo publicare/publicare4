@@ -88,7 +88,7 @@ Nomes de layout e de `incluir` são caminhos relativos à pasta da pele (`a-z 0-
 
 ### Ordenação (`ordem`)
 
-Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`desc` atrás: `peso, -data_publicacao`, `titulo desc`. Aceita as colunas `id`, `titulo`, `peso`, `descricao`, `data_publicacao`, `data_validade`, `criado_em`, `atualizado_em`, qualquer **propriedade indexável** da classe e o campo de um **objeto referenciado** (`autor.titulo`, `-autor.cargo`), até 4 critérios. Sem `ordem`, vale `peso` e depois `id`, como no PBL3. **Valores nulos ficam sempre por último**, em qualquer direção e em qualquer banco. Nada da `ordem` chega ao SQL como texto livre. Ordenar pelo objeto apontado é uma consulta só, sem tabela temporária (ver [fluxo 9](fluxos/09-armazenamento-consulta.md)).
+Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`desc` atrás: `peso, -data_publicacao`, `titulo desc`. Aceita as colunas `id`, `titulo`, `peso`, `descricao`, `data_publicacao`, `data_validade`, `criado_em`, `atualizado_em`, `status`, qualquer **propriedade indexável** da classe e o campo de um **objeto referenciado** (`autor.titulo`, `-autor.cargo`), até 4 critérios. Sem `ordem`, vale `peso` e depois `id`, como no PBL3. **Valores nulos ficam sempre por último**, em qualquer direção e em qualquer banco. Nada da `ordem` chega ao SQL como texto livre. Ordenar pelo objeto apontado é uma consulta só, sem tabela temporária (ver [fluxo 9](fluxos/09-armazenamento-consulta.md)).
 
 ### Tipos de propriedade
 

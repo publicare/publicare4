@@ -1,6 +1,6 @@
 # ADR 0012 — Administração pelo navegador
 
-Status: aceito e implementado em parte (2026-11-01, fase 5a: painel com os sites, navegação na árvore e edição de título e descrição; fase 5c: tipos de conteúdo, §6). Ficam para as próximas fatias: criar, mover, mudar estado e apagar conteúdo, preencher as propriedades de um objeto, histórico de versões na tela, contas, domínios e peles. Complementa o [ADR 0011](0011-autenticacao-sessao-permissoes.md) (sessão, CSRF e permissões) e detalha a parte de administração do [fluxo 5](../fluxos/05-conteudo-workflow.md).
+Status: aceito e implementado em parte (2026-11-01, fase 5a: painel com os sites, navegação na árvore e edição de título e descrição; fase 5c: tipos de conteúdo, §6; fase 5b: criar, editar todas as propriedades, estado e datas, mover, lixeira, histórico com restaurar e lista com ordem e filtros, §7). Ficam para as próximas fatias: contas, domínios e peles. Complementa o [ADR 0011](0011-autenticacao-sessao-permissoes.md) (sessão, CSRF e permissões) e detalha a parte de administração do [fluxo 5](../fluxos/05-conteudo-workflow.md).
 
 ## Contexto
 
@@ -15,15 +15,22 @@ Até a fase 4 o conteúdo só se gerencia pela linha de comando e por código. A
 | Método e rota | O que faz | Ação exigida |
 |---|---|---|
 | `GET /_pbl/` | painel inicial: sites e seções que a pessoa pode ver | sessão |
-| `GET /_pbl/objeto/{id}` | um conteúdo e a lista dos filhos (só leitura, paginada) | `Acao::Ver` no objeto |
-| `GET /_pbl/objeto/{id}/editar` | formulário de título e descrição | `Acao::Editar` no objeto |
-| `POST /_pbl/objeto/{id}/editar` | grava título e descrição | CSRF + origem + `Acao::Editar` |
+| `GET /_pbl/objeto/{id}` | um conteúdo, as ações que a pessoa pode fazer e a lista dos filhos (paginada, com ordem e filtros por classe e estado) | `Acao::Ver` no objeto |
+| `GET`/`POST /_pbl/objeto/{id}/editar` | título, descrição, endereço, peso e as propriedades da classe (5a: só título e descrição) | `Acao::Editar` no objeto |
+| `GET`/`POST /_pbl/objeto/{id}/novo` | escolher a classe (`?classe=`) e criar um filho | `Permissoes::podeCriarSob` (`Acao::Criar` no pai) |
+| `GET`/`POST /_pbl/objeto/{id}/estado` | estado e datas de publicação e de validade | `Acao::Publicar` |
+| `GET`/`POST /_pbl/objeto/{id}/mover` | mudar de pai, com a subárvore | `Acao::Apagar` no objeto + `Acao::Criar` no destino |
+| `GET`/`POST /_pbl/objeto/{id}/apagar` | confirmação e envio para a lixeira | `Acao::Apagar` |
+| `POST /_pbl/objeto/{id}/recuperar` | tirar da lixeira | `Acao::Apagar` |
+| `GET /_pbl/objeto/{id}/versoes` | histórico de versões | `Acao::Ver` |
+| `POST /_pbl/objeto/{id}/restaurar` | restaurar uma versão | `Acao::Editar` |
 | `GET /_pbl/classes` | lista dos tipos de conteúdo (contagem de uso só para quem modela) | sessão |
 | `GET`/`POST /_pbl/classes/nova` | criar tipo de conteúdo | `Permissoes::podeModelarClasses` (+ CSRF + origem no POST) |
 | `GET`/`POST /_pbl/classe/{id}/editar` | descrição, filhos aceitos e campos | idem |
 | `GET`/`POST /_pbl/classe/{id}/apagar` | confirmar e apagar tipo sem uso | idem |
 
-- O `{id}` é validado por expressão sem ambiguidade (`[1-9][0-9]{0,9}`, ancorada) antes de virar inteiro.
+- Todo POST exige CSRF + origem antes de qualquer outra coisa.
+- O `{id}` é validado por expressão sem ambiguidade (`[1-9][0-9]{0,9}`, ancorada) antes de virar inteiro; em `/_pbl/objeto/{id}/…` a sub-rota precisa estar numa lista fixa para aquele método (`TelasDeObjetos::atende`), conferida **antes** da sessão: o resto é 404 para todos.
 
 ### 2. HTML no servidor, sem JavaScript
 - Cada tela é HTML montado em PHP (`Pbl\Admin\Pagina`), com formulários comuns (`GET` para ler, `POST` para gravar) e o padrão **POST → 303 → GET** depois de salvar.
@@ -64,7 +71,36 @@ Até a fase 4 o conteúdo só se gerencia pela linha de comando e por código. A
 - **Apagar** só sem nenhum objeto (em qualquer estado, inclusive `apagado`) e sem outra classe que dependa dela (referência restrita a ela ou lista de filhas); o bloqueio é explicado na tela e repetido no repositório.
 - **Edição simultânea**: `UPDATE ... WHERE versao = ?`; versão diferente dá 409 sem gravar e mostra o que está salvo (o que a pessoa digitou não é reaproveitado, porque pode não caber mais na classe atual).
 - **Auditoria**: `classe.criar`, `classe.atualizar` (nomes do que mudou, como `propriedade.resumo.rotulo`, `ordem`, `descricao`), `classe.apagar` e `classe.negado`; nunca o texto de rótulos ou descrições.
-- **Fora desta fatia**: exigir `obrigatorio` e `filhas` ao salvar ou mover um objeto (com as telas de objetos); mudar a indexação de um campo com valores (precisa reindexar).
+- **Fora desta fatia**: exigir `obrigatorio` e `filhas` ao salvar ou mover um objeto (feito nas telas de objetos, fase 5b, §7; o `ObjetoRepositorio` ainda não repete a regra); mudar a indexação de um campo com valores (precisa reindexar).
+
+### 7. Conteúdo (fase 5b)
+- **Arquivo próprio**: as telas de um conteúdo ficam em `TelasDeObjetos`; `TelasDeConteudo` ficou só com o painel inicial. O `Painel` só registra as rotas.
+- **Lista de filhos**: ordens fixas (peso e título; título; alterados por último; data de publicação), filtro por classe (só ids de classes existentes) e por estado; sem filtro, a lixeira fica de fora. Valor desconhecido na URL é ignorado. Nada da URL chega ao SQL: as ordens e filtros vão como `Consulta` para o `MotorDeConsulta`, que passou a aceitar `status` como coluna.
+- **Criar**: a pessoa escolhe a classe entre as que o tipo do pai aceita (`aceita_filhos` e `filhas` da fase 5c, §6; conferido também no POST, 422 se forjado) e preenche título, descrição, endereço (vazio = gerado do título, com `-2`, `-3`… se já usado), peso e as propriedades. O conteúdo **nasce sempre `privado`**, com `criado_por` = a pessoa; ir ao ar é a tela de estado, com outra permissão.
+- **Campos por tipo** (os de `ClasseRepositorio::TIPOS`, nenhum inventado): `texto` (área de texto, até 10 000), `html` (área de texto, até 200 000, guardado como veio e mostrado **como texto** na administração), `numero` (inteiro ou decimal, aceita vírgula), `data` (`aaaa-mm-dd`, com hora opcional), `booleano` (Sim / Não / sem valor) e `ref` (número de outro conteúdo **do mesmo site que a pessoa pode ver**, da classe exigida, se houver; a mesma mensagem para "não existe", "outro site" e "sem permissão"; uma referência já gravada continua valendo ao salvar outros campos). Campo vazio = sem valor (a propriedade sai dos dados), a não ser que seja **obrigatório** (422). O rótulo vem da classe (`Classe::rotuloDe`). Campo **arquivado** não aparece no formulário e não é tocado na gravação, mesmo que um formulário forjado o envie: o valor guardado continua. Na edição, campo que nem veio no pedido mantém o valor atual. Toda validação acontece no servidor, com a mensagem ao lado do campo (`aria-invalid`, `aria-describedby`); o repositório valida de novo.
+- **Endereço**: só letras minúsculas, números, hífen e `/`; recusado se já é de outro conteúdo ou se hoje redireciona para outro (`urlDisponivel`, sem "liberar de propósito" pela tela). A página inicial do site não troca de endereço. Ao trocar, a página no endereço antigo sai do cache na hora e o antigo passa a responder 301.
+- **Estado e datas** (`Acao::Publicar`): `privado`, `submetido`, `rejeitado` ou `publicado` (o fluxo de submeter e revisar, com fila e avisos, fica para a fase 6), mais publicação e validade digitadas em **horário de Brasília** e gravadas em UTC (ISO 8601). Publicar regrava a página; tirar do ar (ou validade vencida) tira a página do cache. Publicação com data futura avisa que a página só entra no ar na próxima publicação do site depois da data.
+- **Mover** (`Acao::Apagar` no objeto e `Acao::Criar` no destino): destino pelo número, no mesmo site, fora da lixeira, fora da própria subárvore e de um tipo que aceite o tipo do objeto; a página inicial não se move; versão esperada também aqui. O endereço não muda; o objeto, o pai antigo e o novo são regravados.
+- **Lixeira** (`Acao::Apagar`): o repositório não tem apagar definitivo, então "apagar" é o estado `apagado`, com tela de confirmação. A página sai do cache na hora. Não vai para a lixeira a página inicial nem quem tem filhos fora da lixeira (é preciso mover ou mandar antes). Na lixeira, o conteúdo não se edita, não muda de estado, não se move e não recebe filhos; **tirar da lixeira** o devolve como `privado` (e exige que o pai não esteja na lixeira). A auditoria registra a troca de estado (`objeto.estado`, de/para).
+- **Corrida com a lixeira**: a regra "nada fora da lixeira dentro de algo na lixeira" é conferida **dentro da transação** que grava (`ObjetoRepositorio::criarDentro`, `mandarParaLixeira`, `tirarDaLixeira` e `mover(..., destinoForaDaLixeira: true)`), com a linha do pai travada por um `UPDATE` que não muda nada (bloqueio de linha no MySQL/PostgreSQL, de escrita no SQLite), então criar, mover, tirar da lixeira e mandar o pai para a lixeira ficam um depois do outro (`ConflitoDeArvore` → 409). Como defesa em profundidade, a tela reconfere depois de gravar e, se a regra quebrou mesmo assim, desfaz (o filho criado vai para a lixeira, o objeto movido volta, o estado anterior volta) e responde 409.
+- **Histórico**: lista as versões (até as 200 mais novas) com quando (Brasília), quem, título, estado e motivo; restaurar (`Acao::Editar`) usa `ObjetoRepositorio::restaurar` com versão esperada e **sem mexer no estado nem nas datas** (restaurar o texto não pode publicar nem tirar do ar: isso é `Acao::Publicar`). Se o endereço daquela versão já é de outro conteúdo, ou os campos da classe mudaram, a tela explica e nada muda.
+- **Edição simultânea**: `ConflitoDeVersao` vira 409 em editar (com o que a pessoa digitou e o que está salvo), estado, mover, lixeira e restaurar; nada é sobrescrito.
+- **Auditoria**: tentativas sem permissão com CSRF válido registram `objeto.criar.negado`, `objeto.editar.negado`, `objeto.estado.negado`, `objeto.mover.negado`, `objeto.apagar.negado`, `objeto.recuperar.negado` e `objeto.restaurar.negado`, só com ids. O que é gravado continua registrado pelo repositório só com nomes de campo e motivo fixo.
+
+```mermaid
+stateDiagram-v2
+    [*] --> privado: criar (Criar no pai)
+    privado --> publicado: estado (Publicar)
+    publicado --> privado: estado (Publicar)
+    privado --> submetido: estado (Publicar)
+    submetido --> rejeitado: estado (Publicar)
+    rejeitado --> privado: estado (Publicar)
+    privado --> apagado: lixeira (Apagar, sem filhos vivos)
+    publicado --> apagado: lixeira (Apagar)
+    apagado --> privado: tirar da lixeira (Apagar)
+```
+
+(Qualquer estado da lista vai para qualquer outro pela tela de estado; o diagrama mostra os caminhos usuais.)
 
 ## Consequências
 

@@ -18,7 +18,9 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Molde (template)** | O arquivo, escrito na linguagem PBL, que diz como montar uma página dentro de uma pele. |
 | **PBL** | A linguagem de moldes do Publicare. "PBL4" é a versão atual dela. |
 | **Publicar** | Tornar o conteúdo visível para os visitantes. O Publicare prepara as páginas prontas para entregar rápido. |
-| **Rascunho / privado** | Conteúdo que ainda não está visível ao público. |
+| **Rascunho / privado** | Conteúdo que ainda não está visível ao público. Todo conteúdo criado pela administração começa assim. |
+| **Lixeira** | Onde fica o conteúdo "apagado" pela administração: some do site e das listas, mas nada se perde, e dá para tirá-lo de lá (ele volta fora do ar). Para ver, filtre a lista pelo estado "Na lixeira". |
+| **Número (id)** | O número de cada conteúdo, mostrado na página dele na administração. É usado para apontar uma referência ou escolher para onde mover. |
 | **Vigência** | O período em que um conteúdo vale: ele só aparece depois da data de publicação e some depois da data de validade. |
 | **Peso** | Número que define a ordem manual de itens (menores primeiro). |
 | **Cache** | Cópia pronta de uma página, guardada para ser entregue sem refazer o trabalho. |
