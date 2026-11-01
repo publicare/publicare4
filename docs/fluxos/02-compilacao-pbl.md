@@ -6,12 +6,12 @@
 
 - Tabela `$cmdArray` (`initialize()`, ~700 linhas) com `regex`, `output` (PHP com marcadores `<#1#>`/`<#P:param#>`), `opentag/closetag`, `paramitens`.
 - `start()` lê o arquivo **linha a linha** e casa `<@cmd …@>`; `evaluate()` converte `#campo` → `$_OBJ_->valor("campo")`, `$var` → `$GLOBALS["var"]`, `%macro`.
-- O PHP gerado é executado com `eval("?>" . $out)` **a cada request**; `incluir` recursa e refaz tudo. Nas versões conferidas (2.7.8 a 2.9.7 e o p3) **a transpilação não é gravada em arquivo**: o código gerado só existe em memória. (Relato do mantenedor: houve uma versão que gravava o PHP transpilado e o reexecutava; não encontrada nos repositórios conferidos, a confirmar.)
+- O PHP gerado é executado com `eval("?>" . $out)` **a cada request**; `incluir` recursa e refaz tudo. Nas versões conferidas (2.7.8 a 2.9.7 e o p3) **a transpilação não é gravada em arquivo**: o código gerado só existe em memória. (A lembrança de um arquivo já pronto reexecutado corresponde, provavelmente, ao QuickCache abaixo, que guarda o HTML final e não PHP.)
 
 ### Cache que existia (em outras camadas)
 | Camada | O que cacheia | Onde | Observação |
 |---|---|---|---|
-| **QuickCache** | página inteira (HTML), só para visitante não logado e fora da raiz | disco, MySQL ou template (`quickcache/type/*`) | ligado por `ATIVA_CACHE` em 2.7.x/2.8.x; linha comentada em `iniciar.php` da 2.9.2, ainda citado como "adicionado novamente" na 2.9.0 (histórico a esclarecer) |
+| **QuickCache** | página inteira já renderizada (HTML em gzip, arquivos `qcc-<hash>` em `quickcache/cache-dados/`, com data de expiração), só para visitante não logado e fora da raiz; a requisição serve o arquivo e pula o `Parse` | disco, MySQL ou template (`quickcache/type/*`) | ligado por `ATIVA_CACHE` em 2.7.x/2.8.x; linha comentada em `iniciar.php` da 2.9.2, ainda citado como "adicionado novamente" na 2.9.0 (histórico a esclarecer) |
 | **Cache de consultas** (ADOdb `CacheExecute`) | resultado de SQL por tempo | disco (`/tmp/adodb`) ou **memcached** | memcached "ativado" na 2.9.4; `ATIVA_CACHE_BANCO`; no p3 vira `bd.cache`, `cachetipo` (`disco`/`memoria`), `cachehost`, `cacheporta`; `CacheFlush` ao alterar conteúdo |
 | **Cache de imagem** | miniatura redimensionada | disco | 2.9.0 |
 
