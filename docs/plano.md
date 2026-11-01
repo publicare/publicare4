@@ -15,7 +15,7 @@ Ordem de dependência: 0 → 1 → (2, 3 em paralelo) → 4 → 5 contínuo.
 
 ## Questões em aberto
 
-1. **Multi-subsite**: como domínios/subsites coexistem hoje (um `config/global.php` por vhost sobre o mesmo banco?). Define o escopo de `url_amigavel` e de `configuracao`.
+1. **Multi-subsite**: mecanismo conhecido (host → `cod_objeto` raiz, ajuste de `parentesco`; tabela `dominio`, ADR 0002). Falta especificar o corte do parentesco, objeto em mais de um domínio e canônico, curinga.
 2. **`campo_ref`**: semântica real (mapa lógico → físico) e como testá-la sem Oracle.
 3. **Corpus real**: existe backup de moldes de MCTI/ANTT/EPL/PSB para regressão?
 4. **Branch mais recente do p3**: `master` (2021-03), `psr4`, `3.6.0`, `v3.x`; confirmar de qual partir.
