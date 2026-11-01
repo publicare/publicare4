@@ -13,6 +13,7 @@ use Pbl\Busca\Texto;
 use Pbl\Consulta\Consulta;
 use Pbl\Consulta\Filtro;
 use Pbl\Conteudo\Classe;
+use Pbl\Conteudo\ConflitoDeArvore;
 use Pbl\Conteudo\ConflitoDeVersao;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
@@ -467,11 +468,20 @@ final class TelasDeObjetos
         }
         $dados = array_filter($valores['dados'], static fn (string|int|float|null $v): bool => $v !== null);
         try {
-            $novo = $this->servicos->objetos->criar($pai->siteId, $classe, $pai->id, $valores['titulo'], $url, $dados, 'privado', [
+            $novo = $this->servicos->objetos->criarDentro($pai->siteId, $classe, $pai->id, $valores['titulo'], $url, $dados, 'privado', [
                 'peso' => $valores['peso'], 'descricao' => $valores['descricao'], 'criado_por' => $u->id,
             ]);
+        } catch (ConflitoDeArvore) {
+            return $this->naLixeira($sessao, $pai);
         } catch (\InvalidArgumentException|\Doctrine\DBAL\Exception\UniqueConstraintViolationException) {
             return $this->telaDeCriacao($sessao, $pai, $classe, $digitado, ['_' => 'Não foi possível criar: algum valor não foi aceito (o endereço pode ter acabado de ser usado). Confira e tente de novo.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        // Defesa em profundidade: se, apesar da trava, o pai foi parar na lixeira, o filho novo (ainda privado) vai junto para ela.
+        if ($this->servicos->objetos->porId($pai->id)?->status === self::LIXEIRA) {
+            $this->desfazer(fn () => $this->servicos->objetos->atualizar($novo->id, ['status' => self::LIXEIRA], self::MOTIVO . ': desfeito', null, false, $u->id));
+
+            return $this->naLixeira($sessao, $pai);
         }
 
         return new RedirectResponse($this->link($novo->id) . '?salvo=criado', Response::HTTP_SEE_OTHER);
@@ -985,11 +995,20 @@ final class TelasDeObjetos
         }
         $paiAntigo = $this->pai($o);
         try {
-            $novo = $this->servicos->objetos->mover($o->id, $destino->id, self::MOTIVO, $sessao->usuario->id, $versao);
+            $novo = $this->servicos->objetos->mover($o->id, $destino->id, self::MOTIVO, $sessao->usuario->id, $versao, true);
+        } catch (ConflitoDeArvore) {
+            return $this->telaDeMover($sessao, $o, $destinoTexto, $versao, 'O destino está na lixeira.', Response::HTTP_CONFLICT);
         } catch (ConflitoDeVersao) {
             $atual = $this->servicos->objetos->porId($o->id) ?? $o;
 
             return $this->telaDeMover($sessao, $atual, $destinoTexto, $atual->versao, 'Outra pessoa alterou este conteúdo depois que você abriu esta tela. Confira e confirme de novo.', Response::HTTP_CONFLICT);
+        }
+        // Defesa em profundidade: destino foi para a lixeira apesar da trava? Volta para o lugar de antes.
+        if ($this->servicos->objetos->porId($destino->id)?->status === self::LIXEIRA && $paiAntigo !== null) {
+            $this->desfazer(fn () => $this->servicos->objetos->mover($novo->id, $paiAntigo->id, self::MOTIVO . ': desfeito', $sessao->usuario->id));
+            $atual = $this->servicos->objetos->porId($o->id) ?? $o;
+
+            return $this->telaDeMover($sessao, $atual, $destinoTexto, $atual->versao, 'O destino foi para a lixeira enquanto você movia. Nada mudou.', Response::HTTP_CONFLICT);
         }
         $ok = $this->sincronizar($novo, $paiAntigo, $destino);
 
@@ -1072,11 +1091,19 @@ final class TelasDeObjetos
             return $this->telaDeApagar($sessao, $o, null, Response::HTTP_CONFLICT);
         }
         try {
-            $novo = $this->servicos->objetos->atualizar($o->id, ['status' => self::LIXEIRA], self::MOTIVO, $versao, false, $sessao->usuario->id);
+            $novo = $this->servicos->objetos->mandarParaLixeira($o->id, $versao, self::MOTIVO, $sessao->usuario->id);
+        } catch (ConflitoDeArvore) {
+            return $this->telaDeApagar($sessao, $o, null, Response::HTTP_CONFLICT);
         } catch (ConflitoDeVersao) {
             $atual = $this->servicos->objetos->porId($o->id) ?? $o;
 
             return $this->telaDeApagar($sessao, $atual, 'Outra pessoa alterou este conteúdo depois que você abriu esta tela. Confira e confirme de novo.', Response::HTTP_CONFLICT);
+        }
+        // Defesa em profundidade: apareceu filho fora da lixeira apesar da trava? Volta ao estado anterior.
+        if ($this->servicos->objetos->filhosForaDaLixeira($novo->id) > 0) {
+            $this->desfazer(fn () => $this->servicos->objetos->atualizar($novo->id, ['status' => $o->status], self::MOTIVO . ': desfeito', null, false, $sessao->usuario->id));
+
+            return $this->telaDeApagar($sessao, $this->servicos->objetos->porId($o->id) ?? $o, 'Alguém pôs conteúdo dentro dele enquanto você confirmava. Nada foi para a lixeira.', Response::HTTP_CONFLICT);
         }
         $pai = $this->pai($novo);
         $ok = $this->sincronizar($novo, $pai);
@@ -1103,14 +1130,23 @@ final class TelasDeObjetos
         if ($o->status !== self::LIXEIRA) {
             return new RedirectResponse($this->link($o->id) . '?salvo=nada', Response::HTTP_SEE_OTHER);
         }
+        $paiNaLixeira = fn (): Response => $this->recusa($sessao, 'Ainda na lixeira', 'O conteúdo onde este está também está na lixeira. Tire aquele primeiro.', $o);
         $pai = $this->pai($o);
         if ($pai !== null && $pai->status === self::LIXEIRA) {
-            return $this->recusa($sessao, 'Ainda na lixeira', 'O conteúdo onde este está também está na lixeira. Tire aquele primeiro.', $o);
+            return $paiNaLixeira();
         }
         try {
-            $novo = $this->servicos->objetos->atualizar($o->id, ['status' => 'privado'], self::MOTIVO, $versao, false, $sessao->usuario->id);
+            $novo = $this->servicos->objetos->tirarDaLixeira($o->id, $versao, self::MOTIVO, $sessao->usuario->id);
+        } catch (ConflitoDeArvore) {
+            return $paiNaLixeira();
         } catch (ConflitoDeVersao) {
             return $this->recusa($sessao, 'Alterado por outra pessoa', 'Outra pessoa alterou este conteúdo agora há pouco. Abra a página de novo e confira.', $o);
+        }
+        // Defesa em profundidade: o pai foi para a lixeira apesar da trava? Este volta para ela.
+        if ($o->paiId !== null && $this->servicos->objetos->porId($o->paiId)?->status === self::LIXEIRA) {
+            $this->desfazer(fn () => $this->servicos->objetos->atualizar($novo->id, ['status' => self::LIXEIRA], self::MOTIVO . ': desfeito', null, false, $sessao->usuario->id));
+
+            return $paiNaLixeira();
         }
 
         return new RedirectResponse($this->link($novo->id) . '?salvo=recuperado', Response::HTTP_SEE_OTHER);
@@ -1118,7 +1154,22 @@ final class TelasDeObjetos
 
     private function filhosForaDaLixeira(Objeto $o): int
     {
-        return $this->servicos->motor->contar(new Consulta($o->siteId, $o->id, 1, null, [new Filtro('status', '!=', self::LIXEIRA)], '', 0, 1, false));
+        return $this->servicos->objetos->filhosForaDaLixeira($o->id);
+    }
+
+    /**
+     * Desfaz uma gravação que, conferida depois, violou a regra da lixeira (corrida que escapou da trava). A gravação de
+     * reversão também fica no histórico e na auditoria; se até ela falhar, a próxima ação de alguém mostra o estado real.
+     *
+     * @param \Closure(): mixed $reverter
+     */
+    private function desfazer(\Closure $reverter): void
+    {
+        try {
+            $reverter();
+        } catch (\Throwable) {
+            // nada mais a fazer aqui: a resposta já é 409 e o estado gravado continua visível na tela
+        }
     }
 
     // ---------------------------------------------------------------- histórico

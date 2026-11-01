@@ -8,7 +8,9 @@ use Pbl\Acesso\Perfil;
 use Pbl\Acesso\SessaoRepositorio;
 use Pbl\Aplicacao;
 use Pbl\Caminhos;
+use Pbl\Banco\Conexao;
 use Pbl\Conteudo\Classe;
+use Pbl\Conteudo\ConflitoDeArvore;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\Site;
 use Pbl\Instalacao\Instalador;
@@ -755,6 +757,102 @@ final class AdminObjetosTest extends TestCase
         self::assertSame(['codigo' => 'B2', 'antigo' => 'valor guardado'], $this->obj($o->id)->dados, 'o valor arquivado continua, mesmo com o campo forjado vazio');
 
         self::assertSame(422, $this->post($token, '/_pbl/objeto/' . $this->sobre->id . '/novo', ['classe' => (string) $ficha->id, 'titulo' => 'Sem código', 'descricao' => '', 'dados' => ['codigo' => ' ']])->getStatusCode(), 'obrigatório também ao criar');
+    }
+
+    /**
+     * Simula a outra pessoa agindo no mesmo instante: um gatilho do SQLite faz a mudança concorrente **durante** a gravação,
+     * depois da conferência que a tela e o repositório fazem antes. Só as reconferências depois da gravação podem pegá-la.
+     */
+    private function corrida(string $sql): void
+    {
+        Conexao::sqlite($this->caminhos->banco())->executeStatement($sql);
+    }
+
+    public function testCorridaCriarFilhoEnquantoOPaiVaiParaALixeira(): void
+    {
+        $pai = $this->evento('Pai da corrida');
+        $this->corrida("CREATE TRIGGER corrida AFTER INSERT ON objeto WHEN NEW.titulo = 'Corrida' BEGIN UPDATE objeto SET status = 'apagado' WHERE id = NEW.pai_id; END");
+
+        $r = $this->post($this->token('editor'), '/_pbl/objeto/' . $pai->id . '/novo', $this->formEvento('Corrida'));
+
+        self::assertSame(409, $r->getStatusCode());
+        self::assertSame('apagado', $this->obj($pai->id)->status);
+        $filhos = array_values(array_filter($this->s->objetos->todosDaSubarvore($this->site->id, $pai->caminho), static fn (Objeto $o): bool => $o->id !== $pai->id));
+        self::assertCount(1, $filhos);
+        self::assertSame('apagado', $filhos[0]->status, 'o filho criado foi junto para a lixeira: nenhum fica fora dela sob pai apagado');
+    }
+
+    public function testCorridaMandarParaALixeiraEnquantoAlguemPoeUmFilho(): void
+    {
+        $pai = $this->evento('Pai na corrida');
+        $filho = $this->evento('Filho', $pai, [], 'apagado');
+        $this->corrida("CREATE TRIGGER corrida AFTER UPDATE OF status ON objeto WHEN NEW.id = {$pai->id} AND NEW.status = 'apagado' BEGIN UPDATE objeto SET status = 'privado' WHERE pai_id = NEW.id; END");
+
+        $r = $this->post($this->token('editor'), '/_pbl/objeto/' . $pai->id . '/apagar', ['versao' => (string) $pai->versao]);
+
+        self::assertSame(409, $r->getStatusCode());
+        self::assertStringContainsString('Nada foi para a lixeira', $this->html($r));
+        self::assertSame('publicado', $this->obj($pai->id)->status, 'voltou ao estado de antes');
+        self::assertSame('privado', $this->obj($filho->id)->status);
+    }
+
+    public function testCorridaMoverParaUmDestinoQueVaiParaALixeira(): void
+    {
+        $origem = $this->evento('Origem');
+        $destino = $this->evento('Destino');
+        $item = $this->evento('Vai mover', $origem);
+        $this->corrida("CREATE TRIGGER corrida AFTER UPDATE OF pai_id ON objeto WHEN NEW.id = {$item->id} AND NEW.pai_id = {$destino->id} BEGIN UPDATE objeto SET status = 'apagado' WHERE id = {$destino->id}; END");
+
+        $r = $this->post($this->token('editor'), '/_pbl/objeto/' . $item->id . '/mover', ['versao' => (string) $item->versao, 'destino' => (string) $destino->id]);
+
+        self::assertSame(409, $r->getStatusCode());
+        self::assertSame($origem->id, $this->obj($item->id)->paiId, 'voltou para o lugar de antes');
+        self::assertSame($origem->caminho . $item->id . '/', $this->obj($item->id)->caminho);
+    }
+
+    public function testCorridaTirarDaLixeiraEnquantoOPaiVaiParaEla(): void
+    {
+        $pai = $this->evento('Pai');
+        $filho = $this->evento('Filho na lixeira', $pai, [], 'apagado');
+        $this->corrida("CREATE TRIGGER corrida AFTER UPDATE OF status ON objeto WHEN NEW.id = {$filho->id} AND NEW.status = 'privado' BEGIN UPDATE objeto SET status = 'apagado' WHERE id = NEW.pai_id; END");
+
+        $r = $this->post($this->token('editor'), '/_pbl/objeto/' . $filho->id . '/recuperar', ['versao' => (string) $filho->versao]);
+
+        self::assertSame(409, $r->getStatusCode());
+        self::assertSame('apagado', $this->obj($pai->id)->status);
+        self::assertSame('apagado', $this->obj($filho->id)->status, 'voltou para a lixeira');
+    }
+
+    public function testRepositorioRecusaQuebrarARegraDaLixeiraDentroDaTransacao(): void
+    {
+        $o = $this->s->objetos;
+        $pai = $this->evento('Pai');
+        $vivo = $this->evento('Vivo', $pai);
+        $lixo = $this->evento('Lixo', null, [], 'apagado');
+        $dentroDoLixo = $this->evento('Dentro do lixo', $lixo, [], 'apagado');
+        $casos = [
+            'mandar para a lixeira com filho vivo' => fn () => $o->mandarParaLixeira($pai->id, $pai->versao),
+            'criar dentro de pai apagado' => fn () => $o->criarDentro($this->site->id, $this->evento, $lixo->id, 'X', 'x-novo', []),
+            'mover para destino apagado' => fn () => $o->mover($vivo->id, $lixo->id, 'mover', null, null, true),
+            'tirar da lixeira com pai apagado' => fn () => $o->tirarDaLixeira($dentroDoLixo->id, $dentroDoLixo->versao),
+        ];
+        foreach ($casos as $nome => $acao) {
+            try {
+                $acao();
+                self::fail($nome);
+            } catch (ConflitoDeArvore) {
+                self::addToAssertionCount(1);
+            }
+        }
+        self::assertSame('publicado', $this->obj($pai->id)->status);
+        self::assertSame($pai->id, $this->obj($vivo->id)->paiId);
+        self::assertSame('apagado', $this->obj($dentroDoLixo->id)->status);
+        self::assertNull($o->porUrl($this->site->id, 'x-novo'));
+        self::assertSame(1, $o->filhosForaDaLixeira($pai->id));
+
+        $o->mandarParaLixeira($vivo->id, $vivo->versao);
+        self::assertSame('apagado', $o->mandarParaLixeira($pai->id, $pai->versao)->status, 'sem filhos vivos, vai');
+        self::assertSame('privado', $o->tirarDaLixeira($pai->id, $this->obj($pai->id)->versao)->status);
     }
 
     public function testRepositorioUrlDisponivelEClassesTodas(): void

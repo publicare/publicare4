@@ -248,10 +248,20 @@ final class ObjetoRepositorio
 
     /**
      * Muda o objeto de pai (e a subárvore junto). A URL amigável não depende da árvore, então nenhum endereço muda.
+     *
+     * @throws ConflitoDeVersao
+     * @throws ConflitoDeArvore com `$destinoForaDaLixeira`, se o destino está na lixeira
      */
-    public function mover(int $id, ?int $novoPaiId, string $motivo = 'mover', ?int $usuarioId = null, ?int $versaoEsperada = null): Objeto
+    public function mover(int $id, ?int $novoPaiId, string $motivo = 'mover', ?int $usuarioId = null, ?int $versaoEsperada = null, bool $destinoForaDaLixeira = false): Objeto
     {
-        return $this->conexao->transactional(function () use ($id, $novoPaiId, $motivo, $usuarioId, $versaoEsperada): Objeto {
+        return $this->conexao->transactional(function () use ($id, $novoPaiId, $motivo, $usuarioId, $versaoEsperada, $destinoForaDaLixeira): Objeto {
+            // Com `$destinoForaDaLixeira`, o destino fica travado e é recusado se estiver na lixeira (ConflitoDeArvore).
+            if ($destinoForaDaLixeira && $novoPaiId !== null) {
+                $this->travar($novoPaiId);
+                if ($this->conexao->fetchOne('SELECT status FROM objeto WHERE id = ?', [$novoPaiId]) === 'apagado') {
+                    throw new ConflitoDeArvore('O destino está na lixeira');
+                }
+            }
             $o = $this->porId($id) ?? throw new \InvalidArgumentException("Objeto {$id} não existe");
             if ($versaoEsperada !== null && $versaoEsperada !== $o->versao) {
                 throw new ConflitoDeVersao($versaoEsperada, $o->versao);
@@ -330,6 +340,84 @@ final class ObjetoRepositorio
         }
 
         return $this->atualizar($id, $mudancas, $motivo !== '' ? $motivo : "restaurada a versão {$versao}", $versaoEsperada, false, $usuarioId);
+    }
+
+    /**
+     * Cria um filho **só se o pai não estiver na lixeira**, com a linha do pai travada até o fim da transação: um "mandar o pai
+     * para a lixeira" simultâneo (que trava a mesma linha) espera ou acontece antes e é visto aqui.
+     *
+     * @param array<string, string|int|float|bool> $dados
+     * @param array{peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null, criado_por?: int|null} $meta
+     * @throws ConflitoDeArvore se o pai está na lixeira (ou não existe)
+     * @throws \InvalidArgumentException endereço, estado ou dados inválidos
+     * @throws \Doctrine\DBAL\Exception\UniqueConstraintViolationException endereço tomado por outro no mesmo instante
+     */
+    public function criarDentro(int $siteId, Classe $classe, int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'privado', array $meta = []): Objeto
+    {
+        return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta): Objeto {
+            $this->travar($paiId);
+            $statusDoPai = $this->conexao->fetchOne('SELECT status FROM objeto WHERE id = ? AND site_id = ?', [$paiId, $siteId]);
+            if ($statusDoPai === false || $statusDoPai === 'apagado') {
+                throw new ConflitoDeArvore('O conteúdo onde ele ficaria está na lixeira');
+            }
+
+            return $this->criar($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta);
+        });
+    }
+
+    /**
+     * Manda para a lixeira (estado `apagado`) **só se não houver filhos fora dela**, com a linha travada até o fim da transação
+     * (criar, mover para dentro ou tirar da lixeira um filho travam a mesma linha do pai).
+     *
+     * @throws ConflitoDeVersao
+     * @throws ConflitoDeArvore se há filhos fora da lixeira
+     */
+    public function mandarParaLixeira(int $id, int $versaoEsperada, string $motivo = '', ?int $usuarioId = null): Objeto
+    {
+        return $this->conexao->transactional(function () use ($id, $versaoEsperada, $motivo, $usuarioId): Objeto {
+            $this->travar($id);
+            if ($this->filhosForaDaLixeira($id) > 0) {
+                throw new ConflitoDeArvore('Há conteúdo fora da lixeira dentro dele');
+            }
+
+            return $this->atualizar($id, ['status' => 'apagado'], $motivo, $versaoEsperada, false, $usuarioId);
+        });
+    }
+
+    /**
+     * Tira da lixeira (volta como `$status`) **só se o pai não estiver nela**, com a linha do pai travada.
+     *
+     * @throws ConflitoDeVersao
+     * @throws ConflitoDeArvore se o pai está na lixeira
+     */
+    public function tirarDaLixeira(int $id, int $versaoEsperada, string $motivo = '', ?int $usuarioId = null, string $status = 'privado'): Objeto
+    {
+        return $this->conexao->transactional(function () use ($id, $versaoEsperada, $motivo, $usuarioId, $status): Objeto {
+            $o = $this->porId($id) ?? throw new \InvalidArgumentException("Objeto {$id} não existe");
+            if ($o->paiId !== null) {
+                $this->travar($o->paiId);
+                if ($this->conexao->fetchOne('SELECT status FROM objeto WHERE id = ?', [$o->paiId]) === 'apagado') {
+                    throw new ConflitoDeArvore('O conteúdo onde ele está também está na lixeira');
+                }
+            }
+
+            return $this->atualizar($id, ['status' => $status], $motivo, $versaoEsperada, false, $usuarioId);
+        });
+    }
+
+    /** Quantos filhos diretos não estão na lixeira. */
+    public function filhosForaDaLixeira(int $id): int
+    {
+        return (int) $this->conexao->fetchOne("SELECT COUNT(*) FROM objeto WHERE pai_id = ? AND status <> 'apagado'", [$id]);
+    }
+
+    /**
+     * Trava a linha até o fim da transação: um UPDATE que não muda nada pega o bloqueio de linha no MySQL e no PostgreSQL e o
+     * de escrita no SQLite, então duas operações que travam o mesmo objeto ficam uma depois da outra.
+     */
+    private function travar(int $id): void
+    {
+        $this->conexao->executeStatement('UPDATE objeto SET versao = versao WHERE id = ?', [$id]);
     }
 
     /**
