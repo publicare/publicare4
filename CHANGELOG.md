@@ -9,6 +9,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 > Primeira versão pública prevista: **0.1.0** (núcleo mínimo: dados, linguagem de moldes, segurança básica, instalador e atualizador).
 
 ### Adicionado
+- **Atualizador** (`bin/pbl atualizar`, ADR 0006): confere a assinatura Ed25519 do manifesto, baixa o pacote por HTTPS do mesmo servidor, confere SHA-256 e cada arquivo, extrai de forma defensiva (sem `..`, links, fora das pastas permitidas, com teto de tamanho), copia o banco, liga a manutenção (503 com `Retry-After`), troca o código por `rename`, migra e confere a versão com o código novo; se falhar, volta ao código anterior. Modo offline com `--manifesto`. Ferramentas do mantenedor: `bin/pbl chaves:gerar` e `bin/pbl empacotar` (zip reproduzível); `bin/pbl migrar`. A chave pública de produção ainda está vazia: sem ela, o atualizador recusa tudo. (#23)
 - Estrutura do projeto: PHP 8.2+, SQLite por padrão (MySQL e PostgreSQL previstos), ambiente de desenvolvimento em container, testes (PHPUnit) e análise estática (PHPStan nível 8). (#3)
 - Instalação por linha de comando (`bin/pbl instalar`) com site de exemplo e pele básica; publicação das páginas (`bin/pbl publicar`) em cache e entrega a partir do cache. (#4)
 - Modelo de conteúdo: classes definidas sem código, objetos em árvore, dados validados pela classe, índice de propriedades, vários sites e domínios. (#4)

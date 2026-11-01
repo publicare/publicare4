@@ -7,6 +7,7 @@ Para quem **instala, opera e desenvolve** o PBL4. Se você quer entender o proje
 | [Desenvolvimento](desenvolvimento.md) | Ambiente, comandos `make`, testes, análise estática e fluxo de trabalho |
 | [Arquitetura](arquitetura.md) | Como uma requisição vira página; camadas, tabelas e pastas |
 | [Instalação e hospedagem](instalacao.md) | Requisitos, assistente web, Apache, nginx, proxy |
+| [Atualização](atualizacao.md) | `bin/pbl atualizar`, pacote, assinatura e publicação de versões |
 | [Linha de comando](cli.md) | Comandos de `bin/pbl` |
 | [Linguagem de moldes PBL4](../linguagem-pbl4.md) | Gramática, comandos, ordenação e conversão do PBL3 |
 | [Licenças de terceiros](terceiros.md) | Arquivos de terceiros distribuídos (Bootstrap) e suas licenças |
@@ -22,4 +23,4 @@ Para quem **instala, opera e desenvolve** o PBL4. Se você quer entender o proje
 
 ## Estado
 
-O núcleo (instalação, modelo de conteúdo, linguagem de moldes, publicação em cache, conversor de moldes) funciona e é coberto por testes. O login da equipe (sessão, CSRF, limite de tentativas), as permissões e o instalador web já existem; a administração pelo navegador começou (ver os sites, navegar no conteúdo e editar título e descrição). Ainda não há atualizador. Veja o [estado do projeto](../usuario/estado-do-projeto.md) e o [plano](../plano.md).
+O núcleo (instalação, modelo de conteúdo, linguagem de moldes, publicação em cache, conversor de moldes) funciona e é coberto por testes. O login da equipe (sessão, CSRF, limite de tentativas), as permissões e o instalador web já existem; a administração pelo navegador começou (ver os sites, navegar no conteúdo e editar título e descrição). O atualizador funciona pela linha de comando (`bin/pbl atualizar`). Veja o [estado do projeto](../usuario/estado-do-projeto.md) e o [plano](../plano.md).
