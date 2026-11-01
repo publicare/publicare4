@@ -219,4 +219,21 @@ final class TracerBulletTest extends TestCase
         self::assertStringNotContainsString('://', explode('?', (string) $r->headers->get('Location'))[0]);
         self::assertStringStartsNotWith('//', (string) $r->headers->get('Location'));
     }
+
+    public function testPublicarPulaEnderecoInvalidoEmVezDeQuebrarOSite(): void
+    {
+        $servicos = Servicos::doBancoInstalado($this->caminhos);
+        $site = $servicos->sites->porHost('teste.local');
+        self::assertNotNull($site);
+        $con = Conexao::sqlite($this->caminhos->banco());
+        $classeId = (int) $con->fetchOne("SELECT id FROM classe WHERE nome = 'pagina'");
+        $agora = gmdate('c');
+        // dado antigo, anterior às regras de validação: a URL reservada "index" gravada direto no banco
+        $con->insert('objeto', ['site_id' => $site->id, 'classe_id' => $classeId, 'pai_id' => $site->objetoRaizId, 'caminho' => '/1/99/', 'titulo' => 'Legado', 'titulo_busca' => 'legado', 'titulo_norm' => 'legado', 'url_amigavel' => 'index', 'status' => 'publicado', 'dados' => '{}', 'criado_em' => $agora, 'atualizado_em' => $agora]);
+
+        $publicadas = $servicos->publicador->publicarSite($site);
+
+        self::assertSame(2, $publicadas, 'só as duas páginas válidas; a inválida foi pulada');
+        self::assertSame(200, $this->pegar('/')->getStatusCode(), 'a página inicial não foi sobrescrita pelo objeto "index"');
+    }
 }

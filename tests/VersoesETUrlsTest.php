@@ -234,4 +234,33 @@ final class VersoesETUrlsTest extends TestCase
         self::assertSame(1, (int) $con->fetchOne('SELECT versao FROM objeto WHERE id = 1'));
         self::assertSame('estado inicial', $con->fetchOne('SELECT motivo FROM objeto_versao WHERE objeto_id = 1 AND versao = 1'));
     }
+
+    public function testCriarNaoTomaUmEnderecoQueRedirecionaParaOutroObjeto(): void
+    {
+        $a = $this->criar('A', 'a');
+        $this->objetos->atualizar($a->id, ['url_amigavel' => 'a-novo']); // 'a' agora redireciona para o objeto A
+
+        self::assertStringContainsString('liberá-la de propósito', (string) $this->recusa(fn () => $this->criar('Intruso', 'a')));
+        self::assertSame('a-novo', $this->objetos->urlAtualDoHistorico(1, 'a'), 'o redirecionamento segue valendo');
+
+        $b = $this->objetos->criar(1, $this->pagina, null, 'Dono novo', 'a', [], 'publicado', [], true);
+        self::assertSame('a', $b->urlAmigavel);
+        self::assertNull($this->objetos->urlAtualDoHistorico(1, 'a'), 'liberado de propósito: o histórico foi limpo');
+    }
+
+    public function testMigracaoRenomeiaSlugIndexExistenteEPublicacaoNaoQuebra(): void
+    {
+        $con = Conexao::memoria();
+        (new Migrador($con, [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada()]))->migrar();
+        $agora = gmdate('c');
+        $con->insert('classe', ['nome' => 'pagina', 'propriedades' => '[]']);
+        foreach (['index', 'index-1'] as $i => $url) {
+            $con->insert('objeto', ['site_id' => 1, 'classe_id' => 1, 'caminho' => '/' . ($i + 1) . '/', 'titulo' => 'P' . $i, 'titulo_busca' => 'p', 'titulo_norm' => 'p', 'url_amigavel' => $url, 'status' => 'publicado', 'dados' => '{}', 'criado_em' => $agora, 'atualizado_em' => $agora]);
+        }
+
+        (new Migrador($con))->migrar();
+
+        self::assertSame(['index-2', 'index-1'], $con->fetchFirstColumn('SELECT url_amigavel FROM objeto ORDER BY id'), 'o antigo index vira o primeiro número livre (index-1 já era de outro)');
+        self::assertSame(0, (int) $con->fetchOne("SELECT COUNT(*) FROM objeto WHERE url_amigavel = 'index'"));
+    }
 }

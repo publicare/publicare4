@@ -57,7 +57,11 @@ final class Publicador
         $publicadas = [];
         foreach ($this->objetos->todosDaSubarvore($site->id, $raiz->caminho) as $objeto) {
             if ($objeto->visivel($agora)) {
-                $this->publicar($site, $objeto);
+                try {
+                    $this->publicar($site, $objeto);
+                } catch (\InvalidArgumentException) {
+                    continue; // endereço inválido (dado antigo): não derruba a publicação do site inteiro
+                }
                 $publicadas[$objeto->urlAmigavel] = true;
                 $total++;
             } else {

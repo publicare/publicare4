@@ -23,13 +23,13 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - Conversor de moldes: `condicao` com até três comparações ligadas por `and` e operadores `>`, `<`, `>=`, `<=`, `!=` e `<>`. (#15)
 - **Busca que ignora maiúsculas e acentos**: `presidencia`, `PRESIDÊNCIA` e `Presidência` acham o mesmo conteúdo. Vale para o título, para as propriedades de texto indexáveis e para o título de objetos referenciados (`campo="autor.titulo" op="contem"`), igual em SQLite, MySQL e PostgreSQL. Os dados que já existiam são recalculados pela migração. ADR 0010 desenha a busca com relevância e tolerância a erros de grafia. (#17)
 - **Histórico de versões**: cada objeto guarda uma versão a cada alteração (quem mudou, quando e o motivo). Dá para **restaurar** uma versão antiga (ela volta como uma versão nova; o histórico nunca é apagado) e há **proteção contra conflito**: salvar sobre uma versão que outra pessoa já mudou é recusado. (#18)
-- **Mudar a URL de um conteúdo não quebra o endereço antigo**: o endereço anterior fica no histórico e passa a responder **301** para o atual (mantendo a query string, sempre para caminho do próprio site). Para tomar um endereço que redireciona para outro conteúdo é preciso liberá-lo de propósito. (#18)
+- **Mudar a URL de um conteúdo não quebra o endereço antigo**: o endereço anterior fica no histórico e passa a responder **301** para o atual (mantendo a query string, sempre para caminho do próprio site). Para tomar um endereço que redireciona para outro conteúdo, ao **criar** ou ao **alterar**, é preciso liberá-lo de propósito. (#18)
 - **Mover um conteúdo na árvore** (com toda a subárvore), recusando ciclos e pai de outro site; os endereços não mudam. Estados válidos: `privado`, `submetido`, `rejeitado`, `publicado`, `apagado`. (#18)
 - `bin/pbl publicar` remove do cache também as páginas de endereços que deixaram de existir. (#18)
 - Documentação de design (ADRs 0003 a 0009, fluxos e plano), documentação para quem usa e técnica, guia de colaboração, política de segurança, versionamento e pipeline automática de testes.
 
 ### Alterado
-- A URL `index` passou a ser reservada (a página inicial é gravada no cache como `index.html`). (#18)
+- A URL `index` passou a ser reservada (a página inicial é gravada no cache como `index.html`). Quem já usava esse endereço é renomeado pela migração para `index-1` (ou o primeiro número livre), e a publicação pula um endereço inválido em vez de interromper o site. (#18)
 - `contem` e `busca=` agora ignoram acentos, não só maiúsculas (antes `árvore` não achava `Arvore`). (#17)
 - Internamente, a consulta de objetos saiu de `ObjetoRepositorio` e foi para o `MotorDeConsulta`; `#temfilhos` deixou de ser um aviso do conversor. (#15)
 - A sintaxe dos moldes mudou em relação ao rascunho inicial: `<@eco titulo@>` agora é `<@eco #titulo@>` e `<@repetir filhos@>` virou `<@filhos@>`. (#6)

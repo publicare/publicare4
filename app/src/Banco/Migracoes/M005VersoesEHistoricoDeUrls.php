@@ -52,6 +52,18 @@ final class M005VersoesEHistoricoDeUrls implements Migracao
 
         $conexao->createSchemaManager()->createSchemaObjects($e);
 
+        // `index` passou a ser URL reservada (a página inicial é gravada no cache como `index.html`): quem já a usava é
+        // renomeado para `index-1` (ou o primeiro número livre), para a publicação não quebrar numa instalação existente.
+        foreach ($conexao->fetchAllAssociative("SELECT id, site_id FROM objeto WHERE url_amigavel = 'index'") as $o) {
+            for ($n = 1; ; $n++) {
+                $livre = $conexao->fetchOne('SELECT 1 FROM objeto WHERE site_id = ? AND url_amigavel = ?', [$o['site_id'], "index-{$n}"]);
+                if ($livre === false) {
+                    $conexao->update('objeto', ['url_amigavel' => "index-{$n}"], ['id' => $o['id']]);
+                    break;
+                }
+            }
+        }
+
         // Objetos que já existiam ganham a versão 1 como retrato do estado atual.
         $agora = gmdate('c');
         foreach ($conexao->fetchAllAssociative('SELECT * FROM objeto') as $o) {

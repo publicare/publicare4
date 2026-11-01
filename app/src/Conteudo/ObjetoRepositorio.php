@@ -25,8 +25,9 @@ final class ObjetoRepositorio
     /**
      * @param array<string, string|int|float|bool> $dados
      * @param array{peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null} $meta
+     * @param bool $liberarUrl true = tomar de propósito um endereço que hoje redireciona para outro objeto
      */
-    public function criar(int $siteId, Classe $classe, ?int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'publicado', array $meta = []): Objeto
+    public function criar(int $siteId, Classe $classe, ?int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'publicado', array $meta = [], bool $liberarUrl = false): Objeto
     {
         if (!\Pbl\Caminhos::urlValida($urlAmigavel)) {
             throw new \InvalidArgumentException("URL amigável inválida: {$urlAmigavel}");
@@ -36,7 +37,15 @@ final class ObjetoRepositorio
         }
         $dados = $this->validar($siteId, $classe, $dados);
 
-        return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta): Objeto {
+        return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta, $liberarUrl): Objeto {
+            // Um endereço que redireciona para outro conteúdo não pode ser tomado por acidente: o cache da página nova passaria
+            // na frente do histórico e o link antigo deixaria de levar ao conteúdo original.
+            if ($this->conexao->fetchOne('SELECT objeto_id FROM url_historico WHERE site_id = ? AND url_amigavel = ?', [$siteId, $urlAmigavel]) !== false) {
+                if (!$liberarUrl) {
+                    throw new \InvalidArgumentException("A URL {$urlAmigavel} era de outro objeto e hoje redireciona para ele; é preciso liberá-la de propósito");
+                }
+                $this->conexao->delete('url_historico', ['site_id' => $siteId, 'url_amigavel' => $urlAmigavel]);
+            }
             $caminhoPai = '/';
             if ($paiId !== null) {
                 $caminhoPai = (string) $this->conexao->fetchOne('SELECT caminho FROM objeto WHERE id = ? AND site_id = ?', [$paiId, $siteId]);
