@@ -31,7 +31,7 @@ O arquivo `instalar.liberar` é apagado sozinho no fim, e o instalador deixa de 
 
 ## O que ainda não dá para fazer pelo navegador
 
-Criar e editar páginas, trocar a aparência e gerenciar contas ainda se faz por linha de comando (veja a [documentação técnica](../tecnica/cli.md)); as telas de administração vêm nas próximas versões. Acompanhe o [estado do projeto](estado-do-projeto.md).
+Depois de instalar, entre em `/_pbl/` com a conta de administrador: já dá para andar pelas páginas e corrigir título e descrição. Criar e mover páginas, trocar a aparência e gerenciar contas ainda se faz por linha de comando (veja a [documentação técnica](../tecnica/cli.md)); as demais telas vêm nas próximas versões. Acompanhe o [estado do projeto](estado-do-projeto.md).
 
 ## Se algo der errado
 

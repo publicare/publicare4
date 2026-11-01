@@ -31,7 +31,8 @@ Objetivos: amadurecer o núcleo e a linguagem de moldes; instalador web para que
 - [0008 — Peles avançadas pagas e comunidade](adr/0008-marketplace-comunidade.md) (futuro)
 - [0009 — Peles de saída: HTML, JSON (headless/BFF)](adr/0009-peles-de-saida-headless.md) (proposto)
 - [0010 — Busca: normalização, relevância e grafias parecidas](adr/0010-busca.md) (nível A implementado)
-- [0011 — Autenticação, sessão, permissões e auditoria](adr/0011-autenticacao-sessao-permissoes.md) (em implementação)
+- [0011 — Autenticação, sessão, permissões e auditoria](adr/0011-autenticacao-sessao-permissoes.md) (implementado)
+- [0012 — Administração pelo navegador](adr/0012-administracao-web.md) (em implementação)
 - [0001 — Sem framework full-stack](adr/0001-base-p3-sem-framework.md) (parcialmente substituído)
 - [0002 — Schema: evolução aditiva](adr/0002-schema-evolucao-aditiva.md) (substituído)
 
@@ -47,6 +48,7 @@ Objetivos: amadurecer o núcleo e a linguagem de moldes; instalador web para que
 9. [Armazenamento, referências e consulta](fluxos/09-armazenamento-consulta.md)
 10. [Formulários, fluxos, participação e pagamento](fluxos/10-formularios-fluxos-participacao.md)
 11. [Atualização automática](fluxos/11-atualizacao.md)
+12. [Administração pelo navegador](fluxos/12-administracao-web.md)
 
 **Plano**
 - [Fases e questões em aberto](plano.md)

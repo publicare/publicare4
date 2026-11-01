@@ -26,7 +26,7 @@ sequenceDiagram
 ## PBL4
 
 > **Decisões detalhadas:** [ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md).
-> **Implementado (fase 3a):** contas e senhas (argon2id), perfis por subárvore com herança pelo `caminho`, `Permissoes::pode` (ação por enum, nunca texto da requisição), autoria nas versões, auditoria que só acrescenta (contas, acessos e alterações de conteúdo, sem o conteúdo) e `bin/pbl usuario`. **Implementado (fase 3b):** sessão própria (cookie `__Host-pbl4`, hash do token no banco, token novo a cada login, expira por inatividade e por tempo absoluto), `/_pbl/entrar` e `/_pbl/sair`, CSRF, limite de tentativas no servidor, cabeçalhos de segurança e segredo do site. **Falta:** recuperação de senha por e-mail, dois fatores, permissão por campo e as telas da administração (fase 5).
+> **Implementado (fase 3a):** contas e senhas (argon2id), perfis por subárvore com herança pelo `caminho`, `Permissoes::pode` (ação por enum, nunca texto da requisição), autoria nas versões, auditoria que só acrescenta (contas, acessos e alterações de conteúdo, sem o conteúdo) e `bin/pbl usuario`. **Implementado (fase 3b):** sessão própria (cookie `__Host-pbl4`, hash do token no banco, token novo a cada login, expira por inatividade e por tempo absoluto), `/_pbl/entrar` e `/_pbl/sair`, CSRF, limite de tentativas no servidor, cabeçalhos de segurança e segredo do site. **Implementado (fase 5a):** as primeiras telas da administração conferem `Permissoes::pode` em toda rota, também no POST ([fluxo 12](12-administracao-web.md)). **Falta:** recuperação de senha por e-mail, dois fatores, permissão por campo e o restante das telas (fase 5).
 
 ```mermaid
 sequenceDiagram

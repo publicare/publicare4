@@ -27,6 +27,8 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Prova de posse** | Um arquivo vazio que você cria no servidor para mostrar que é o dono dele. O instalador só funciona se esse arquivo existir, para que ninguém mais instale o sistema no seu lugar. |
 | **Sessão** | O período em que você está "logado". Termina ao sair, depois de 30 minutos sem usar ou 12 horas depois de entrar, e também se a sua senha for trocada ou a conta desativada. |
 | **Auditoria** | O registro de quem fez o quê e quando (criar conta, trocar senha, dar acesso…). Só acrescenta, nunca guarda senha, e não pode ser editado pelo sistema. |
+| **Administração** | A área do site, em `/_pbl/`, onde a equipe entra com login e senha para cuidar do conteúdo. Cada pessoa só vê e só muda o que o seu papel permite. |
+| **Edição simultânea** | Quando duas pessoas abrem a mesma página para editar. Quem salvar depois recebe um aviso, vê o que a outra pessoa salvou e decide se substitui; nada se perde sem aviso. |
 | **Domínio principal** | O endereço oficial do site. Os outros domínios do mesmo site mostram o mesmo conteúdo (avisando qual é o oficial) ou levam direto ao principal. |
 | **Regra de redirecionamento** | Uma instrução que você cadastra: "quem pedir `/antigo` vai para `/novo`". Serve para endereços antigos que já não são uma página do site. |
 | **Redirecionamento** | Fazer um endereço antigo levar ao endereço novo, para não quebrar links já divulgados. |
