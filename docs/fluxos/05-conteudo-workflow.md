@@ -29,7 +29,7 @@ Versões em `versaoobjeto`; ações registradas em `logobjeto` e `logworkflow`. 
 
 ## PBL4
 
-> **Implementado (fase 1b):** histórico de versões (`objeto_versao`, uma linha por estado salvo, a atual inclusive), `atualizar` com mesclagem de dados e reindexação, `restaurar` (como nova versão), `mover` com a subárvore, proteção contra conflito (`versaoEsperada`) e os estados `privado`, `submetido`, `rejeitado`, `publicado`, `apagado`. **Fase 5a:** título e descrição já se editam pelo navegador, com a mesma proteção contra conflito ([fluxo 12](12-administracao-web.md)). Ainda falta: as **transições com permissão por perfil**, o quem-mudou (depende do login, fase 3), a fila de pendentes e as notificações (fase 6).
+> **Implementado (fase 1b):** histórico de versões (`objeto_versao`, uma linha por estado salvo, a atual inclusive), `atualizar` com mesclagem de dados e reindexação, `restaurar` (como nova versão), `mover` com a subárvore, proteção contra conflito (`versaoEsperada`) e os estados `privado`, `submetido`, `rejeitado`, `publicado`, `apagado`. **Fase 5a:** título e descrição já se editam pelo navegador, com a mesma proteção contra conflito ([fluxo 12](12-administracao-web.md)). **Fase 5b:** pelo navegador também se cria conteúdo (sempre `privado`), se editam todas as propriedades, se muda o estado e as datas (perfil editor), se move, se manda para a lixeira (estado `apagado`; não há apagar definitivo) e se restaura uma versão sem mexer no estado. As transições são livres entre `privado`, `submetido`, `rejeitado` e `publicado` para quem pode publicar. Ainda falta: as **transições com permissão por perfil**, o quem-mudou (depende do login, fase 3), a fila de pendentes e as notificações (fase 6).
 
 ```mermaid
 flowchart LR
