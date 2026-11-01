@@ -50,15 +50,45 @@ final class LinguagemTest extends TestCase
             {
             }
 
-            public function filhos(array $objeto, string $classes, string $ordem, int $inicio, int $limite): array
+            public function filhos(array $objeto, array $filtros): array
+            {
+                return $this->filtrar($filtros);
+            }
+
+            public function localizar(array $objeto, array $filtros): array
+            {
+                return $this->filtrar($filtros);
+            }
+
+            public function objeto(array $objeto, string $id, string $url, string $titulo): ?array
+            {
+                foreach ($this->filhos as $f) {
+                    if (($id !== '' && (string) ($f['id'] ?? '') === $id) || ($titulo !== '' && ($f['titulo'] ?? '') === $titulo) || ($url !== '' && ($f['url'] ?? '') === $url)) {
+                        return $f;
+                    }
+                }
+
+                return null;
+            }
+
+            public function temFilhos(array $objeto, ?int $id): bool
+            {
+                return $this->filhos !== [] && ($id === null || $id > 0);
+            }
+
+            /**
+             * @param array<string, int|string> $filtros
+             * @return list<array<string, mixed>>
+             */
+            private function filtrar(array $filtros): array
             {
                 $lista = $this->filhos;
-                if ($classes !== '') {
-                    $aceitas = explode(',', $classes);
+                if (isset($filtros['classes'])) {
+                    $aceitas = explode(',', (string) $filtros['classes']);
                     $lista = array_values(array_filter($lista, static fn (array $f): bool => in_array($f['classe'] ?? '', $aceitas, true)));
                 }
 
-                return array_slice($lista, $inicio, $limite);
+                return array_slice($lista, (int) ($filtros['inicio'] ?? 0), (int) ($filtros['limite'] ?? 100));
             }
         };
         $compilador = new Compilador($this->cache);
@@ -143,6 +173,38 @@ final class LinguagemTest extends TestCase
 
         self::assertSame('nenhum', $this->render($m));
         self::assertSame('x', $this->render($m, [], [], [['titulo' => 'A']]));
+    }
+
+    public function testLocalizarAleatorioEUsarObjetoETemFilho(): void
+    {
+        $itens = [['id' => 7, 'titulo' => 'Sete', 'url' => '/sete', 'classe' => 'pagina'], ['id' => 8, 'titulo' => 'Oito', 'url' => '/oito', 'classe' => 'noticia']];
+
+        self::assertSame('Oito;', $this->render('<@localizar classes="noticia" busca="oit"@><@eco #titulo@>;<@/localizar@>', [], [], $itens));
+        self::assertSame('2:2:', $this->render('<@localizar@><@eco %FIM@>:<@/localizar@>', [], [], $itens));
+
+        $ordenado = $this->render('<@aleatorio@><@eco #id@>,<@/aleatorio@>', [], [], $itens);
+        self::assertContains($ordenado, ['7,8,', '8,7,'], 'aleatorio devolve todos, em qualquer ordem');
+        self::assertContains($this->render('<@localizaraleatorio@><@eco #id@>,<@/localizaraleatorio@>', [], [], $itens), ['7,8,', '8,7,']);
+
+        self::assertSame('Sete|', $this->render('<@usarobjeto id=7@><@eco #titulo@>|<@/usarobjeto@>', ['titulo' => 'pai'], [], $itens));
+        self::assertSame('Oito|pai', $this->render('<@usarobjeto titulo="Oito"@><@eco #titulo@>|<@/usarobjeto@><@eco #titulo@>', ['titulo' => 'pai'], [], $itens));
+        self::assertSame('', $this->render('<@usarobjeto id=99@>nunca<@/usarobjeto@>', [], [], $itens), 'objeto inexistente: bloco não roda');
+
+        self::assertSame('tem', $this->render('<@temfilho@>tem<@/temfilho@>', ['id' => 1], [], $itens));
+        self::assertSame('', $this->render('<@temfilho@>tem<@/temfilho@>', ['id' => 1]));
+    }
+
+    public function testNaolocalizadoEquivaleASemfilhos(): void
+    {
+        self::assertSame('vazio', $this->render('<@localizar classes="x"@>a<@/localizar@><@naolocalizado@>vazio<@/naolocalizado@>'));
+    }
+
+    public function testObjetoNoLacoDeLocalizarMudaOContexto(): void
+    {
+        $itens = [['id' => 1, 'titulo' => 'A', 'url' => '/a', 'classe' => 'p']];
+        $m = '<@localizar@><@usarobjeto id=1@>[<@eco #titulo@>]<@/usarobjeto@><@/localizar@>';
+
+        self::assertSame('[A]', $this->render($m, [], [], $itens));
     }
 
     public function testMacrosDeData(): void
@@ -270,6 +332,10 @@ final class LinguagemTest extends TestCase
         yield 'caractere inesperado' => ['<@eco #a ; #b@>'];
         yield 'bloco sem nome' => ['<@bloco@><@/bloco@>'];
         yield 'fechamento com argumento' => ['<@se #a@><@/se #a@>'];
+        yield 'usarobjeto sem alvo' => ['<@usarobjeto@><@/usarobjeto@>'];
+        yield 'localizar com parâmetro de filhos inexistente' => ['<@localizar sql="x"@><@/localizar@>'];
+        yield 'filhos com parâmetro de localizar' => ['<@filhos pai=1@><@/filhos@>'];
+        yield 'fechamento cruzado de coleções' => ['<@localizar@><@/filhos@>'];
     }
 
     #[DataProvider('moldesInvalidos')]

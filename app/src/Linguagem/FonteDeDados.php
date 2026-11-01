@@ -4,14 +4,37 @@ declare(strict_types=1);
 
 namespace Pbl\Linguagem;
 
-/** O que o molde pode pedir ao sistema. O runtime não conhece banco: só esta interface. */
+/** O que o molde pode pedir ao sistema. O runtime não conhece banco: só esta interface. Somente leitura de conteúdo publicado. */
 interface FonteDeDados
 {
     /**
-     * Filhos publicados do objeto, como contextos (`#campo`).
+     * Filhos publicados do objeto.
      *
-     * @param array<string, mixed> $objeto contexto do objeto pai (tem `id`)
+     * @param array<string, mixed> $objeto contexto do objeto pai (tem `id` e `site`)
+     * @param array<string, int|string> $filtros classes, ordem, inicio, limite
      * @return list<array<string, mixed>>
      */
-    public function filhos(array $objeto, string $classes, string $ordem, int $inicio, int $limite): array;
+    public function filhos(array $objeto, array $filtros): array;
+
+    /**
+     * Busca no site do objeto corrente (subconjunto seguro; o motor completo vem na fase 1).
+     *
+     * @param array<string, mixed> $objeto
+     * @param array<string, int|string> $filtros classes, ordem, inicio, limite, pai, niveis, campo, valor, busca
+     * @return list<array<string, mixed>>
+     */
+    public function localizar(array $objeto, array $filtros): array;
+
+    /**
+     * Um objeto publicado do mesmo site, por id, url ou título (nessa ordem de prioridade).
+     *
+     * @param array<string, mixed> $objeto
+     * @return array<string, mixed>|null
+     */
+    public function objeto(array $objeto, string $id, string $url, string $titulo): ?array;
+
+    /**
+     * @param array<string, mixed> $objeto
+     */
+    public function temFilhos(array $objeto, ?int $id): bool;
 }

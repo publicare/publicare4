@@ -133,8 +133,12 @@ final class Compilador
                 $saida[] = new NoSe($no->condicao, $this->aplicarBlocos($no->entao, $blocos), $this->aplicarBlocos($no->senao, $blocos));
             } elseif ($no instanceof NoRepetir) {
                 $saida[] = new NoRepetir($no->variavel, $no->inicio, $no->fim, $this->aplicarBlocos($no->corpo, $blocos));
-            } elseif ($no instanceof NoFilhos) {
-                $saida[] = new NoFilhos($no->params, $this->aplicarBlocos($no->corpo, $blocos));
+            } elseif ($no instanceof NoColecao) {
+                $saida[] = new NoColecao($no->tipo, $no->params, $no->aleatorio, $this->aplicarBlocos($no->corpo, $blocos));
+            } elseif ($no instanceof NoUsarObjeto) {
+                $saida[] = new NoUsarObjeto($no->params, $this->aplicarBlocos($no->corpo, $blocos));
+            } elseif ($no instanceof NoTemFilho) {
+                $saida[] = new NoTemFilho($no->params, $this->aplicarBlocos($no->corpo, $blocos));
             } elseif ($no instanceof NoSemResultado) {
                 $saida[] = new NoSemResultado($this->aplicarBlocos($no->corpo, $blocos));
             } else {

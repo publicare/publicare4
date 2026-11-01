@@ -46,20 +46,31 @@ final class Gerador
                     . '        $r->definir(' . var_export($no->variavel, true) . ", \$n{$nivel});\n"
                     . $this->nos($no->corpo, $nivel)
                     . "    }\n";
-            } elseif ($no instanceof NoFilhos) {
-                $p = $no->params;
+            } elseif ($no instanceof NoColecao) {
                 $filho = '$o' . ($nivel + 1);
-                $codigo .= "    \$l{$nivel} = \$r->filhos({$o}, "
-                    . $this->expr($p['classes'] ?? new ExprLiteral(''), $nivel) . ', '
-                    . $this->expr($p['ordem'] ?? new ExprLiteral(''), $nivel) . ', '
-                    . $this->expr($p['inicio'] ?? new ExprLiteral(0), $nivel) . ', '
-                    . $this->expr($p['limite'] ?? new ExprLiteral(-1), $nivel) . ");\n"
+                $consulta = $no->tipo === 'localizar'
+                    ? "\$r->localizar({$o}, " . $this->mapa($no->params, $nivel) . ')'
+                    : "\$r->filhos({$o}, " . $this->mapa($no->params, $nivel) . ')';
+                if ($no->aleatorio) {
+                    $consulta = "\$r->embaralhar({$consulta})";
+                }
+                $codigo .= "    \$l{$nivel} = {$consulta};\n"
                     . "    \$r->abrirColecao(count(\$l{$nivel}));\n"
                     . "    foreach (\$l{$nivel} as \$i{$nivel} => {$filho}) {\n"
                     . "        \$r->itemDaColecao(\$i{$nivel} + 1);\n"
                     . $this->nos($no->corpo, $nivel + 1)
                     . "    }\n"
                     . "    \$r->fecharColecao();\n";
+            } elseif ($no instanceof NoUsarObjeto) {
+                $alvo = '$o' . ($nivel + 1);
+                $codigo .= "    {$alvo} = \$r->objeto({$o}, " . $this->mapa($no->params, $nivel) . ");\n"
+                    . "    if ({$alvo} !== null) {\n"
+                    . $this->nos($no->corpo, $nivel + 1)
+                    . "    }\n";
+            } elseif ($no instanceof NoTemFilho) {
+                $codigo .= "    if (\$r->temFilhos({$o}, " . $this->mapa($no->params, $nivel) . ")) {\n"
+                    . $this->nos($no->corpo, $nivel)
+                    . "    }\n";
             } elseif ($no instanceof NoSemResultado) {
                 $codigo .= "    if (\$r->semResultado()) {\n" . $this->nos($no->corpo, $nivel) . "    }\n";
             } elseif ($no instanceof NoBloco) {
@@ -70,6 +81,17 @@ final class Gerador
         }
 
         return $codigo;
+    }
+
+    /** @param array<string, Expr> $params */
+    private function mapa(array $params, int $nivel): string
+    {
+        $itens = [];
+        foreach ($params as $nome => $expr) {
+            $itens[] = var_export($nome, true) . ' => ' . $this->expr($expr, $nivel);
+        }
+
+        return '[' . implode(', ', $itens) . ']';
     }
 
     private function eco(NoEco $no, int $nivel): string
