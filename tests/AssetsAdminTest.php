@@ -1,0 +1,110 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pbl\Testes;
+
+use Pbl\Admin\Pagina;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Estilos da administração (Bootstrap 5 local, ADR 0012): os arquivos existem, batem com a procedência registrada, a página só os
+ * referencia do próprio site (sem CDN, sem inline) e as configurações de servidor de referência os entregam direto.
+ */
+final class AssetsAdminTest extends TestCase
+{
+    private function raiz(): string
+    {
+        return dirname(__DIR__);
+    }
+
+    private function publico(string $url): string
+    {
+        return $this->raiz() . '/public' . $url;
+    }
+
+    public function testArquivosExistemEBatemComAProcedencia(): void
+    {
+        $procedencia = (string) file_get_contents($this->publico(Pagina::ASSETS . '/PROVENIENCIA.md'));
+        foreach (['bootstrap-5.3.8/bootstrap.min.css', 'bootstrap-5.3.8/LICENSE'] as $arquivo) {
+            $caminho = $this->publico(Pagina::ASSETS . '/' . $arquivo);
+            self::assertFileExists($caminho);
+            $sha = hash_file('sha256', $caminho);
+            self::assertIsString($sha);
+            self::assertStringContainsString('`' . $arquivo . '`', $procedencia);
+            self::assertStringContainsString($sha, $procedencia, "SHA-256 de {$arquivo} difere do registrado");
+        }
+        self::assertStringContainsString('Bootstrap  v5.3.8', (string) file_get_contents($this->publico(Pagina::BOOTSTRAP)));
+        self::assertStringContainsString('MIT License', (string) file_get_contents($this->publico(Pagina::ASSETS . '/bootstrap-5.3.8/LICENSE')));
+        self::assertFileExists($this->publico(Pagina::CSS));
+    }
+
+    public function testPaginaUsaSoArquivosDoProprioSiteSemInlineNemScript(): void
+    {
+        $r = Pagina::resposta('Teste', '<p>ok</p>', 200, true, Pagina::barra('Ana', 'token'));
+        $html = (string) $r->getContent();
+        $csp = (string) $r->headers->get('Content-Security-Policy');
+
+        self::assertStringContainsString('href="' . Pagina::BOOTSTRAP . '"', $html);
+        self::assertStringContainsString('href="' . Pagina::CSS . '"', $html);
+        self::assertStringNotContainsString('<style', $html);
+        self::assertStringNotContainsString('style=', $html);
+        self::assertStringNotContainsString('<script', $html);
+        self::assertStringNotContainsString('//cdn', $html);
+        self::assertStringContainsString("style-src 'self'", $csp);
+        self::assertStringContainsString("default-src 'none'", $csp);
+        self::assertStringNotContainsString('unsafe-inline', $csp);
+        self::assertStringNotContainsString('script-src', $csp, 'sem JavaScript, nada de script liberado');
+        self::assertStringContainsString('<main id="conteudo"', $html);
+        self::assertStringContainsString('href="#conteudo"', $html, 'atalho para pular a navegação');
+    }
+
+    public function testCssDoProjetoNaoBuscaNadaDeFora(): void
+    {
+        $css = (string) file_get_contents($this->publico(Pagina::CSS));
+
+        self::assertStringNotContainsString('@import', $css);
+        self::assertStringNotContainsString('url(', $css);
+    }
+
+    public function testApacheEntregaArquivoExistenteDireto(): void
+    {
+        $publico = (string) file_get_contents($this->raiz() . '/public/.htaccess');
+        self::assertStringContainsString('RewriteCond %{REQUEST_FILENAME} !-f', $publico, 'arquivo existente não vai para o index.php');
+        $negados = preg_match('/<FilesMatch "([^"]+)">/', $publico, $m) === 1 ? $m[1] : self::fail('FilesMatch não encontrado');
+        foreach (['bootstrap.min.css', 'pbl.css'] as $nome) {
+            self::assertSame(0, preg_match('/' . str_replace('/', '\/', $negados) . '/', $nome), "{$nome} não pode cair na lista negada");
+        }
+
+        // .htaccess da raiz (site enviado inteiro): nada bloqueia /_pbl/assets e o resto vai para public/.
+        $raiz = (string) file_get_contents($this->raiz() . '/.htaccess');
+        preg_match_all('/^\s*RewriteRule\s+(\S+)\s+-\s+\[F/m', $raiz, $bloqueios);
+        self::assertNotEmpty($bloqueios[1]);
+        foreach ($bloqueios[1] as $regra) {
+            self::assertSame(0, preg_match('/' . str_replace('/', '\/', $regra) . '/', '_pbl/assets/pbl.css'), "regra {$regra} bloquearia os estilos");
+        }
+        self::assertStringContainsString('RewriteRule ^(.*)$ public/$1', $raiz);
+    }
+
+    public function testNginxDeReferenciaEntregaArquivoExistenteDireto(): void
+    {
+        $conf = (string) file_get_contents($this->raiz() . '/docker/nginx-teste/pbl4.conf');
+
+        self::assertStringContainsString('try_files $uri /index.php', $conf);
+        preg_match_all('/location ~ (\S+) \{ return 404; \}/', $conf, $bloqueios);
+        self::assertNotEmpty($bloqueios[1]);
+        foreach ($bloqueios[1] as $regra) {
+            foreach ([Pagina::BOOTSTRAP, Pagina::CSS] as $url) {
+                self::assertSame(0, preg_match('#' . $regra . '#', $url), "location {$regra} bloquearia {$url}");
+            }
+        }
+    }
+
+    public function testServidorEmbutidoDeDesenvolvimentoEntregaArquivoExistente(): void
+    {
+        $index = (string) file_get_contents($this->raiz() . '/public/index.php');
+
+        self::assertStringContainsString("PHP_SAPI === 'cli-server'", $index);
+        self::assertStringContainsString('return false;', $index);
+    }
+}
