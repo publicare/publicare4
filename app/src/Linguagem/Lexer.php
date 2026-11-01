@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace Pbl\Linguagem;
 
 /**
- * Separa texto e tags `<@comando argumento@>`. PHP cru é rejeitado aqui (fluxo 2, item 6):
- * qualquer `<?` ou `?>` no molde é erro, e tags malformadas também.
+ * Separa texto e tags `<@comando argumentos@>`. Uma tag termina no primeiro `@>` fora de aspas.
+ * PHP cru (`<?` ou `?>`) é rejeitado em qualquer lugar do molde (fluxo 2, item 6).
  */
 final class Lexer
 {
-    private const TAG = '/<@\s*(\/?)([a-z]+)(?:\s+([a-z_][a-z0-9_]*))?\s*@>/';
-
     /**
-     * @return list<array{tipo: 'texto', valor: string}|array{tipo: 'tag', fecha: bool, nome: string, arg: ?string, linha: int}>
+     * @return list<array{tipo: 'texto', valor: string}|array{tipo: 'tag', fecha: bool, nome: string, resto: string, linha: int}>
      */
     public function separar(string $fonte): array
     {
@@ -21,40 +19,52 @@ final class Lexer
             throw new ErroSintaxe('PHP cru não é permitido no molde', $this->linha($fonte, $m[0][1]));
         }
 
-        preg_match_all(self::TAG, $fonte, $achados, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        /** @var list<array{tipo: 'texto', valor: string}|array{tipo: 'tag', fecha: bool, nome: string, resto: string, linha: int}> $tokens */
         $tokens = [];
-        $cursor = 0;
-        foreach ($achados as $a) {
-            $inicio = $a[0][1];
-            $this->adicionarTexto($tokens, $fonte, $cursor, $inicio);
-            $tokens[] = [
-                'tipo' => 'tag',
-                'fecha' => $a[1][0] === '/',
-                'nome' => $a[2][0],
-                'arg' => isset($a[3]) && $a[3][1] >= 0 ? $a[3][0] : null,
-                'linha' => $this->linha($fonte, $inicio),
-            ];
-            $cursor = $inicio + strlen($a[0][0]);
+        $pos = 0;
+        $n = strlen($fonte);
+        while (($ini = strpos($fonte, '<@', $pos)) !== false) {
+            if ($ini > $pos) {
+                $tokens[] = ['tipo' => 'texto', 'valor' => substr($fonte, $pos, $ini - $pos)];
+            }
+            $linha = $this->linha($fonte, $ini);
+            $fim = $this->fimDaTag($fonte, $ini + 2, $linha);
+            $interno = trim(substr($fonte, $ini + 2, $fim - $ini - 2));
+            if (preg_match('/^(\/?)([a-z_]+|=)(.*)$/s', $interno, $a) !== 1) {
+                throw new ErroSintaxe('Tag malformada', $linha);
+            }
+            $tokens[] = ['tipo' => 'tag', 'fecha' => $a[1] === '/', 'nome' => $a[2], 'resto' => trim($a[3]), 'linha' => $linha];
+            $pos = $fim + 2;
         }
-        $this->adicionarTexto($tokens, $fonte, $cursor, strlen($fonte));
+        if ($pos < $n) {
+            $tokens[] = ['tipo' => 'texto', 'valor' => substr($fonte, $pos)];
+        }
 
         return $tokens;
     }
 
-    /** @param list<array{tipo: 'texto', valor: string}|array{tipo: 'tag', fecha: bool, nome: string, arg: ?string, linha: int}> $tokens */
-    private function adicionarTexto(array &$tokens, string $fonte, int $de, int $ate): void
+    private function fimDaTag(string $fonte, int $de, int $linha): int
     {
-        $texto = substr($fonte, $de, $ate - $de);
-        $pos = strpos($texto, '<@');
-        if ($pos === false) {
-            $pos = strpos($texto, '@>');
+        $n = strlen($fonte);
+        $aspas = null;
+        for ($i = $de; $i < $n; $i++) {
+            $c = $fonte[$i];
+            if ($aspas !== null) {
+                if ($c === '\\') {
+                    $i++;
+                } elseif ($c === $aspas) {
+                    $aspas = null;
+                }
+                continue;
+            }
+            if ($c === '"' || $c === "'") {
+                $aspas = $c;
+            } elseif ($c === '@' && ($fonte[$i + 1] ?? '') === '>') {
+                return $i;
+            }
         }
-        if ($pos !== false) {
-            throw new ErroSintaxe('Tag malformada', $this->linha($fonte, $de + $pos));
-        }
-        if ($texto !== '') {
-            $tokens[] = ['tipo' => 'texto', 'valor' => $texto];
-        }
+
+        throw new ErroSintaxe('Tag não fechada (falta @>)', $linha);
     }
 
     private function linha(string $fonte, int $deslocamento): int

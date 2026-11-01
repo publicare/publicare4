@@ -10,7 +10,7 @@ final class NoSe implements No
      * @param list<No> $entao
      * @param list<No> $senao
      */
-    public function __construct(public readonly string $campo, public array $entao = [], public array $senao = [])
+    public function __construct(public readonly Expr $condicao, public array $entao = [], public array $senao = [])
     {
     }
 }

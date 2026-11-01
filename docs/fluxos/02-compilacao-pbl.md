@@ -28,6 +28,8 @@ Comandos: `ECO`, `ECOE`, `ECO_LIMITE`, `FILHOS`, `SEMFILHOS`, `INCLUIR`, `INCLUI
 
 ## PBL4
 
+Referência completa da linguagem, gramática e tabela de conversão: [linguagem-pbl4.md](../linguagem-pbl4.md).
+
 ```mermaid
 flowchart LR
     SRC[Molde PBL em pele_arquivo] --> LX[Lexer: texto e tags]
