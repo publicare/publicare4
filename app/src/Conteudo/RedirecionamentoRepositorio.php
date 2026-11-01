@@ -23,9 +23,14 @@ final class RedirecionamentoRepositorio
 
     public function adicionar(int $siteId, string $origem, string $destino, int $codigo = 301, bool $prefixo = false): int
     {
-        $origem = self::normalizar($origem);
-        if (!self::origemValida($origem)) {
-            throw new \InvalidArgumentException("Origem inválida: {$origem}");
+        $digitada = self::normalizar($origem);
+        if (!self::origemValida($digitada)) {
+            throw new \InvalidArgumentException("Origem inválida: {$digitada}");
+        }
+        // Guarda decodificada (`/old%20name` → `/old name`), a mesma forma em que a Aplicacao compara o caminho pedido.
+        $origem = self::normalizar(rawurldecode($digitada));
+        if (!self::origemDecodificadaValida($origem)) {
+            throw new \InvalidArgumentException("Origem inválida depois de decodificar: {$digitada}");
         }
         if (!self::destinoValido($destino)) {
             throw new \InvalidArgumentException("Destino inválido (use um caminho do site ou https://): {$destino}");
@@ -109,6 +114,14 @@ final class RedirecionamentoRepositorio
     {
         return strlen($origem) <= 300 && $origem[0] === '/' && !str_contains($origem, '..')
             && !str_contains($origem, '//') && preg_match('/^[A-Za-z0-9._~\-\/%+]++$/D', $origem) === 1;
+    }
+
+    /** Depois de decodificar: UTF-8 válido, sem caracteres de controle, `?`, `#`, `//` nem segmento `..`. */
+    public static function origemDecodificadaValida(string $origem): bool
+    {
+        return strlen($origem) <= 300 && $origem !== '' && $origem[0] === '/' && mb_check_encoding($origem, 'UTF-8')
+            && preg_match('/[\x00-\x1F\x7F]/', $origem) !== 1 && strpbrk($origem, '?#\\') === false && !str_contains($origem, '//')
+            && !in_array('..', explode('/', $origem), true);
     }
 
     public static function destinoValido(string $destino): bool

@@ -28,6 +28,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - `bin/pbl publicar` remove do cache também as páginas de endereços que deixaram de existir. (#18)
 - **Domínios com papel**: cada site tem um domínio **principal** (o canônico) e quantos domínios extras precisar, cada um como **`servir`** (mostra o mesmo conteúdo e avisa o canônico no cabeçalho `Link: rel="canonical"`) ou **`redirecionar`** (301 para o principal, mantendo caminho e consulta). Trocar o principal faz o antigo passar a redirecionar. O host de destino sempre vem do cadastro, nunca da requisição; host inválido na requisição dá 400. (#19)
 - **Regras manuais de redirecionamento** por site, para endereços antigos que não são um conteúdo atual (maiúsculas, `.php`, sistemas que acabaram): exatas ou por prefixo (`/antigo/x` → `<destino>/x`, o prefixo mais longo vence), 301 ou 302, destino só no próprio site ou `https://`. Valem depois da página publicada e do histórico de URLs. (#19)
+- Origens de regras com caracteres codificados (`/old%20name`) funcionam: são guardadas decodificadas, a mesma forma do caminho pedido; origens perigosas depois de decodificar (`%2e%2e`, `%0A`, `%3F`…) e UTF-8 inválido são recusados. (#19)
 - Comandos `bin/pbl dominio` (listar, adicionar, principal, remover) e `bin/pbl redirecionamento` (listar, adicionar, remover) enquanto não há tela de administração. (#19)
 - Documentação de design (ADRs 0003 a 0009, fluxos e plano), documentação para quem usa e técnica, guia de colaboração, política de segurança, versionamento e pipeline automática de testes.
 
@@ -38,6 +39,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - A sintaxe dos moldes mudou em relação ao rascunho inicial: `<@eco titulo@>` agora é `<@eco #titulo@>` e `<@repetir filhos@>` virou `<@filhos@>`. (#6)
 
 ### Corrigido
+- Instalar com um domínio inválido deixava a instalação pela metade e impedia tentar de novo; agora valida antes e grava tudo numa transação. (#19)
+- Ao migrar, um site que já tinha vários domínios ficaria com todos como principais; agora um é o principal e os outros passam a servir o mesmo conteúdo. (#19)
+- O redirecionamento mantém a query string antes da âncora (`/novo?x=1#secao`). (#19)
 - Nova linha no fim da URL era aceita como válida. (#9)
 - Data impossível (`2026-02-31`) virava 3 de março em `formatadata`; agora dá vazio. (#11)
 - `repetir` podia girar sem fim nos limites dos inteiros. (#11)

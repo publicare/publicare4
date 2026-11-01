@@ -51,7 +51,7 @@ final class Aplicacao
         }
 
         $pedido = rawurldecode($requisicao->getPathInfo());
-        if (strlen($pedido) > self::MAX_CAMINHO) {
+        if (strlen($pedido) > self::MAX_CAMINHO || !mb_check_encoding($pedido, 'UTF-8')) {
             return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
         }
         $url = trim($pedido, '/');
@@ -98,15 +98,18 @@ final class Aplicacao
         return $requisicao->getScheme() . '://' . $host . $sufixo . $requisicao->getPathInfo() . ($consulta === null || $consulta === '' ? '' : '?' . $consulta);
     }
 
-    /** Acrescenta a query string do pedido ao destino, se ele ainda não tiver uma. */
+    /** Acrescenta a query string do pedido ao destino, antes do `#âncora`, se o destino ainda não tiver uma. */
     private function comConsulta(Request $requisicao, string $destino): string
     {
         $consulta = $requisicao->getQueryString();
-        if ($consulta === null || $consulta === '' || str_contains($destino, '?')) {
+        $posicao = strpos($destino, '#');
+        $base = $posicao === false ? $destino : substr($destino, 0, $posicao);
+        $ancora = $posicao === false ? '' : substr($destino, $posicao);
+        if ($consulta === null || $consulta === '' || str_contains($base, '?')) {
             return $destino;
         }
 
-        return $destino . '?' . $consulta;
+        return $base . '?' . $consulta . $ancora;
     }
 
     private function texto(string $mensagem, int $status): Response

@@ -23,6 +23,12 @@ final class M006DominiosERedirecionamentos implements Migracao
     {
         $conexao->executeStatement("ALTER TABLE dominio ADD COLUMN modo VARCHAR(12) NOT NULL DEFAULT 'principal'");
 
+        // O padrão marcou todo domínio existente como principal; um site só pode ter um. Fica principal o primeiro (em ordem
+        // alfabética) e os demais passam a servir o mesmo conteúdo com o principal como canônico.
+        foreach ($conexao->fetchAllAssociative('SELECT site_id, MIN(host) AS principal FROM dominio GROUP BY site_id') as $s) {
+            $conexao->executeStatement("UPDATE dominio SET modo = 'servir' WHERE site_id = ? AND host <> ?", [$s['site_id'], $s['principal']]);
+        }
+
         $e = new Schema();
         $r = $e->createTable('redirecionamento');
         $r->addColumn('id', 'integer', ['autoincrement' => true]);

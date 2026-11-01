@@ -260,4 +260,87 @@ final class RoteamentoTest extends TestCase
     {
         self::assertSame(404, $this->pegar('/' . str_repeat('a', 5000))->getStatusCode());
     }
+
+    public function testOrigemComPercentCasaComOCaminhoPedido(): void
+    {
+        $this->servicos->redirecionamentos->adicionar($this->siteId, '/old%20name/%C3%A1gua', '/sobre');
+
+        self::assertSame('/sobre', $this->pegar('/old%20name/%C3%A1gua')->headers->get('Location'));
+        self::assertSame('/old name/água', $this->servicos->redirecionamentos->doSite($this->siteId)[0]['origem'], 'guardada decodificada');
+        self::assertSame(404, $this->pegar('/old%2520name/%C3%A1gua')->getStatusCode(), 'duplo percent não casa');
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function origensCodificadasPerigosas(): iterable
+    {
+        yield 'traversal codificado' => ['/a/%2e%2e/b'];
+        yield 'barra dupla codificada' => ['/a%2F%2Fb'];
+        yield 'consulta codificada' => ['/a%3Fb'];
+        yield 'âncora codificada' => ['/a%23b'];
+        yield 'controle (nova linha)' => ['/a%0Ab'];
+        yield 'nulo' => ['/a%00b'];
+        yield 'barra invertida' => ['/a%5Cb'];
+        yield 'latin-1 (UTF-8 inválido)' => ['/caf%E9'];
+    }
+
+    #[DataProvider('origensCodificadasPerigosas')]
+    public function testOrigemCodificadaPerigosaERecusada(string $origem): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->servicos->redirecionamentos->adicionar($this->siteId, $origem, '/sobre');
+    }
+
+    public function testCaminhoPedidoComUtf8InvalidoDa404SemErro(): void
+    {
+        self::assertSame(404, $this->pegar('/caf%E9')->getStatusCode());
+    }
+
+    public function testConsultaDoPedidoVaiAntesDaAncoraDoDestino(): void
+    {
+        $this->servicos->redirecionamentos->adicionar($this->siteId, '/a', '/novo#secao');
+        $this->servicos->redirecionamentos->adicionar($this->siteId, '/b', '/novo?fixo=1#secao');
+
+        self::assertSame('/novo?x=1#secao', $this->pegar('/a?x=1')->headers->get('Location'));
+        self::assertSame('/novo?fixo=1#secao', $this->pegar('/b?x=1')->headers->get('Location'), 'destino que já tem consulta não ganha outra');
+        self::assertSame('/novo#secao', $this->pegar('/a')->headers->get('Location'));
+    }
+
+    public function testInstalarComHostInvalidoNaoDeixaNadaPelaMetadeEPermiteTentarDeNovo(): void
+    {
+        $raiz = Ajuda::raizDeProjeto();
+        try {
+            $caminhos = new Caminhos($raiz);
+            $instalador = new Instalador($caminhos);
+            try {
+                $instalador->instalar('Meu site', 'Host Inválido!');
+                self::fail('deveria recusar o host');
+            } catch (\InvalidArgumentException) {
+                self::assertFalse($instalador->instalado());
+            }
+
+            $instalador->instalar('Meu site', 'meusite.exemplo.org');
+
+            self::assertTrue($instalador->instalado());
+            self::assertSame(1, (int) \Pbl\Banco\Conexao::sqlite($caminhos->banco())->fetchOne('SELECT COUNT(*) FROM classe'));
+        } finally {
+            Ajuda::apagar($raiz);
+        }
+    }
+
+    public function testMigracaoDeixaUmUnicoPrincipalPorSite(): void
+    {
+        $con = \Pbl\Banco\Conexao::memoria();
+        (new \Pbl\Banco\Migrador($con, [new \Pbl\Banco\Migracoes\M001Base(), new \Pbl\Banco\Migracoes\M002Metadados(), new \Pbl\Banco\Migracoes\M003TituloBusca(), new \Pbl\Banco\Migracoes\M004BuscaNormalizada(), new \Pbl\Banco\Migracoes\M005VersoesEHistoricoDeUrls()]))->migrar();
+        $con->insert('site', ['nome' => 'A', 'pele' => 'basica']);
+        $con->insert('site', ['nome' => 'B', 'pele' => 'basica']);
+        foreach ([['b.exemplo.org', 1], ['a.exemplo.org', 1], ['c.exemplo.org', 1], ['unico.exemplo.org', 2]] as [$host, $site]) {
+            $con->insert('dominio', ['host' => $host, 'site_id' => $site]);
+        }
+
+        (new \Pbl\Banco\Migrador($con))->migrar();
+
+        $modos = $con->fetchAllKeyValue('SELECT host, modo FROM dominio');
+        ksort($modos);
+        self::assertSame(['a.exemplo.org' => 'principal', 'b.exemplo.org' => 'servir', 'c.exemplo.org' => 'servir', 'unico.exemplo.org' => 'principal'], $modos);
+    }
 }
