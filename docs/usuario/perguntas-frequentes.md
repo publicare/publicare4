@@ -39,7 +39,15 @@ A senha é guardada de um jeito que nem a equipe consegue ler; cada login cria u
 
 ## O que já dá para fazer pela administração?
 
-Entre em `/_pbl/` com seu login. Você vê os sites e as seções que pode acessar, anda pelas páginas (inclusive as que ainda não estão no ar) e, se o seu papel permitir, corrige o **título** e a **descrição** de uma página. Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou a mesma página enquanto você editava, aparece um aviso com as duas versões, e você escolhe. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). Criar, mover, publicar e apagar páginas ainda se faz por linha de comando.
+Entre em `/_pbl/` com seu login. Você vê os sites e as seções que pode acessar e anda pelas páginas (inclusive as que ainda não estão no ar), com a lista de conteúdo em ordem de peso, título ou data e filtros por tipo e estado. Conforme o seu papel, você também:
+
+- **cria** conteúdo dentro de uma página (escolhe entre os tipos que ela aceita e preenche os campos); o conteúdo novo começa fora do ar;
+- **edita** todos os campos (título, descrição, endereço, peso e os campos do tipo; os obrigatórios precisam ser preenchidos);
+- **publica ou tira do ar**, com data para entrar e para sair do ar (editor);
+- **move** um conteúdo, com tudo que está dentro dele, ou o manda para a **lixeira** (editor); da lixeira dá para tirar de volta;
+- vê o **histórico** e volta a uma versão antiga (isso cria uma versão nova; nada se perde).
+
+Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou o mesmo conteúdo enquanto você mexia, aparece um aviso e nada é sobrescrito sem você decidir. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). Contas, domínios e peles ainda se cuidam por linha de comando.
 
 ## Como crio um tipo de conteúdo novo (por exemplo, "Evento")?
 

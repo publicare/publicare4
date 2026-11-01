@@ -701,6 +701,62 @@ final class AdminObjetosTest extends TestCase
         self::assertSame(422, $telas['erro']->getStatusCode());
     }
 
+    public function testTiposAceitosComoFilhosValemAoCriarEAoMover(): void
+    {
+        $agenda = $this->s->classes->criar('agenda', [], ['filhas' => ['evento']]);
+        $folha = $this->s->classes->criar('folha', [], ['aceita_filhos' => false]);
+        $pastaAgenda = $this->s->objetos->criar($this->site->id, $agenda, $this->sobre->id, 'Agenda', 'agenda', []);
+        $pastaFolha = $this->s->objetos->criar($this->site->id, $folha, $this->sobre->id, 'Folha', 'folha', []);
+        $pagina = $this->s->objetos->criar($this->site->id, $this->pagina, $this->sobre->id, 'Uma página', 'uma-pagina', []);
+        $token = $this->token('editor');
+
+        $escolha = $this->html($this->req('GET', '/_pbl/objeto/' . $pastaAgenda->id . '/novo', $token));
+        self::assertStringContainsString('>evento</option>', $escolha);
+        self::assertStringNotContainsString('>pagina</option>', $escolha, 'só os tipos aceitos aparecem');
+        self::assertStringContainsString('>evento</option>', $this->html($this->req('GET', '/_pbl/objeto/' . $pastaAgenda->id . '/novo?classe=' . $this->pagina->id, $token)), 'tipo não aceito volta para a escolha');
+        $recusado = $this->post($token, '/_pbl/objeto/' . $pastaAgenda->id . '/novo', ['classe' => (string) $this->pagina->id, 'titulo' => 'Página na agenda', 'descricao' => '']);
+        self::assertSame(422, $recusado->getStatusCode(), 'formulário forjado com tipo não aceito');
+        self::assertSame(303, $this->post($token, '/_pbl/objeto/' . $pastaAgenda->id . '/novo', $this->formEvento('Evento na agenda'))->getStatusCode());
+
+        self::assertStringNotContainsString('/novo"', $this->html($this->req('GET', '/_pbl/objeto/' . $pastaFolha->id, $token)), 'tipo que não aceita filhos: sem botão de criar');
+        self::assertStringContainsString('não aceita conteúdo dentro', $this->html($this->req('GET', '/_pbl/objeto/' . $pastaFolha->id . '/novo', $token)));
+        self::assertSame(422, $this->post($token, '/_pbl/objeto/' . $pastaFolha->id . '/novo', $this->formEvento('Na folha'))->getStatusCode());
+
+        $mover = $this->post($token, '/_pbl/objeto/' . $pagina->id . '/mover', ['versao' => (string) $pagina->versao, 'destino' => (string) $pastaAgenda->id]);
+        self::assertSame(422, $mover->getStatusCode());
+        self::assertStringContainsString('não aceita conteúdo do tipo pagina', $this->html($mover));
+        self::assertSame($this->sobre->id, $this->obj($pagina->id)->paiId);
+    }
+
+    public function testCamposObrigatoriosArquivadosERotulos(): void
+    {
+        $ficha = $this->s->classes->criar('ficha', [
+            ['nome' => 'codigo', 'tipo' => 'texto', 'rotulo' => 'Código <interno>', 'obrigatorio' => true],
+            ['nome' => 'antigo', 'tipo' => 'texto'],
+        ]);
+        $o = $this->s->objetos->criar($this->site->id, $ficha, $this->sobre->id, 'Ficha', 'ficha', ['codigo' => 'A1', 'antigo' => 'valor guardado']);
+        $ficha = $this->s->classes->atualizar($ficha->id, $ficha->versao, [
+            ['nome' => 'codigo', 'tipo' => 'texto', 'rotulo' => 'Código <interno>', 'obrigatorio' => true],
+            ['nome' => 'antigo', 'tipo' => 'texto', 'arquivada' => true],
+        ], []);
+        $token = $this->token('admin');
+
+        $form = $this->html($this->req('GET', '/_pbl/objeto/' . $o->id . '/editar', $token));
+        self::assertStringContainsString('Código &lt;interno&gt; (obrigatório)', $form, 'rótulo da classe, escapado');
+        self::assertStringContainsString('name="dados[codigo]" aria-describedby="ajuda-dados-codigo" required', $form);
+        self::assertStringNotContainsString('dados[antigo]', $form, 'campo arquivado fora do formulário');
+
+        $vazio = $this->post($token, '/_pbl/objeto/' . $o->id . '/editar', ['versao' => (string) $o->versao, 'titulo' => 'Ficha', 'descricao' => '', 'url' => 'ficha', 'peso' => '0', 'dados' => ['codigo' => '']]);
+        self::assertSame(422, $vazio->getStatusCode());
+        self::assertStringContainsString('Este campo é obrigatório', $this->html($vazio));
+
+        $forjado = $this->post($token, '/_pbl/objeto/' . $o->id . '/editar', ['versao' => (string) $o->versao, 'titulo' => 'Ficha 2', 'descricao' => '', 'url' => 'ficha', 'peso' => '0', 'dados' => ['codigo' => 'B2', 'antigo' => '']]);
+        self::assertSame(303, $forjado->getStatusCode());
+        self::assertSame(['codigo' => 'B2', 'antigo' => 'valor guardado'], $this->obj($o->id)->dados, 'o valor arquivado continua, mesmo com o campo forjado vazio');
+
+        self::assertSame(422, $this->post($token, '/_pbl/objeto/' . $this->sobre->id . '/novo', ['classe' => (string) $ficha->id, 'titulo' => 'Sem código', 'descricao' => '', 'dados' => ['codigo' => ' ']])->getStatusCode(), 'obrigatório também ao criar');
+    }
+
     public function testRepositorioUrlDisponivelEClassesTodas(): void
     {
         $o = $this->s->objetos;

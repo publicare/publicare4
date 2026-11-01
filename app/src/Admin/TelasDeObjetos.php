@@ -196,7 +196,7 @@ final class TelasDeObjetos
             . '<tr><th scope="row">Descrição</th><td>' . ($o->descricao === '' ? '<em>sem descrição</em>' : nl2br(Pagina::h($o->descricao))) . '</td></tr>';
         foreach ($this->classeDe($o)->propriedades ?? [] as $p) {
             $valor = $o->dados[$p['nome']] ?? null;
-            $html .= '<tr><th scope="row">' . Pagina::h($this->rotulo($p['nome'])) . '</th><td>' . $this->valorLegivel($sessao, $o, $p, $valor) . '</td></tr>';
+            $html .= '<tr><th scope="row">' . Pagina::h(Classe::rotuloDe($p)) . '</th><td>' . $this->valorLegivel($sessao, $o, $p, $valor) . '</td></tr>';
         }
 
         return $html . '</tbody></table>';
@@ -236,7 +236,7 @@ final class TelasDeObjetos
         if (!$naLixeira && $this->pode($sessao, Acao::Editar, $o)) {
             $links[] = '<a class="btn btn-primary" href="' . $this->link($o->id) . '/editar">Editar</a>';
         }
-        if (!$naLixeira && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o)) {
+        if (!$naLixeira && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o) && $this->classesAceitas($o) !== []) {
             $links[] = '<a class="btn btn-outline-primary" href="' . $this->link($o->id) . '/novo">Criar conteúdo aqui dentro</a>';
         }
         if (!$naLixeira && $this->pode($sessao, Acao::Publicar, $o)) {
@@ -378,7 +378,7 @@ final class TelasDeObjetos
                 . '<tr><th scope="row">Endereço</th><td><code>/' . Pagina::h($o->urlAmigavel) . '</code></td></tr>'
                 . '<tr><th scope="row">Peso</th><td>' . $o->peso . '</td></tr>';
             foreach ($classe->propriedades as $p) {
-                $corpo .= '<tr><th scope="row">' . Pagina::h($this->rotulo($p['nome'])) . '</th><td>' . $this->valorLegivel($sessao, $o, $p, $o->dados[$p['nome']] ?? null) . '</td></tr>';
+                $corpo .= '<tr><th scope="row">' . Pagina::h(Classe::rotuloDe($p)) . '</th><td>' . $this->valorLegivel($sessao, $o, $p, $o->dados[$p['nome']] ?? null) . '</td></tr>';
             }
             $corpo .= '</tbody></table>';
         }
@@ -399,7 +399,7 @@ final class TelasDeObjetos
         }
         $classeId = $this->numero($r->query->all()['classe'] ?? null);
         $classe = $classeId === null ? null : $this->servicos->classes->porId($classeId);
-        if ($classe === null) {
+        if ($classe === null || !$this->aceita($pai, $classe)) {
             return $this->escolherClasse($sessao, $pai);
         }
         $vazio = ['titulo' => '', 'descricao' => '', 'url' => '', 'peso' => '0'];
@@ -409,9 +409,10 @@ final class TelasDeObjetos
 
     private function escolherClasse(SessaoAtiva $sessao, Objeto $pai): Response
     {
-        $classes = $this->servicos->classes->todas();
+        $classes = $this->classesAceitas($pai);
         if ($classes === []) {
-            return Pagina::resposta('Criar conteúdo', $this->migalhas($sessao, $pai) . '<div class="alert alert-info" role="status">Ainda não há nenhum tipo de conteúdo cadastrado.</div>', Response::HTTP_OK, false, $this->barra($sessao));
+            return Pagina::resposta('Criar conteúdo', $this->migalhas($sessao, $pai) . '<div class="alert alert-info" role="status">O tipo de ' . Pagina::h($pai->titulo) . ' não aceita conteúdo dentro dele (ou ainda não há tipos cadastrados).</div>'
+                . '<p><a class="btn btn-outline-secondary" href="' . $this->link($pai->id) . '">Voltar</a></p>', Response::HTTP_OK, false, $this->barra($sessao));
         }
         $opcoes = '';
         foreach ($classes as $c) {
@@ -449,6 +450,9 @@ final class TelasDeObjetos
         $lido = $classe === null ? null : $this->lerFormulario($sessao, $pai->siteId, $classe, $campos, null);
         if ($classe === null || $lido === null) {
             return $this->pedidoInvalido($sessao);
+        }
+        if (!$this->aceita($pai, $classe)) {
+            return $this->recusa($sessao, 'Tipo não aceito', 'O tipo de ' . $pai->titulo . ' não aceita conteúdo do tipo ' . $classe->nome . ' dentro dele.', $pai, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         [$valores, $digitado, $erros] = $lido;
         $url = $valores['url_amigavel'] ?? '';
@@ -563,7 +567,8 @@ final class TelasDeObjetos
             $erros['peso'] = 'O peso precisa ser um número inteiro (exemplo: 0, 10 ou -5).';
         }
 
-        foreach ($classe->propriedades as $p) {
+        // Campo arquivado não aparece no formulário e não é tocado: o valor guardado continua como está.
+        foreach ($this->propriedadesAtivas($classe) as $p) {
             $nome = $p['nome'];
             $guardado = $atual === null || !isset($atual->dados[$nome]) ? null : (string) $atual->dados[$nome];
             $bruto = array_key_exists($nome, $dadosBrutos) ? $dadosBrutos[$nome] : ($guardado ?? '');
@@ -573,6 +578,9 @@ final class TelasDeObjetos
             $texto = in_array($p['tipo'], ['texto', 'html'], true) ? trim($this->linhas($bruto)) : trim($bruto);
             $digitado['dados.' . $nome] = $texto;
             [$valor, $erro] = $this->lerPropriedade($sessao, $siteId, $p, $texto, $guardado);
+            if ($erro === null && $valor === null && ($p['obrigatorio'] ?? false)) {
+                $erro = 'Este campo é obrigatório.';
+            }
             if ($erro !== null) {
                 $erros['dados.' . $nome] = $erro;
             } else {
@@ -668,9 +676,10 @@ final class TelasDeObjetos
                 $criando ? 'Opcional: se ficar vazio, é criado a partir do título. Letras minúsculas sem acento, números, hífen e "/".' : 'Letras minúsculas sem acento, números, hífen e "/". Se mudar, o endereço antigo passa a levar ao novo.');
         }
         $html .= $this->campo('peso', 'Peso', '<input id="campo-peso" class="form-control' . $this->invalido($erros, 'peso') . '" name="peso" type="number" step="1" min="-999999" max="999999" value="' . Pagina::h($digitado['peso'] ?? '0') . '"' . $this->descrito($erros, 'peso', true) . '>', $erros, 'Ordem nas listas: menor aparece primeiro.');
-        if ($classe->propriedades !== []) {
+        $ativas = $this->propriedadesAtivas($classe);
+        if ($ativas !== []) {
             $html .= '<fieldset class="mb-3"><legend class="h6">Campos do tipo ' . Pagina::h($classe->nome) . '</legend>';
-            foreach ($classe->propriedades as $p) {
+            foreach ($ativas as $p) {
                 $html .= $this->campoDePropriedade($p, $digitado['dados.' . $p['nome']] ?? '', $erros);
             }
             $html .= '</fieldset>';
@@ -680,7 +689,7 @@ final class TelasDeObjetos
     }
 
     /**
-     * @param array{nome: string, tipo: string, indexavel: bool, classe?: string} $p
+     * @param array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool} $p
      * @param array<string, string> $erros
      */
     private function campoDePropriedade(array $p, string $valor, array $erros): string
@@ -689,17 +698,18 @@ final class TelasDeObjetos
         // O nome de propriedade já é [a-z][a-z0-9_]* (ClasseRepositorio), mas é dado do banco: escapado mesmo assim.
         $id = 'campo-dados-' . $p['nome'];
         $classe = $this->invalido($erros, $chave);
-        $comum = ' id="' . Pagina::h($id) . '" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '"' . $this->descrito($erros, $chave, true);
+        $comum = ' id="' . Pagina::h($id) . '" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '"' . $this->descrito($erros, $chave, true)
+            . (($p['obrigatorio'] ?? false) ? ' required' : '');
         [$controle, $ajuda] = match ($p['tipo']) {
-            'numero' => ['<input class="form-control' . $classe . '"' . $comum . ' inputmode="decimal" value="' . Pagina::h($valor) . '">', 'Número (use vírgula ou ponto para decimais). Vazio = sem valor.'],
-            'data' => ['<input class="form-control' . $classe . '"' . $comum . ' maxlength="25" value="' . Pagina::h($valor) . '">', 'Data no formato aaaa-mm-dd, com hora opcional (2026-12-31 18:30). Vazio = sem valor.'],
+            'numero' => ['<input class="form-control' . $classe . '"' . $comum . ' inputmode="decimal" value="' . Pagina::h($valor) . '">', 'Número (use vírgula ou ponto para decimais).'],
+            'data' => ['<input class="form-control' . $classe . '"' . $comum . ' maxlength="25" value="' . Pagina::h($valor) . '">', 'Data no formato aaaa-mm-dd, com hora opcional (2026-12-31 18:30).'],
             'booleano' => ['<select class="form-select' . $classe . '"' . $comum . '>' . $this->opcao('', '(sem valor)', $valor === '') . $this->opcao('1', 'Sim', $valor === '1') . $this->opcao('0', 'Não', $valor === '0') . '</select>', 'Sim ou não.'],
-            'ref' => ['<input class="form-control' . $classe . '"' . $comum . ' type="number" min="1" step="1" value="' . Pagina::h($valor) . '">', 'Número de outro conteúdo deste site' . (isset($p['classe']) ? ' (do tipo ' . Pagina::h($p['classe']) . ')' : '') . '. O número aparece na página de cada conteúdo. Vazio = sem valor.'],
+            'ref' => ['<input class="form-control' . $classe . '"' . $comum . ' type="number" min="1" step="1" value="' . Pagina::h($valor) . '">', 'Número de outro conteúdo deste site' . (isset($p['classe']) ? ' (do tipo ' . Pagina::h($p['classe']) . ')' : '') . '. O número aparece na página de cada conteúdo.'],
             'html' => ['<textarea class="form-control font-monospace' . $classe . '"' . $comum . ' rows="10" maxlength="' . self::MAX_HTML . '">' . Pagina::h($valor) . '</textarea>', 'Texto com marcação HTML, até ' . self::MAX_HTML . ' caracteres.'],
             default => ['<textarea class="form-control' . $classe . '"' . $comum . ' rows="3" maxlength="' . self::MAX_TEXTO . '">' . Pagina::h($valor) . '</textarea>', 'Texto, até ' . self::MAX_TEXTO . ' caracteres.'],
         };
 
-        return $this->campo($chave, $this->rotulo($p['nome']), $controle, $erros, $ajuda, $id);
+        return $this->campo($chave, Classe::rotuloDe($p) . (($p['obrigatorio'] ?? false) ? ' (obrigatório)' : ''), $controle, $erros, $ajuda, $id);
     }
 
     /**
@@ -968,6 +978,10 @@ final class TelasDeObjetos
         }
         if ($destino->id === $o->paiId) {
             return new RedirectResponse($this->link($o->id) . '?salvo=nada', Response::HTTP_SEE_OTHER);
+        }
+        $classe = $this->classeDe($o);
+        if ($classe === null || !$this->aceita($destino, $classe)) {
+            return $this->telaDeMover($sessao, $o, $destinoTexto, $versao, 'O tipo do destino não aceita conteúdo do tipo ' . $this->nomeDaClasse($o->classeId) . ' dentro dele.');
         }
         $paiAntigo = $this->pai($o);
         try {
@@ -1266,6 +1280,29 @@ final class TelasDeObjetos
         return $o->paiId === null ? null : $this->servicos->objetos->porId($o->paiId);
     }
 
+    /** @return list<Classe> classes que o tipo do pai aceita como filhas (`aceita_filhos` e a lista `filhas`; vazia = qualquer) */
+    private function classesAceitas(Objeto $pai): array
+    {
+        return array_values(array_filter($this->servicos->classes->todas(), fn (Classe $c): bool => $this->aceita($pai, $c)));
+    }
+
+    private function aceita(Objeto $pai, Classe $filha): bool
+    {
+        $tipo = $this->classeDe($pai);
+
+        return $tipo !== null && $tipo->aceitaFilhos && ($tipo->filhas === [] || in_array($filha->nome, $tipo->filhas, true));
+    }
+
+    /**
+     * Propriedades que aparecem nos formulários (as arquivadas ficam guardadas, mas fora deles).
+     *
+     * @return list<array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool}>
+     */
+    private function propriedadesAtivas(Classe $classe): array
+    {
+        return array_values(array_filter($classe->propriedades, static fn (array $p): bool => !($p['arquivada'] ?? false)));
+    }
+
     private function classeDe(Objeto $o): ?Classe
     {
         return $this->servicos->classes->porId($o->classeId);
@@ -1280,12 +1317,6 @@ final class TelasDeObjetos
     private function opcao(string $valor, string $rotulo, bool $escolhida): string
     {
         return '<option value="' . Pagina::h($valor) . '"' . ($escolhida ? ' selected' : '') . '>' . Pagina::h($rotulo) . '</option>';
-    }
-
-    /** `data_limite` → `Data limite` (nome de propriedade como rótulo legível). */
-    private function rotulo(string $nome): string
-    {
-        return ucfirst(str_replace('_', ' ', $nome));
     }
 
     private function linhas(string $texto): string
