@@ -46,6 +46,8 @@ Header e footer: da pele (`html/skin/<prefixo>/header.php|footer.php`) se `cod_p
 
 No 2.9.2 o host da requisição era procurado em `$_dominios` (host → `cod_objeto`), e o objeto achado virava o ponto de partida do subsite. No p3 só resta um `portal.objroot` global, usado em ~25 pontos (`ROOT` do PBL, permissões, pendentes, vencidos, novo objeto, login...).
 
+Exemplo de uso real: 8 hosts (com e sem `www`, domínios alternativos) apontando para **2 raízes** (o portal em dois idiomas), ou seja, **N hosts → 1 raiz**. Nas cópias p3 consultadas o consumo de `$_dominios` no inicializador está comentado ou ausente: só o 2.9.2 o aplicava.
+
 PBL4: o **host é resolvido para uma raiz** antes de qualquer outra coisa.
 
 ```mermaid

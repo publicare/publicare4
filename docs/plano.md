@@ -16,10 +16,14 @@ Ordem de dependência: 0 → 1 → (2, 3 em paralelo) → 4 → 5 contínuo.
 ## Questões em aberto
 
 1. **Multi-subsite**: mecanismo conhecido (host → `cod_objeto` raiz, ajuste de `parentesco`; tabela `dominio`, ADR 0002). Falta especificar o corte do parentesco, objeto em mais de um domínio e canônico, curinga.
-2. **`campo_ref`**: semântica real (mapa lógico → físico) e como testá-la sem Oracle.
-3. **Corpus real**: existe backup de moldes de MCTI/ANTT/EPL/PSB para regressão?
+2. **Nomes físicos**: `bd.tabelas` (config) é a indireção real; `campo_ref` aponta metadado do `objeto`. Testar com um mapa de nomes arbitrários (ex.: prefixos aleatórios) sem depender de Oracle.
+3. **Corpus real**: existe em repositórios **privados** do mantenedor (centenas de moldes PBL e dumps). Não entra neste repo público; ver nota abaixo.
 4. **Branch mais recente do p3**: `master` (2021-03), `psr4`, `3.6.0`, `v3.x`; confirmar de qual partir.
 5. **Peles por FTP**: política de sincronização com `pele_arquivo`.
 6. **Busca**: driver padrão (fluxo 8).
 7. **Licença/governança**: p3 é MIT; manter. Coautores históricos (Manuel Poppe, Thiago Borges) preservados nos créditos.
 8. **Nome público**: "PBL4" vs. "Publicare 4" nos instaladores e na documentação.
+
+## Corpus de regressão (nota)
+
+Moldes e dumps de projetos reais são conteúdo institucional e **não são commitados aqui**. Os golden files usam moldes sanitizados/sintéticos; um repositório privado separado guarda o corpus real, usado só em CI/local do mantenedor. Um template PBL3 com design system gov.br já público pode servir de pele de exemplo para o instalador.
