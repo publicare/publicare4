@@ -68,4 +68,4 @@ Todo PR roda `.github/workflows/ci.yml`: testes em PHP 8.2/8.3/8.4, PHPStan, `co
 
 ## Dependências
 
-Poucas e justificadas ([ADR 0001](../adr/0001-base-p3-sem-framework.md)): Doctrine DBAL (banco), Symfony Console e HttpFoundation. Toda dependência nova precisa de motivo no PR; o Dependabot abre PRs de atualização semanais.
+Poucas e justificadas ([ADR 0001](../adr/0001-base-p3-sem-framework.md)): Doctrine DBAL (banco), Symfony Console e HttpFoundation. Toda dependência nova precisa de motivo no PR. O Dependabot abre PRs de atualização (composer semanal, com as versões menores e correções agrupadas num PR só; GitHub Actions mensal) e eles são dispensados da exigência de CHANGELOG. Antes de mergear um deles, confira o que a nova versão muda e se a pipeline passou. Mergear um PR que altera `.github/workflows/` pelo `gh` exige que o token tenha o escopo `workflow` (`gh auth refresh -h github.com -s workflow`); pelo site do GitHub não.

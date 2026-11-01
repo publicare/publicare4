@@ -59,7 +59,7 @@ Todo PR roda o workflow [`CI`](.github/workflows/ci.yml), e a `main` só aceita 
 |---|---|
 | **Testes e análise estática** (PHP 8.2, 8.3 e 8.4) | PHPUnit sem falhas e PHPStan nível 8 sem erros |
 | **Dependências** | `composer.json` válido, `composer.lock` em dia e nenhuma vulnerabilidade conhecida nas dependências |
-| **CHANGELOG atualizado** | Mudança em `app/`, `bin/`, `public/` ou `composer.json` precisa de uma linha em "Não lançado" (ou o rótulo `sem-changelog`, para mudança só de infra) |
+| **CHANGELOG atualizado** | Mudança em `app/`, `bin/`, `public/` ou `composer.json` precisa de uma linha em "Não lançado" (ou o rótulo `sem-changelog`, para mudança só de infra). PRs do Dependabot são dispensados |
 
 Rode `make qa` antes de abrir o PR: é o mesmo que a pipeline roda para testes e análise.
 

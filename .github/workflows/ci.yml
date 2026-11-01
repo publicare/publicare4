@@ -74,7 +74,12 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           ROTULOS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          AUTOR: ${{ github.event.pull_request.user.login }}
         run: |
+          # Atualização automática de dependência não tem texto de changelog: quem decide o que entra na release é o mantenedor.
+          if [ "$AUTOR" = "dependabot[bot]" ]; then
+            echo "PR do Dependabot: changelog dispensado."; exit 0
+          fi
           mudou=$(git diff --name-only "$BASE"...HEAD)
           if ! echo "$mudou" | grep -qE '^(app/|bin/|public/|composer\.json)'; then
             echo "Sem mudança no produto: changelog não exigido."; exit 0
