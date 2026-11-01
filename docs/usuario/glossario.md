@@ -10,6 +10,7 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Classe (tipo de conteúdo)** | O "molde de formulário" de um tipo de conteúdo: diz quais campos ele tem (título, resumo, data…). Ex.: "Notícia", "Evento". |
 | **Propriedade (campo)** | Cada informação de um tipo de conteúdo: texto, número, data, sim/não ou ligação (referência) para outro conteúdo. |
 | **Referência** | Uma propriedade que aponta para outro conteúdo (uma notícia aponta para seu autor). Dá para mostrar, filtrar e ordenar pelo conteúdo apontado (por exemplo, notícias ordenadas pelo nome do autor). Só aponta para conteúdo do mesmo site. |
+| **Busca sem acento** | A busca trata `Presidência`, `presidencia` e `PRESIDÊNCIA` como a mesma palavra. |
 | **Consulta** | Um pedido de lista de conteúdos com filtros e ordem (por exemplo, "eventos da Sala 1, em ordem de data"). |
 | **Árvore** | A organização em níveis: uma seção contém páginas, que podem conter outras páginas. |
 | **Pele** | A aparência do site: cores, layout, cabeçalho e rodapé. Trocar a pele muda o visual, não o conteúdo. |

@@ -29,6 +29,10 @@ A regra do projeto é que **não**. Endereços já divulgados são tratados como
 
 Segurança é critério de aceite do projeto. As peles rodam em ambiente restrito, o texto é protegido contra injeção de HTML, as entradas são validadas e há testes automáticos a cada mudança. Isso não dispensa as boas práticas de quem administra (senhas fortes, atualizações em dia, cópia de segurança). Se achar uma falha, veja a [política de segurança](../../SECURITY.md).
 
+## A busca ignora maiúsculas e acentos?
+
+Sim. Procurar por `presidencia` acha `Presidência`, e `ORGAO` acha `órgão`. Estão no plano a busca com várias palavras e relevância e a correção de erros de digitação ("você quis dizer…"), que o Publicare vai oferecer por configuração; veja o [estado do projeto](estado-do-projeto.md).
+
 ## Como fico sabendo das novidades?
 
 Pelo [CHANGELOG](../../CHANGELOG.md) e pelas *releases* em <https://github.com/publicare/publicare4/releases>. Basta clicar em "Watch" → "Custom" → "Releases" no GitHub.
