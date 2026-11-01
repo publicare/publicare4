@@ -75,7 +75,7 @@ final class FonteRepositorio implements FonteDeDados
         } elseif ($titulo !== '') {
             $achado = $this->objetos->porTitulo($site, $titulo);
         }
-        if ($achado === null || $achado->siteId !== $site || $achado->status !== 'publicado') {
+        if ($achado === null || $achado->siteId !== $site || !$achado->visivel(gmdate('c'))) {
             return null;
         }
 

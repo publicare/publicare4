@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Testes;
 
 use Pbl\Aplicacao;
+use Pbl\Banco\Conexao;
 use Pbl\Caminhos;
 use Pbl\Instalacao\Instalador;
 use Pbl\Servicos;
@@ -132,5 +133,43 @@ final class TracerBulletTest extends TestCase
         self::assertFileExists($this->caminhos->banco());
         self::assertFileExists($this->caminhos->peles() . '/basica/padrao.pbl');
         self::assertSame([], glob($this->raiz . '/app/*.sqlite') ?: [], 'nada é gravado em app/');
+    }
+
+    public function testPaginaVencidaDeixaDeSerServidaSemNovaPublicacaoELimpaNaProxima(): void
+    {
+        $servicos = Servicos::doBancoInstalado($this->caminhos);
+        $site = $servicos->sites->porHost('teste.local');
+        $classe = $servicos->classes->porNome('pagina');
+        self::assertNotNull($site);
+        self::assertNotNull($classe);
+        $amanha = gmdate('c', time() + 86400);
+        $servicos->objetos->criar($site->id, $classe, $site->objetoRaizId, 'Edital', 'edital', [], 'publicado', ['data_validade' => $amanha]);
+        $servicos->publicador->publicarSite($site);
+        self::assertSame(200, $this->pegar('/edital')->getStatusCode());
+
+        // o tempo passa: a validade fica no passado, ninguém republicou
+        $arquivo = $this->caminhos->pagina($site->id, 'edital');
+        self::assertFileExists($arquivo . '.expira');
+        file_put_contents($arquivo . '.expira', gmdate('c', time() - 60));
+        self::assertSame(404, $this->pegar('/edital')->getStatusCode(), 'vencida: não é servida mesmo com o arquivo ainda no cache');
+
+        // próxima publicação remove do cache o que deixou de estar visível
+        $con = Conexao::sqlite($this->caminhos->banco());
+        $con->executeStatement('UPDATE objeto SET data_validade = ? WHERE url_amigavel = ?', [gmdate('c', time() - 60), 'edital']);
+        $servicos->publicador->publicarSite($site);
+        self::assertFileDoesNotExist($arquivo);
+        self::assertFileDoesNotExist($arquivo . '.expira');
+    }
+
+    public function testDespublicarRemoveDoCacheNaProximaPublicacao(): void
+    {
+        $servicos = Servicos::doBancoInstalado($this->caminhos);
+        $servicos->publicador->publicarSite($servicos->sites->todos()[0]);
+        self::assertSame(200, $this->pegar('/sobre')->getStatusCode());
+
+        Conexao::sqlite($this->caminhos->banco())->executeStatement("UPDATE objeto SET status = 'privado' WHERE url_amigavel = 'sobre'");
+        $servicos->publicador->publicarSite($servicos->sites->todos()[0]);
+
+        self::assertSame(404, $this->pegar('/sobre')->getStatusCode());
     }
 }

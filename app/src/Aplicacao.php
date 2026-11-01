@@ -39,6 +39,9 @@ final class Aplicacao
         if (!is_file($arquivo)) {
             return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
         }
+        if (is_file($arquivo . '.expira') && trim((string) file_get_contents($arquivo . '.expira')) < gmdate('c')) {
+            return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
+        }
 
         return new Response((string) file_get_contents($arquivo), Response::HTTP_OK, [
             'Content-Type' => 'text/html; charset=utf-8',

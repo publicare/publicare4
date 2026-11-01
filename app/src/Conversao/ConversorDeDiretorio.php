@@ -73,7 +73,7 @@ final class ConversorDeDiretorio
         sort($faltando);
 
         $relatorio = $this->relatorio($arquivos, $ignorados, $faltando);
-        file_put_contents("{$destino}/RELATORIO.md", $relatorio);
+        $this->gravarComSeguranca($destino, "{$destino}/RELATORIO.md", $relatorio);
 
         return ['arquivos' => $arquivos, 'ignorados' => $ignorados, 'faltando' => $faltando, 'relatorio' => $relatorio];
     }
@@ -91,12 +91,28 @@ final class ConversorDeDiretorio
         if (!is_dir(dirname($arquivo)) && !mkdir(dirname($arquivo), 0775, true) && !is_dir(dirname($arquivo))) {
             throw new \RuntimeException('Não foi possível criar ' . dirname($arquivo));
         }
-        if (!str_starts_with((string) realpath(dirname($arquivo)), $destino)) {
-            throw new \RuntimeException("Destino fora da pasta de saída: {$molde}");
-        }
-        file_put_contents($arquivo, $resultado->saida);
+        $this->gravarComSeguranca($destino, $arquivo, $resultado->saida);
 
         return ['origem' => substr($caminho, strlen($origem) + 1), 'molde' => $molde, 'resultado' => $resultado];
+    }
+
+    /**
+     * Grava só dentro de `$destino`: a pasta real do arquivo precisa ser o destino ou estar dentro dele (comparando
+     * com a barra final, para `/saida2` não passar por `/saida`), um link simbólico no lugar do arquivo é recusado e a
+     * escrita é por arquivo temporário + `rename`, que substitui o nome em vez de seguir links.
+     */
+    private function gravarComSeguranca(string $destino, string $arquivo, string $conteudo): void
+    {
+        $pasta = realpath(dirname($arquivo));
+        if ($pasta === false || ($pasta !== $destino && !str_starts_with($pasta, $destino . '/'))) {
+            throw new \RuntimeException('Destino fora da pasta de saída: ' . basename($arquivo));
+        }
+        if (is_link($arquivo)) {
+            throw new \RuntimeException('O destino é um link simbólico, recusado: ' . basename($arquivo));
+        }
+        $temporario = $pasta . '/.' . bin2hex(random_bytes(6)) . '.tmp';
+        file_put_contents($temporario, $conteudo);
+        rename($temporario, $arquivo);
     }
 
     /** @return list<string> */

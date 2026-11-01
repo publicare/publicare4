@@ -9,7 +9,13 @@ use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\Site;
 
-/** Renderiza ao publicar e grava a página no cache; a requisição pública só lê o arquivo (ADR 0003 §8). */
+/**
+ * Renderiza ao publicar e grava a página no cache; a requisição pública só lê o arquivo (ADR 0003 §8).
+ *
+ * Páginas com `data_validade` ganham um arquivo `.expira` ao lado: a `Aplicacao` deixa de servi-las quando a data
+ * passa, mesmo sem nova publicação. Páginas que deixaram de estar visíveis (despublicadas, vencidas, rascunho)
+ * são removidas do cache a cada `publicarSite`.
+ */
 final class Publicador
 {
     public function __construct(
@@ -26,9 +32,12 @@ final class Publicador
         if (!is_dir($pasta) && !mkdir($pasta, 0775, true) && !is_dir($pasta)) {
             throw new \RuntimeException("Não foi possível criar {$pasta}");
         }
-        $temporario = $arquivo . '.' . bin2hex(random_bytes(4)) . '.tmp';
-        file_put_contents($temporario, $this->renderizador->renderizar($site, $objeto));
-        rename($temporario, $arquivo);
+        $this->gravar($arquivo, $this->renderizador->renderizar($site, $objeto));
+        if ($objeto->dataValidade !== null) {
+            $this->gravar($arquivo . '.expira', $objeto->dataValidade);
+        } elseif (is_file($arquivo . '.expira')) {
+            unlink($arquivo . '.expira');
+        }
 
         return $arquivo;
     }
@@ -43,12 +52,34 @@ final class Publicador
         if ($raiz === null) {
             return 0;
         }
+        $agora = gmdate('c');
         $total = 0;
-        foreach ($this->objetos->publicadosDaSubarvore($site->id, $raiz->caminho) as $objeto) {
-            $this->publicar($site, $objeto);
-            $total++;
+        foreach ($this->objetos->todosDaSubarvore($site->id, $raiz->caminho) as $objeto) {
+            if ($objeto->visivel($agora)) {
+                $this->publicar($site, $objeto);
+                $total++;
+            } else {
+                $this->remover($site, $objeto);
+            }
         }
 
         return $total;
+    }
+
+    private function remover(Site $site, Objeto $objeto): void
+    {
+        $arquivo = $this->caminhos->pagina($site->id, $objeto->urlAmigavel);
+        foreach ([$arquivo, $arquivo . '.expira'] as $caminho) {
+            if (is_file($caminho) || is_link($caminho)) {
+                unlink($caminho);
+            }
+        }
+    }
+
+    private function gravar(string $arquivo, string $conteudo): void
+    {
+        $temporario = $arquivo . '.' . bin2hex(random_bytes(4)) . '.tmp';
+        file_put_contents($temporario, $conteudo);
+        rename($temporario, $arquivo);
     }
 }

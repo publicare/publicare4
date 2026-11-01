@@ -270,4 +270,40 @@ PBL);
         $this->expectException(\InvalidArgumentException::class);
         (new ConversorDeDiretorio())->converter('/nao/existe/mesmo', sys_get_temp_dir());
     }
+
+    public function testCodStatusForaDoSeTambemEMapeadoOuMarcado(): void
+    {
+        $r = $this->converter('<@= #cod_status@>|<@localizar classes=["a"] pai=[#cod_objeto]@><@se [#cod_status==2]@>p<@/se@><@/localizar@>');
+
+        self::assertStringContainsString('<@ecocru #status@>', $r->saida, 'campo numérico vira #status (texto), com aviso');
+        self::assertStringContainsString('<@se [#status == "publicado"]@>', $r->saida);
+        self::assertTrue($r->valido);
+        $mensagens = implode("\n", array_map(static fn (Aviso $a): string => $a->nivel . ':' . $a->mensagem, $r->avisos));
+        self::assertStringContainsString('revisar:#cod_status é numérico', $mensagens);
+    }
+
+    public function testDestinoComLinkSimbolicoEPastaIrmaNaoPermitemEscritaFora(): void
+    {
+        $origem = Ajuda::pastaTemporaria();
+        $raiz = Ajuda::pastaTemporaria();
+        try {
+            mkdir("{$raiz}/saida");
+            mkdir("{$raiz}/saida2");
+            file_put_contents("{$origem}/topo.php", '<@= #t@>');
+            $alvo = "{$raiz}/saida2/alvo.txt";
+            file_put_contents($alvo, 'ORIGINAL');
+            symlink($alvo, "{$raiz}/saida/topo.pbl");
+
+            try {
+                (new ConversorDeDiretorio())->converter($origem, "{$raiz}/saida");
+                self::fail('deveria recusar o link simbólico');
+            } catch (\RuntimeException $e) {
+                self::assertStringContainsString('link simbólico', $e->getMessage());
+            }
+            self::assertSame('ORIGINAL', file_get_contents($alvo), 'o alvo do link não foi tocado');
+        } finally {
+            Ajuda::apagar($origem);
+            Ajuda::apagar($raiz);
+        }
+    }
 }

@@ -232,11 +232,6 @@ final class Conversor
         if ($cond !== '' && $cond[0] === '[' && str_ends_with($cond, ']')) {
             $cond = trim(substr($cond, 1, -1));
         }
-        $cond = (string) preg_replace_callback('/#cod_status\s*(==|!=|=)\s*([1-4])/i', function (array $m): string {
-            $this->avisos[] = new Aviso(Aviso::INFO, $this->linha, "#cod_status {$m[1]} {$m[2]} virou #status com o nome do estado");
-
-            return '#status ' . ($m[1] === '=' ? '==' : $m[1]) . ' "' . self::STATUS[(int) $m[2]] . '"';
-        }, $cond);
         $expr = $this->expressao($cond, true);
 
         return $expr === null ? $this->revisar($original, 'condição não convertida automaticamente') : "<@se [{$expr}]@>";
@@ -429,6 +424,12 @@ final class Conversor
         if ($t !== '' && $t[0] === '[' && str_ends_with($t, ']') && !$condicao) {
             $t = trim(substr($t, 1, -1));
         }
+        // #cod_status numérico (1 a 4) vira #status com o nome do estado, em qualquer expressão
+        $t = (string) preg_replace_callback('/#cod_status\s*(==|!=|=)\s*([1-4])\b/i', function (array $m): string {
+            $this->avisos[] = new Aviso(Aviso::INFO, $this->linha, "#cod_status {$m[1]} {$m[2]} virou #status com o nome do estado");
+
+            return '#status ' . ($m[1] === '=' ? '==' : $m[1]) . ' "' . self::STATUS[(int) $m[2]] . '"';
+        }, $t);
         $t = (string) preg_replace_callback('/\$_page->config\[["\']portal["\']\]\[["\']url["\']\]/', function (): string {
             $this->avisos[] = new Aviso(Aviso::INFO, $this->linha, 'URL absoluta do portal removida (os links ficam relativos à raiz do site)');
 
@@ -453,6 +454,12 @@ final class Conversor
                     break;
                 case Token::CAMPO:
                     $nome = (string) $tk->valor;
+                    if ($nome === 'cod_status') {
+                        $this->avisos[] = new Aviso(Aviso::REVISAR, $this->linha, '#cod_status é numérico (1 a 4) no PBL3 e texto no PBL4 (#status: privado, publicado, rejeitado, submetido); confira o uso');
+                        $nome = 'status';
+                        $partes[] = '#status';
+                        break;
+                    }
                     if (in_array($nome, self::CAMPOS_AUSENTES, true)) {
                         $this->avisos[] = new Aviso(Aviso::REVISAR, $this->linha, "#{$nome} ainda não existe no PBL4 (vai vazio)");
                     }

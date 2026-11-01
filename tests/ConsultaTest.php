@@ -188,4 +188,19 @@ final class ConsultaTest extends TestCase
         self::assertSame(['Vigente', 'Sem datas'], array_column($this->fonte->filhos($ctx, ['ordem' => 'id']), 'titulo'));
         self::assertSame(['Vigente', 'Sem datas'], array_column($this->fonte->localizar($ctx, ['ordem' => 'id', 'pai' => $pai->id]), 'titulo'));
     }
+
+    public function testObjetoReferenciadoRespeitaAVigencia(): void
+    {
+        $ontem = gmdate('c', time() - 86400);
+        $amanha = gmdate('c', time() + 86400);
+        $vencido = $this->objetos->criar(1, $this->pagina, null, 'Vencido', 'vencido', [], 'publicado', ['data_validade' => $ontem]);
+        $agendado = $this->objetos->criar(1, $this->pagina, null, 'Agendado', 'agendado', [], 'publicado', ['data_publicacao' => $amanha]);
+        $ok = $this->objetos->criar(1, $this->pagina, null, 'No prazo', 'no-prazo', [], 'publicado', ['data_publicacao' => $ontem, 'data_validade' => $amanha]);
+        $ctx = ['site' => 1];
+
+        self::assertNull($this->fonte->objeto($ctx, (string) $vencido->id, '', ''));
+        self::assertNull($this->fonte->objeto($ctx, '', '/agendado', ''));
+        self::assertNull($this->fonte->objeto($ctx, '', '', 'Vencido'));
+        self::assertSame('No prazo', $this->fonte->objeto($ctx, (string) $ok->id, '', '')['titulo'] ?? null);
+    }
 }
