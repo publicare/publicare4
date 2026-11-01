@@ -178,6 +178,7 @@ final class ObjetoRepositorio
      *
      * @param array{titulo?: string, url_amigavel?: string, status?: string, dados?: array<string, string|int|float|bool|null>, peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null} $mudancas
      * @throws ConflitoDeVersao se a versão atual não for a esperada
+     * @throws \InvalidArgumentException valor, estado ou URL inválidos (nada é gravado)
      */
     public function atualizar(int $id, array $mudancas, string $motivo = '', ?int $versaoEsperada = null, bool $liberarUrl = false, ?int $usuarioId = null): Objeto
     {
@@ -248,10 +249,13 @@ final class ObjetoRepositorio
     /**
      * Muda o objeto de pai (e a subárvore junto). A URL amigável não depende da árvore, então nenhum endereço muda.
      */
-    public function mover(int $id, ?int $novoPaiId, string $motivo = 'mover', ?int $usuarioId = null): Objeto
+    public function mover(int $id, ?int $novoPaiId, string $motivo = 'mover', ?int $usuarioId = null, ?int $versaoEsperada = null): Objeto
     {
-        return $this->conexao->transactional(function () use ($id, $novoPaiId, $motivo, $usuarioId): Objeto {
+        return $this->conexao->transactional(function () use ($id, $novoPaiId, $motivo, $usuarioId, $versaoEsperada): Objeto {
             $o = $this->porId($id) ?? throw new \InvalidArgumentException("Objeto {$id} não existe");
+            if ($versaoEsperada !== null && $versaoEsperada !== $o->versao) {
+                throw new ConflitoDeVersao($versaoEsperada, $o->versao);
+            }
             $caminhoPai = '/';
             if ($novoPaiId !== null) {
                 $pai = $this->porId($novoPaiId);
@@ -293,8 +297,13 @@ final class ObjetoRepositorio
 
     /**
      * Volta o conteúdo de uma versão antiga **como uma nova versão** (o histórico nunca é apagado). O pai atual é mantido.
+     * `$manterEstado` = true mantém o estado e as datas de publicação/validade atuais (restaurar o texto não pode, sozinho,
+     * publicar nem tirar do ar: isso é outra permissão).
+     *
+     * @throws ConflitoDeVersao se `$versaoEsperada` não for a versão atual
+     * @throws \InvalidArgumentException versão inexistente, ou a URL/os dados dela não são mais aceitos
      */
-    public function restaurar(int $id, int $versao, string $motivo = '', ?int $usuarioId = null): Objeto
+    public function restaurar(int $id, int $versao, string $motivo = '', ?int $usuarioId = null, ?int $versaoEsperada = null, bool $manterEstado = false): Objeto
     {
         $v = $this->conexao->fetchAssociative('SELECT * FROM objeto_versao WHERE objeto_id = ? AND versao = ?', [$id, $versao]);
         $atual = $this->porId($id);
@@ -307,16 +316,35 @@ final class ObjetoRepositorio
             $dados[$chave] ??= null;
         }
 
-        return $this->atualizar($id, [
+        $mudancas = [
             'titulo' => (string) $v['titulo'],
             'url_amigavel' => (string) $v['url_amigavel'],
-            'status' => (string) $v['status'],
             'dados' => $dados,
             'peso' => (int) $v['peso'],
             'descricao' => $v['descricao'] === null ? '' : (string) $v['descricao'],
-            'data_publicacao' => $v['data_publicacao'] === null ? null : (string) $v['data_publicacao'],
-            'data_validade' => $v['data_validade'] === null ? null : (string) $v['data_validade'],
-        ], $motivo !== '' ? $motivo : "restaurada a versão {$versao}", null, false, $usuarioId);
+        ];
+        if (!$manterEstado) {
+            $mudancas['status'] = (string) $v['status'];
+            $mudancas['data_publicacao'] = $v['data_publicacao'] === null ? null : (string) $v['data_publicacao'];
+            $mudancas['data_validade'] = $v['data_validade'] === null ? null : (string) $v['data_validade'];
+        }
+
+        return $this->atualizar($id, $mudancas, $motivo !== '' ? $motivo : "restaurada a versão {$versao}", $versaoEsperada, false, $usuarioId);
+    }
+
+    /**
+     * O endereço pode ser usado por `$exceto` (ou por um objeto novo, se null)? Não pode se já é de outro objeto do site nem
+     * se hoje redireciona para outro objeto (histórico de URLs); o endereço antigo do próprio objeto volta a ser dele.
+     */
+    public function urlDisponivel(int $siteId, string $url, ?int $exceto = null): bool
+    {
+        $dono = $this->conexao->fetchOne('SELECT id FROM objeto WHERE site_id = ? AND url_amigavel = ?', [$siteId, $url]);
+        if ($dono !== false && (int) $dono !== $exceto) {
+            return false;
+        }
+        $antigo = $this->conexao->fetchOne('SELECT objeto_id FROM url_historico WHERE site_id = ? AND url_amigavel = ?', [$siteId, $url]);
+
+        return $antigo === false || (int) $antigo === $exceto;
     }
 
     /**

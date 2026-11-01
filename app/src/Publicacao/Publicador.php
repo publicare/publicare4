@@ -98,6 +98,15 @@ final class Publicador
         }
     }
 
+    /**
+     * Tira do cache a página do objeto (no endereço que ele tem no objeto passado): usado ao despublicar, mandar para a
+     * lixeira ou trocar de endereço, para o efeito ser imediato, sem esperar a próxima publicação do site.
+     */
+    public function despublicar(Site $site, Objeto $objeto): void
+    {
+        $this->remover($site, $objeto);
+    }
+
     private function remover(Site $site, Objeto $objeto): void
     {
         $arquivo = $this->caminhos->pagina($site->id, $objeto->urlAmigavel);
