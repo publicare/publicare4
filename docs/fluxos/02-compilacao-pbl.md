@@ -6,7 +6,16 @@
 
 - Tabela `$cmdArray` (`initialize()`, ~700 linhas) com `regex`, `output` (PHP com marcadores `<#1#>`/`<#P:param#>`), `opentag/closetag`, `paramitens`.
 - `start()` lê o arquivo **linha a linha** e casa `<@cmd …@>`; `evaluate()` converte `#campo` → `$_OBJ_->valor("campo")`, `$var` → `$GLOBALS["var"]`, `%macro`.
-- O PHP gerado é executado com `eval("?>" . $out)` **a cada request, sem cache**; `incluir` recursa e refaz tudo.
+- O PHP gerado é executado com `eval("?>" . $out)` **a cada request**; `incluir` recursa e refaz tudo. Nas versões conferidas (2.7.8 a 2.9.7 e o p3) **a transpilação não é gravada em arquivo**: o código gerado só existe em memória. (Relato do mantenedor: houve uma versão que gravava o PHP transpilado e o reexecutava; não encontrada nos repositórios conferidos, a confirmar.)
+
+### Cache que existia (em outras camadas)
+| Camada | O que cacheia | Onde | Observação |
+|---|---|---|---|
+| **QuickCache** | página inteira (HTML), só para visitante não logado e fora da raiz | disco, MySQL ou template (`quickcache/type/*`) | ligado por `ATIVA_CACHE` em 2.7.x/2.8.x; linha comentada em `iniciar.php` da 2.9.2, ainda citado como "adicionado novamente" na 2.9.0 (histórico a esclarecer) |
+| **Cache de consultas** (ADOdb `CacheExecute`) | resultado de SQL por tempo | disco (`/tmp/adodb`) ou **memcached** | memcached "ativado" na 2.9.4; `ATIVA_CACHE_BANCO`; no p3 vira `bd.cache`, `cachetipo` (`disco`/`memoria`), `cachehost`, `cacheporta`; `CacheFlush` ao alterar conteúdo |
+| **Cache de imagem** | miniatura redimensionada | disco | 2.9.0 |
+
+Ou seja, havia cache de página e de dados, mas **não de template compilado**.
 
 Comandos: `ECO`, `ECOE`, `ECO_LIMITE`, `FILHOS`, `SEMFILHOS`, `INCLUIR`, `INCLUIRMENU`, `LOCALIZAR`, `NAOLOCALIZADO`, `REPETIR`, `SE`, `SENAO`, `USAROBJETO`, `VAR`, `ALEATORIO` + macros.
 
@@ -33,7 +42,7 @@ flowchart LR
 Princípios:
 1. **Três estágios separados** (Lexer, Parser, Gerador) e uma **gramática EBNF** documentada (comandos, tipos de parâmetro `s|v|n|m|d`, operadores).
 2. **Registro de comandos**: cada comando é uma classe (nome, parâmetros, nó de AST, geração). Sem editar array gigante.
-3. **Compilar uma vez**: PHP gerado em `cache/<hash do conteúdo>.php`; request faz `include` (opcache). Invalida ao salvar a pele.
+3. **Compilar uma vez**: PHP gerado em `cache/<hash do conteúdo>.php`; request faz `include` (opcache). Invalida ao salvar a pele. É uma camada nova que se soma ao cache de página e de dados (que o PBL já tinha e o PBL4 mantém: cache de página publicada, ADR 0003 §8, e cache de consultas/listas com driver de disco, memcached ou Redis).
 4. **Erros como exceção** (`PblSyntaxError` com arquivo e linha); nunca `exit`. O editor usa o mesmo validador em modo "compilar sem executar".
 5. **Escape por padrão**: `ECO` escapa (`htmlspecialchars` com `ENT_QUOTES|ENT_SUBSTITUTE`, UTF-8); `ECOCRU` é explícito para HTML confiável. É quebra de compatibilidade: acompanha uma **ferramenta de migração** que varre moldes antigos e propõe a troca.
 6. **Sem PHP cru** no molde (rejeitado no lexer); contexto de execução explícito (`objeto`, `pilha`, `loop`), sem `$GLOBALS`.
