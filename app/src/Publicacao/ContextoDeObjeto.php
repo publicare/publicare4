@@ -12,7 +12,8 @@ final class ContextoDeObjeto
     /** @return array<string, mixed> */
     public static function de(Objeto $objeto, string $classe): array
     {
-        return $objeto->dados + [
+        // Campos do sistema por último: vencem qualquer propriedade da classe com o mesmo nome (classes antigas).
+        return array_merge($objeto->dados, [
             'id' => $objeto->id,
             'titulo' => $objeto->titulo,
             'url' => '/' . $objeto->urlAmigavel,
@@ -27,6 +28,6 @@ final class ContextoDeObjeto
             'classe_id' => $objeto->classeId,
             'status' => $objeto->status,
             'apagado' => 0,
-        ];
+        ]);
     }
 }

@@ -14,7 +14,7 @@ O PBL3 já servia mais que HTML: RSS, XML, mapas de site e exportações eram "p
    - **API do núcleo**: CRUD, admin, autenticação (ADR 0003, §9); privada, protegida, estável por versão.
    - **API de conteúdo (peles JSON)**: leitura do **publicado**, moldada por site, cacheável e pública por padrão. É o BFF: o front recebe exatamente o formato de que precisa, sem ligar para o schema interno.
 4. **Roteamento por tipo.** Prefixo ou extensão (`/api/v1/...` ou `.json`) e/ou cabeçalho `Accept` escolhem a pele de saída. `url_amigavel` e a raiz do site valem igual (fluxo 1).
-5. **Cache por formato.** Página/resposta publicada é cacheada por (objeto, pele, parâmetros relevantes) e invalidada por evento (ADR 0003 §8). Respostas JSON levam `ETag` e `Cache-Control`.
+5. **Cache por formato.** Página/resposta publicada é cacheada por (objeto, pele, parâmetros relevantes) e invalidada por evento (ADR 0003 §8). Respostas JSON levam `ETag` e `Cache-Control`. Quando o formato é escolhido pelo cabeçalho `Accept` (mesma URL, HTML ou JSON), a resposta leva **`Vary: Accept`** para CDN e proxies não servirem um formato ao cliente que pediu o outro; formato escolhido por prefixo ou extensão na URL não precisa de `Vary`.
 6. **Segurança.**
    - Só conteúdo **publicado e permitido**; os campos expostos são os declarados na pele (lista branca), nunca "tudo do objeto".
    - **CORS** configurável por site (origens permitidas); credenciais só quando necessário.

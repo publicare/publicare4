@@ -134,7 +134,9 @@ final class Runtime
         }
         foreach (['Y-m-d H:i:s', 'Y-m-d\TH:i:sP', 'Y-m-d', 'd/m/Y H:i:s', 'd/m/Y'] as $entrada) {
             $d = \DateTimeImmutable::createFromFormat('!' . $entrada, $v);
-            if ($d !== false) {
+            $problemas = \DateTimeImmutable::getLastErrors();
+            // Data bem formada mas impossível (2026-02-31) vem como aviso, não como erro: vira vazio.
+            if ($d !== false && ($problemas === false || ($problemas['warning_count'] === 0 && $problemas['error_count'] === 0))) {
                 return $d->format($this->texto($formato));
             }
         }
@@ -151,11 +153,16 @@ final class Runtime
     {
         $a = is_numeric($inicio) ? (int) $inicio : 0;
         $b = is_numeric($fim) ? (int) $fim : 0;
-        if ($b - $a >= self::LIMITE_LACO) {
+        if ($b < $a) {
+            return;
+        }
+        // A conta em float evita o estouro de inteiro; depois dela, `$b - $a` é exato e pequeno.
+        if ((float) $b - (float) $a >= self::LIMITE_LACO) {
             throw new \RuntimeException('repetir excede o limite de ' . self::LIMITE_LACO . ' iterações');
         }
-        for ($n = $a; $n <= $b; $n++) {
-            yield $n;
+        $passos = $b - $a;
+        for ($i = 0; $i <= $passos; $i++) {
+            yield $a + $i;
         }
     }
 
@@ -201,14 +208,18 @@ final class Runtime
     }
 
     /**
+     * Sorteia a ordem e só então aplica a janela, para `limite=1` escolher um item qualquer e não o primeiro.
+     *
      * @param list<array<string, mixed>> $lista
      * @return list<array<string, mixed>>
      */
-    public function embaralhar(array $lista): array
+    public function embaralhar(array $lista, mixed $inicio = 0, mixed $limite = -1): array
     {
         shuffle($lista);
+        $i = is_numeric($inicio) ? max(0, (int) $inicio) : 0;
+        $l = is_numeric($limite) ? (int) $limite : -1;
 
-        return $lista;
+        return array_slice($lista, $i, $l < 0 || $l > self::LIMITE_LACO ? self::LIMITE_LACO : $l);
     }
 
     /**

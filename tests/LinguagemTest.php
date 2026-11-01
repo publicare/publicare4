@@ -401,4 +401,51 @@ final class LinguagemTest extends TestCase
         self::assertSame([], array_values(array_diff($chamadas, ['count', 'ob_start', 'ob_end_clean', 'ob_get_clean'])), 'só funções de buffer e count; o resto é $r->metodo()');
         self::assertSame("system(&#039;ls&#039;)", $this->render('<@eco "system(\'ls\')"@>'));
     }
+
+    public function testRepetirNaoEstouraNoLimiteDosInteiros(): void
+    {
+        $max = PHP_INT_MAX;
+
+        self::assertSame("[{$max}]", $this->render("<@repetir \$i=[{$max},{$max}]@>[<@eco \$i@>]<@/repetir@>"));
+        self::assertSame('2', $this->render('<@var $n = 0@><@repetir $i=[' . ($max - 1) . ",{$max}]@><@var \$n = \$n + 1@><@/repetir@><@eco \$n@>"));
+        $this->expectException(\RuntimeException::class);
+        $this->render('<@repetir $i=[-' . $max . ",{$max}]@>x<@/repetir@>");
+    }
+
+    public function testDataImpossivelViraVazio(): void
+    {
+        self::assertSame('', $this->render('<@formatadata valor="2026-02-31" formato="d/m/Y"@>'));
+        self::assertSame('', $this->render('<@formatadata valor="31/04/2026" formato="d/m/Y"@>'));
+        self::assertSame('28/02/2026', $this->render('<@formatadata valor="2026-02-28" formato="d/m/Y"@>'));
+    }
+
+    public function testBlocoComOMesmoNomeAninhadoDaErroEmVezDeEstourarAPilha(): void
+    {
+        $this->expectException(ErroSintaxe::class);
+        $this->render('<@estende "base"@><@bloco a@>x<@bloco a@>y<@/bloco@><@/bloco@>', [], ['base' => '<@bloco a@><@/bloco@>']);
+    }
+
+    public function testAleatorioSorteiaAntesDaJanela(): void
+    {
+        $itens = array_map(static fn (int $i): array => ['id' => $i, 'titulo' => "T{$i}", 'classe' => 'p'], range(1, 6));
+        $vistos = [];
+        for ($i = 0; $i < 80; $i++) {
+            $saida = $this->render('<@aleatorio limite=1@><@eco #id@><@/aleatorio@>', [], [], $itens);
+            self::assertSame(1, strlen($saida), 'limite=1 devolve um só item');
+            $vistos[$saida] = true;
+        }
+
+        self::assertGreaterThan(1, count($vistos), 'não é sempre o primeiro item');
+        self::assertSame(3, strlen($this->render('<@aleatorio inicio=1 limite=3@><@eco #id@><@/aleatorio@>', [], [], $itens)));
+    }
+
+    public function testVersaoDoFormatoEntraNaChaveDoCache(): void
+    {
+        (new Compilador($this->cache, formato: 1))->carregar('<@eco #a@>');
+        (new Compilador($this->cache, formato: 1))->carregar('<@eco #a@>');
+        self::assertCount(1, glob($this->cache . '/*.php') ?: []);
+
+        (new Compilador($this->cache, formato: 2))->carregar('<@eco #a@>');
+        self::assertCount(2, glob($this->cache . '/*.php') ?: [], 'novo formato do compilador não reaproveita o PHP antigo');
+    }
 }

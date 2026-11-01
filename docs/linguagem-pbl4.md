@@ -8,7 +8,8 @@ Referência da linguagem de moldes. O PBL4 mantém o espírito do PBL3 (tags `<@
 - **Nada do molde vira código**: o gerador só emite literais (`var_export`) e chamadas ao `Runtime`. PHP cru (`<?`, `?>`) é rejeitado. O molde não alcança superglobais, arquivos nem funções do PHP.
 - **Escape por padrão**: `eco` escapa HTML; `ecocru` é a saída sem escape, escolhida de forma explícita.
 - **Erros são exceções com linha** (e arquivo, quando o erro está num layout ou parte incluída). Nada de `exit`.
-- **Limites**: `repetir` e `filhos` têm teto de 10.000 iterações; `incluir` aninha no máximo 8 níveis; herança no máximo 5.
+- **Limites**: `repetir` e `filhos` têm teto de 10.000 iterações (a conta não estoura nos limites dos inteiros); `incluir` aninha no máximo 8 níveis; herança no máximo 5.
+- **Campos do sistema vencem**: `#id`, `#site`, `#pai`, `#titulo` etc. vêm do objeto e nunca de uma propriedade da classe com o mesmo nome (classes criadas antes da reserva).
 
 ## Gramática (EBNF)
 
@@ -47,6 +48,7 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `$variavel` | variável do molde, criada por `var` ou `repetir`; compartilhada com os moldes incluídos; vazia se não definida. Não toca em variáveis do PHP. |
 | `%MACRO` | `DIA`, `MES`, `ANO`, `DATA` (dd/mm/aaaa); em laço de coleção: `INDICE` (1..n) e `FIM`/`QUANTIDADE` (total). Macro desconhecida é erro de sintaxe. |
 | `.` | concatenação (texto). `+ - * /` aritmética; texto não numérico vale 0; divisão por zero dá vazio. |
+| data | `formatadata` aceita `aaaa-mm-dd[ hh:mm:ss]` e `dd/mm/aaaa[ hh:mm:ss]`; data impossível (`2026-02-31`) dá vazio |
 | comparação | se os dois lados são numéricos compara como número, senão como texto (diferencia maiúsculas). |
 | verdadeiro | tudo, menos `""`, `"0"`, `0`, vazio e ausente. |
 
@@ -62,19 +64,19 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `<@se cond@>…<@senao@>…<@/se@>` | condicional |
 | `<@repetir $i=[a,b]@>…<@/repetir@>` | laço numérico inclusivo |
 | `<@filhos [classes="a,b"] [ordem="peso, -data_publicacao"] [inicio=n] [limite=n]@>…<@/filhos@>` | laço sobre filhos **publicados e vigentes** (fora de `data_publicacao`/`data_validade` não aparecem) |
-| `<@aleatorio …@>…<@/aleatorio@>` | como `filhos`, em ordem aleatória |
-| `<@localizar [classes=…] [pai=n] [niveis=n] [campo=… valor=…] [busca=…] [ordem=…] [inicio=n] [limite=n]@>…<@/localizar@>` | laço sobre objetos **publicados do mesmo site**: `pai` limita à subárvore (excluindo o próprio pai) e `niveis` à profundidade; `campo`+`valor` é igualdade em propriedade **indexável** da classe; `busca` procura o texto no título (sem diferenciar maiúsculas; `%` e `_` são literais). Subconjunto seguro; o motor de consulta completo vem na fase 1 |
+| `<@aleatorio …@>…<@/aleatorio@>` | como `filhos`, em ordem aleatória: sorteia entre **todos** os candidatos e só então aplica `inicio`/`limite` (`limite=1` escolhe um item qualquer) |
+| `<@localizar [classes=…] [pai=n] [niveis=n] [campo=… valor=…] [busca=…] [ordem=…] [inicio=n] [limite=n]@>…<@/localizar@>` | laço sobre objetos **publicados do mesmo site**: `pai` limita à subárvore (excluindo o próprio pai) e `niveis` à profundidade; `campo`+`valor` é igualdade em propriedade **indexável** da classe; `busca` procura o texto no título (sem diferenciar maiúsculas, inclusive acentuadas: `árvore` acha `Árvore`; `%` e `_` são literais). Subconjunto seguro; o motor de consulta completo vem na fase 1 |
 | `<@localizaraleatorio …@>…<@/localizaraleatorio@>` | como `localizar`, em ordem aleatória |
 | `<@semfilhos@>…<@/semfilhos@>` / `<@naolocalizado@>…<@/naolocalizado@>` | executa se o último laço de coleção não achou nada (são sinônimos) |
 | `<@usarobjeto id=n \| url="…" \| titulo="…"@>…<@/usarobjeto@>` | troca o objeto corrente dentro do bloco; objeto inexistente, de outro site ou não publicado: o bloco não roda |
-| `<@temfilho [id=n]@>…<@/temfilho@>` | executa se o objeto (corrente ou `id=`) tem filhos publicados |
+| `<@temfilho [id=n]@>…<@/temfilho@>` | executa se o objeto (corrente ou `id=`) tem filhos publicados e vigentes; o `id=` precisa ser do mesmo site |
 | `<@estende "layout"@>` + `<@bloco nome@>…<@/bloco@>` | herança de layout |
 | `<@incluir arquivo="parte"@>` | inclui outro molde da mesma pele |
 | `<@-- texto --@>` | comentário: não gera saída e pode ter aspas e símbolos; vai até o primeiro `--@>` |
 
 ### Herança de layout
 
-O primeiro comando do molde filho é `estende`. Tudo o mais fica dentro de `bloco`; o layout define `bloco` com conteúdo padrão, e o filho sobrescreve. Cadeias de vários níveis funcionam (filho → meio → base). Conteúdo fora de bloco, bloco repetido e ciclo são erros.
+O primeiro comando do molde filho é `estende`. Tudo o mais fica dentro de `bloco`; o layout define `bloco` com conteúdo padrão, e o filho sobrescreve. Cadeias de vários níveis funcionam (filho → meio → base). Conteúdo fora de bloco, bloco repetido (inclusive um bloco dentro de outro com o mesmo nome) e ciclo são erros.
 
 ```
 layout "base":   <h1><@bloco titulo@>Padrão<@/bloco@></h1><main><@bloco corpo@><@/bloco@></main>
