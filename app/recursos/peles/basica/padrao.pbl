@@ -3,20 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><@eco titulo@></title>
+<title><@eco #titulo@></title>
 <style>
 body{font-family:system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#222}
 nav a{margin-right:1rem}
 </style>
 </head>
 <body>
-<h1><@eco titulo@></h1>
-<@se resumo@><p><em><@eco resumo@></em></p><@/se@>
-<div><@ecocru corpo@></div>
-<@se filhos@>
+<h1><@eco #titulo@></h1>
+<@se #resumo@><p><em><@eco #resumo@></em></p><@/se@>
+<div><@ecocru #corpo@></div>
 <nav>
-<@repetir filhos@><a href="<@eco url@>"><@eco titulo@></a><@/repetir@>
+<@filhos@><a href="<@eco #url@>"><@eco #titulo@></a><@/filhos@>
 </nav>
-<@/se@>
 </body>
 </html>

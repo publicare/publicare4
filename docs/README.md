@@ -36,6 +36,9 @@ Objetivos:
 
 Cada fluxo traz a seção "Hoje (PBL3)" e o desenho PBL4 alinhado aos ADRs 0003 a 0009.
 
+**Referência**
+- [Linguagem PBL4](linguagem-pbl4.md): gramática, comandos e conversão do PBL3
+
 **Plano**
 - [Fases e questões em aberto](plano.md)
 

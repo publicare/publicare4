@@ -96,6 +96,34 @@ final class ObjetoRepositorio
         return $saida;
     }
 
+    /**
+     * Filhos publicados de um objeto, com filtro de classes, ordenação segura e janela.
+     *
+     * @param list<int>|null $classeIds
+     * @return list<Objeto>
+     */
+    public function filhos(int $paiId, ?array $classeIds, string $ordem, int $inicio, int $limite): array
+    {
+        $partes = preg_split('/\s+/', trim($ordem)) ?: [];
+        $coluna = strtolower($partes[0] ?? '');
+        if (!in_array($coluna, ['id', 'titulo', 'criado_em', 'atualizado_em'], true)) {
+            $coluna = 'id';
+        }
+        $direcao = strtolower($partes[1] ?? '') === 'desc' ? 'DESC' : 'ASC';
+
+        $sql = 'SELECT * FROM objeto WHERE status = ? AND pai_id = ?';
+        $params = ['publicado', $paiId];
+        $tipos = [\Doctrine\DBAL\ParameterType::STRING, \Doctrine\DBAL\ParameterType::INTEGER];
+        if ($classeIds !== null) {
+            $sql .= ' AND classe_id IN (?)';
+            $params[] = $classeIds;
+            $tipos[] = \Doctrine\DBAL\ArrayParameterType::INTEGER;
+        }
+        $sql .= " ORDER BY {$coluna} {$direcao}, id ASC LIMIT " . max(1, $limite) . ' OFFSET ' . max(0, $inicio);
+
+        return array_map($this->hidratar(...), $this->conexao->executeQuery($sql, $params, $tipos)->fetchAllAssociative());
+    }
+
     /** @return list<Objeto> publicados do site cujo caminho começa com o prefixo (a própria subárvore). */
     public function publicadosDaSubarvore(int $siteId, string $caminhoRaiz): array
     {

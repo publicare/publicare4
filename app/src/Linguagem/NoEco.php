@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Pbl\Linguagem;
 
+/** `eco` (escapa), `ecocru` (sem escape), `eco_limite` e `formatadata` viram chamadas de runtime sobre a expressão. */
 final class NoEco implements No
 {
-    public function __construct(public readonly string $campo, public readonly bool $cru)
+    /** @param list<Expr> $extras */
+    public function __construct(public readonly Expr $expr, public readonly bool $cru, public readonly ?string $funcao = null, public readonly array $extras = [])
     {
     }
 }
