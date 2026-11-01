@@ -1,38 +1,49 @@
 # PBL4 (Publicare 4)
 
-Plataforma low-code de sites, dados e fluxos, sucessora do Publicare/PBL3. O design está em [`docs/`](docs/README.md) (ADRs 0003 a 0009, fluxos e plano por etapa).
+Plataforma livre para **sites, dados e fluxos**, sucessora do Publicare/PBL3. Pensada para quem monta portais e pequenos sistemas (consulta pública, biblioteca, eventos, cadastros) **sem programar**, em hospedagem comum, com moldes de aparência seguros e atualização simples.
 
-Estado: **fase 0 (tracer bullet) concluída**: instalar (SQLite) → classe e objetos → molde PBL4 → publicar → servir do cache. Ainda não há admin, autenticação nem editor de peles.
+> **Estado:** em construção (versão `0.x`, ainda sem lançamento). Já funcionam o modelo de conteúdo, a linguagem de moldes, a publicação em cache e o conversor de moldes do PBL3. **Ainda não há** tela de administração, login nem instalador web. Veja o [estado do projeto](docs/usuario/estado-do-projeto.md).
 
-## Desenvolvimento
+## Por onde começar
 
-O host não precisa de PHP: tudo roda em container (PHP 8.3, SQLite por padrão).
+| Você é… | Vá para |
+|---|---|
+| Quem vai **usar** o Publicare | [docs/usuario](docs/usuario/README.md) |
+| Quem **instala ou desenvolve** | [docs/tecnica](docs/tecnica/README.md) |
+| Quem quer **colaborar** | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Quem achou uma **falha de segurança** | [SECURITY.md](SECURITY.md) |
+| Quem acompanha **novidades** | [CHANGELOG.md](CHANGELOG.md) e [releases](https://github.com/publicare/publicare4/releases) |
+
+Todo o índice, com decisões de design e plano: [docs/README.md](docs/README.md).
+
+## Ver funcionando em 3 minutos
+
+Só precisa de **Docker** e **make** (o computador não precisa ter PHP).
 
 ```bash
-make instalar   # constrói a imagem e instala as dependências
-make qa         # testes (PHPUnit) + análise estática (PHPStan nível 8)
-make subir      # servidor de desenvolvimento em http://localhost:8080
-make pbl ARGS=versao
-
-# fluxo ponta a ponta
-make pbl ARGS="instalar --nome=Demo"
-make pbl ARGS=publicar
-make subir          # http://localhost:8080
+make instalar                          # constrói o ambiente e instala as dependências
+make pbl ARGS="instalar --nome=Demo"   # cria o banco SQLite e um site de exemplo
+make pbl ARGS=publicar                 # renderiza as páginas para o cache
+make subir                             # abre em http://localhost:8080
+make qa                                # testes + análise estática
 ```
 
-Outros bancos para teste: `docker compose --profile mysql up -d` ou `--profile postgres`.
+## Versão e qualidade
+
+- Versionamento Semântico, versão em [`app/src/Versao.php`](app/src/Versao.php): [docs/versionamento.md](docs/versionamento.md).
+- Nada entra na `main` sem passar pela pipeline (testes em PHP 8.2/8.3/8.4, PHPStan nível 8, auditoria de dependências, changelog): [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Layout
 
 ```
 app/src/   código do produto (substituível pelo atualizador, ADR 0006)
-dados/     config, uploads, peles do site, cache, SQLite (nunca tocado pela atualização; fora do git)
+dados/     banco, cache, peles e uploads do site (fora do git; nunca tocado pela atualização)
 public/    front controller
 bin/pbl    linha de comando
 tests/     PHPUnit
-docs/      design
+docs/      documentação (usuário, técnica, ADRs, fluxos)
 ```
 
 ## Licença
 
-MIT.
+[MIT](LICENSE). Os créditos históricos do Publicare são preservados.
