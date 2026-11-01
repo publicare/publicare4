@@ -41,4 +41,4 @@ Princípios:
 8. **Compatibilidade**: modo legado permite rodar moldes p3 existentes até a migração; testes de caracterização (golden files) garantem saída idêntica.
 
 ### Corpus de testes
-Branch `2.9.2` do repo `publicare` (≈8 moldes: `basic_header/footer`, `view_basic`, `view_mapasite`, `view_rss`…). Moldes reais de MCTI/ANTT/EPL/PSB ampliariam muito a cobertura; dependem de backup do Diogo.
+Branch `2.9.2` do repo `publicare` (≈8 moldes: `basic_header/footer`, `view_basic`, `view_mapasite`, `view_rss`…). Existe um corpus muito maior de moldes reais em repositórios privados do mantenedor; ele não é commitado aqui (ver `plano.md`, nota sobre corpus).

@@ -4,7 +4,7 @@ Status: proposto (2026-11-01)
 
 ## Contexto
 
-Dois candidatos a base: o `publicare3` (20k linhas, 49 telas de admin, workflow, peles, multi-driver, schema usado por MCTI/EPL/ANTT/PSB/Presidência) e o rascunho `publicare4` (1,4k linhas: migrações e seeds, sem HTTP/parser/admin, IDs UUID, sem `pele`/`parentesco`/`status`/`campo_ref`).
+Dois candidatos a base: o `publicare3` (20k linhas, 49 telas de admin, workflow, peles, multi-driver, schema usado em produção por portais de instituições públicas) e o rascunho `publicare4` (1,4k linhas: migrações e seeds, sem HTTP/parser/admin, IDs UUID, sem `pele`/`parentesco`/`status`/`campo_ref`).
 
 ## Decisão
 
