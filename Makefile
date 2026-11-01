@@ -1,36 +1,31 @@
-# Makefile para Publicare 4
-# Executa comandos úteis com uma única palavra
+# Todos os comandos rodam no container (o host não precisa de PHP).
+DC   = docker compose
+RUN  = $(DC) run --rm -u $(shell id -u):$(shell id -g) app
 
-.PHONY: migrar instalar limpar dump test subir parar reiniciar
+.PHONY: build instalar subir parar teste analise qa pbl shell
 
-# Executa as migrações via bin/migrar.php
-migrar:
-	docker-compose exec php ./bin/migrar.php
+build:
+	$(DC) build app
 
-# Instala dependências PHP via Composer
-instalar:
-	docker-compose exec php composer install
+instalar: build
+	$(RUN) composer install --no-interaction
 
-# Remove cache e arquivos temporários
-limpar:
-	docker-compose exec php rm -rf var/cache vendor composer.lock
-
-# Regera autoload do Composer
-dump:
-	docker-compose exec php composer dump-autoload
-
-# Executa testes (se usar PHPUnit no futuro)
-test:
-	docker-compose exec php ./vendor/bin/phpunit
-
-# Sobe o ambiente dockerizado
 subir:
-	docker-compose up -d --build
+	$(DC) up -d app
 
-# Para o ambiente
 parar:
-	docker-compose down
+	$(DC) down
 
-# Reinicia o ambiente inteiro
-reiniciar:
-	docker-compose down && docker-compose up -d --build
+teste:
+	$(RUN) vendor/bin/phpunit
+
+analise:
+	$(RUN) vendor/bin/phpstan analyse --memory-limit=512M
+
+qa: teste analise
+
+pbl:
+	$(RUN) php bin/pbl $(ARGS)
+
+shell:
+	$(RUN) bash
