@@ -24,6 +24,7 @@ final class Objeto
         public readonly ?string $dataPublicacao = null,
         public readonly ?string $dataValidade = null,
         public readonly int $versao = 1,
+        public readonly ?int $criadoPor = null,
     ) {
     }
 

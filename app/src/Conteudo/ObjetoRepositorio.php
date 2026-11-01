@@ -24,7 +24,7 @@ final class ObjetoRepositorio
 
     /**
      * @param array<string, string|int|float|bool> $dados
-     * @param array{peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null} $meta
+     * @param array{peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null, criado_por?: int|null} $meta `criado_por` = id do usuário (o autor só edita o que criou)
      * @param bool $liberarUrl true = tomar de propósito um endereço que hoje redireciona para outro objeto
      */
     public function criar(int $siteId, Classe $classe, ?int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'publicado', array $meta = [], bool $liberarUrl = false): Objeto
@@ -69,6 +69,7 @@ final class ObjetoRepositorio
                 'descricao' => $meta['descricao'] ?? null,
                 'data_publicacao' => $meta['data_publicacao'] ?? null,
                 'data_validade' => $meta['data_validade'] ?? null,
+                'criado_por' => $meta['criado_por'] ?? null,
                 'criado_em' => $agora,
                 'atualizado_em' => $agora,
             ]);
@@ -76,9 +77,9 @@ final class ObjetoRepositorio
             $caminho = $caminhoPai . $id . '/';
             $this->conexao->update('objeto', ['caminho' => $caminho], ['id' => $id]);
             $this->indexar($id, $classe, $dados);
-            $this->registrarVersao($id, 'criação');
+            $this->registrarVersao($id, 'criação', $meta['criado_por'] ?? null);
 
-            return new Objeto($id, $siteId, $classe->id, $paiId, $caminho, $titulo, $urlAmigavel, $status, $dados, $meta['peso'] ?? 0, $meta['descricao'] ?? '', $meta['data_publicacao'] ?? null, $meta['data_validade'] ?? null);
+            return new Objeto($id, $siteId, $classe->id, $paiId, $caminho, $titulo, $urlAmigavel, $status, $dados, $meta['peso'] ?? 0, $meta['descricao'] ?? '', $meta['data_publicacao'] ?? null, $meta['data_validade'] ?? null, 1, $meta['criado_por'] ?? null);
         });
     }
 
@@ -176,9 +177,9 @@ final class ObjetoRepositorio
      * @param array{titulo?: string, url_amigavel?: string, status?: string, dados?: array<string, string|int|float|bool|null>, peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null} $mudancas
      * @throws ConflitoDeVersao se a versão atual não for a esperada
      */
-    public function atualizar(int $id, array $mudancas, string $motivo = '', ?int $versaoEsperada = null, bool $liberarUrl = false): Objeto
+    public function atualizar(int $id, array $mudancas, string $motivo = '', ?int $versaoEsperada = null, bool $liberarUrl = false, ?int $usuarioId = null): Objeto
     {
-        return $this->conexao->transactional(function () use ($id, $mudancas, $motivo, $versaoEsperada, $liberarUrl): Objeto {
+        return $this->conexao->transactional(function () use ($id, $mudancas, $motivo, $versaoEsperada, $liberarUrl, $usuarioId): Objeto {
             $atual = $this->porId($id) ?? throw new \InvalidArgumentException("Objeto {$id} não existe");
             if ($versaoEsperada !== null && $versaoEsperada !== $atual->versao) {
                 throw new ConflitoDeVersao($versaoEsperada, $atual->versao);
@@ -227,7 +228,7 @@ final class ObjetoRepositorio
                 $this->indexar($id, $classe, $novos);
             }
             $this->conexao->update('objeto', $linha, ['id' => $id]);
-            $this->registrarVersao($id, $motivo);
+            $this->registrarVersao($id, $motivo, $usuarioId);
 
             return $this->porId($id) ?? throw new \RuntimeException('Objeto sumiu durante a atualização');
         });
@@ -236,9 +237,9 @@ final class ObjetoRepositorio
     /**
      * Muda o objeto de pai (e a subárvore junto). A URL amigável não depende da árvore, então nenhum endereço muda.
      */
-    public function mover(int $id, ?int $novoPaiId, string $motivo = 'mover'): Objeto
+    public function mover(int $id, ?int $novoPaiId, string $motivo = 'mover', ?int $usuarioId = null): Objeto
     {
-        return $this->conexao->transactional(function () use ($id, $novoPaiId, $motivo): Objeto {
+        return $this->conexao->transactional(function () use ($id, $novoPaiId, $motivo, $usuarioId): Objeto {
             $o = $this->porId($id) ?? throw new \InvalidArgumentException("Objeto {$id} não existe");
             $caminhoPai = '/';
             if ($novoPaiId !== null) {
@@ -256,7 +257,7 @@ final class ObjetoRepositorio
                 $this->conexao->update('objeto', ['caminho' => $novo . substr((string) $d['caminho'], strlen($o->caminho))], ['id' => $d['id']]);
             }
             $this->conexao->update('objeto', ['pai_id' => $novoPaiId, 'versao' => $o->versao + 1, 'atualizado_em' => gmdate('c')], ['id' => $id]);
-            $this->registrarVersao($id, $motivo);
+            $this->registrarVersao($id, $motivo, $usuarioId);
 
             return $this->porId($id) ?? throw new \RuntimeException('Objeto sumiu durante a movimentação');
         });
@@ -265,22 +266,23 @@ final class ObjetoRepositorio
     /**
      * Histórico do objeto, da versão mais nova para a mais antiga.
      *
-     * @return list<array{versao: int, titulo: string, status: string, motivo: string, criado_em: string}>
+     * @return list<array{versao: int, titulo: string, status: string, motivo: string, criado_em: string, usuario_id: int|null}>
      */
     public function versoes(int $id): array
     {
-        $linhas = $this->conexao->fetchAllAssociative('SELECT versao, titulo, status, motivo, criado_em FROM objeto_versao WHERE objeto_id = ? ORDER BY versao DESC', [$id]);
+        $linhas = $this->conexao->fetchAllAssociative('SELECT versao, titulo, status, motivo, criado_em, usuario_id FROM objeto_versao WHERE objeto_id = ? ORDER BY versao DESC', [$id]);
 
         return array_map(static fn (array $l): array => [
             'versao' => (int) $l['versao'], 'titulo' => (string) $l['titulo'], 'status' => (string) $l['status'],
             'motivo' => (string) ($l['motivo'] ?? ''), 'criado_em' => (string) $l['criado_em'],
+            'usuario_id' => $l['usuario_id'] === null ? null : (int) $l['usuario_id'],
         ], $linhas);
     }
 
     /**
      * Volta o conteúdo de uma versão antiga **como uma nova versão** (o histórico nunca é apagado). O pai atual é mantido.
      */
-    public function restaurar(int $id, int $versao, string $motivo = ''): Objeto
+    public function restaurar(int $id, int $versao, string $motivo = '', ?int $usuarioId = null): Objeto
     {
         $v = $this->conexao->fetchAssociative('SELECT * FROM objeto_versao WHERE objeto_id = ? AND versao = ?', [$id, $versao]);
         $atual = $this->porId($id);
@@ -302,7 +304,7 @@ final class ObjetoRepositorio
             'descricao' => $v['descricao'] === null ? '' : (string) $v['descricao'],
             'data_publicacao' => $v['data_publicacao'] === null ? null : (string) $v['data_publicacao'],
             'data_validade' => $v['data_validade'] === null ? null : (string) $v['data_validade'],
-        ], $motivo !== '' ? $motivo : "restaurada a versão {$versao}");
+        ], $motivo !== '' ? $motivo : "restaurada a versão {$versao}", null, false, $usuarioId);
     }
 
     /**
@@ -338,7 +340,7 @@ final class ObjetoRepositorio
     }
 
     /** Grava o estado atual do objeto como uma linha de `objeto_versao`. */
-    private function registrarVersao(int $id, string $motivo): void
+    private function registrarVersao(int $id, string $motivo, ?int $usuarioId = null): void
     {
         $o = $this->conexao->fetchAssociative('SELECT * FROM objeto WHERE id = ?', [$id]);
         if ($o === false) {
@@ -348,7 +350,7 @@ final class ObjetoRepositorio
             'objeto_id' => $id, 'versao' => $o['versao'], 'titulo' => $o['titulo'], 'url_amigavel' => $o['url_amigavel'],
             'status' => $o['status'], 'dados' => $o['dados'], 'peso' => $o['peso'], 'descricao' => $o['descricao'],
             'data_publicacao' => $o['data_publicacao'], 'data_validade' => $o['data_validade'], 'pai_id' => $o['pai_id'],
-            'motivo' => $motivo === '' ? null : mb_substr($motivo, 0, 300), 'criado_em' => gmdate('c'),
+            'motivo' => $motivo === '' ? null : mb_substr($motivo, 0, 300), 'usuario_id' => $usuarioId, 'criado_em' => gmdate('c'),
         ]);
     }
 
@@ -478,6 +480,7 @@ final class ObjetoRepositorio
             isset($linha['data_publicacao']) ? (string) $linha['data_publicacao'] : null,
             isset($linha['data_validade']) ? (string) $linha['data_validade'] : null,
             (int) ($linha['versao'] ?? 1),
+            isset($linha['criado_por']) ? (int) $linha['criado_por'] : null,
         );
     }
 }

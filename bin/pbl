@@ -11,6 +11,7 @@ use Pbl\Console\DominioComando;
 use Pbl\Console\InstalarComando;
 use Pbl\Console\PublicarComando;
 use Pbl\Console\RedirecionamentoComando;
+use Pbl\Console\UsuarioComando;
 use Pbl\Console\VersaoComando;
 use Symfony\Component\Console\Application;
 
@@ -22,4 +23,5 @@ $aplicacao->add(new PublicarComando($caminhos));
 $aplicacao->add(new ConverterMoldesComando());
 $aplicacao->add(new DominioComando($caminhos));
 $aplicacao->add(new RedirecionamentoComando($caminhos));
+$aplicacao->add(new UsuarioComando($caminhos));
 $aplicacao->run();

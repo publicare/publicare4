@@ -15,6 +15,9 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 | **Isolamento entre sites** | Consultas e `usarobjeto`/`temfilho` sempre dentro do site do objeto corrente; campos do sistema (`#id`, `#site`…) vencem dados da classe | `FonteRepositorio`, `ContextoDeObjeto` |
 | **Vigência** | Conteúdo fora do período não é publicado, não aparece em consultas e sai do cache (inclusive por vencimento sem republicar) | `Objeto::visivel`, `.expira` |
 | **Redirecionamento de URL antiga** | Só para caminho relativo do próprio site, montado a partir da URL validada do objeto (nunca de texto da requisição, exceto a query string); só se o destino está publicado e vigente | `Aplicacao`, `ObjetoRepositorio::urlAtualDoHistorico` |
+| **Contas e senhas** | Senha em argon2id (bcrypt de reserva), política de tamanho e de senhas óbvias, hash atualizado no login, verificação com o mesmo custo para login que não existe, nunca registrada na auditoria | `UsuarioRepositorio`, `SenhaPolitica` |
+| **Permissões** | `Permissoes::pode(usuário, ação, objeto)`: ação é um enum fixo do código (nunca texto da requisição), perfil herdado pelo `caminho` conferido em PHP, o mais forte vence, o autor edita só o que criou, usuário inativo nada, nada cruza de site | `Permissoes`, `Perfil`, `Acao` |
+| **Auditoria** | Tabela que só acrescenta; sem senha, token ou dado pessoal no detalhe | `Auditoria` |
 | **Domínios e redirecionamentos** | Host de destino vem do cadastro, nunca da requisição; host inválido → 400; nomes de domínio validados rótulo a rótulo (sem regex ambíguo); regras só aceitam destino no site ou `https://` (sem `//`, `javascript:`, `http:`, credenciais, `..`, quebra de linha), com limites de 5000 regras e 200 prefixos por site | `Aplicacao`, `Dominio`, `RedirecionamentoRepositorio` |
 | **Edição simultânea** | `versaoEsperada` recusa salvar sobre uma versão que outra pessoa já alterou; histórico imutável | `ObjetoRepositorio::atualizar` |
 | **Conversor de moldes** | Não escreve fora do destino nem através de link simbólico; nomes de molde sanitizados | `ConversorDeDiretorio` |
@@ -31,8 +34,8 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 
 | Item | Previsto |
 |---|---|
-| Autenticação, senha com `argon2id`, sessão, CSRF, limite de tentativas | fase 3 |
-| Permissões por subárvore e por campo, auditoria | fase 3 |
+| Sessão própria, tela de entrar/sair, CSRF, limite de tentativas no servidor, cabeçalhos de segurança, segredo do site | fase 3b ([ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md)) |
+| Permissão por campo | com o editor de classes |
 | Upload seguro (lista de tipos, fora do `docroot`) | com o upload (fluxo 7) |
 | Atualização com pacote **assinado** (Ed25519), verificação e *rollback* | fase 4 ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | Cabeçalhos de segurança (CSP etc.) e HTTPS forçado | com a administração web |

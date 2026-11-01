@@ -9,6 +9,23 @@ No ambiente de desenvolvimento: `make pbl ARGS="<comando> …"`. Em um servidor:
 | `publicar` | renderiza todas as páginas visíveis de todos os sites para o cache e **remove do cache** o que deixou de estar visível (despublicado, vencido, rascunho) ou ficou órfão (a página de um endereço que mudou) |
 | `converter-moldes <origem> <destino> [--seguro]` | converte moldes do PBL3 em moldes PBL4 e escreve `RELATORIO.md` |
 
+## `usuario`
+
+```bash
+make pbl ARGS="usuario criar ana --email=ana@exemplo.org --nome='Ana Souza' --admin"   # pede a senha duas vezes (oculta)
+make pbl ARGS="usuario conceder bia editor 12"     # bia é editora do objeto 12 e de tudo abaixo dele
+make pbl ARGS="usuario acessos bia"
+make pbl ARGS="usuario revogar bia 12"
+make pbl ARGS="usuario senha bia"
+make pbl ARGS="usuario desativar bia"              # e "ativar"
+make pbl ARGS="usuario listar"
+make pbl ARGS="usuario auditoria"                  # as últimas 50 ações registradas
+```
+
+- A senha **nunca** vai em argumento (apareceria no histórico e em `ps`): é pedida de forma oculta e repetida, ou lida da entrada padrão com `--senha-stdin` (`printf '%s\n' "$SENHA" | php bin/pbl usuario criar ana --senha-stdin …`).
+- Perfis: `leitor`, `autor`, `editor`. `--admin` cria administrador global (todos os poderes, inclusive contas, domínios e redirecionamentos).
+- Cada ação fica na auditoria com o ator `cli`.
+
 ## `dominio` e `redirecionamento`
 
 ```bash

@@ -51,6 +51,7 @@ O molde é compilado **uma vez** para PHP; o hash cobre o molde, a cadeia de lay
 | `url_historico` | endereço antigo → objeto; a `Aplicacao` responde 301 para o endereço atual |
 | `redirecionamento` | regras manuais por site (exatas ou por prefixo, 301/302) |
 | `dominio` | host → site, com `modo` (`principal`, `servir`, `redirecionar`) |
+| `usuario`, `acesso`, `auditoria` | equipe, perfil de um usuário numa subárvore e o registro de ações (só acrescenta) |
 | `schema_versao` | migrações já aplicadas |
 
 Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banco em uso normal só precisa de `SELECT/INSERT/UPDATE/DELETE` ([ADR 0003](../adr/0003-plataforma-low-code.md)). A subárvore de um objeto sai do prefixo do `caminho`, o que também limita cada consulta ao seu site.
@@ -61,6 +62,7 @@ Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banc
 |---|---|---|
 | Entrada | `Pbl\Aplicacao`, `public/index.php` | resolver host e URL, devolver arquivo do cache |
 | Conteúdo | `Pbl\Conteudo` | classes, objetos, sites; validação dos dados por tipo (`texto`, `numero`, `html`, `data`, `booleano`, `ref`); índice |
+| Acesso | `Pbl\Acesso` | contas, senhas (argon2id), perfis por subárvore, `Permissoes::pode` (único ponto de decisão) e auditoria |
 | Busca | `Pbl\Busca` | normalização de texto (minúsculas e sem acento) usada na gravação e na consulta; relevância e grafias parecidas no [ADR 0010](../adr/0010-busca.md) |
 | Consulta | `Pbl\Consulta` | `Consulta` (o pedido) e `MotorDeConsulta` (a execução): filtros, ordem, referências, contagem, carga em lote. Único caminho para ler conteúdo em lista |
 | Linguagem | `Pbl\Linguagem` | compilar e executar moldes (PBL4) em ambiente restrito |
@@ -83,4 +85,4 @@ dados/
 
 ## O que ainda não existe
 
-Autenticação e permissões, administração web, instalador web, atualizador, upload de arquivos, tela para gerir domínios e regras (hoje por linha de comando). Estão no [plano](../plano.md).
+Sessão e login pelo navegador, administração web, instalador web, atualizador, upload de arquivos, tela para gerir domínios e regras (hoje por linha de comando). Estão no [plano](../plano.md).
