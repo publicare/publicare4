@@ -55,3 +55,15 @@ Regras:
 Mover um objeto reescreve o caminho da subárvore (uma atualização por prefixo, em transação). `objeto_indice` repete o caminho (ou o id do site) para que o filtro de escopo seja resolvido na própria tabela de índice.
 
 Objeto servido por mais de um domínio: o domínio é só uma raiz de entrada; o objeto continua tendo um caminho único e uma URL canônica (a do site dono).
+
+## Ordenar e filtrar pelo campo de um objeto referenciado
+
+No PBL3, ordenar (ou filtrar) pelo campo de um objeto apontado por uma propriedade `obj_ref` (por exemplo, notícias ordenadas pelo nome do autor) era um dos motivos das **tabelas temporárias**: o resultado era achatado para a ordem ser aplicada. No PBL4 isso é uma consulta só, sem DDL:
+
+- a propriedade do tipo `ref` guarda o id do referenciado em `objeto_indice` (`numero`);
+- `LEFT JOIN objeto r ON r.id = <índice>.numero` traz as colunas do referenciado (`titulo`, `peso`…); para um campo **indexável** do referenciado entra um segundo `LEFT JOIN objeto_indice`;
+- sintaxe de molde prevista: `ordem="autor.titulo"`, `ordem="-autor.cargo"` e `campo="autor.cargo" valor="…"`;
+- alternativa barata para listas grandes: *snapshot* do campo de exibição na própria referência (ADR 0003 §3), atualizado por evento.
+
+Requisito do motor de consulta da fase 1 (junto com o tipo `ref`, que ainda não existe). A ordenação atual (`peso`, colunas e propriedades indexáveis) já usa o mesmo mecanismo de `LEFT JOIN`.
+

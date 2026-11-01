@@ -6,7 +6,9 @@ namespace Pbl\Conteudo;
 
 final class Objeto
 {
-    /** @param array<string, string|int|float> $dados */
+    /**
+     * @param array<string, string|int|float> $dados
+     */
     public function __construct(
         public readonly int $id,
         public readonly int $siteId,
@@ -17,6 +19,10 @@ final class Objeto
         public readonly string $urlAmigavel,
         public readonly string $status,
         public readonly array $dados,
+        public readonly int $peso = 0,
+        public readonly string $descricao = '',
+        public readonly ?string $dataPublicacao = null,
+        public readonly ?string $dataValidade = null,
     ) {
     }
 }

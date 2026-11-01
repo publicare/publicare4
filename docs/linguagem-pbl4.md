@@ -43,7 +43,7 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 
 | Elemento | Significado |
 |---|---|
-| `#campo` | campo do objeto corrente (`#id`, `#titulo`, `#url`, `#classe`, `#site`, `#pai` e os campos da classe; esses nomes são reservados). Dentro de `filhos`, o objeto corrente é o filho. Campo inexistente é vazio. |
+| `#campo` | campo do objeto corrente: `#id`, `#titulo`, `#url` (`/` + URL amigável), `#url_amigavel`, `#classe`, `#classe_id`, `#site`, `#pai`, `#peso`, `#descricao`, `#data_publicacao`, `#data_validade`, `#status`, `#apagado` e os campos da classe (esses nomes são reservados). Dentro de `filhos`, o objeto corrente é o filho. Campo inexistente é vazio. |
 | `$variavel` | variável do molde, criada por `var` ou `repetir`; compartilhada com os moldes incluídos; vazia se não definida. Não toca em variáveis do PHP. |
 | `%MACRO` | `DIA`, `MES`, `ANO`, `DATA` (dd/mm/aaaa); em laço de coleção: `INDICE` (1..n) e `FIM`/`QUANTIDADE` (total). Macro desconhecida é erro de sintaxe. |
 | `.` | concatenação (texto). `+ - * /` aritmética; texto não numérico vale 0; divisão por zero dá vazio. |
@@ -61,7 +61,7 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `<@var $x = expr@>` | define variável |
 | `<@se cond@>…<@senao@>…<@/se@>` | condicional |
 | `<@repetir $i=[a,b]@>…<@/repetir@>` | laço numérico inclusivo |
-| `<@filhos [classes="a,b"] [ordem="titulo desc"] [inicio=n] [limite=n]@>…<@/filhos@>` | laço sobre filhos **publicados**; `ordem` aceita `id`, `titulo`, `criado_em`, `atualizado_em` e `desc` |
+| `<@filhos [classes="a,b"] [ordem="peso, -data_publicacao"] [inicio=n] [limite=n]@>…<@/filhos@>` | laço sobre filhos **publicados e vigentes** (fora de `data_publicacao`/`data_validade` não aparecem) |
 | `<@aleatorio …@>…<@/aleatorio@>` | como `filhos`, em ordem aleatória |
 | `<@localizar [classes=…] [pai=n] [niveis=n] [campo=… valor=…] [busca=…] [ordem=…] [inicio=n] [limite=n]@>…<@/localizar@>` | laço sobre objetos **publicados do mesmo site**: `pai` limita à subárvore (excluindo o próprio pai) e `niveis` à profundidade; `campo`+`valor` é igualdade em propriedade **indexável** da classe; `busca` procura o texto no título (sem diferenciar maiúsculas; `%` e `_` são literais). Subconjunto seguro; o motor de consulta completo vem na fase 1 |
 | `<@localizaraleatorio …@>…<@/localizaraleatorio@>` | como `localizar`, em ordem aleatória |
@@ -70,6 +70,7 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `<@temfilho [id=n]@>…<@/temfilho@>` | executa se o objeto (corrente ou `id=`) tem filhos publicados |
 | `<@estende "layout"@>` + `<@bloco nome@>…<@/bloco@>` | herança de layout |
 | `<@incluir arquivo="parte"@>` | inclui outro molde da mesma pele |
+| `<@-- texto --@>` | comentário: não gera saída e pode ter aspas e símbolos; vai até o primeiro `--@>` |
 
 ### Herança de layout
 
@@ -82,9 +83,39 @@ molde:           <@estende "base"@><@bloco corpo@>Olá <@eco #nome@><@/bloco@>
 
 Nomes de layout e de `incluir` são caminhos relativos à pasta da pele (`a-z 0-9 _` e `/`), sem `..` nem extensão; o arquivo é `<nome>.pbl`.
 
+### Ordenação (`ordem`)
+
+Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`desc` atrás: `peso, -data_publicacao`, `titulo desc`. Aceita as colunas `id`, `titulo`, `peso`, `descricao`, `data_publicacao`, `data_validade`, `criado_em`, `atualizado_em` e qualquer **propriedade indexável** da classe (até 4 propriedades). Sem `ordem`, vale `peso` e depois `id`, como no PBL3. Nada da `ordem` chega ao SQL como texto livre. Ordenar pelo campo de um objeto referenciado (`obj_ref`) fica para o motor de consulta da fase 1 (ver [fluxo 9](fluxos/09-armazenamento-consulta.md)).
+
+## Conversor de moldes PBL3 → PBL4
+
+```bash
+make pbl ARGS="converter-moldes /caminho/do/site/html dados/peles/minha-pele"
+make pbl ARGS="converter-moldes /caminho/do/site/html dados/peles/minha-pele --seguro"
+```
+
+Lê `.php`, `.pbl`, `.html`, `.htm` que tenham tags `<@…@>` (e os moldes sem tags que algum molde inclua), grava um `.pbl` por arquivo e um `RELATORIO.md`. Nunca escreve fora da pasta de destino. O resultado é sempre revalidado pelo parser do PBL4.
+
+| O que o conversor faz | Como |
+|---|---|
+| Parâmetros `nome=[valor]` | os colchetes saem; `nome=` de laços é descartado |
+| `eco` e `=` (sem escape no PBL3) | `ecocru`, para a saída não mudar; com `--seguro` viram `eco` (escapam HTML). `ecoe` vira `eco` |
+| `cortaTexto(x, n)` | `eco_limite texto=x limite=n` |
+| `#cod_objeto`, `#cod_pai`, `#cod_classe` | `#id`, `#pai`, `#classe_id`; `#cod_status` vira `#status` com o nome do estado |
+| `niveis=[n]` | `niveis=n+1` (no PBL3, 0 já eram os filhos diretos); `pai=[-1]` e `niveis=[-1]` somem |
+| `condicao=["campo=valor"]` | `campo="campo" valor="valor"`; o campo precisa ser **indexável** (vai para o relatório) |
+| `cod_objeto=[x]` em `usarobjeto`/`temfilho` | `id=x` |
+| `incluir arquivo=['/html/include/x.php']` | `incluir arquivo="include/x"` e o arquivo é convertido junto |
+| `$_page->config["portal"]["url"]` | removido (links relativos à raiz do site) |
+| PHP cru (`<?php … ?>`) | removido e substituído por `<@-- REVISAR … --@>` |
+| comando sem equivalente, expressão com PHP, `condicao` complexa, `like`/`ilike`/`tags` | comentário `<@-- REVISAR … --@>` com o original; entra no relatório |
+| arquivo em ISO-8859-1 | convertido para UTF-8 |
+
+Pontos a saber: ids fixos nos moldes (`pai=[1]`) só continuam certos se o importador (fase 9) **preservar os ids** do PBL3; o relatório lista moldes incluídos que não existem na origem.
+
 ## Do PBL3 para o PBL4
 
-A tabela orienta o conversor de moldes (fase 2c). Estado: ✅ nesta versão, ⏳ depois (conversor ou fases seguintes), ❌ não será portado.
+A tabela orienta o conversor de moldes (fase 2c). Estado: ✅ nesta versão (o conversor aplica a regra), ⏳ depende de fases seguintes, ❌ não será portado.
 
 | PBL3 | PBL4 | |
 |---|---|---|
@@ -93,7 +124,8 @@ A tabela orienta o conversor de moldes (fase 2c). Estado: ✅ nesta versão, ⏳
 | `=`, `eco_limite`, `formatadata`, `var`, `se/senao`, `repetir` | mesmos nomes; fechamento `\x` ou `/x` vira `/x` | ✅ |
 | `filhos`, `semfilhos`, `aleatorio`, `naolocalizado` | mesmos nomes (`nome=` é ignorado) | ✅ |
 | `incluir arquivo=…` | `incluir arquivo=…` (nome de molde da pele, não caminho do servidor) | ✅ |
-| `#cod_objeto`, `#cod_pai` | `#id`, `#pai` (feito pelo conversor) | ⏳ |
+| `#cod_objeto`, `#cod_pai`, `#cod_classe`, `#cod_status`, `#url_amigavel`, `#peso`, `#descricao`, datas | mapeados (ver conversor) | ✅ |
+| `#temfilhos`, `#tags` | ainda não existem no contexto (`temfilho` cobre o primeiro) | ⏳ |
 | `localizar`, `localizaraleatorio` | `localizar`/`localizaraleatorio` com o subconjunto acima; `condicao`, `like`, `ilike` e `tags` em SQL livre **não** existem: o conversor os marca para revisão e a fase 1 traz filtros equivalentes | ✅ (parcial) |
 | `usarobjeto titulo=…`/`cod_objeto=…`, `temfilho cod_objeto=…` | `usarobjeto titulo=…`/`id=…`, `temfilho id=…` | ✅ |
 | `usarblob`, `linkblob`, `downloadblob`, `tamanhoblob`, `iconeblob`, `tipoblob`, `srcblob`, `srcthumb`, `iconeclasse` | comandos de arquivo/imagem: entram com o upload e a entrega de blobs (fluxo 7) | ⏳ |

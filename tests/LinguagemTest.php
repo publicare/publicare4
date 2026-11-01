@@ -207,6 +207,12 @@ final class LinguagemTest extends TestCase
         self::assertSame('[A]', $this->render($m, [], [], $itens));
     }
 
+    public function testComentariosNaoGeramSaidaEPodemTerAspasESimbolos(): void
+    {
+        self::assertSame('ab', $this->render("a<@-- REVISAR: não portado: usarblob nome=[\"x\"] it's @ > --@>b"));
+        self::assertSame("a\nb", $this->render("a\n<@-- c --@>b"));
+    }
+
     public function testMacrosDeData(): void
     {
         $agora = new \DateTimeImmutable('2026-11-01 10:00:00');

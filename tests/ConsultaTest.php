@@ -148,4 +148,44 @@ final class ConsultaTest extends TestCase
             }
         }
     }
+
+    public function testOrdemPorPesoEPropriedadeIndexavelEVariosCampos(): void
+    {
+        $classes = new ClasseRepositorio($this->con);
+        $c = $classes->criar('noticia', [
+            ['nome' => 'ordem_manual', 'tipo' => 'numero', 'indexavel' => true],
+            ['nome' => 'autor', 'tipo' => 'texto', 'indexavel' => true],
+        ]);
+        $pai = $this->objetos->criar(3, $this->pagina, null, 'Pai', '', []);
+        $this->objetos->criar(3, $c, $pai->id, 'N1', 'n1', ['ordem_manual' => 30, 'autor' => 'Bia'], 'publicado', ['peso' => 2]);
+        $this->objetos->criar(3, $c, $pai->id, 'N2', 'n2', ['ordem_manual' => 10, 'autor' => 'Ana'], 'publicado', ['peso' => 1]);
+        $this->objetos->criar(3, $c, $pai->id, 'N3', 'n3', ['ordem_manual' => 20, 'autor' => 'Ana'], 'publicado', ['peso' => 1]);
+        $ctx = ['id' => $pai->id, 'site' => 3];
+        $t = fn (string $ordem) => array_column($this->fonte->filhos($ctx, ['ordem' => $ordem]), 'titulo');
+
+        self::assertSame(['N2', 'N3', 'N1'], $t(''), 'padrão é peso, depois id');
+        self::assertSame(['N2', 'N3', 'N1'], $t('peso'));
+        self::assertSame(['N1', 'N2', 'N3'], $t('-peso, id'));
+        self::assertSame(['N2', 'N3', 'N1'], $t('ordem_manual'), 'propriedade indexável, numérica');
+        self::assertSame(['N1', 'N3', 'N2'], $t('-ordem_manual'));
+        self::assertSame(['N2', 'N3', 'N1'], $t('autor, ordem_manual'), 'dois campos');
+        self::assertSame(['N3', 'N2', 'N1'], $t('autor, -ordem_manual'));
+        self::assertSame(['N3', 'N2', 'N1'], $t('titulo desc'));
+        self::assertCount(3, $this->fonte->filhos($ctx, ['ordem' => "peso; DROP TABLE objeto, x'--"]), 'texto livre nunca vira SQL');
+    }
+
+    public function testVigenciaEsconderFuturoEVencido(): void
+    {
+        $pai = $this->objetos->criar(4, $this->pagina, null, 'Pai', '', []);
+        $ontem = gmdate('c', time() - 86400);
+        $amanha = gmdate('c', time() + 86400);
+        $this->objetos->criar(4, $this->pagina, $pai->id, 'Vigente', 'v', [], 'publicado', ['data_publicacao' => $ontem, 'data_validade' => $amanha]);
+        $this->objetos->criar(4, $this->pagina, $pai->id, 'Futuro', 'f', [], 'publicado', ['data_publicacao' => $amanha]);
+        $this->objetos->criar(4, $this->pagina, $pai->id, 'Vencido', 'x', [], 'publicado', ['data_validade' => $ontem]);
+        $this->objetos->criar(4, $this->pagina, $pai->id, 'Sem datas', 's', []);
+        $ctx = ['id' => $pai->id, 'site' => 4];
+
+        self::assertSame(['Vigente', 'Sem datas'], array_column($this->fonte->filhos($ctx, ['ordem' => 'id']), 'titulo'));
+        self::assertSame(['Vigente', 'Sem datas'], array_column($this->fonte->localizar($ctx, ['ordem' => 'id', 'pai' => $pai->id]), 'titulo'));
+    }
 }

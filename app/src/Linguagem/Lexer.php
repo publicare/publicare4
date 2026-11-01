@@ -28,6 +28,15 @@ final class Lexer
                 $tokens[] = ['tipo' => 'texto', 'valor' => substr($fonte, $pos, $ini - $pos)];
             }
             $linha = $this->linha($fonte, $ini);
+            if (substr($fonte, $ini + 2, 2) === '--') {
+                // Comentário: `<@-- texto --@>`; vai até `--@>` e não gera saída.
+                $fimComentario = strpos($fonte, '--@>', $ini + 4);
+                if ($fimComentario === false) {
+                    throw new ErroSintaxe('Comentário não fechado (falta --@>)', $linha);
+                }
+                $pos = $fimComentario + 4;
+                continue;
+            }
             $fim = $this->fimDaTag($fonte, $ini + 2, $linha);
             $interno = trim(substr($fonte, $ini + 2, $fim - $ini - 2));
             if (preg_match('/^(\/?)([a-z_]+|=)(.*)$/s', $interno, $a) !== 1) {

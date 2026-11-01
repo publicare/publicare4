@@ -10,7 +10,7 @@ final class ClasseRepositorio
 {
     public const TIPOS = ['texto', 'numero', 'html'];
     /** Nomes que o contexto do molde já usa (`#id`, `#titulo`...). */
-    public const RESERVADOS = ['id', 'titulo', 'url', 'classe', 'site', 'pai', 'filhos'];
+    public const RESERVADOS = ['id', 'titulo', 'url', 'url_amigavel', 'classe', 'classe_id', 'site', 'pai', 'filhos', 'peso', 'descricao', 'data_publicacao', 'data_validade', 'status', 'apagado'];
 
     public function __construct(private readonly Connection $conexao)
     {

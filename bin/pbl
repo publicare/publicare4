@@ -6,6 +6,7 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use Pbl\Caminhos;
+use Pbl\Console\ConverterMoldesComando;
 use Pbl\Console\InstalarComando;
 use Pbl\Console\PublicarComando;
 use Pbl\Console\VersaoComando;
@@ -16,4 +17,5 @@ $caminhos = new Caminhos(dirname(__DIR__));
 $aplicacao->add(new VersaoComando());
 $aplicacao->add(new InstalarComando($caminhos));
 $aplicacao->add(new PublicarComando($caminhos));
+$aplicacao->add(new ConverterMoldesComando());
 $aplicacao->run();

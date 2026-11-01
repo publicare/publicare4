@@ -6,7 +6,7 @@ namespace Pbl\Publicacao;
 
 use Pbl\Conteudo\Objeto;
 
-/** Como um objeto aparece para o molde: `#id`, `#titulo`, `#url`, `#classe`, `#site`, `#pai` e os campos da classe. */
+/** Como um objeto aparece para o molde: `#id`, `#titulo`, `#url`, `#classe`, `#site`, `#pai`, `#peso`, `#descricao`, datas de vigência e os campos da classe. */
 final class ContextoDeObjeto
 {
     /** @return array<string, mixed> */
@@ -19,6 +19,14 @@ final class ContextoDeObjeto
             'classe' => $classe,
             'site' => $objeto->siteId,
             'pai' => $objeto->paiId ?? '',
+            'peso' => $objeto->peso,
+            'descricao' => $objeto->descricao,
+            'data_publicacao' => $objeto->dataPublicacao ?? '',
+            'data_validade' => $objeto->dataValidade ?? '',
+            'url_amigavel' => $objeto->urlAmigavel,
+            'classe_id' => $objeto->classeId,
+            'status' => $objeto->status,
+            'apagado' => 0,
         ];
     }
 }
