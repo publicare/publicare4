@@ -66,6 +66,17 @@ Regras (ADR 0003, fluxo 9):
 - O mesmo objeto pode ser alcançado por mais de um domínio, mas tem **uma URL canônica** (a do site dono); os demais domínios emitem `rel=canonical`.
 - Subdomínio curinga e domínios de desenvolvimento: configuráveis na tabela `dominio` (padrão, apelido, desenvolvimento).
 
+### URLs legadas e domínios antigos (de-para)
+
+URL e domínio divulgados, impressos ou citados em outros sites são **contrato permanente**: trocar de domínio, renomear ou mover um objeto não pode quebrar endereços já distribuídos (material impresso não se reimprime). O PBL3 já teve uma camada de de-para de domínios com esse papel; o PBL4 a torna parte do núcleo:
+
+- **Domínios antigos e apelidos** (tabela `dominio`): cada host aponta para um site, com política `servir` (mesmo conteúdo, com `rel=canonical`) ou `redirecionar` (301 para o domínio canônico), preservando caminho e consulta.
+- **Histórico de URLs** (`url_historico`): ao alterar `url_amigavel` ou mover um objeto, a URL anterior é registrada e passa a responder **301 para a atual**. Nunca é descartada em silêncio; só o admin pode liberá-la.
+- **Regras manuais de redirecionamento** por site (origem → destino, 301/302, prefixo ou exata), para endereços legados que não correspondem a nenhum objeto atual (URLs de sistemas antigos, por exemplo). Aplicadas antes do 404.
+- **Importador do PBL3** (fase 9): carrega os domínios e as URLs amigáveis existentes e gera as regras necessárias para que **nenhum link existente quebre** na migração; relatório lista o que não pôde ser mapeado.
+- **Ordem de resolução**: domínio → site; redirecionamento de domínio; página publicada no cache; histórico de URLs; regras manuais; 404.
+- **Cache**: redirecionamentos são resolvidos no mesmo caminho rápido do cache de páginas (tabela pequena em memória/arquivo), sem passar pelo banco a cada requisição.
+
 Todo `portal.objroot` do p3 deixa de ser global e passa a ser lido do **contexto do portal** da requisição.
 
 ## PBL4
