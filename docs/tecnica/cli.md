@@ -9,6 +9,22 @@ No ambiente de desenvolvimento: `make pbl ARGS="<comando> …"`. Em um servidor:
 | `publicar` | renderiza todas as páginas visíveis de todos os sites para o cache e **remove do cache** o que deixou de estar visível (despublicado, vencido, rascunho) ou ficou órfão (a página de um endereço que mudou) |
 | `converter-moldes <origem> <destino> [--seguro]` | converte moldes do PBL3 em moldes PBL4 e escreve `RELATORIO.md` |
 
+## `dominio` e `redirecionamento`
+
+```bash
+make pbl ARGS="dominio listar"
+make pbl ARGS="dominio adicionar antigo.exemplo.org --modo=redirecionar"   # 301 para o principal
+make pbl ARGS="dominio adicionar apelido.exemplo.org --modo=servir"         # mesmo conteúdo + Link rel=canonical
+make pbl ARGS="dominio principal novo.exemplo.org"                          # o principal anterior passa a redirecionar
+make pbl ARGS="redirecionamento adicionar /Sistemas/Agenda.PHP https://agenda.exemplo.org/ --codigo=302"
+make pbl ARGS="redirecionamento adicionar /antigo /novo --prefixo"          # /antigo/x → /novo/x
+make pbl ARGS="redirecionamento listar"
+make pbl ARGS="redirecionamento remover 3"
+```
+
+- `--site=N` escolhe o site (padrão: o primeiro). O domínio principal não pode ser removido: defina outro antes.
+- Regras de redirecionamento: origem é um caminho (`/antigo`), destino é um caminho do site ou `https://…`; a regra exata vence a de prefixo, e entre prefixos vence o mais longo. Só valem para endereços que **não** são uma página publicada nem o endereço antigo de um conteúdo. A consulta (`?a=1`) do pedido é mantida.
+
 ## `converter-moldes`
 
 ```bash

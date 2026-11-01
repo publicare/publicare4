@@ -26,6 +26,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - **Mudar a URL de um conteúdo não quebra o endereço antigo**: o endereço anterior fica no histórico e passa a responder **301** para o atual (mantendo a query string, sempre para caminho do próprio site). Para tomar um endereço que redireciona para outro conteúdo, ao **criar** ou ao **alterar**, é preciso liberá-lo de propósito. (#18)
 - **Mover um conteúdo na árvore** (com toda a subárvore), recusando ciclos e pai de outro site; os endereços não mudam. Estados válidos: `privado`, `submetido`, `rejeitado`, `publicado`, `apagado`. (#18)
 - `bin/pbl publicar` remove do cache também as páginas de endereços que deixaram de existir. (#18)
+- **Domínios com papel**: cada site tem um domínio **principal** (o canônico) e quantos domínios extras precisar, cada um como **`servir`** (mostra o mesmo conteúdo e avisa o canônico no cabeçalho `Link: rel="canonical"`) ou **`redirecionar`** (301 para o principal, mantendo caminho e consulta). Trocar o principal faz o antigo passar a redirecionar. O host de destino sempre vem do cadastro, nunca da requisição; host inválido na requisição dá 400. (#19)
+- **Regras manuais de redirecionamento** por site, para endereços antigos que não são um conteúdo atual (maiúsculas, `.php`, sistemas que acabaram): exatas ou por prefixo (`/antigo/x` → `<destino>/x`, o prefixo mais longo vence), 301 ou 302, destino só no próprio site ou `https://`. Valem depois da página publicada e do histórico de URLs. (#19)
+- Comandos `bin/pbl dominio` (listar, adicionar, principal, remover) e `bin/pbl redirecionamento` (listar, adicionar, remover) enquanto não há tela de administração. (#19)
 - Documentação de design (ADRs 0003 a 0009, fluxos e plano), documentação para quem usa e técnica, guia de colaboração, política de segurança, versionamento e pipeline automática de testes.
 
 ### Alterado
@@ -44,6 +47,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - Página com `data_validade` vencida continuava sendo servida do cache. (#10)
 
 ### Segurança
+- Redirecionamentos cadastrados só aceitam destino no próprio site ou `https://` (sem `//`, `javascript:`, `http:`, credenciais, `..`, quebra de linha ou barra invertida); nomes de domínio são validados rótulo a rótulo, sem regex que cause *backtracking*. (#19)
 - O redirecionamento de endereços antigos só vai para o caminho do próprio site (nunca para URL externa) e só se o conteúdo de destino estiver publicado e vigente. (#18)
 - Uma propriedade `ref` só aceita objeto do mesmo site (e da classe indicada); seguir uma referência numa consulta também fica dentro do site. Consulta com campo inválido ou junções demais é recusada, e nenhum texto do molde entra no SQL. (#15)
 - A validação de URL tinha *backtracking* catastrófico (~93 caracteres esgotavam o limite do PCRE, ~4 ms de CPU por requisição em endereço público). Reescrita com classes disjuntas, quantificadores possessivos e teto de 300 caracteres. (#9)

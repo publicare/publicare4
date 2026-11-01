@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 namespace Pbl;
 
+use Pbl\Conteudo\Dominio;
+use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Entrada HTTP. Fase 0: resolve host → site, URL → página publicada no cache. A URL nunca vira
- * caminho de arquivo sem passar pela validação de `Caminhos::pagina()` (sem traversal).
+ * Entrada HTTP. Ordem de resolução (fluxo 1): domínio → site; domínio de redirecionamento; página publicada no cache;
+ * histórico de URLs; regras manuais de redirecionamento; 404. A URL nunca vira caminho de arquivo sem passar pela validação
+ * de `Caminhos::pagina()` (sem traversal). Todo redirecionamento vai para um caminho do próprio site, para o domínio
+ * principal cadastrado, ou para um destino `https://` que um administrador cadastrou: nunca para texto da requisição.
  */
 final class Aplicacao
 {
+    private const MAX_CAMINHO = 500;
+
     public function __construct(public readonly Caminhos $caminhos, private readonly ?Servicos $servicos = null)
     {
     }
@@ -26,24 +32,45 @@ final class Aplicacao
             return $this->texto('PBL4 não está instalado', Response::HTTP_SERVICE_UNAVAILABLE);
         }
 
-        $site = $servicos->sites->porHost($requisicao->getHost());
-        if ($site === null) {
+        try {
+            $host = $requisicao->getHost();
+        } catch (SuspiciousOperationException) {
+            return $this->texto('Domínio inválido', Response::HTTP_BAD_REQUEST);
+        }
+        $dominio = $servicos->dominios->porHost($host);
+        $site = $dominio === null ? null : $servicos->sites->porId($dominio->siteId);
+        if ($dominio === null || $site === null) {
             return $this->texto('Domínio não configurado', Response::HTTP_NOT_FOUND);
         }
+        $principal = $servicos->dominios->principalDe($site->id);
+        // Host canônico do site quando o domínio pedido não é ele (null se o pedido já é o principal ou não há principal).
+        $canonico = $principal !== null && $principal->host !== $dominio->host ? $principal->host : null;
 
-        $url = trim(rawurldecode($requisicao->getPathInfo()), '/');
+        if ($dominio->modo === Dominio::REDIRECIONAR && $canonico !== null) {
+            return new RedirectResponse($this->noDominio($requisicao, $canonico), Response::HTTP_MOVED_PERMANENTLY);
+        }
+
+        $pedido = rawurldecode($requisicao->getPathInfo());
+        if (strlen($pedido) > self::MAX_CAMINHO) {
+            return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
+        }
+        $url = trim($pedido, '/');
         try {
             $arquivo = $this->caminhos->pagina($site->id, $url);
         } catch (\InvalidArgumentException) {
-            return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
+            $arquivo = null; // endereço que nunca é URL de conteúdo (maiúsculas, .php…): ainda pode haver regra manual
         }
-        if (!is_file($arquivo)) {
-            // Endereço antigo de um conteúdo que mudou de URL: 301 para o endereço atual (só caminho relativo, validado).
-            $atual = $servicos->objetos->urlAtualDoHistorico($site->id, $url);
-            if ($atual !== null) {
-                $consulta = $requisicao->getQueryString();
 
-                return new RedirectResponse('/' . $atual . ($consulta === null || $consulta === '' ? '' : '?' . $consulta), Response::HTTP_MOVED_PERMANENTLY);
+        if ($arquivo === null || !is_file($arquivo)) {
+            if ($arquivo !== null) {
+                $atual = $servicos->objetos->urlAtualDoHistorico($site->id, $url);
+                if ($atual !== null) {
+                    return new RedirectResponse($this->comConsulta($requisicao, '/' . $atual), Response::HTTP_MOVED_PERMANENTLY);
+                }
+            }
+            $regra = $servicos->redirecionamentos->resolver($site->id, $pedido);
+            if ($regra !== null) {
+                return new RedirectResponse($this->comConsulta($requisicao, $regra['destino']), $regra['codigo']);
             }
 
             return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
@@ -52,10 +79,34 @@ final class Aplicacao
             return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
         }
 
-        return new Response((string) file_get_contents($arquivo), Response::HTTP_OK, [
-            'Content-Type' => 'text/html; charset=utf-8',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        $cabecalhos = ['Content-Type' => 'text/html; charset=utf-8', 'X-Content-Type-Options' => 'nosniff'];
+        if ($dominio->modo === Dominio::SERVIR && $canonico !== null) {
+            // O mesmo conteúdo em outro endereço: avisa aos buscadores qual é o canônico.
+            $cabecalhos['Link'] = '<' . $this->noDominio($requisicao, $canonico, false) . '>; rel="canonical"';
+        }
+
+        return new Response((string) file_get_contents($arquivo), Response::HTTP_OK, $cabecalhos);
+    }
+
+    /** Mesmo caminho (e, se `$comConsulta`, a mesma query string) no domínio dado; o host vem do cadastro, nunca da requisição. */
+    private function noDominio(Request $requisicao, string $host, bool $comConsulta = true): string
+    {
+        $porta = $requisicao->getPort();
+        $sufixo = in_array($porta, [80, 443], true) ? '' : ':' . $porta;
+        $consulta = $comConsulta ? $requisicao->getQueryString() : null;
+
+        return $requisicao->getScheme() . '://' . $host . $sufixo . $requisicao->getPathInfo() . ($consulta === null || $consulta === '' ? '' : '?' . $consulta);
+    }
+
+    /** Acrescenta a query string do pedido ao destino, se ele ainda não tiver uma. */
+    private function comConsulta(Request $requisicao, string $destino): string
+    {
+        $consulta = $requisicao->getQueryString();
+        if ($consulta === null || $consulta === '' || str_contains($destino, '?')) {
+            return $destino;
+        }
+
+        return $destino . '?' . $consulta;
     }
 
     private function texto(string $mensagem, int $status): Response
