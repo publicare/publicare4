@@ -20,7 +20,7 @@ final class Conversor
     /** Campos do PBL3 com outro nome no PBL4. */
     private const CAMPOS = ['cod_objeto' => 'id', 'cod_pai' => 'pai', 'cod_classe' => 'classe_id'];
     /** Campos que o PBL4 ainda não oferece no contexto do molde. */
-    private const CAMPOS_AUSENTES = ['temfilhos', 'tags', 'cod_usuario', 'cod_pele', 'script_exibir', 'versao', 'versao_publicada', 'objetosistema', 'nome_classe'];
+    private const CAMPOS_AUSENTES = ['tags', 'cod_usuario', 'cod_pele', 'script_exibir', 'versao', 'versao_publicada', 'objetosistema', 'nome_classe'];
     private const STATUS = [1 => 'privado', 2 => 'publicado', 3 => 'rejeitado', 4 => 'submetido'];
     /** Colunas de objeto que não são propriedades da classe. */
     private const METADADOS = ['id', 'titulo', 'peso', 'descricao', 'data_publicacao', 'data_validade', 'criado_em', 'atualizado_em'];
@@ -350,20 +350,41 @@ final class Conversor
         return $tag;
     }
 
+    /**
+     * `condicao=["a=1 and b>2"]` → `campo="a" valor="1" campo2="b" op2=">" valor2="2"`. Aceita até três comparações simples
+     * ligadas por `and`; `or`, parênteses, `like` e subconsultas ficam para revisão manual.
+     */
     private function condicao(string $valor): ?string
     {
         $texto = trim($valor);
         if (preg_match('/^(["\'])(.*)\1$/s', $texto, $q) === 1) {
             $texto = $q[2];
         }
-        if (preg_match('/^\s*([a-z][a-z0-9_]*)\s*=\s*(.+?)\s*$/i', $texto, $m) !== 1 || preg_match('/\s(and|or|&&|\|\|)\s/i', $m[2]) === 1) {
+        $partes = preg_split('/\s+and\s+/i', $texto) ?: [];
+        if ($partes === [] || count($partes) > 3) {
             return null;
         }
-        $v = trim($m[2], " '\"");
-        $this->campos[strtolower($m[1])] = true;
-        $this->avisos[] = new Aviso(Aviso::INFO, $this->linha, "condicao \"{$texto}\": o campo {$m[1]} precisa ser indexável na classe");
+        $params = [];
+        $campos = [];
+        foreach ($partes as $i => $parte) {
+            if (preg_match('/^\s*([a-z][a-z0-9_]*)\s*(<=|>=|<>|!=|=|<|>)\s*(.+?)\s*$/i', $parte, $m) !== 1 || preg_match('/\s(or|like)\s|[()]/i', $m[3]) === 1) {
+                return null;
+            }
+            $sufixo = $i === 0 ? '' : (string) ($i + 1);
+            $operador = $m[2] === '<>' ? '!=' : $m[2];
+            $v = trim($m[3], " '\"");
+            $campo = strtolower($m[1]);
+            $campos[] = $campo;
+            $params[] = "campo{$sufixo}=\"{$campo}\"" . ($operador === '=' ? '' : " op{$sufixo}=\"{$operador}\"") . " valor{$sufixo}=\"" . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
+        }
+        foreach ($campos as $campo) {
+            if (!in_array($campo, self::METADADOS, true)) {
+                $this->campos[$campo] = true;
+            }
+        }
+        $this->avisos[] = new Aviso(Aviso::INFO, $this->linha, "condicao \"{$texto}\": os campos " . implode(', ', array_unique($campos)) . ' precisam ser indexáveis na classe');
 
-        return 'campo="' . strtolower($m[1]) . '" valor="' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
+        return implode(' ', $params);
     }
 
     private function registrarOrdem(string $valor): void

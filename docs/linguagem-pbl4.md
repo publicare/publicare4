@@ -44,7 +44,8 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 
 | Elemento | Significado |
 |---|---|
-| `#campo` | campo do objeto corrente: `#id`, `#titulo`, `#url` (`/` + URL amigável), `#url_amigavel`, `#classe`, `#classe_id`, `#site`, `#pai`, `#peso`, `#descricao`, `#data_publicacao`, `#data_validade`, `#status`, `#apagado` e os campos da classe (esses nomes são reservados). Dentro de `filhos`, o objeto corrente é o filho. Campo inexistente é vazio. |
+| `#ref.campo` | campo do objeto **apontado** por uma propriedade `ref` (`#autor.titulo`, `#autor.cargo`). Um só nível. Só enxerga objetos do mesmo site, publicados e vigentes; sem autor, vem vazio. O ponto precisa estar colado ao nome: `#a . "x"` e `#a."x"` continuam sendo concatenação. |
+| `#campo` | campo do objeto corrente: `#id`, `#titulo`, `#url` (`/` + URL amigável), `#url_amigavel`, `#classe`, `#classe_id`, `#site`, `#pai`, `#peso`, `#descricao`, `#data_publicacao`, `#data_validade`, `#status`, `#apagado`, `#temfilhos` (1 se tem filhos visíveis, senão 0) e os campos da classe (esses nomes são reservados). Dentro de `filhos`, o objeto corrente é o filho. Campo inexistente é vazio. |
 | `$variavel` | variável do molde, criada por `var` ou `repetir`; compartilhada com os moldes incluídos; vazia se não definida. Não toca em variáveis do PHP. |
 | `%MACRO` | `DIA`, `MES`, `ANO`, `DATA` (dd/mm/aaaa); em laço de coleção: `INDICE` (1..n) e `FIM`/`QUANTIDADE` (total). Macro desconhecida é erro de sintaxe. |
 | `.` | concatenação (texto). `+ - * /` aritmética; texto não numérico vale 0; divisão por zero dá vazio. |
@@ -63,9 +64,9 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `<@var $x = expr@>` | define variável |
 | `<@se cond@>…<@senao@>…<@/se@>` | condicional |
 | `<@repetir $i=[a,b]@>…<@/repetir@>` | laço numérico inclusivo |
-| `<@filhos [classes="a,b"] [ordem="peso, -data_publicacao"] [inicio=n] [limite=n]@>…<@/filhos@>` | laço sobre filhos **publicados e vigentes** (fora de `data_publicacao`/`data_validade` não aparecem) |
+| `<@filhos [classes="a,b"] [ordem="peso, -data_publicacao"] [inicio=n] [limite=n] [expandir="autor"]@>…<@/filhos@>` | laço sobre filhos **publicados e vigentes** (fora de `data_publicacao`/`data_validade` não aparecem) |
 | `<@aleatorio …@>…<@/aleatorio@>` | como `filhos`, em ordem aleatória: sorteia entre **todos** os candidatos e só então aplica `inicio`/`limite` (`limite=1` escolhe um item qualquer) |
-| `<@localizar [classes=…] [pai=n] [niveis=n] [campo=… valor=…] [busca=…] [ordem=…] [inicio=n] [limite=n]@>…<@/localizar@>` | laço sobre objetos **publicados do mesmo site**: `pai` limita à subárvore (excluindo o próprio pai) e `niveis` à profundidade; `campo`+`valor` é igualdade em propriedade **indexável** da classe; `busca` procura o texto no título (sem diferenciar maiúsculas, inclusive acentuadas: `árvore` acha `Árvore`; `%` e `_` são literais). Subconjunto seguro; o motor de consulta completo vem na fase 1 |
+| `<@localizar [classes=…] [pai=n] [niveis=n] [campo=… op=… valor=…] [campo2=…] [campo3=…] [busca=…] [ordem=…] [inicio=n] [limite=n] [expandir=…]@>…<@/localizar@>` | laço sobre objetos **publicados e vigentes do mesmo site**. `pai` limita à subárvore (sem o próprio pai) e `niveis` à profundidade (`niveis=1` são os filhos diretos). Até **três condições** (todas precisam valer): `campo`/`op`/`valor`, `campo2`/`op2`/`valor2`, `campo3`/`op3`/`valor3`. `campo` é uma coluna do objeto, uma propriedade **indexável** ou `ref.campo` (`autor.cargo`); `op` é `=` (padrão), `!=`, `<`, `>`, `<=`, `>=` ou `contem`. `busca` procura o texto no título (sem diferenciar maiúsculas, inclusive acentuadas; `%` e `_` são literais). Consulta mal formada devolve lista vazia |
 | `<@localizaraleatorio …@>…<@/localizaraleatorio@>` | como `localizar`, em ordem aleatória |
 | `<@semfilhos@>…<@/semfilhos@>` / `<@naolocalizado@>…<@/naolocalizado@>` | executa se o último laço de coleção não achou nada (são sinônimos) |
 | `<@usarobjeto id=n \| url="…" \| titulo="…"@>…<@/usarobjeto@>` | troca o objeto corrente dentro do bloco; objeto inexistente, de outro site ou não publicado: o bloco não roda |
@@ -87,7 +88,19 @@ Nomes de layout e de `incluir` são caminhos relativos à pasta da pele (`a-z 0-
 
 ### Ordenação (`ordem`)
 
-Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`desc` atrás: `peso, -data_publicacao`, `titulo desc`. Aceita as colunas `id`, `titulo`, `peso`, `descricao`, `data_publicacao`, `data_validade`, `criado_em`, `atualizado_em` e qualquer **propriedade indexável** da classe (até 4 propriedades). Sem `ordem`, vale `peso` e depois `id`, como no PBL3. Nada da `ordem` chega ao SQL como texto livre. Ordenar pelo campo de um objeto referenciado (`obj_ref`) fica para o motor de consulta da fase 1 (ver [fluxo 9](fluxos/09-armazenamento-consulta.md)).
+Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`desc` atrás: `peso, -data_publicacao`, `titulo desc`. Aceita as colunas `id`, `titulo`, `peso`, `descricao`, `data_publicacao`, `data_validade`, `criado_em`, `atualizado_em`, qualquer **propriedade indexável** da classe e o campo de um **objeto referenciado** (`autor.titulo`, `-autor.cargo`), até 4 critérios. Sem `ordem`, vale `peso` e depois `id`, como no PBL3. **Valores nulos ficam sempre por último**, em qualquer direção e em qualquer banco. Nada da `ordem` chega ao SQL como texto livre. Ordenar pelo objeto apontado é uma consulta só, sem tabela temporária (ver [fluxo 9](fluxos/09-armazenamento-consulta.md)).
+
+### Tipos de propriedade
+
+| Tipo | Valor aceito | Indexável |
+|---|---|---|
+| `texto`, `html` | texto | opcional |
+| `numero` | inteiro ou decimal | opcional |
+| `data` | `aaaa-mm-dd`, `aaaa-mm-dd hh:mm:ss` (data impossível é recusada) | opcional |
+| `booleano` | verdadeiro/falso (guardado como 1/0) | opcional |
+| `ref` | id de outro objeto **do mesmo site** (e da classe indicada, se a propriedade restringe) | sempre |
+
+`expandir="autor"` em `filhos`/`localizar` carrega os objetos apontados da lista inteira numa consulta só (até 4 propriedades). Sem ele, `#autor.titulo` funciona do mesmo jeito, buscando o objeto sob demanda uma vez por página.
 
 ## Conversor de moldes PBL3 → PBL4
 
@@ -105,7 +118,7 @@ Lê `.php`, `.pbl`, `.html`, `.htm` que tenham tags `<@…@>` (e os moldes sem t
 | `cortaTexto(x, n)` | `eco_limite texto=x limite=n` |
 | `#cod_objeto`, `#cod_pai`, `#cod_classe` | `#id`, `#pai`, `#classe_id`; `#cod_status` vira `#status` com o nome do estado |
 | `niveis=[n]` | `niveis=n+1` (no PBL3, 0 já eram os filhos diretos); `pai=[-1]` e `niveis=[-1]` somem |
-| `condicao=["campo=valor"]` | `campo="campo" valor="valor"`; o campo precisa ser **indexável** (vai para o relatório) |
+| `condicao=["a=1 and b>2"]` | até três comparações (`=`, `!=`/`<>`, `<`, `>`, `<=`, `>=`) ligadas por `and`: `campo="a" valor="1" campo2="b" op2=">" valor2="2"`; os campos precisam ser **indexáveis** (vai para o relatório). `or`, parênteses e `like` ficam para revisão |
 | `cod_objeto=[x]` em `usarobjeto`/`temfilho` | `id=x` |
 | `incluir arquivo=['/html/include/x.php']` | `incluir arquivo="include/x"` e o arquivo é convertido junto |
 | `$_page->config["portal"]["url"]` | removido (links relativos à raiz do site) |
@@ -127,7 +140,8 @@ A tabela orienta o conversor de moldes (fase 2c). Estado: ✅ nesta versão (o c
 | `filhos`, `semfilhos`, `aleatorio`, `naolocalizado` | mesmos nomes (`nome=` é ignorado) | ✅ |
 | `incluir arquivo=…` | `incluir arquivo=…` (nome de molde da pele, não caminho do servidor) | ✅ |
 | `#cod_objeto`, `#cod_pai`, `#cod_classe`, `#cod_status`, `#url_amigavel`, `#peso`, `#descricao`, datas | mapeados (ver conversor) | ✅ |
-| `#temfilhos`, `#tags` | ainda não existem no contexto (`temfilho` cobre o primeiro) | ⏳ |
+| `#temfilhos` | `#temfilhos` | ✅ |
+| `#tags` | ainda não existe no contexto | ⏳ |
 | `localizar`, `localizaraleatorio` | `localizar`/`localizaraleatorio` com o subconjunto acima; `condicao`, `like`, `ilike` e `tags` em SQL livre **não** existem: o conversor os marca para revisão e a fase 1 traz filtros equivalentes | ✅ (parcial) |
 | `usarobjeto titulo=…`/`cod_objeto=…`, `temfilho cod_objeto=…` | `usarobjeto titulo=…`/`id=…`, `temfilho id=…` | ✅ |
 | `usarblob`, `linkblob`, `downloadblob`, `tamanhoblob`, `iconeblob`, `tipoblob`, `srcblob`, `srcthumb`, `iconeclasse` | comandos de arquivo/imagem: entram com o upload e a entrega de blobs (fluxo 7) | ⏳ |

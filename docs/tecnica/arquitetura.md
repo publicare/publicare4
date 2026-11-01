@@ -42,7 +42,7 @@ O molde é compilado **uma vez** para PHP; o hash cobre o molde, a cadeia de lay
 | `site`, `dominio` | sites e os domínios que levam a eles (vários domínios para um site) |
 | `classe` | tipos de conteúdo e suas propriedades (JSON) |
 | `objeto` | os conteúdos: dados em JSON, `caminho` materializado (`/1/45/230/`), metadados (`peso`, `descricao`, vigência), `titulo_busca` |
-| `objeto_indice` | valores tipados só das propriedades marcadas como **indexáveis** (filtro e ordenação sem juntar várias tabelas) |
+| `objeto_indice` | valores tipados só das propriedades marcadas como **indexáveis** (as `ref` sempre); é o que permite filtrar e ordenar, inclusive pelo campo de um objeto apontado, com `JOIN`s e sem tabela temporária |
 | `schema_versao` | migrações já aplicadas |
 
 Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banco em uso normal só precisa de `SELECT/INSERT/UPDATE/DELETE` ([ADR 0003](../adr/0003-plataforma-low-code.md)). A subárvore de um objeto sai do prefixo do `caminho`, o que também limita cada consulta ao seu site.
@@ -52,13 +52,14 @@ Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banc
 | Camada | Namespace | Responsabilidade |
 |---|---|---|
 | Entrada | `Pbl\Aplicacao`, `public/index.php` | resolver host e URL, devolver arquivo do cache |
-| Conteúdo | `Pbl\Conteudo` | classes, objetos, sites; validação dos dados; índice |
+| Conteúdo | `Pbl\Conteudo` | classes, objetos, sites; validação dos dados por tipo (`texto`, `numero`, `html`, `data`, `booleano`, `ref`); índice |
+| Consulta | `Pbl\Consulta` | `Consulta` (o pedido) e `MotorDeConsulta` (a execução): filtros, ordem, referências, contagem, carga em lote. Único caminho para ler conteúdo em lista |
 | Linguagem | `Pbl\Linguagem` | compilar e executar moldes (PBL4) em ambiente restrito |
 | Publicação | `Pbl\Publicacao` | renderizar, gravar e limpar o cache; ligar o runtime ao banco |
 | Conversão | `Pbl\Conversao` | migrar moldes do PBL3 |
 | Infraestrutura | `Pbl\Banco`, `Pbl\Instalacao`, `Pbl\Console` | conexão e migrações, instalador, comandos |
 
-O `Runtime` não conhece o banco: usa a interface `FonteDeDados`, implementada por `FonteRepositorio`. Isso mantém a linguagem testável e permite outras fontes (por exemplo, a API de conteúdo prevista no [ADR 0009](../adr/0009-peles-de-saida-headless.md)).
+O `Runtime` não conhece o banco: usa a interface `FonteDeDados`, implementada por `FonteRepositorio`, que monta `Consulta`s para o `MotorDeConsulta`. Isso mantém a linguagem testável e permite outras fontes (por exemplo, a API de conteúdo prevista no [ADR 0009](../adr/0009-peles-de-saida-headless.md)).
 
 ## Pastas do site (`dados/`)
 
@@ -73,4 +74,4 @@ dados/
 
 ## O que ainda não existe
 
-Autenticação e permissões, administração web, instalador web, atualizador, upload de arquivos, tipo de propriedade `ref` e consultas por objeto referenciado, versões de objeto, redirecionamento de URLs antigas. Estão no [plano](../plano.md).
+Autenticação e permissões, administração web, instalador web, atualizador, upload de arquivos, versões de objeto, redirecionamento de URLs antigas. Estão no [plano](../plano.md).

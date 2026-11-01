@@ -10,8 +10,8 @@ final class Parser
     private const PARAMS = [
         'eco_limite' => ['texto', 'limite', 'inicio'],
         'formatadata' => ['valor', 'formato'],
-        'filhos' => ['nome', 'classes', 'ordem', 'inicio', 'limite'],
-        'localizar' => ['nome', 'classes', 'ordem', 'inicio', 'limite', 'pai', 'niveis', 'campo', 'valor', 'busca'],
+        'filhos' => ['nome', 'classes', 'ordem', 'inicio', 'limite', 'expandir'],
+        'localizar' => ['nome', 'classes', 'ordem', 'inicio', 'limite', 'pai', 'niveis', 'campo', 'op', 'valor', 'campo2', 'op2', 'valor2', 'campo3', 'op3', 'valor3', 'busca', 'expandir'],
         'usarobjeto' => ['id', 'url', 'titulo'],
         'temfilho' => ['id'],
     ];

@@ -19,7 +19,7 @@ final class ObjetoRepositorio
     }
 
     /**
-     * @param array<string, string|int|float> $dados
+     * @param array<string, string|int|float|bool> $dados
      * @param array{peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null} $meta
      */
     public function criar(int $siteId, Classe $classe, ?int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'publicado', array $meta = []): Objeto
@@ -27,7 +27,7 @@ final class ObjetoRepositorio
         if (!\Pbl\Caminhos::urlValida($urlAmigavel)) {
             throw new \InvalidArgumentException("URL amigável inválida: {$urlAmigavel}");
         }
-        $this->validar($classe, $dados);
+        $dados = $this->validar($siteId, $classe, $dados);
 
         return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta): Objeto {
             $caminhoPai = '/';
@@ -107,160 +107,6 @@ final class ObjetoRepositorio
     }
 
     /**
-     * Filhos publicados e vigentes de um objeto, com filtro de classes, ordenação segura e janela.
-     *
-     * @param list<int>|null $classeIds
-     * @return list<Objeto>
-     */
-    public function filhos(int $paiId, ?array $classeIds, string $ordem, int $inicio, int $limite): array
-    {
-        $consulta = $this->consulta('o.pai_id = :pai', ['pai' => [$paiId, ParameterType::INTEGER]]);
-        if ($classeIds !== null) {
-            $consulta['where'][] = 'o.classe_id IN (:classes)';
-            $consulta['params']['classes'] = [$classeIds, ArrayParameterType::INTEGER];
-        }
-
-        return $this->executar($consulta, $ordem, $inicio, $limite);
-    }
-
-    /**
-     * Busca publicada e vigente num site: subárvore (`pai`, `niveis`), classes, igualdade em campo indexado
-     * (`campo`/`valor`) e texto no título (`busca`). Subconjunto seguro; o motor único é a fase 1.
-     *
-     * @param array{classeIds?: list<int>, pai?: int, niveis?: int, campo?: string, valor?: string, busca?: string, ordem?: string, inicio?: int, limite?: int} $f
-     * @return list<Objeto>
-     */
-    public function localizar(int $siteId, array $f): array
-    {
-        $consulta = $this->consulta('o.site_id = :site', ['site' => [$siteId, ParameterType::INTEGER]]);
-
-        if (isset($f['pai']) && $f['pai'] >= 0) {
-            $caminhoPai = $this->conexao->fetchOne('SELECT caminho FROM objeto WHERE id = ? AND site_id = ?', [$f['pai'], $siteId]);
-            if ($caminhoPai === false) {
-                return [];
-            }
-            $consulta['where'][] = "o.caminho LIKE :prefixo ESCAPE '!' AND o.id <> :pai";
-            $consulta['params']['prefixo'] = [$this->escaparLike((string) $caminhoPai) . '%', ParameterType::STRING];
-            $consulta['params']['pai'] = [$f['pai'], ParameterType::INTEGER];
-            if (isset($f['niveis']) && $f['niveis'] > 0) {
-                $consulta['where'][] = "(LENGTH(o.caminho) - LENGTH(REPLACE(o.caminho, '/', ''))) <= :barras";
-                $consulta['params']['barras'] = [substr_count((string) $caminhoPai, '/') + $f['niveis'], ParameterType::INTEGER];
-            }
-        }
-        if (isset($f['classeIds'])) {
-            $consulta['where'][] = 'o.classe_id IN (:classes)';
-            $consulta['params']['classes'] = [$f['classeIds'], ArrayParameterType::INTEGER];
-        }
-        if (isset($f['campo'], $f['valor'])) {
-            $igual = 'i.texto = :valor' . (is_numeric($f['valor']) ? ' OR i.numero = :numero' : '');
-            $consulta['where'][] = "EXISTS (SELECT 1 FROM objeto_indice i WHERE i.objeto_id = o.id AND i.chave = :campo AND ({$igual}))";
-            $consulta['params']['campo'] = [$f['campo'], ParameterType::STRING];
-            $consulta['params']['valor'] = [$f['valor'], ParameterType::STRING];
-            if (is_numeric($f['valor'])) {
-                $consulta['params']['numero'] = [(float) $f['valor'], ParameterType::STRING];
-            }
-        }
-        if (isset($f['busca']) && $f['busca'] !== '') {
-            $consulta['where'][] = "o.titulo_busca LIKE :busca ESCAPE '!'";
-            $consulta['params']['busca'] = ['%' . $this->escaparLike(mb_strtolower($f['busca'])) . '%', ParameterType::STRING];
-        }
-
-        return $this->executar($consulta, $f['ordem'] ?? '', $f['inicio'] ?? 0, $f['limite'] ?? 100);
-    }
-
-    /**
-     * Base de toda consulta pública: só publicado e dentro da vigência.
-     *
-     * @param array<string, array{mixed, \Doctrine\DBAL\ParameterType|\Doctrine\DBAL\ArrayParameterType}> $params
-     * @return array{where: list<string>, params: array<string, array{mixed, \Doctrine\DBAL\ParameterType|\Doctrine\DBAL\ArrayParameterType}>}
-     */
-    private function consulta(string $condicaoInicial, array $params): array
-    {
-        $params['status'] = ['publicado', ParameterType::STRING];
-        $params['agora'] = [gmdate('c'), ParameterType::STRING];
-
-        return [
-            'where' => [
-                $condicaoInicial,
-                'o.status = :status',
-                '(o.data_publicacao IS NULL OR o.data_publicacao <= :agora)',
-                '(o.data_validade IS NULL OR o.data_validade >= :agora)',
-            ],
-            'params' => $params,
-        ];
-    }
-
-    /**
-     * @param array{where: list<string>, params: array<string, array{mixed, \Doctrine\DBAL\ParameterType|\Doctrine\DBAL\ArrayParameterType}>} $consulta
-     * @return list<Objeto>
-     */
-    private function executar(array $consulta, string $ordem, int $inicio, int $limite): array
-    {
-        [$joins, $order, $paramsOrdem] = $this->ordenacao($ordem);
-        $params = [];
-        $tipos = [];
-        foreach ($consulta['params'] + $paramsOrdem as $nome => [$valor, $tipo]) {
-            $params[$nome] = $valor;
-            $tipos[$nome] = $tipo;
-        }
-        $sql = 'SELECT o.* FROM objeto o' . $joins . ' WHERE ' . implode(' AND ', $consulta['where'])
-            . ' ORDER BY ' . $order . ' LIMIT ' . max(1, $limite) . ' OFFSET ' . max(0, $inicio);
-
-        return array_map($this->hidratar(...), $this->conexao->executeQuery($sql, $params, $tipos)->fetchAllAssociative());
-    }
-
-    /**
-     * Ordenação por lista fechada: `peso, -data_publicacao`, `titulo desc`, ou propriedade **indexável**
-     * da classe. Nada do molde chega ao SQL como texto livre: colunas vêm de uma tabela fixa e nomes de
-     * propriedade vão como parâmetro. Sem ordem informada vale `peso` (como no PBL3).
-     *
-     * @return array{string, string, array<string, array{mixed, \Doctrine\DBAL\ParameterType}>}
-     */
-    private function ordenacao(string $ordem): array
-    {
-        $colunas = [
-            'id' => 'o.id', 'titulo' => 'o.titulo', 'peso' => 'o.peso', 'descricao' => 'o.descricao',
-            'data_publicacao' => 'o.data_publicacao', 'data_validade' => 'o.data_validade',
-            'criado_em' => 'o.criado_em', 'atualizado_em' => 'o.atualizado_em',
-        ];
-        $joins = '';
-        $itens = [];
-        $params = [];
-        $n = 0;
-        foreach (explode(',', $ordem) as $item) {
-            $item = trim($item);
-            if ($item === '' || $n >= 4) {
-                continue;
-            }
-            $desc = false;
-            if ($item[0] === '-' || $item[0] === '+') {
-                $desc = $item[0] === '-';
-                $item = ltrim(substr($item, 1));
-            }
-            if (preg_match('/^([a-z][a-z0-9_]*)(?:\s+(asc|desc))?$/i', $item, $m) !== 1) {
-                continue;
-            }
-            $nome = strtolower($m[1]);
-            $desc = $desc || strtolower($m[2] ?? '') === 'desc';
-            $dir = $desc ? ' DESC' : ' ASC';
-            if (isset($colunas[$nome])) {
-                $itens[] = $colunas[$nome] . $dir;
-            } else {
-                $n++;
-                $joins .= " LEFT JOIN objeto_indice ox{$n} ON ox{$n}.objeto_id = o.id AND ox{$n}.chave = :ordem{$n}";
-                $params["ordem{$n}"] = [$nome, ParameterType::STRING];
-                $itens[] = "ox{$n}.numero{$dir}, ox{$n}.texto{$dir}";
-            }
-        }
-        if ($itens === []) {
-            $itens[] = 'o.peso ASC';
-        }
-        $itens[] = 'o.id ASC';
-
-        return [$joins, implode(', ', $itens), $params];
-    }
-
-    /**
      * Todos os objetos do site abaixo do caminho, em qualquer estado. Usado para limpar do cache o que deixou
      * de estar visível (despublicado, vencido, rascunho).
      *
@@ -274,19 +120,6 @@ final class ObjetoRepositorio
         );
 
         return array_map($this->hidratar(...), $linhas);
-    }
-
-    /** O objeto precisa ser do site informado (um molde não sonda a estrutura de outro site) e ter filhos visíveis. */
-    public function temFilhos(int $id, int $siteId): bool
-    {
-        $agora = gmdate('c');
-
-        return $this->conexao->fetchOne(
-            'SELECT 1 FROM objeto f JOIN objeto p ON p.id = f.pai_id'
-            . ' WHERE f.pai_id = ? AND p.site_id = ? AND f.site_id = ? AND f.status = ?'
-            . ' AND (f.data_publicacao IS NULL OR f.data_publicacao <= ?) AND (f.data_validade IS NULL OR f.data_validade >= ?) LIMIT 1',
-            [$id, $siteId, $siteId, 'publicado', $agora, $agora],
-        ) !== false;
     }
 
     /** Primeiro objeto publicado do site com esse título (sem diferenciar maiúsculas). */
@@ -317,21 +150,79 @@ final class ObjetoRepositorio
         return array_map($this->hidratar(...), $linhas);
     }
 
-    /** @param array<string, string|int|float> $dados */
-    private function validar(Classe $classe, array $dados): void
+    /**
+     * Valida cada valor pelo tipo da propriedade e devolve os dados normalizados (booleano vira 0/1, referência vira id).
+     *
+     * @param array<string, string|int|float|bool> $dados
+     * @return array<string, string|int|float>
+     */
+    private function validar(int $siteId, Classe $classe, array $dados): array
     {
         $definidas = [];
         foreach ($classe->propriedades as $p) {
-            $definidas[$p['nome']] = $p['tipo'];
+            $definidas[$p['nome']] = $p;
         }
+        $saida = [];
         foreach ($dados as $chave => $valor) {
             if (!isset($definidas[$chave])) {
                 throw new \InvalidArgumentException("Propriedade desconhecida na classe {$classe->nome}: {$chave}");
             }
-            if ($definidas[$chave] === 'numero' && !is_int($valor) && !is_float($valor)) {
-                throw new \InvalidArgumentException("Propriedade {$chave} deve ser número");
+            $p = $definidas[$chave];
+            $saida[$chave] = match ($p['tipo']) {
+                'numero' => is_int($valor) || is_float($valor) ? $valor : throw new \InvalidArgumentException("Propriedade {$chave} deve ser número"),
+                'booleano' => $this->booleano($chave, $valor),
+                'data' => $this->data($chave, $valor),
+                'ref' => $this->referencia($siteId, $chave, $valor, $p['classe'] ?? null),
+                default => is_bool($valor) ? throw new \InvalidArgumentException("Propriedade {$chave} deve ser texto") : $valor,
+            };
+        }
+
+        return $saida;
+    }
+
+    private function booleano(string $chave, string|int|float|bool $valor): int
+    {
+        return match (true) {
+            $valor === true, $valor === 1, $valor === '1' => 1,
+            $valor === false, $valor === 0, $valor === '0' => 0,
+            default => throw new \InvalidArgumentException("Propriedade {$chave} deve ser verdadeiro/falso (0 ou 1)"),
+        };
+    }
+
+    private function data(string $chave, string|int|float|bool $valor): string
+    {
+        if (is_string($valor)) {
+            foreach (['!Y-m-d', '!Y-m-d H:i:s', '!Y-m-d\TH:i:sP'] as $formato) {
+                $d = \DateTimeImmutable::createFromFormat($formato, $valor);
+                $problemas = \DateTimeImmutable::getLastErrors();
+                if ($d !== false && ($problemas === false || ($problemas['warning_count'] === 0 && $problemas['error_count'] === 0))) {
+                    return $valor;
+                }
             }
         }
+
+        throw new \InvalidArgumentException("Propriedade {$chave} deve ser uma data válida (aaaa-mm-dd ou aaaa-mm-dd hh:mm:ss)");
+    }
+
+    /** O alvo precisa existir **no mesmo site** (e ser da classe indicada, se a propriedade restringe). */
+    private function referencia(int $siteId, string $chave, string|int|float|bool $valor, ?string $classeNome): int
+    {
+        $id = is_int($valor) ? $valor : (is_string($valor) && ctype_digit($valor) ? (int) $valor : 0);
+        if ($id <= 0) {
+            throw new \InvalidArgumentException("Propriedade {$chave} deve ser o id de um objeto");
+        }
+        $classeId = $this->conexao->fetchOne('SELECT classe_id FROM objeto WHERE id = ? AND site_id = ?', [$id, $siteId]);
+        if ($classeId === false) {
+            throw new \InvalidArgumentException("Propriedade {$chave} aponta para um objeto que não existe neste site: {$id}");
+        }
+        if ($classeNome !== null) {
+            $esperada = $this->conexao->fetchOne('SELECT id FROM classe WHERE nome = ?', [$classeNome]);
+            if ($esperada === false || (int) $esperada !== (int) $classeId) {
+                throw new \InvalidArgumentException("Propriedade {$chave} deve apontar para um objeto da classe {$classeNome}");
+            }
+        }
+
+        return $id;
     }
 
     /** @param array<string, string|int|float> $dados */
@@ -342,13 +233,23 @@ final class ObjetoRepositorio
                 continue;
             }
             $valor = $dados[$p['nome']];
+            $numerico = in_array($p['tipo'], ['numero', 'booleano', 'ref'], true);
             $this->conexao->insert('objeto_indice', [
                 'objeto_id' => $id,
                 'chave' => $p['nome'],
-                'texto' => $p['tipo'] === 'numero' ? null : mb_substr((string) $valor, 0, 500),
-                'numero' => $p['tipo'] === 'numero' ? (float) $valor : null,
+                'texto' => $numerico ? null : mb_substr((string) $valor, 0, 500),
+                'numero' => $numerico ? (float) $valor : null,
             ]);
         }
+    }
+
+    /**
+     * @param list<array<string, mixed>> $linhas
+     * @return list<Objeto>
+     */
+    public function hidratarLinhas(array $linhas): array
+    {
+        return array_map($this->hidratar(...), $linhas);
     }
 
     /** @param array<string, mixed> $linha */

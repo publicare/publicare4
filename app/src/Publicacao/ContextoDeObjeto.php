@@ -10,7 +10,7 @@ use Pbl\Conteudo\Objeto;
 final class ContextoDeObjeto
 {
     /** @return array<string, mixed> */
-    public static function de(Objeto $objeto, string $classe): array
+    public static function de(Objeto $objeto, string $classe, bool $temFilhos = false): array
     {
         // Campos do sistema por último: vencem qualquer propriedade da classe com o mesmo nome (classes antigas).
         return array_merge($objeto->dados, [
@@ -28,6 +28,7 @@ final class ContextoDeObjeto
             'classe_id' => $objeto->classeId,
             'status' => $objeto->status,
             'apagado' => 0,
+            'temfilhos' => $temFilhos ? 1 : 0,
         ]);
     }
 }

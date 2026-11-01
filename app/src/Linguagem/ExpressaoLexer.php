@@ -46,6 +46,14 @@ final class ExpressaoLexer
                 while ($j < $n && (ctype_alnum($texto[$j]) || $texto[$j] === '_')) {
                     $j++;
                 }
+                // `#autor.titulo`: o ponto colado a uma letra segue uma referência (um só nível). `#a . "x"` e
+                // `#a."x"` continuam sendo concatenação.
+                if ($c === '#' && $j + 1 < $n && $texto[$j] === '.' && (ctype_alpha($texto[$j + 1]) || $texto[$j + 1] === '_')) {
+                    $j++;
+                    while ($j < $n && (ctype_alnum($texto[$j]) || $texto[$j] === '_')) {
+                        $j++;
+                    }
+                }
                 $nome = substr($texto, $i + 1, $j - $i - 1);
                 if ($nome === '') {
                     throw new ErroSintaxe("Esperava um nome depois de {$c}", $linha);

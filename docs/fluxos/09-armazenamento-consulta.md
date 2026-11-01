@@ -65,5 +65,16 @@ No PBL3, ordenar (ou filtrar) pelo campo de um objeto apontado por uma proprieda
 - sintaxe de molde prevista: `ordem="autor.titulo"`, `ordem="-autor.cargo"` e `campo="autor.cargo" valor="…"`;
 - alternativa barata para listas grandes: *snapshot* do campo de exibição na própria referência (ADR 0003 §3), atualizado por evento.
 
-Requisito do motor de consulta da fase 1 (junto com o tipo `ref`, que ainda não existe). A ordenação atual (`peso`, colunas e propriedades indexáveis) já usa o mesmo mecanismo de `LEFT JOIN`.
+**Implementado** (fase 1a): o tipo `ref`, `ordem="autor.titulo"`, `campo="autor.cargo"`, `#autor.titulo` e `expandir="autor"` (carga em lote) já funcionam, com os testes `MotorDeConsultaTest` e `ReferenciasNoMoldeTest`. Detalhes de implementação: um `LEFT JOIN` no índice da referência e outro no objeto apontado, **sempre do mesmo site**, no máximo 8 junções por consulta e nulos por último em qualquer banco. A forma de *snapshot* continua como otimização futura para listas muito grandes.
+
+```mermaid
+flowchart LR
+    M[Molde: localizar / filhos] --> F[FonteRepositorio]
+    F --> C[Consulta: site, escopo, classes, filtros, ordem, janela]
+    C --> MO[MotorDeConsulta]
+    MO -->|um SELECT com LEFT JOINs| DB[(objeto + objeto_indice)]
+    F -->|expandir: porIds em lote| MO
+    F -->|idsComFilhos em lote| MO
+    F --> CT[Contextos para o molde: #campo, #ref.campo, #temfilhos]
+```
 

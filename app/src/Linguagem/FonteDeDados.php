@@ -20,7 +20,7 @@ interface FonteDeDados
      * Busca no site do objeto corrente (subconjunto seguro; o motor completo vem na fase 1).
      *
      * @param array<string, mixed> $objeto
-     * @param array<string, int|string> $filtros classes, ordem, inicio, limite, pai, niveis, campo, valor, busca
+     * @param array<string, int|string> $filtros classes, ordem, inicio, limite, pai, niveis, campo/op/valor (e 2, 3), busca, expandir
      * @return list<array<string, mixed>>
      */
     public function localizar(array $objeto, array $filtros): array;
@@ -32,6 +32,15 @@ interface FonteDeDados
      * @return array<string, mixed>|null
      */
     public function objeto(array $objeto, string $id, string $url, string $titulo): ?array;
+
+    /**
+     * O objeto apontado por uma propriedade `ref` do objeto corrente (para `#autor.titulo` quando o molde não pediu
+     * `expandir`). Só do mesmo site, publicado e vigente.
+     *
+     * @param array<string, mixed> $objeto
+     * @return array<string, mixed>|null
+     */
+    public function referencia(array $objeto, string $propriedade): ?array;
 
     /**
      * @param array<string, mixed> $objeto

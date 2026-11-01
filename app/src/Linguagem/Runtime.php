@@ -20,6 +20,8 @@ final class Runtime
     private array $colecoes = [];
     private bool $semResultado = false;
     private int $profundidade = 0;
+    /** @var array<string, array<string, mixed>|null> objetos apontados por referências, por site:id */
+    private array $referencias = [];
 
     /** @param (\Closure(string, array<string, mixed>, Runtime): string)|null $incluidor */
     public function __construct(
@@ -29,10 +31,28 @@ final class Runtime
     ) {
     }
 
-    /** @param array<string, mixed> $objeto */
+    /**
+     * `#campo` ou `#ref.campo`. Para seguir uma referência usa o objeto já carregado em lote (`expandir`) ou, se o
+     * molde não pediu, busca o objeto apontado uma vez e guarda para o resto da página.
+     *
+     * @param array<string, mixed> $objeto
+     */
     public function campo(array $objeto, string $nome): mixed
     {
-        return $objeto[$nome] ?? '';
+        if (!str_contains($nome, '.')) {
+            return $objeto[$nome] ?? '';
+        }
+        [$base, $resto] = explode('.', $nome, 2);
+        $alvo = $objeto[$base . '.'] ?? null;
+        if (!is_array($alvo) && $this->fonte !== null && is_int($objeto[$base] ?? null) && is_int($objeto['site'] ?? null)) {
+            $chave = $objeto['site'] . ':' . $objeto[$base];
+            if (!array_key_exists($chave, $this->referencias)) {
+                $this->referencias[$chave] = $this->fonte->referencia($objeto, $base);
+            }
+            $alvo = $this->referencias[$chave];
+        }
+
+        return is_array($alvo) ? ($alvo[$resto] ?? '') : '';
     }
 
     public function variavel(string $nome): mixed
@@ -231,7 +251,7 @@ final class Runtime
     private function filtros(array $p): array
     {
         $f = [];
-        foreach (['classes', 'ordem', 'campo', 'valor', 'busca'] as $chave) {
+        foreach (['classes', 'ordem', 'campo', 'op', 'valor', 'campo2', 'op2', 'valor2', 'campo3', 'op3', 'valor3', 'busca', 'expandir'] as $chave) {
             if (isset($p[$chave]) && $this->texto($p[$chave]) !== '') {
                 $f[$chave] = $this->texto($p[$chave]);
             }
