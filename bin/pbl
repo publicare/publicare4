@@ -1,0 +1,13 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use Pbl\Console\VersaoComando;
+use Symfony\Component\Console\Application;
+
+$aplicacao = new Application('PBL4', Pbl\Versao::ATUAL);
+$aplicacao->add(new VersaoComando());
+$aplicacao->run();

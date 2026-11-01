@@ -1,9 +1,12 @@
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php';
+declare(strict_types=1);
 
-use Nucleo\MigracaoBanco;
+require __DIR__ . '/../vendor/autoload.php';
 
-MigracaoBanco::executar();
+use Pbl\Aplicacao;
+use Pbl\Caminhos;
+use Symfony\Component\HttpFoundation\Request;
 
-echo 'Olá mundo! Banco customizável preparado 🔧';
+$aplicacao = new Aplicacao(new Caminhos(dirname(__DIR__)));
+$aplicacao->tratar(Request::createFromGlobals())->send();
