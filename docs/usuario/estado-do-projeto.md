@@ -29,6 +29,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Mover uma página (com tudo que está dentro dela) na árvore | ✅ |
 | Contas da equipe com senha segura e papéis por seção do site (leitor, autor, editor) e administrador geral, com registro de quem fez o quê (por linha de comando) | ✅ |
 | Instalar pelo navegador (assistente com requisitos, conta de administrador e site de exemplo), com proteção para ninguém instalar no seu lugar | ✅ |
+| Instalar em hospedagem com painel Hestia/VestaCP (`open_basedir`), com guia e avisos claros no assistente (falta de SQLite, pasta fora do alcance do PHP) | ✅ |
 | Entrar e sair pelo navegador, com sessão segura e proteção contra tentativas em massa e contra pedidos forjados | ✅ |
 | Administração pelo navegador: ver os sites que você pode acessar e andar pelas páginas de cada um (inclusive as que ainda não estão no ar) | ✅ |
 | Corrigir o título e a descrição de uma página pelo navegador, com aviso se outra pessoa mudou a página ao mesmo tempo; a página no ar é atualizada na hora | ✅ |
