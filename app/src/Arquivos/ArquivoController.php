@@ -23,6 +23,8 @@ use Symfony\Component\HttpFoundation\ResponseHeaderBag;
  */
 final class ArquivoController
 {
+    /** Base da URL pública de um arquivo (sem a barra final); usada também por quem monta o link (administração, molde). */
+    public const PREFIXO = '/_pbl/arquivo';
     private const ROTA_MINIATURA = '#^/_pbl/arquivo/([1-9][0-9]{0,9})/miniatura/([0-9]{1,4})(?:/[^/]{1,150})?$#D';
     private const ROTA_ARQUIVO = '#^/_pbl/arquivo/([1-9][0-9]{0,9})(?:/[^/]{1,150})?$#D';
 

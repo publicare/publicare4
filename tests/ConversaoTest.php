@@ -101,7 +101,7 @@ PBL);
         $r = $this->converter(<<<'PBL'
 <?php require_once("x.php"); $a = 1; ?>
 <p>ok</p>
-<@usarblob nome=["conteudo"] @><img src="<@srcblob@>"><@/usarblob@>
+<@iconeclasse@>
 <@incluimenu@>
 <@executar objeto=["agenda"] parametros=["a"]@>
 <@= $_page->config["outro"]["valor"] @>
@@ -112,10 +112,49 @@ PBL);
         self::assertStringContainsString('<p>ok</p>', $r->saida);
         self::assertStringContainsString('<@-- REVISAR: PHP removido', $r->saida);
         self::assertTrue($r->valido, 'o resultado compila no PBL4');
-        self::assertGreaterThanOrEqual(7, $r->contar(Aviso::REVISAR));
+        self::assertGreaterThanOrEqual(5, $r->contar(Aviso::REVISAR));
         $mensagens = implode("\n", array_map(static fn (Aviso $a): string => $a->mensagem, $r->avisos));
         self::assertStringContainsString('executar não portado', $mensagens);
-        self::assertStringContainsString('dependem do upload', $mensagens);
+        self::assertStringContainsString('iconeclasse não portado', $mensagens);
+    }
+
+    public function testUsarBlobEComandosDeArquivoViramArquivoEMiniatura(): void
+    {
+        $r = $this->converter(<<<'PBL'
+<@usarblob nome=["capa"] @>
+<a href="<@linkblob@>"><img src="<@srcblob@>" alt=""></a>
+<a href="<@downloadblob@>">baixar (<@tamanhoblob@>, <@tipoblob@>)</a>
+<img src="<@srcthumb@>" alt="">
+<@/usarblob@>
+PBL);
+
+        self::assertTrue($r->valido, 'o resultado compila no PBL4');
+        self::assertSame(0, $r->contar(Aviso::REVISAR));
+        self::assertStringContainsString('<@arquivo valor=#capa info="url"@>', $r->saida);
+        self::assertStringContainsString('<@arquivo valor=#capa info="tamanho"@>', $r->saida);
+        self::assertStringContainsString('<@arquivo valor=#capa info="tipo"@>', $r->saida);
+        self::assertStringContainsString('<@miniatura valor=#capa tamanho=150@>', $r->saida);
+        self::assertStringNotContainsString('usarblob', $r->saida);
+        $mensagens = implode("\n", array_map(static fn (Aviso $a): string => $a->mensagem, $r->avisos));
+        self::assertStringContainsString('srcthumb virou miniatura', $mensagens);
+    }
+
+    public function testBlobComNomeDinamicoVaiParaRevisao(): void
+    {
+        $r = $this->converter('<@usarblob nome=[$x]@><img src="<@srcblob@>"><@/usarblob@>');
+
+        self::assertTrue($r->valido);
+        self::assertGreaterThanOrEqual(1, $r->contar(Aviso::REVISAR));
+        self::assertStringContainsString('<@-- REVISAR: usarblob', $r->saida);
+    }
+
+    public function testBlobForaDeUsarBlobVaiParaRevisao(): void
+    {
+        $r = $this->converter('<img src="<@srcblob@>">');
+
+        self::assertTrue($r->valido);
+        self::assertSame(1, $r->contar(Aviso::REVISAR));
+        self::assertStringContainsString('fora de um usarblob', implode("\n", array_map(static fn (Aviso $a): string => $a->mensagem, $r->avisos)));
     }
 
     public function testCondicaoComplexaLikeETagsNaoSaemEmSilencio(): void

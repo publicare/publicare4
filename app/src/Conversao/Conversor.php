@@ -29,16 +29,11 @@ final class Conversor
         'protegido' => 'área protegida: depende da autenticação (fase 3)',
         'executar' => 'executava script PHP; vira módulo com interface estável (ADR 0005)',
         'config' => 'depende de configuração de site',
-        'usarblob' => 'arquivos e imagens: dependem do upload (fluxo 7)',
-        'linkblob' => 'arquivos e imagens: dependem do upload (fluxo 7)',
-        'downloadblob' => 'arquivos e imagens: dependem do upload (fluxo 7)',
-        'tamanhoblob' => 'arquivos e imagens: dependem do upload (fluxo 7)',
-        'iconeblob' => 'arquivos e imagens: dependem do upload (fluxo 7)',
-        'tipoblob' => 'arquivos e imagens: dependem do upload (fluxo 7)',
-        'srcblob' => 'arquivos e imagens: dependem do upload (fluxo 7)',
-        'srcthumb' => 'arquivos e imagens: dependem do upload (fluxo 7)',
-        'iconeclasse' => 'ícone da classe: depende do upload (fluxo 7)',
+        'iconeblob' => 'ícone por tipo de arquivo: não existe no PBL4',
+        'iconeclasse' => 'ícone da classe: não existe no PBL4',
     ];
+    /** `srcblob`/`linkblob`/`downloadblob` eram o mesmo link no PBL3; no PBL4 inline/anexo é decidido pelo servidor. */
+    private const BLOB_INFO = ['srcblob' => 'url', 'linkblob' => 'url', 'downloadblob' => 'url', 'tamanhoblob' => 'tamanho', 'tipoblob' => 'tipo'];
 
     /** @var list<Aviso> */
     private array $avisos = [];
@@ -48,6 +43,13 @@ final class Conversor
     private array $campos = [];
     private int $ecosCrus = 0;
     private int $linha = 1;
+    /**
+     * Pilha de `usarblob`: a propriedade (nome literal de `nome=`) corrente para `srcblob`/`tamanhoblob`/etc.; null = aberto
+     * sem nome fixo (sem conversão automática, vai para revisão).
+     *
+     * @var list<string|null>
+     */
+    private array $blobPilha = [];
 
     public function __construct(
         private readonly bool $modoSeguro = false,
@@ -89,6 +91,7 @@ final class Conversor
         $this->campos = [];
         $this->ecosCrus = 0;
         $this->linha = 1;
+        $this->blobPilha = [];
     }
 
     private function removerPhp(string $fonte): string
@@ -169,6 +172,7 @@ final class Conversor
 
         if ($fecha) {
             return match (true) {
+                $nome === 'usarblob' => $this->fecharUsarBlob(),
                 isset(self::NAO_PORTADOS[$nome]) => $this->comentario("fechamento de {$nome} não portado"),
                 in_array($nome, ['se', 'repetir', 'filhos', 'aleatorio', 'localizar', 'localizaraleatorio', 'semfilhos', 'naolocalizado', 'usarobjeto', 'temfilho'], true) => "<@/{$nome}@>",
                 default => $this->revisar($original, "fechamento desconhecido: {$nome}"),
@@ -188,8 +192,73 @@ final class Conversor
             'filhos', 'aleatorio', 'localizar', 'localizaraleatorio' => $this->colecao($nome, $resto, $original),
             'usarobjeto', 'temfilho' => $this->objeto($nome, $resto, $original),
             'incluir' => $this->incluir($resto, $original),
+            'usarblob' => $this->usarBlob($resto, $original),
+            'srcblob', 'linkblob', 'downloadblob', 'tamanhoblob', 'tipoblob' => $this->blobInfo($nome, $original),
+            'srcthumb' => $this->srcThumb($original),
             default => $this->revisar($original, "comando desconhecido: {$nome}"),
         };
+    }
+
+    // --- blob (fase 7b) ----------------------------------------------------------------------------
+
+    /**
+     * `usarblob nome=["x"]@>` abria um bloco onde `srcblob`/`tamanhoblob`/etc. liam a propriedade `x`. O PBL4 não tem esse
+     * bloco: os comandos novos (`arquivo`/`miniatura`) recebem `valor=#x` direto. Aqui só guarda `x` (pilha, para aninhar)
+     * para os comandos dentro do bloco converterem; a tag em si não emite nada.
+     */
+    private function usarBlob(string $resto, string $original): string
+    {
+        $params = $this->parametros($resto);
+        $literal = $params === null ? null : ($params['nome'] ?? null);
+        $prop = $literal === null ? null : $this->propriedadeLiteral($literal);
+        if ($prop === null) {
+            $this->avisos[] = new Aviso(Aviso::REVISAR, $this->linha, 'usarblob: nome da propriedade não é um texto fixo, não convertido automaticamente: ' . $this->limpar($original));
+            $this->blobPilha[] = null;
+
+            return $this->comentario('REVISAR: usarblob não convertido: ' . $this->limpar($original));
+        }
+        $this->blobPilha[] = $prop;
+
+        return '';
+    }
+
+    private function fecharUsarBlob(): string
+    {
+        array_pop($this->blobPilha);
+
+        return '';
+    }
+
+    /** `"x"`/`'x'` com um nome de propriedade simples dentro (sem variável nem concatenação); outra coisa é null. */
+    private function propriedadeLiteral(string $valor): ?string
+    {
+        return preg_match('/^(["\'])([a-zA-Z_][a-zA-Z0-9_]*)\1$/', trim($valor), $m) === 1 ? strtolower($m[2]) : null;
+    }
+
+    /** `srcblob`/`linkblob`/`downloadblob`/`tamanhoblob`/`tipoblob`, sem parâmetros: leem a propriedade do `usarblob` corrente. */
+    private function blobInfo(string $nome, string $original): string
+    {
+        $prop = $this->blobPilha[count($this->blobPilha) - 1] ?? null;
+        if ($prop === null) {
+            return $this->revisar($original, "{$nome} fora de um usarblob com nome fixo");
+        }
+
+        return '<@arquivo valor=#' . $prop . ' info="' . self::BLOB_INFO[$nome] . '"@>';
+    }
+
+    /**
+     * `srcthumb`: miniatura do blob corrente. O PBL3 não tinha tamanho configurável aqui; o PBL4 exige um de
+     * `ServicoDeMiniaturas::TAMANHOS`, então o conversor fixa 150 (o mais perto de uma "miniatura" comum) e avisa.
+     */
+    private function srcThumb(string $original): string
+    {
+        $prop = $this->blobPilha[count($this->blobPilha) - 1] ?? null;
+        if ($prop === null) {
+            return $this->revisar($original, 'srcthumb fora de um usarblob com nome fixo');
+        }
+        $this->avisos[] = new Aviso(Aviso::INFO, $this->linha, 'srcthumb virou miniatura tamanho=150 (o PBL3 não tinha tamanho configurável aqui; os tamanhos disponíveis no PBL4 são 64, 150, 400 e 800)');
+
+        return '<@miniatura valor=#' . $prop . ' tamanho=150@>';
     }
 
     // --- comandos ---------------------------------------------------------------------------------

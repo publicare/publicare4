@@ -30,8 +30,9 @@ final class LinguagemTest extends TestCase
      * @param array<string, mixed> $objeto
      * @param array<string, string> $moldes outros moldes, por nome (layouts e incluir)
      * @param list<array<string, mixed>> $filhos
+     * @param array<int, array{nome: string, tamanho: string, extensao: string, url: string, imagem: bool, miniaturas: array<int, string>}> $arquivos por id, já como `FonteDeDados::arquivo` devolveria (visibilidade decidida por fora)
      */
-    private function render(string $molde, array $objeto = [], array $moldes = [], array $filhos = [], ?\DateTimeImmutable $agora = null): string
+    private function render(string $molde, array $objeto = [], array $moldes = [], array $filhos = [], ?\DateTimeImmutable $agora = null, array $arquivos = []): string
     {
         $resolvedor = new class ($moldes) implements Resolvedor {
             /** @param array<string, string> $moldes */
@@ -44,10 +45,18 @@ final class LinguagemTest extends TestCase
                 return $this->moldes[$nome] ?? throw new \RuntimeException("sem molde {$nome}");
             }
         };
-        $fonte = new class ($filhos) implements FonteDeDados {
-            /** @param list<array<string, mixed>> $filhos */
-            public function __construct(private readonly array $filhos)
+        $fonte = new class ($filhos, $arquivos) implements FonteDeDados {
+            /**
+             * @param list<array<string, mixed>> $filhos
+             * @param array<int, array{nome: string, tamanho: string, extensao: string, url: string, imagem: bool, miniaturas: array<int, string>}> $arquivos
+             */
+            public function __construct(private readonly array $filhos, private readonly array $arquivos = [])
             {
+            }
+
+            public function arquivo(array $objeto, int $id): ?array
+            {
+                return $this->arquivos[$id] ?? null;
             }
 
             public function filhos(array $objeto, array $filtros): array
@@ -126,6 +135,36 @@ final class LinguagemTest extends TestCase
         self::assertSame('<form data-id="3"></form>', $this->render('<@formulario@>', ['id' => 3]));
         $this->expectException(ErroSintaxe::class);
         $this->render('<@formulario nome=1@>');
+    }
+
+    public function testComandoArquivoImprimeCadaInfoSempreEscapada(): void
+    {
+        $arquivos = [9 => ['nome' => '<b>capa</b>.png', 'tamanho' => '340 KB', 'extensao' => 'png', 'url' => '/_pbl/arquivo/9', 'imagem' => true, 'miniaturas' => ['150' => '/_pbl/arquivo/9/miniatura/150']]];
+
+        self::assertSame('/_pbl/arquivo/9', $this->render('<@arquivo valor=#capa info="url"@>', ['capa' => 9], arquivos: $arquivos));
+        self::assertSame('&lt;b&gt;capa&lt;/b&gt;.png', $this->render('<@arquivo valor=#capa info="nome"@>', ['capa' => 9], arquivos: $arquivos), 'o nome do arquivo também é escapado, mesmo sendo sempre texto confiável do servidor');
+        self::assertSame('340 KB', $this->render('<@arquivo valor=#capa info="tamanho"@>', ['capa' => 9], arquivos: $arquivos));
+        self::assertSame('png', $this->render('<@arquivo valor=#capa info="tipo"@>', ['capa' => 9], arquivos: $arquivos));
+        self::assertSame('', $this->render('<@arquivo valor=#capa info="desconhecido"@>', ['capa' => 9], arquivos: $arquivos));
+    }
+
+    public function testComandoArquivoVazioSemArquivoVisivel(): void
+    {
+        // Sem id (propriedade vazia), id zero/negativo ou a fonte não devolvendo nada (arquivo de outro site, objeto dono
+        // não publicado/vigente, ou inexistente): vazio, nunca um erro.
+        self::assertSame('', $this->render('<@arquivo valor=#capa info="url"@>', ['capa' => '']));
+        self::assertSame('', $this->render('<@arquivo valor=#capa info="url"@>', ['capa' => 9])); // sem entrada em $arquivos: a fonte "não achou"
+        self::assertSame('', $this->render('<@arquivo valor=0 info="url"@>'));
+    }
+
+    public function testComandoMiniaturaSoParaTamanhoDaWhitelistEImagem(): void
+    {
+        $imagem = [9 => ['nome' => 'capa.png', 'tamanho' => '340 KB', 'extensao' => 'png', 'url' => '/_pbl/arquivo/9', 'imagem' => true, 'miniaturas' => ['64' => '/_pbl/arquivo/9/miniatura/64', '150' => '/_pbl/arquivo/9/miniatura/150']]];
+        $documento = [5 => ['nome' => 'notas.pdf', 'tamanho' => '1 KB', 'extensao' => 'pdf', 'url' => '/_pbl/arquivo/5', 'imagem' => false, 'miniaturas' => []]];
+
+        self::assertSame('/_pbl/arquivo/9/miniatura/150', $this->render('<@miniatura valor=#capa tamanho=150@>', ['capa' => 9], arquivos: $imagem));
+        self::assertSame('', $this->render('<@miniatura valor=#capa tamanho=999@>', ['capa' => 9], arquivos: $imagem), 'tamanho fora da whitelist');
+        self::assertSame('', $this->render('<@miniatura valor=#anexo tamanho=150@>', ['anexo' => 5], arquivos: $documento), 'documento não tem miniatura');
     }
 
     public function testEcoEscapaPorPadraoEEcocruNao(): void

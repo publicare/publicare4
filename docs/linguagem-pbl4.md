@@ -27,6 +27,7 @@ comando    = "=" , expr
            | "usarobjeto" , params | "/usarobjeto"
            | "temfilho" , [ params ] | "/temfilho"
            | "formulario" , [ params ]
+           | "arquivo" , params | "miniatura" , params
            | "estende" , string
            | "bloco" , nome | "/bloco"
            | "incluir" , params ;
@@ -73,6 +74,8 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `<@usarobjeto id=n \| url="…" \| titulo="…"@>…<@/usarobjeto@>` | troca o objeto corrente dentro do bloco; objeto inexistente, de outro site ou não publicado: o bloco não roda |
 | `<@temfilho [id=n]@>…<@/temfilho@>` | executa se o objeto (corrente ou `id=`) tem filhos publicados e vigentes; o `id=` precisa ser do mesmo site |
 | `<@formulario [id=n]@>` | imprime o **formulário público** de envio do conteúdo `id` (padrão: o objeto corrente, que então precisa ser do tipo `formulario`). Sem corpo. O HTML sai escapado, com token e campo-armadilha, sem JavaScript; o envio vai para `/_pbl/enviar/{id}` ([ADR 0013](adr/0013-formularios-publicos.md)). Formulário de outro site, fora do ar, fechado ou mal configurado não imprime nada. O HTML é gerado ao publicar a página: se mudar o formulário, republique |
+| `<@arquivo valor=… info="url\|nome\|tamanho\|tipo"@>` | imprime (sempre escapado) um dado de uma propriedade `arquivo`/`imagem`: `url` (link de entrega, `/_pbl/arquivo/<id>`), `nome` (nome original do arquivo), `tamanho` (legível: `340 KB`, `2,1 MB`) ou `tipo` (extensão: `pdf`, `jpg`...). `valor` é o id guardado na propriedade (`#propriedade`); vazio se o arquivo não existe neste site, o objeto dono não está publicado e vigente, ou `info` é desconhecido — ver [fluxo 7](fluxos/07-upload-blobs.md) |
+| `<@miniatura valor=… tamanho=n@>` | imprime (sempre escapada) a URL da miniatura de uma propriedade `imagem` (`/_pbl/arquivo/<id>/miniatura/<tamanho>`); `tamanho` só de `64`, `150`, `400` ou `800` (a mesma whitelist da entrega). Vazio se não é imagem, o tamanho não é da lista, ou o arquivo não está visível |
 | `<@estende "layout"@>` + `<@bloco nome@>…<@/bloco@>` | herança de layout |
 | `<@incluir arquivo="parte"@>` | inclui outro molde da mesma pele |
 | `<@-- texto --@>` | comentário: não gera saída e pode ter aspas e símbolos; vai até o primeiro `--@>` |
@@ -121,9 +124,33 @@ Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`
 | `data` | `aaaa-mm-dd`, `aaaa-mm-dd hh:mm:ss` (data impossível é recusada) | opcional |
 | `booleano` | verdadeiro/falso (guardado como 1/0) | opcional |
 | `ref` | id de outro objeto **do mesmo site** (e da classe indicada, se a propriedade restringe) | sempre |
-| `arquivo`, `imagem` | id de um arquivo enviado (upload pela tela de editar objeto, nunca pelo molde); `imagem` só jpg/png/gif/webp, `arquivo` documentos (pdf, txt, csv...). Sem comando de molde ainda: ver [fluxo 7](fluxos/07-upload-blobs.md) | nunca |
+| `arquivo`, `imagem` | id de um arquivo enviado (upload pela tela de conteúdo, criar ou editar; nunca pelo molde); `imagem` só jpg/png/gif/webp, `arquivo` documentos (pdf, txt, csv...). A classe pode restringir `tipos` (subconjunto da whitelist da categoria) e `tamanho_max_mb`, na tela de tipos de conteúdo. Comandos `arquivo`/`miniatura` (acima) leem o valor; ver [fluxo 7](fluxos/07-upload-blobs.md) | nunca |
 
 `expandir="autor"` em `filhos`/`localizar` carrega os objetos apontados da lista inteira numa consulta só (até 4 propriedades). Sem ele, `#autor.titulo` funciona do mesmo jeito, buscando o objeto sob demanda uma vez por página.
+
+### Arquivos (`arquivo`/`miniatura`)
+
+`#propriedade` guarda só o **id** do arquivo; `arquivo`/`miniatura` leem esse id e devolvem o dado já escapado. Os dois só
+imprimem algo se o arquivo existe neste site e o **objeto dono** (fixado no upload, não o objeto corrente) está publicado e
+vigente agora — exatamente a mesma regra do link `/_pbl/arquivo/<id>` ([ADR 0014](adr/0014-upload-de-arquivos.md)); fora
+disso, vazio (nunca um link quebrado ou um erro).
+
+```
+<@se #foto != ""@>
+  <a href="<@arquivo valor=#foto info="url"@>">
+    <img src="<@miniatura valor=#foto tamanho=150@>" alt="<@eco #titulo@>">
+  </a>
+<@/se@>
+
+<@filhos classes="documento"@>
+  <a href="<@arquivo valor=#anexo info="url"@>"><@eco #titulo@></a>
+  (<@arquivo valor=#anexo info="tipo"@>, <@arquivo valor=#anexo info="tamanho"@>)
+<@/filhos@>
+```
+
+`miniatura` só funciona para propriedade `imagem` e só com `tamanho` de `64`, `150`, `400` ou `800` (qualquer outro valor
+é vazio, nunca gera um arquivo novo); sem o GD instalado no servidor, a miniatura também fica vazia (mostre o próprio
+`arquivo info="url"` como alternativa).
 
 ## Conversor de moldes PBL3 → PBL4
 
@@ -167,8 +194,13 @@ A tabela orienta o conversor de moldes (fase 2c). Estado: ✅ nesta versão (o c
 | `#tags` | ainda não existe no contexto | ⏳ |
 | `localizar`, `localizaraleatorio` | `localizar`/`localizaraleatorio` com o subconjunto acima; `condicao`, `like`, `ilike` e `tags` em SQL livre **não** existem: o conversor os marca para revisão e a fase 1 traz filtros equivalentes | ✅ (parcial) |
 | `usarobjeto titulo=…`/`cod_objeto=…`, `temfilho cod_objeto=…` | `usarobjeto titulo=…`/`id=…`, `temfilho id=…` | ✅ |
-| `usarblob`, `linkblob`, `downloadblob`, `tamanhoblob`, `iconeblob`, `tipoblob`, `srcblob`, `srcthumb`, `iconeclasse` | upload e entrega de arquivo **feitos** (fase 7a, `Pbl\Arquivos`, [ADR 0014](adr/0014-upload-de-arquivos.md)): propriedade `arquivo`/`imagem`, link `/_pbl/arquivo/<id>`. Ainda não há comando de molde equivalente (`#propriedade` dá o id; o link é montado por quem lê o id) | ⏳ |
-| `config`, macros `ROOT`, `PERFIL`, `CONFIG`, `USUARIO` | só valores públicos e seguros do site (configuração de site); usuário/perfil depois da fase 3 | ⏳ |
+| `usarblob nome=["x"]@>…<@/usarblob@>` | sem bloco: os comandos abaixo recebem `valor=#x` direto (o conversor troca `#x` pelo nome literal de `nome=`; `nome=` dinâmico vai para revisão) | ✅ |
+| `srcblob`, `linkblob`, `downloadblob` (dentro de `usarblob`) | `<@arquivo valor=#x info="url"@>` (os três eram o mesmo link no PBL3; no PBL4 inline/anexo é decidido pelo servidor, não pelo molde) | ✅ |
+| `tamanhoblob` | `<@arquivo valor=#x info="tamanho"@>` | ✅ |
+| `tipoblob` | `<@arquivo valor=#x info="tipo"@>` | ✅ |
+| `srcthumb` | `<@miniatura valor=#x tamanho=150@>` (o PBL3 não tinha tamanho configurável aqui; o conversor fixa 150 e avisa que 64/400/800 também existem) | ✅ |
+| `iconeblob`, `iconeclasse` | ícone por tipo de arquivo ou por classe não existe no PBL4 | ❌ |
+| `config`, macros `ROOT`, `PERFIL`, `CONFIG`, `USUARIO` | só valores públicos e seguros do site (configuração de site); usuário/perfil depois da fase 3. Sem equivalente claro ainda: o PBL4 não expõe configuração de site ao molde (fase 3+); o conversor continua marcando `config` para revisão, sem converter | ⏳ |
 | `executar` (inclui script PHP e chama função) | **módulo** com interface estável (ADR 0005); o conversor aponta cada uso | ❌ |
 | `protegido`, `incluimenu` | área protegida e menu do admin: fase 3 e 5 | ❌ |
 | `$_GET`, `$GLOBALS` e PHP cru nos moldes | sem equivalente (sandbox) | ❌ |
