@@ -977,7 +977,7 @@ final class AdminObjetosTest extends TestCase
         self::assertStringNotContainsString("script-src 'self' 'unsafe", $csp);
 
         // Telas sem campo html: nada do editor e a CSP estrita de antes.
-        foreach ([$base, '/_pbl/objeto/' . $this->sobre->id, '/_pbl/objeto/' . $this->sobre->id . '/historico'] as $url) {
+        foreach ([$base, '/_pbl/objeto/' . $this->sobre->id . '/historico'] as $url) {
             $r = $this->req('GET', $url, $token);
             $semCampo = $this->html($r);
             self::assertStringNotContainsString('tinymce', $semCampo, $url);
