@@ -19,6 +19,13 @@ main table:not(.table) td { padding: .25rem .5rem; border-bottom: 1px solid var(
 
 /* Barra de navegação: o formulário de sair fica na mesma linha. */
 .navbar form { margin: 0; }
+/* Celular: sem JavaScript não há menu recolhível, então os links descem para uma segunda linha em vez de estourar a barra. */
+@media (max-width: 767.98px) {
+  .navbar > .container { flex-wrap: wrap; row-gap: .25rem; }
+  .navbar .navbar-brand { margin-right: auto; }
+  .navbar .pbl-links { order: 3; width: 100%; flex-direction: row; flex-wrap: wrap; column-gap: 1rem; }
+  .navbar .navbar-text { max-width: 8rem; }
+}
 
 /* Tipos de conteúdo: a coluna de ordem dos campos não precisa ser larga. */
 .campo-ordem { width: 5rem; }
