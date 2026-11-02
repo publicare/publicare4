@@ -666,7 +666,7 @@ final class TelasDeClasses
                 $p = $this->definicao($classe, $c['nome']);
                 $emUso = max($uso[$c['nome']]['objetos'] ?? 0, $uso[$c['nome']]['historico'] ?? 0);
                 $base = 'p[' . $c['nome'] . ']';
-                $id = 'campo-' . $i;
+                $id = 'campo-' . $i . '-' . (preg_replace('/[^A-Za-z0-9_-]/', '-', $c['nome']) ?? '');
                 $corpo .= '<tr><th scope="row"><code>' . Pagina::h($c['nome']) . '</code>'
                     . (($p['indexavel'] ?? false) ? ' <span class="badge text-bg-light">indexável</span>' : '')
                     . ($c['situacao'] === 'arquivada' ? ' <span class="badge text-bg-secondary">arquivado</span>' : '') . '</th>'

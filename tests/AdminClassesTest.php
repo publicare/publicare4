@@ -603,6 +603,22 @@ final class AdminClassesTest extends TestCase
         self::assertStringContainsString('name="p[capa][tamanho_max_mb]" value="3"', $html);
     }
 
+    public function testTelaDeEdicaoNaoRepeteIdsEntreAsLinhasDeCampos(): void
+    {
+        $token = $this->token('admin');
+        $classe = $this->s->classes->criar('album_ids', [
+            ['nome' => 'capa', 'tipo' => 'imagem'],
+            ['nome' => 'contrato', 'tipo' => 'arquivo'],
+            ['nome' => 'titulo_extra', 'tipo' => 'texto'],
+        ]);
+        $html = (string) $this->req('GET', '/_pbl/classe/' . $classe->id . '/editar', $token)->getContent();
+        preg_match_all('/\sid="([^"]+)"/', $html, $m);
+        $repetidos = array_keys(array_filter(array_count_values($m[1]), static fn (int $n): bool => $n > 1));
+        self::assertSame([], $repetidos, 'ids duplicados: ' . implode(', ', $repetidos));
+        self::assertStringContainsString('-capa-tipo-jpg"', $html);
+        self::assertStringContainsString('-contrato-tipo-jpg"', $html);
+    }
+
     // ---------------------------------------------------------------- modo elevado (fase 5h)
 
     public function testApagarTipoDeConteudoExigeSenhaDeNovo(): void
