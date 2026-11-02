@@ -17,6 +17,7 @@ final class Requisitos
         'json' => 'leitura de dados',
         'ctype' => 'validação de textos',
         'dom' => 'limpeza do HTML dos campos de texto',
+        'fileinfo' => 'identificar de verdade o tipo de um arquivo enviado (upload), pelo conteúdo, não pelo nome',
     ];
 
     /** @param string|null $openBasedir valor do open_basedir (null = o do PHP em uso; só os testes passam outro) */
@@ -63,6 +64,14 @@ final class Requisitos
             'ok' => $zip,
             'obrigatorio' => false,
             'detalhe' => $zip ? 'Presente: o PBL4 poderá se atualizar sozinho.' : 'Ausente: o site funciona, mas a atualização automática não. Peça à hospedagem para ativá-la quando puder.',
+        ];
+        $gd = extension_loaded('gd');
+        $itens[] = [
+            'nome' => 'Extensão GD (upload de imagens)',
+            'ok' => $gd,
+            'obrigatorio' => false,
+            'detalhe' => $gd ? 'Presente: imagens enviadas são recodificadas (mais seguro) e miniaturas são geradas.'
+                : 'Ausente: imagens enviadas só passam por uma verificação mais fraca (sem recodificar) e não há miniaturas. Peça à hospedagem para ativá-la quando puder.',
         ];
         // O PHP não consegue conferir sozinho como o servidor web está configurado: é um aviso para a pessoa verificar, não um ✔.
         $itens[] = [

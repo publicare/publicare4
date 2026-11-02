@@ -6,6 +6,7 @@ namespace Pbl;
 
 use Pbl\Acesso\Rede;
 use Pbl\Admin\Painel;
+use Pbl\Arquivos\ArquivoController;
 use Pbl\Atualizacao\Manutencao;
 use Pbl\Conteudo\Dominio;
 use Pbl\Formularios\EnvioDeFormulario;
@@ -68,6 +69,10 @@ final class Aplicacao
         if (EnvioDeFormulario::atende($requisicao)) {
             // Envio público de formulário (sem sessão): só no domínio do site dono do formulário.
             return (new EnvioDeFormulario($servicos, new Rede($this->caminhos), $site->id))->tratar($requisicao);
+        }
+        if (ArquivoController::atende($requisicao)) {
+            // Entrega de arquivo (sem sessão): só o arquivo de um objeto publicado e vigente deste site (fluxo 7).
+            return (new ArquivoController($servicos, $site->id))->tratar($requisicao);
         }
         if (Painel::atende($requisicao)) {
             // Administração (entrar, sair…). Só aqui o segredo do site e as sessões entram em jogo: a página pública não depende deles.

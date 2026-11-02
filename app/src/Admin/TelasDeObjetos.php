@@ -8,6 +8,9 @@ use Pbl\Acesso\Acao;
 use Pbl\Acesso\Csrf;
 use Pbl\Acesso\Rede;
 use Pbl\Acesso\SessaoAtiva;
+use Pbl\Arquivos\ErroDeUpload;
+use Pbl\Arquivos\ServicoDeUpload;
+use Pbl\Arquivos\TiposDeArquivo;
 use Pbl\Caminhos;
 use Pbl\Busca\Texto;
 use Pbl\Consulta\Consulta;
@@ -20,6 +23,7 @@ use Pbl\Conteudo\ConflitoDeVersao;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Servicos;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -292,11 +296,35 @@ final class TelasDeObjetos
 
             return 'nº ' . (int) $valor;
         }
+        if (in_array($p['tipo'], ['arquivo', 'imagem'], true)) {
+            return $this->arquivoLegivel((int) $valor);
+        }
         $texto = (string) $valor;
         $curto = mb_strlen($texto) > 300 ? mb_substr($texto, 0, 300) . '…' : $texto;
 
         // HTML guardado aparece como texto (nunca interpretado na administração).
         return $p['tipo'] === 'html' ? '<code class="text-break">' . Pagina::h($curto) . '</code>' : nl2br(Pagina::h($curto));
+    }
+
+    /**
+     * Mostra o arquivo guardado numa propriedade `arquivo`/`imagem`: nome, tamanho e um link para `ArquivoController` (que
+     * só entrega de verdade se o objeto dono estiver publicado e vigente; aqui, na administração, o link pode dar 404 se o
+     * conteúdo ainda não foi publicado — a tela avisa disso).
+     */
+    private function arquivoLegivel(int $id): string
+    {
+        $arquivo = $this->servicos->arquivos->porId($id);
+        if ($arquivo === null) {
+            return '<em>arquivo nº ' . $id . ' (não encontrado)</em>';
+        }
+        $link = Painel::PREFIXO . '/arquivo/' . $arquivo->id;
+        $tamanho = round($arquivo->tamanho / 1024, 1) . ' KB';
+        $html = '<a href="' . Pagina::h($link) . '">' . Pagina::h($arquivo->nome) . '</a> (' . $tamanho . ')';
+        if ($arquivo->ehImagem()) {
+            $html .= '<br><img src="' . Pagina::h($link . '/miniatura/150') . '" alt="" width="150" loading="lazy">';
+        }
+
+        return $html . '<div class="form-text">O link só funciona se este conteúdo estiver publicado e vigente.</div>';
     }
 
     /** Botões das ações que a pessoa pode fazer aqui (esconder é só conforto: cada rota confere de novo). */
@@ -386,7 +414,7 @@ final class TelasDeObjetos
             return $this->classeSumiu($sessao);
         }
         $versao = $this->numero($campos['versao'] ?? null);
-        $lido = $this->lerFormulario($sessao, $o->siteId, $classe, $campos, $o);
+        $lido = $this->lerFormulario($sessao, $o->siteId, $classe, $campos, $o, $r);
         if ($versao === null || $versao < 1 || $lido === null) {
             return $this->pedidoInvalido($sessao);
         }
@@ -444,7 +472,7 @@ final class TelasDeObjetos
     private function telaDeEdicao(SessaoAtiva $sessao, Objeto $o, Classe $classe, array $digitado, int $versao, array $erros = [], int $status = Response::HTTP_OK, bool $mostrarAtual = false): Response
     {
         $corpo = $this->migalhas($sessao, $o) . $this->resumoDeErros($erros)
-            . '<form method="post" action="' . $this->link($o->id) . '/editar" novalidate>' . $this->camposOcultos($sessao, $versao)
+            . '<form method="post" action="' . $this->link($o->id) . '/editar" enctype="multipart/form-data" novalidate>' . $this->camposOcultos($sessao, $versao)
             . $this->camposDoFormulario($classe, $digitado, $erros, $o->paiId === null)
             . '<button type="submit" class="btn btn-primary">Salvar</button> <a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></form>';
         if ($mostrarAtual) {
@@ -612,10 +640,13 @@ final class TelasDeObjetos
      * Lê e valida título, descrição, endereço, peso e as propriedades da classe. null = o pedido veio malformado (campo não
      * textual ou ausente): 400. Valor vazio numa propriedade = remover o valor.
      *
+     * `$r` só é usado para os arquivos enviados (`dados[nome]`, `multipart/form-data`) numa propriedade `arquivo`/`imagem`, e só
+     * quando `$atual` existe: criar um conteúdo com arquivo fica para depois de salvá-lo (o arquivo precisa de um dono).
+     *
      * @param array<string, mixed> $campos
      * @return array{0: array{titulo: string, descricao: string, url_amigavel?: string, peso: int, dados: array<string, string|int|float|null>}, 1: array<string, string>, 2: array<string, string>}|null
      */
-    private function lerFormulario(SessaoAtiva $sessao, int $siteId, Classe $classe, array $campos, ?Objeto $atual): ?array
+    private function lerFormulario(SessaoAtiva $sessao, int $siteId, Classe $classe, array $campos, ?Objeto $atual, ?Request $r = null): ?array
     {
         // Na edição, campo que nem veio no pedido mantém o valor atual (campo vazio, que o navegador sempre envia, remove o valor).
         $titulo = $campos['titulo'] ?? null;
@@ -664,10 +695,27 @@ final class TelasDeObjetos
             $erros['peso'] = 'O peso precisa ser um número inteiro (exemplo: 0, 10 ou -5).';
         }
 
+        $removerBrutos = $campos['dados_remover'] ?? [];
+        $arquivosBrutos = $r?->files->all()['dados'] ?? [];
         // Campo arquivado não aparece no formulário e não é tocado: o valor guardado continua como está.
         foreach ($this->propriedadesAtivas($classe) as $p) {
             $nome = $p['nome'];
             $guardado = $atual === null || !isset($atual->dados[$nome]) ? null : (string) $atual->dados[$nome];
+            if (in_array($p['tipo'], ['arquivo', 'imagem'], true)) {
+                $digitado['dados.' . $nome] = $guardado ?? '';
+                $enviado = is_array($arquivosBrutos) ? ($arquivosBrutos[$nome] ?? null) : null;
+                $removido = is_array($removerBrutos) && ($removerBrutos[$nome] ?? null) === '1';
+                [$valor, $erro] = $this->lerPropriedadeDeArquivo($p, $atual, $enviado instanceof UploadedFile ? $enviado : null, $removido, $guardado, $sessao->usuario->id);
+                if ($erro === null && $valor === null && ($p['obrigatorio'] ?? false) && $atual !== null) {
+                    $erro = 'Este campo é obrigatório.';
+                }
+                if ($erro !== null) {
+                    $erros['dados.' . $nome] = $erro;
+                } else {
+                    $valores['dados'][$nome] = $valor;
+                }
+                continue;
+            }
             $bruto = array_key_exists($nome, $dadosBrutos) ? $dadosBrutos[$nome] : ($guardado ?? '');
             if (!is_string($bruto)) {
                 return null;
@@ -686,6 +734,35 @@ final class TelasDeObjetos
         }
 
         return [$valores, $digitado, $erros];
+    }
+
+    /**
+     * Lê uma propriedade `arquivo`/`imagem`: arquivo novo enviado substitui o atual (`ServicoDeUpload` valida tipo, tamanho e
+     * conteúdo); "remover" marcado tira o valor; sem nenhum dos dois, o valor guardado continua (o arquivo físico só é
+     * removido pelo `bin/pbl limpar-uploads`, nunca na requisição).
+     *
+     * @param array{nome: string, tipo: string, tipos?: list<string>, tamanho_max_mb?: int} $p
+     * @return array{0: int|null, 1: string|null} [id do arquivo, erro]
+     */
+    private function lerPropriedadeDeArquivo(array $p, ?Objeto $atual, ?UploadedFile $enviado, bool $removido, ?string $guardado, int $usuarioId): array
+    {
+        if ($enviado !== null) {
+            if ($atual === null) {
+                return [null, 'Envie o arquivo depois de criar o conteúdo.'];
+            }
+            try {
+                $arquivo = $this->servicos->uploads()->enviar($enviado, $p, $atual->siteId, $atual->id, $usuarioId);
+
+                return [$arquivo->id, null];
+            } catch (ErroDeUpload $e) {
+                return [null, $e->getMessage()];
+            }
+        }
+        if ($removido) {
+            return [null, null];
+        }
+
+        return [$guardado !== null && ctype_digit($guardado) ? (int) $guardado : null, null];
     }
 
     /**
@@ -786,7 +863,7 @@ final class TelasDeObjetos
         if ($ativas !== []) {
             $html .= '<fieldset class="mb-3"><legend class="h6">Campos do tipo ' . Pagina::h($classe->nome) . '</legend>';
             foreach ($ativas as $p) {
-                $html .= $this->campoDePropriedade($p, $digitado['dados.' . $p['nome']] ?? '', $erros);
+                $html .= $this->campoDePropriedade($p, $digitado['dados.' . $p['nome']] ?? '', $erros, $criando);
             }
             $html .= '</fieldset>';
         }
@@ -795,15 +872,18 @@ final class TelasDeObjetos
     }
 
     /**
-     * @param array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool} $p
+     * @param array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool, tipos?: list<string>, tamanho_max_mb?: int} $p
      * @param array<string, string> $erros
      */
-    private function campoDePropriedade(array $p, string $valor, array $erros): string
+    private function campoDePropriedade(array $p, string $valor, array $erros, bool $criando = false): string
     {
         $chave = 'dados.' . $p['nome'];
         // O nome de propriedade já é [a-z][a-z0-9_]* (ClasseRepositorio), mas é dado do banco: escapado mesmo assim.
         $id = 'campo-dados-' . $p['nome'];
         $classe = $this->invalido($erros, $chave);
+        if (in_array($p['tipo'], ['arquivo', 'imagem'], true)) {
+            return $this->campoDeArquivo($p, $valor, $erros, $criando);
+        }
         $comum = ' id="' . Pagina::h($id) . '" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '"' . $this->descrito($erros, $chave, true)
             . (($p['obrigatorio'] ?? false) ? ' required' : '');
         [$controle, $ajuda] = match ($p['tipo']) {
@@ -816,6 +896,35 @@ final class TelasDeObjetos
         };
 
         return $this->campo($chave, Classe::rotuloDe($p) . (($p['obrigatorio'] ?? false) ? ' (obrigatório)' : ''), $controle, $erros, $ajuda, $id);
+    }
+
+    /**
+     * Campo de uma propriedade `arquivo`/`imagem`: além do `<input type="file">`, mostra o arquivo já guardado (se houver) e
+     * uma caixa para removê-lo. Sem `multipart/form-data` não há envio de arquivo: só existe na tela de editar (`$criando`
+     * falso), porque o upload precisa de um objeto já existente para registrar o dono do arquivo.
+     *
+     * @param array{nome: string, tipo: string, rotulo?: string, obrigatorio?: bool, tipos?: list<string>, tamanho_max_mb?: int} $p
+     * @param array<string, string> $erros
+     */
+    private function campoDeArquivo(array $p, string $valor, array $erros, bool $criando): string
+    {
+        $chave = 'dados.' . $p['nome'];
+        $id = 'campo-dados-' . $p['nome'];
+        $rotulo = Classe::rotuloDe($p) . (($p['obrigatorio'] ?? false) ? ' (obrigatório)' : '');
+        if ($criando) {
+            return $this->campo($chave, $rotulo, '<p class="form-text">Disponível depois de criar o conteúdo: salve primeiro, depois edite para enviar o arquivo.</p>', $erros);
+        }
+        $extensoes = TiposDeArquivo::aceitasPor($p);
+        $limiteMb = intdiv(TiposDeArquivo::limiteBytes($p), 1024 * 1024);
+        $atual = $valor !== '' && ctype_digit($valor) ? $this->arquivoLegivel((int) $valor) : '<em>nenhum arquivo enviado</em>';
+        $controle = '<div class="mb-2">' . $atual . '</div>'
+            . '<input class="form-control' . $this->invalido($erros, $chave) . '" id="' . Pagina::h($id) . '" type="file" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '" accept="' . Pagina::h(implode(',', array_map(static fn (string $e): string => '.' . $e, $extensoes))) . '"' . $this->descrito($erros, $chave, true) . '>';
+        if ($valor !== '') {
+            $controle .= '<div class="form-check mt-1"><input class="form-check-input" type="checkbox" value="1" id="' . $id . '-remover" name="' . Pagina::h('dados_remover[' . $p['nome'] . ']') . '"><label class="form-check-label" for="' . $id . '-remover">Remover o arquivo atual</label></div>';
+        }
+        $ajuda = 'Tipos aceitos: ' . implode(', ', $extensoes) . '. Até ' . $limiteMb . ' MB. Deixe em branco para manter o arquivo atual.';
+
+        return $this->campo($chave, $rotulo, $controle, $erros, $ajuda, $id);
     }
 
     /**
@@ -1549,7 +1658,7 @@ final class TelasDeObjetos
     /**
      * Propriedades que aparecem nos formulários (as arquivadas ficam guardadas, mas fora deles).
      *
-     * @return list<array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool}>
+     * @return list<array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool, tipos?: list<string>, tamanho_max_mb?: int}>
      */
     private function propriedadesAtivas(Classe $classe): array
     {

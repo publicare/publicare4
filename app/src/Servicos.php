@@ -6,6 +6,10 @@ namespace Pbl;
 
 use Doctrine\DBAL\Connection;
 use Pbl\Acesso\Auditoria;
+use Pbl\Arquivos\ArmazenamentoDeArquivos;
+use Pbl\Arquivos\ArquivoRepositorio;
+use Pbl\Arquivos\ServicoDeMiniaturas;
+use Pbl\Arquivos\ServicoDeUpload;
 use Pbl\Acesso\Csrf;
 use Pbl\Acesso\LimiteDeEnvios;
 use Pbl\Acesso\LimiteDeTentativas;
@@ -43,6 +47,7 @@ final class Servicos
     public readonly Publicador $publicador;
     public readonly GerenciadorDePeles $peles;
     public readonly FormularioRepositorio $formularios;
+    public readonly ArquivoRepositorio $arquivos;
 
     private ?string $segredo = null;
 
@@ -51,6 +56,7 @@ final class Servicos
         $this->classes = new ClasseRepositorio($conexao);
         $this->auditoria = new Auditoria($conexao);
         $this->objetos = new ObjetoRepositorio($conexao, $this->auditoria);
+        $this->arquivos = new ArquivoRepositorio($conexao);
         $this->sites = new SiteRepositorio($conexao);
         $this->motor = new MotorDeConsulta($conexao, $this->objetos);
         $this->dominios = new DominioRepositorio($conexao);
@@ -88,6 +94,22 @@ final class Servicos
     public function limiteDeEnvios(?\Closure $relogio = null): LimiteDeEnvios
     {
         return new LimiteDeEnvios($this->conexao, $this->segredo(), $relogio);
+    }
+
+    /** A conexão, para o que ainda não tem repositório próprio (hoje só `bin/pbl limpar-uploads`, que varre `objeto`/`objeto_versao` direto). */
+    public function conexao(): Connection
+    {
+        return $this->conexao;
+    }
+
+    public function uploads(): ServicoDeUpload
+    {
+        return new ServicoDeUpload(new ArmazenamentoDeArquivos($this->caminhos), $this->arquivos);
+    }
+
+    public function miniaturas(): ServicoDeMiniaturas
+    {
+        return new ServicoDeMiniaturas($this->caminhos, new ArmazenamentoDeArquivos($this->caminhos));
     }
 
     public static function doBancoInstalado(Caminhos $caminhos): self
