@@ -110,10 +110,15 @@ final class AdminContasTest extends TestCase
         self::assertStringNotContainsString('<script>alert', $html);
         self::assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $html);
         foreach (['admin', 'admin2', 'editor', 'leitor'] as $login) {
-            self::assertStringContainsString('<code>' . $login . '</code>', $html);
+            self::assertStringContainsString('fw-semibold">' . $login . '</code>', $html);
             self::assertStringContainsString('href="/_pbl/conta/' . $this->ids[$login] . '"', $html);
         }
         self::assertStringContainsString('href="/_pbl/contas/nova"', $html);
+        self::assertStringContainsString('list-group', $html);
+        self::assertStringNotContainsString('<table', $html);
+        self::assertStringContainsString('<a href="/_pbl/">Início</a>', $html, 'migalha de volta ao início');
+        self::assertStringContainsString('<a href="/_pbl/">Início</a>', $this->html($this->req('GET', '/_pbl/conta/' . $this->ids['leitor'], $this->token('admin'))));
+        self::assertStringContainsString('<a href="/_pbl/">Início</a>', $this->html($this->req('GET', '/_pbl/contas/nova', $this->token('admin'))));
         self::assertStringContainsString('href="/_pbl/contas"', $this->html($this->req('GET', '/_pbl/', $this->token('admin'))), 'link na barra para administrador');
         self::assertStringContainsString("default-src 'none'", (string) $r->headers->get('Content-Security-Policy'));
     }
@@ -207,6 +212,69 @@ final class AdminContasTest extends TestCase
         self::assertSame(400, $this->post($token, "/_pbl/conta/{$alvo}/editar", ['nome' => 'A'])->getStatusCode());
     }
 
+    public function testContaEmAbasComAbaAtivaEscolhidaPeloServidor(): void
+    {
+        $token = $this->token('admin');
+        $alvo = $this->ids['editor'];
+        $html = $this->html($this->req('GET', "/_pbl/conta/{$alvo}", $token));
+        foreach (['dados', 'senha', 'situacao', 'papeis'] as $aba) {
+            self::assertStringContainsString('id="aba-' . $aba . '"', $html);
+            self::assertStringContainsString('role="tabpanel" aria-labelledby="aba-' . $aba . '"', $html);
+            self::assertStringContainsString('aria-controls="painel-' . $aba . '"', $html);
+        }
+        self::assertStringContainsString('role="tablist"', $html);
+        self::assertSame(1, substr_count($html, 'aria-selected="true"'));
+        self::assertMatchesRegularExpression('/id="painel-dados" class="[^"]*active show/', $html);
+        self::assertDoesNotMatchRegularExpression('/id="painel-senha" class="[^"]*active/', $html);
+
+        $html = $this->html($this->req('GET', "/_pbl/conta/{$alvo}?aba=senha", $token));
+        self::assertMatchesRegularExpression('/id="painel-senha" class="[^"]*active show/', $html);
+        self::assertDoesNotMatchRegularExpression('/id="painel-dados" class="[^"]*active/', $html);
+        self::assertMatchesRegularExpression('/id="aba-senha" class="[^"]*active/', $html);
+        // aba desconhecida cai em "Dados"
+        self::assertMatchesRegularExpression('/id="painel-dados" class="[^"]*active show/', $this->html($this->req('GET', "/_pbl/conta/{$alvo}?aba=xx", $token)));
+    }
+
+    public function testErroDeValidacaoEAvisoDeSucessoFicamNaAbaDaAcao(): void
+    {
+        $token = $this->token('admin');
+        $alvo = $this->ids['editor'];
+        $r = $this->post($token, "/_pbl/conta/{$alvo}/senha", ['senha' => 'umasenhalonga123', 'senha2' => 'outra']);
+        $html = $this->html($r);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertMatchesRegularExpression('/id="painel-senha" class="[^"]*active show/', $html);
+        self::assertMatchesRegularExpression('/id="painel-senha"[^>]*>.{0,200}role="alert"/s', $html);
+
+        $html = $this->html($this->post($token, "/_pbl/conta/{$alvo}/conceder", ['objeto' => 'x', 'perfil' => 'editor']));
+        self::assertMatchesRegularExpression('/id="painel-papeis" class="[^"]*active show/', $html);
+
+        $r = $this->post($token, "/_pbl/conta/{$alvo}/editar", ['nome' => 'Editor', 'email' => 'editor@exemplo.org']);
+        self::assertSame("/_pbl/conta/{$alvo}?ok=salva&aba=dados", $r->headers->get('Location'));
+        $html = $this->html($this->req('GET', "/_pbl/conta/{$alvo}?ok=concedido&aba=papeis", $token));
+        self::assertMatchesRegularExpression('/id="painel-papeis"[^>]*>.{0,200}Papel concedido/s', $html);
+    }
+
+    public function testAbaDePapeisMostraAcessoTotalDoAdministradorEPapeisComTituloDaContaComum(): void
+    {
+        $admin = $this->token('admin');
+        $html = $this->html($this->req('GET', '/_pbl/conta/' . $this->ids['admin'], $admin));
+        self::assertStringContainsString('Administrador: acesso total a todos os sites e conteúdos', $html);
+        self::assertStringNotContainsString('Nenhum papel concedido', $html);
+        self::assertStringContainsString('<details', $html);
+
+        $alvo = $this->ids['leitor'];
+        $this->post($admin, "/_pbl/conta/{$alvo}/conceder", ['objeto' => '', 'objeto_numero' => (string) $this->inicioId, 'perfil' => 'editor']);
+        $html = $this->html($this->req('GET', "/_pbl/conta/{$alvo}", $admin));
+        self::assertStringNotContainsString('acesso total', $html);
+        self::assertStringContainsString('Este conteúdo e tudo abaixo dele', $html);
+        self::assertStringContainsString('Acesso efetivo por site', $html);
+        self::assertStringContainsString('/revogar', $html);
+        self::assertStringContainsString('<optgroup label="Meu Site">', $html);
+        self::assertStringContainsString('value="' . $this->inicioId . '"', $html);
+        // o seletor também concede
+        self::assertSame(303, $this->post($admin, "/_pbl/conta/{$alvo}/conceder", ['objeto' => (string) $this->inicioId, 'perfil' => 'autor'])->getStatusCode());
+    }
+
     public function testNinguemTiraDeSiMesmoAMarcaDeAdministrador(): void
     {
         $token = $this->token('admin');
@@ -248,7 +316,7 @@ final class AdminContasTest extends TestCase
         $sessaoDoOutro = $this->token('leitor');
         $r = $this->post($admin, "/_pbl/conta/{$alvo}/senha", ['senha' => 'senha-redefinida-2026', 'senha2' => 'senha-redefinida-2026']);
         self::assertSame(303, $r->getStatusCode());
-        self::assertSame("/_pbl/conta/{$alvo}?ok=senha", $r->headers->get('Location'));
+        self::assertSame("/_pbl/conta/{$alvo}?ok=senha&aba=senha", $r->headers->get('Location'));
         self::assertFalse($this->sessaoViva($sessaoDoAlvo));
         self::assertTrue($this->sessaoViva($sessaoDoOutro));
         self::assertTrue($this->sessaoViva($admin));
