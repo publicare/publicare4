@@ -10,6 +10,7 @@ use Pbl\Consulta\MotorDeConsulta;
 use Pbl\Conteudo\ClasseRepositorio;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
+use Pbl\Formularios\FormularioParaMolde;
 use Pbl\Linguagem\FonteDeDados;
 
 /**
@@ -27,6 +28,7 @@ final class FonteRepositorio implements FonteDeDados
         private readonly ObjetoRepositorio $objetos,
         private readonly ClasseRepositorio $classes,
         private readonly MotorDeConsulta $motor,
+        private readonly ?FormularioParaMolde $formularios = null,
     ) {
     }
 
@@ -101,6 +103,14 @@ final class FonteRepositorio implements FonteDeDados
         $site = $objeto['site'] ?? null;
 
         return is_int($alvo) && is_int($site) && $this->motor->temFilhos($alvo, $site);
+    }
+
+    public function formulario(array $objeto, ?int $id): string
+    {
+        $alvo = $id ?? ($objeto['id'] ?? null);
+        $site = $objeto['site'] ?? null;
+
+        return $this->formularios !== null && is_int($alvo) && is_int($site) ? $this->formularios->html($site, $alvo) : '';
     }
 
     public function referencia(array $objeto, string $propriedade): ?array

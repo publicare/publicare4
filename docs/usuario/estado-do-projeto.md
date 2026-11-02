@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Última atualização: **novembro de 2026** (tela de atualização no painel; contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, publicação agendada e mover pela árvore). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
+Última atualização: **novembro de 2026** (tela de atualização no painel; contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, publicação agendada, mover pela árvore e formulários públicos simples). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
 
 ## Legenda
 
@@ -41,6 +41,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Busca que ignora maiúsculas e acentos (`presidencia` acha `Presidência`) | ✅ |
 | Busca com várias palavras (todas), começo de palavra (`presid` acha `Presidência`), plural e singular (`ações`/`ação`) e ordem por relevância (título antes de descrição e texto), no título, na descrição e no texto | ✅ |
 | Ligar conteúdos entre si (uma notícia aponta para seu autor) e, nos moldes, mostrar, filtrar e ordenar pelo conteúdo apontado | ✅ |
+| **Formulário público simples** (inscrição, contato, cadastro): você escolhe o tipo de conteúdo, quais campos mostrar e onde guardar; cada envio chega **privado**, a equipe vê em "Envios recebidos" e aprova publicando. Com proteção contra robôs (campo escondido), limite de envios por pessoa, conferência de origem e conteúdo limpo | ✅ (o formulário é um conteúdo comum, sem editor visual; veja o [ADR 0013](../adr/0013-formularios-publicos.md)) |
 | Consultas com até três condições, comparações (maior, menor, contém) e carga rápida de listas | ✅ |
 
 ## O que vem a seguir
@@ -52,7 +53,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Atualização automática com cópia de segurança | 🔨 (funciona por linha de comando e pelo painel — tela **Atualização**, só administrador, pede a senha de novo —, com assinatura, cópia do banco e volta atrás se falhar; falta a chave de assinatura de produção e a primeira versão publicada, então ainda não há o que baixar; voltar atrás **depois** de uma atualização concluída ainda é manual) |
 | Editor de peles completo (realce de código, pré-visualização, histórico e voltar atrás, arquivos de CSS e imagens) | 🗓️ (hoje só a caixa de texto simples) |
 | Galeria de peles prontas para instalar | 🗓️ |
-| Formulários, inscrições e consultas públicas por configuração | 🗓️ |
+| Formulários com aprovação em etapas, aviso por e-mail, anexos, captcha, prazos, vagas e participante identificado; editor visual de formulários | 🗓️ |
 | Importar um site feito no Publicare antigo | 🗓️ |
 | Inscrição paga e outros pagamentos | 💡 |
 | Peles avançadas e comunidade de autores | 💡 |

@@ -7,6 +7,7 @@ namespace Pbl;
 use Doctrine\DBAL\Connection;
 use Pbl\Acesso\Auditoria;
 use Pbl\Acesso\Csrf;
+use Pbl\Acesso\LimiteDeEnvios;
 use Pbl\Acesso\LimiteDeTentativas;
 use Pbl\Acesso\Segredo;
 use Pbl\Acesso\SessaoRepositorio;
@@ -19,6 +20,8 @@ use Pbl\Conteudo\DominioRepositorio;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\RedirecionamentoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
+use Pbl\Formularios\FormularioParaMolde;
+use Pbl\Formularios\FormularioRepositorio;
 use Pbl\Linguagem\Compilador;
 use Pbl\Publicacao\FonteRepositorio;
 use Pbl\Publicacao\GerenciadorDePeles;
@@ -39,6 +42,7 @@ final class Servicos
     public readonly Permissoes $permissoes;
     public readonly Publicador $publicador;
     public readonly GerenciadorDePeles $peles;
+    public readonly FormularioRepositorio $formularios;
 
     private ?string $segredo = null;
 
@@ -53,7 +57,8 @@ final class Servicos
         $this->redirecionamentos = new RedirecionamentoRepositorio($conexao);
         $this->usuarios = new UsuarioRepositorio($conexao, $this->auditoria);
         $this->permissoes = new Permissoes($conexao);
-        $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor);
+        $this->formularios = new FormularioRepositorio($this->objetos, $this->classes);
+        $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()));
         $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador);
         $this->peles = new GerenciadorDePeles($caminhos);
@@ -78,6 +83,11 @@ final class Servicos
     public function limiteDeTentativas(?\Closure $relogio = null): LimiteDeTentativas
     {
         return new LimiteDeTentativas($this->conexao, $this->segredo(), $relogio);
+    }
+
+    public function limiteDeEnvios(?\Closure $relogio = null): LimiteDeEnvios
+    {
+        return new LimiteDeEnvios($this->conexao, $this->segredo(), $relogio);
     }
 
     public static function doBancoInstalado(Caminhos $caminhos): self

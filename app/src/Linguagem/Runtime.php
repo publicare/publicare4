@@ -228,6 +228,20 @@ final class Runtime
     }
 
     /**
+     * `formulario`: o HTML do formulário público (já escapado pela fonte), do `id=` ou, sem ele, do objeto corrente. Formulário
+     * inexistente, fechado ou mal configurado não gera nada.
+     *
+     * @param array<string, mixed> $objeto
+     * @param array<string, mixed> $p
+     */
+    public function formulario(array $objeto, array $p): string
+    {
+        $id = $p['id'] ?? null;
+
+        return $this->fonte?->formulario($objeto, is_numeric($id) ? (int) $id : null) ?? '';
+    }
+
+    /**
      * Sorteia a ordem e só então aplica a janela, para `limite=1` escolher um item qualquer e não o primeiro.
      *
      * @param list<array<string, mixed>> $lista

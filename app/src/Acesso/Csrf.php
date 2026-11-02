@@ -39,6 +39,21 @@ final class Csrf
         return hash_equals($this->entrarEm($janela), $token) || hash_equals($this->entrarEm($janela - 1), $token);
     }
 
+    /**
+     * Token do formulário público `$id`. As páginas são publicadas como arquivos, então o token não pode mudar a cada visita: é um
+     * HMAC fixo do formulário. Ele prova que o envio veio de uma página gerada por este site (junto com a conferência de origem);
+     * a defesa contra abuso é o limite por IP e o campo-armadilha, não o sigilo do token.
+     */
+    public function paraFormulario(int $id): string
+    {
+        return hash_hmac('sha256', 'formulario|' . $id, $this->segredo);
+    }
+
+    public function conferirFormulario(int $id, string $token): bool
+    {
+        return hash_equals($this->paraFormulario($id), $token);
+    }
+
     private function entrarEm(int $janela): string
     {
         return hash_hmac('sha256', 'entrar|' . $janela, $this->segredo);

@@ -52,6 +52,18 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 - Testes: `tests/HtmlSeguroTest.php` (mais de 60 vetores de XSS, mutação, idempotência), `tests/IntegridadeDeConteudoTest.php` e `tests/AdminIntegridadeTest.php`.
 - Regras de tipos aceitos e campos obrigatórios no repositório (`ViolacaoDeRegra`): um formulário forjado, um script de importação ou a linha de comando não contornam o que a tela exige.
 
+## Formulários públicos (fase 6a)
+
+Única superfície que **grava sem sessão**; desenho completo no [ADR 0013](../adr/0013-formularios-publicos.md).
+
+- **Ordem das defesas**: formulário existe e está no ar (404 único) → limite por IP e formulário (429, 10 em 15 min, conta acertos e erros) → tamanho (413, 64 KiB) → origem e token (403) → campo-armadilha (finge sucesso) → obrigatórios e tipos (422) → `ObjetoRepositorio::criarDentro` (regras do tipo, HTML limpo).
+- **CSRF**: HMAC fixo por formulário (as páginas são arquivos estáticos) **mais** `Rede::origemConfere`. Não há sessão a sequestrar; o token não é segredo contra quem lê a página, e a defesa contra abuso é limite + armadilha + conferência de origem. Trocar o segredo do site exige republicar as páginas com formulário.
+- **Superfície mínima**: só os campos declarados são lidos; `ref` é proibido (enumeração de conteúdo); campos desconhecidos e de sistema (`titulo`, `status`, `pai`, `peso`, `criado_por`…) são ignorados; o envio nasce `privado`, sem autor, com URL aleatória, e nunca é publicado sozinho.
+- **Nenhuma resposta explica a recusa de formulário**: inexistente, de outro site, fora do ar, fechado ou mal configurado dão o mesmo 404.
+- **Auditoria sem valores**: `formulario.envio` (ator `anonimo`, formulário, tipo, objeto, HMAC do IP). A armadilha e o 429 não são registrados (evita encher a auditoria, que só cresce).
+- **Limitação conhecida**: sem captcha de terceiros nem verificação de e-mail; um atacante com muitos IPs ainda consegue encher a seção de destino de envios privados (a equipe os manda para a lixeira). Captcha plugável e quotas globais são próximos passos.
+- Testes: `tests/FormulariosTest.php`.
+
 ## Escrita em disco pela administração (moldes de pele)
 
 A edição de peles é a única superfície em que a administração **grava arquivos** (`dados/peles/<pele>/<molde>.pbl`), e moldes são código-ish, então ela é fechada em `GerenciadorDePeles` ([ADR 0012](../adr/0012-administracao-web.md) §8):
@@ -69,6 +81,7 @@ A edição de peles é a única superfície em que a administração **grava arq
 |---|---|
 | Recuperação de senha por e-mail, autenticação em dois fatores | depois da fase 4 ([ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md)) |
 | Permissão por campo | a decidir (o modelo de classes não tem permissão por campo; as telas de objetos tratam todos os campos não arquivados igual) |
+| Captcha plugável, verificação de e-mail e quota global em formulários públicos | próximas fatias da fase 6 ([ADR 0013](../adr/0013-formularios-publicos.md)) |
 | Upload seguro (lista de tipos, fora do `docroot`) | com o upload (fluxo 7) |
 | Atualizar pelo painel sem que o PHP web precise gravar o código (hoje o processo de segundo plano roda com o mesmo usuário do PHP, então a pasta do PBL4 precisa ser gravável por ele; onde isso é indesejável, use a linha de comando com outro usuário) | a decidir ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | Voltar atrás **depois** de uma atualização concluída por botão ou comando | a decidir (hoje é manual: `dados/atualizacao/anterior/` e `dados/backups/`) |

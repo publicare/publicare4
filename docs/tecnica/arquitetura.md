@@ -10,6 +10,7 @@ flowchart LR
     I --> A[Aplicacao]
     A --> S[Servicos: banco instalado]
     A -->|host| H[SiteRepositorio: domínio → site]
+    A -->|/_pbl/enviar, /_pbl/enviado| FM[EnvioDeFormulario: formulário público, sem sessão]
     A -->|/_pbl/...| P[Painel: entrar, sair, telas da administração]
     A -->|URL validada| C[Caminhos::pagina]
     C --> F[(dados/cache/paginas/site/url.html)]
@@ -96,6 +97,7 @@ Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banc
 | Entrada | `Pbl\Aplicacao`, `public/index.php` | resolver host e URL, devolver arquivo do cache |
 | Conteúdo | `Pbl\Conteudo` | classes, objetos, sites; validação dos dados por tipo (`texto`, `numero`, `html`, `data`, `booleano`, `ref`); índice |
 | Instalação | `Pbl\Instalacao` | `Instalador` (atômico), `InstaladorWeb` (assistente em `/_pbl/instalar`, só antes de instalar), `Requisitos` |
+| Formulários públicos | `Pbl\Formularios` | `FormularioRepositorio` (lê a definição e falha fechada), `FormularioHtml` (HTML escapado), `FormularioParaMolde` (ponte do comando `formulario`), `EnvioDeFormulario` (rotas `/_pbl/enviar/{id}` e `/_pbl/enviado/{id}`: limite, tamanho, origem, token, armadilha, validação e criação do objeto privado); `Acesso\LimiteDeEnvios` e `Csrf::paraFormulario` ([ADR 0013](../adr/0013-formularios-publicos.md)) |
 | Administração | `Pbl\Admin` | `Painel`: rotas sob `/_pbl/` (entrar, sair) com sessão, CSRF, limite de tentativas e cabeçalhos de segurança; `TelasDeConteudo`: painel inicial com os sites; `TelasDeObjetos`: um conteúdo e seus filhos (ordem e filtros), criar, editar todas as propriedades, estado e datas, mover, lixeira e histórico ([ADR 0012](../adr/0012-administracao-web.md)); `TelasDeClasses`: tipos de conteúdo (só administrador; campo com valores é arquivado, nunca apagado); `TelasDeContas`: contas, senhas e papéis por seção (só administrador; última conta de administrador protegida); `TelasDeDominios`: domínios do site (alias, redirecionador, principal); `Pagina`: HTML com Bootstrap local, escape e cabeçalhos |
 | Acesso | `Pbl\Acesso` | contas, senhas (argon2id), perfis por subárvore, `Permissoes::pode` (único ponto de decisão) e auditoria |
 | Busca | `Pbl\Busca` | normalização de texto (minúsculas e sem acento) na gravação e na consulta (`Texto`); busca por palavras: `Termos` (palavras, plural), `BuscaInterface` e o driver padrão `BuscaSql` sobre a tabela `objeto_termo`, alimentada por `IndexadorDeObjeto` a cada criação/alteração; o `MotorDeConsulta` encaixa a condição e a relevância na consulta única ([ADR 0010](../adr/0010-busca.md), nível C ainda não feito) |
