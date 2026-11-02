@@ -11,7 +11,7 @@ namespace Pbl\Conteudo;
  * `classe` (só em `ref`: restringe a classe do alvo), `rotulo` (o nome que a equipe vê), `obrigatorio` e `arquivada` (some dos
  * formulários, mas os valores continuam guardados e os moldes continuam lendo). A ordem da lista é a ordem dos campos.
  *
- * @phpstan-type Propriedade array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool}
+ * @phpstan-type Propriedade array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool, tipos?: list<string>, tamanho_max_mb?: int}
  */
 final class Classe
 {

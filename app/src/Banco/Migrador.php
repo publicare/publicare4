@@ -18,6 +18,7 @@ use Pbl\Banco\Migracoes\M009ClassesNaAdministracao;
 use Pbl\Banco\Migracoes\M010IndiceDeBusca;
 use Pbl\Banco\Migracoes\M011ClasseFormulario;
 use Pbl\Banco\Migracoes\M012BuscaTolerancia;
+use Pbl\Banco\Migracoes\M013Arquivos;
 
 /**
  * Aplica migrações pendentes. É o único componente que cria tabelas: o usuário de banco da
@@ -32,7 +33,7 @@ final class Migrador
     /** @param list<Migracao>|null $migracoes */
     public function __construct(private readonly Connection $conexao, ?array $migracoes = null)
     {
-        $this->migracoes = $migracoes ?? [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada(), new M005VersoesEHistoricoDeUrls(), new M006DominiosERedirecionamentos(), new M007Acesso(), new M008Sessoes(), new M009ClassesNaAdministracao(), new M010IndiceDeBusca(), new M011ClasseFormulario(), new M012BuscaTolerancia()];
+        $this->migracoes = $migracoes ?? [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada(), new M005VersoesEHistoricoDeUrls(), new M006DominiosERedirecionamentos(), new M007Acesso(), new M008Sessoes(), new M009ClassesNaAdministracao(), new M010IndiceDeBusca(), new M011ClasseFormulario(), new M012BuscaTolerancia(), new M013Arquivos()];
     }
 
     /** @return list<int> versões aplicadas nesta chamada */

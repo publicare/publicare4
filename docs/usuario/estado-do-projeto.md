@@ -44,6 +44,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Ligar conteúdos entre si (uma notícia aponta para seu autor) e, nos moldes, mostrar, filtrar e ordenar pelo conteúdo apontado | ✅ |
 | **Formulário público simples** (inscrição, contato, cadastro): você escolhe o tipo de conteúdo, quais campos mostrar e onde guardar; cada envio chega **privado**, a equipe vê em "Envios recebidos" e aprova publicando. Com proteção contra robôs (campo escondido), limite de envios por pessoa, conferência de origem e conteúdo limpo | ✅ (o formulário é um conteúdo comum, sem editor visual; veja o [ADR 0013](../adr/0013-formularios-publicos.md)) |
 | Consultas com até três condições, comparações (maior, menor, contém) e carga rápida de listas | ✅ |
+| **Upload de arquivo e imagem**: um tipo de conteúdo pode ter um campo de arquivo (documento) ou de imagem; você envia pelo navegador, ao editar o conteúdo, e o PBL4 confere o tipo de verdade (não só pelo nome), recodifica a imagem quando possível e só mostra o arquivo em páginas publicadas | ✅ (só na edição, não ainda ao criar; veja o [ADR 0014](../adr/0014-upload-de-arquivos.md)) |
 
 ## O que vem a seguir
 
