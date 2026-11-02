@@ -1,7 +1,8 @@
 # ADR 0014 — Upload de arquivos
 
-Status: aceito e implementado (2026-11-02, fase 7a). Detalha a parte de upload e entrega do [fluxo 7](../fluxos/07-upload-blobs.md)
-e usa a mesma receita de permissão do [ADR 0012](0012-administracao-web.md) (sessão, `Acao::Editar`, CSRF e origem no POST).
+Status: aceito e implementado (2026-11-02, fase 7a; §4.1, §4.2 e §4.3 completadas na fase 7b, mesma data). Detalha a parte
+de upload e entrega do [fluxo 7](../fluxos/07-upload-blobs.md) e usa a mesma receita de permissão do
+[ADR 0012](0012-administracao-web.md) (sessão, `Acao::Editar`, CSRF e origem no POST).
 
 ## Contexto
 
@@ -51,15 +52,61 @@ O `ObjetoRepositorio::validar` confere de novo, como defesa em profundidade: o i
 categoria (imagem/documento) do arquivo bate com o tipo da propriedade — um formulário forjado não troca o valor por um
 arquivo de outro site ou da categoria errada.
 
-### 4. Onde se envia: só na tela de editar
-- O upload entra pela `TelasDeObjetos` (tela de editar, `multipart/form-data`), porque o arquivo precisa de um
-  **objeto dono** (`objeto_id`, fixado no upload) desde o começo — a tela de criar ainda não existe o objeto. Criar um
-  conteúdo com arquivo é salvar primeiro (sem arquivo) e depois editar; a tela de criar mostra essa explicação no lugar do
-  campo.
-- Campo com arquivo já guardado mostra o arquivo atual (nome, tamanho e, se imagem, a miniatura) e uma caixa "remover o
-  arquivo atual". Sem enviar nada novo e sem marcar remover, o valor guardado continua (consistente com o resto do
-  formulário: campo que não veio mantém o que já estava salvo).
-- `Acao::Editar`, CSRF e origem são conferidos pela mesma rota de editar objeto; nada de permissão nova.
+### 4. Onde se envia: editar **e**, desde a fase 7b, criar
+- O upload entra pela `TelasDeObjetos` (`multipart/form-data`), nas telas de editar e de criar. O arquivo precisa de um
+  **objeto dono** (`objeto_id`, fixado no upload) desde o começo; na edição o objeto já existe, então o envio é direto
+  (`ServicoDeUpload::enviar` chamado na hora). Na criação o objeto ainda não existe quando o formulário chega — ver §4.1.
+- Campo com arquivo já guardado (edição) mostra o arquivo atual (nome, tamanho e, se imagem, a miniatura) e uma caixa
+  "remover o arquivo atual". Sem enviar nada novo e sem marcar remover, o valor guardado continua (consistente com o resto
+  do formulário: campo que não veio mantém o que já estava salvo). Na criação não há "arquivo atual" para mostrar.
+- `Acao::Editar`/`podeCriarSob`, CSRF e origem são conferidos pela mesma rota de editar/criar objeto; nada de permissão nova.
+
+#### 4.1 Upload na criação é atômico (fase 7b)
+
+Criar um conteúdo com arquivo na mesma submissão precisa resolver uma ordem: o upload grava `objeto_id` no arquivo, mas o
+objeto só ganha um id depois do `INSERT`. A solução é um **gancho dentro da mesma transação**, não duas chamadas separadas:
+
+1. `TelasDeObjetos::lerFormulario`, ao **criar** (`$atual === null`), não chama `ServicoDeUpload` na hora: só confere se um
+   campo obrigatório ficou sem nenhum arquivo (erro imediato, sem nem tentar criar) e guarda cada `UploadedFile` pendente,
+   por nome de propriedade.
+2. `ObjetoRepositorio::criar`/`criarDentro` ganham um parâmetro opcional `$aposInserir` (`\Closure`): roda **dentro da
+   mesma transação**, logo depois do `INSERT` do objeto (já com o id novo) e antes de `registrarVersao`/indexação. O
+   retorno dele (propriedade → id do arquivo) é mesclado nos `dados` e gravado num segundo `UPDATE` da mesma linha, ainda
+   na transação.
+3. `TelasDeObjetos::criar` passa um `$aposInserir` que chama `ServicoDeUpload::enviar` para cada pendência, agora com o id
+   do objeto novo como dono. Se algum envio falhar (`ErroDeUpload`), a exceção atravessa o `Closure` e o `transactional()`
+   do Doctrine desfaz **tudo**: o objeto nunca chega a existir, nenhuma linha de `arquivo` fica órfã referenciada por nada.
+   `ErroDeUpload` carrega o nome da propriedade (`propriedade`) para o erro aparecer ligado ao campo certo no formulário,
+   em vez de um erro genérico.
+4. Propriedades `arquivo`/`imagem` obrigatórias ficam fora da primeira conferência de obrigatoriedade (antes do insert,
+   ainda não há valor possível) e entram de novo, já com os dados mesclados, depois do `$aposInserir` — a mesma proteção
+   da edição, só que em dois momentos da mesma transação.
+5. **O que não é transacional**: o arquivo físico em disco (`ArmazenamentoDeArquivos::gravar`) é gravado **antes** do
+   `INSERT` na tabela `arquivo` e não participa da transação do banco (é o sistema de arquivos, não o SQLite/Postgres). Se
+   a transação do banco for desfeita depois disso, o conteúdo gravado fica **órfão de fábrica**: sem nenhuma linha em
+   `arquivo` apontando para ele, nunca listado por `bin/pbl limpar-uploads` (que varre `arquivo`, não o disco), e
+   reaproveitado de graça se alguém enviar o mesmo conteúdo depois (dedup por `sha256`+extensão). Não é um vazamento ativo
+   (nada o referencia), mas também não se autolimpa; aceito pela mesma razão do §6: apagar arquivo é raro e caro de fazer
+   com segurança numa corrida.
+
+#### 4.2 Comando de molde (fase 7b)
+
+`Pbl\Linguagem`: comandos `<@arquivo valor=… info="url|nome|tamanho|tipo"@>` e `<@miniatura valor=… tamanho=n@>` (gramática,
+exemplos e regra de visibilidade em [linguagem-pbl4.md](../linguagem-pbl4.md#arquivos-arquivominiatura)). Sempre escapados
+(como `eco_limite`/`formatadata`, nunca com variante "cru") e só imprimem algo para um arquivo cujo **objeto dono** está
+publicado e vigente **no site do objeto corrente** — a mesma regra do `ArquivoController`, repetida em
+`FonteRepositorio::arquivo` (que já tem a conexão com `ArquivoRepositorio`/`ObjetoRepositorio`; `Runtime` continua sem
+depender de `Pbl\Arquivos`, só da interface `FonteDeDados`).
+
+#### 4.3 Configuração por propriedade na tela de tipos de conteúdo (fase 7b)
+
+`ClasseRepositorio::normalizarRestricoesDeArquivo` (fase 7a) já validava `tipos`/`tamanho_max_mb`; faltava a tela.
+`TelasDeClasses` ganhou, por propriedade `arquivo`/`imagem` (existente ou nova), caixas de seleção com toda a whitelist
+global (`TiposDeArquivo::imagens()`/`documentos()`) e um campo numérico para `tamanho_max_mb`. Sem JavaScript a tela não
+sabe esconder esses controles quando o tipo do campo não é arquivo/imagem, então ficam sempre visíveis (com um aviso) e o
+`ClasseRepositorio` ignora os dois fora desses dois tipos — mesma filosofia do seletor "aponta para" de uma `ref`, que
+também fica sempre visível. Uma combinação inválida (extensão fora da categoria, tamanho fora de 1–`TETO_MB`) vira erro
+claro na própria tela (`TelasDeClasses::erroDeArquivo`, antes de chegar ao repositório).
 
 ### 5. Entrega pública (`ArquivoController`)
 - Rotas `GET /_pbl/arquivo/{id}` e `GET /_pbl/arquivo/{id}/miniatura/{tamanho}`, tratadas pela `Aplicacao` **antes** do
@@ -100,7 +147,9 @@ arquivo de outro site ou da categoria errada.
 
 - Nenhum arquivo enviado pode ser executado pelo servidor: a whitelist nunca inclui `php`/`html`/`svg`/`js`, o `Content-Type`
   nunca vem do que o cliente mandou, e `dados/uploads/` fica fora do `docroot` (como o resto de `dados/`).
-- Fora desta fatia: upload na criação do conteúdo, comando de molde para montar o link (hoje é só `#propriedade` → id →
-  `/_pbl/arquivo/<id>`, montado por quem lê o id), editor de `tipos`/`tamanho_max_mb` por propriedade na tela de tipos de
-  conteúdo, anexos de formulário público (fluxo 6, feito à parte quando vier), armazenamento em object storage (S3/B2 —
-  já isolado em `ArmazenamentoDeArquivos`, troca sem tocar no resto), remoção de EXIF quando o GD não está disponível.
+- Criar e anexar um arquivo é atômico (§4.1): nenhum conteúdo novo fica com um upload pela metade, ao custo de um arquivo
+  físico órfão de fábrica no raro caso de a transação do banco ser desfeita depois do arquivo já gravado em disco (nunca
+  referenciado, nunca listado por `bin/pbl limpar-uploads`, reaproveitado se o mesmo conteúdo for enviado de novo).
+- Fora desta fatia: anexos de formulário público (fluxo 6, feito à parte quando vier), armazenamento em object storage
+  (S3/B2 — já isolado em `ArmazenamentoDeArquivos`, troca sem tocar no resto), remoção de EXIF quando o GD não está
+  disponível.

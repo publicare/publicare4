@@ -124,4 +124,4 @@ dados/
 
 ## O que ainda não existe
 
-Parte das telas da administração (regras de redirecionamento e peles: hoje por linha de comando). Upload e entrega de arquivo estão feitos (fluxo 7, ADR 0014); falta upload na criação do conteúdo e comando de molde para montar o link. Estão no [plano](../plano.md).
+Parte das telas da administração (regras de redirecionamento e peles: hoje por linha de comando). Upload e entrega de arquivo, upload na criação e comandos de molde (`<@arquivo@>`/`<@miniatura@>`) estão feitos (fluxo 7, ADR 0014). Estão no [plano](../plano.md).

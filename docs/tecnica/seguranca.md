@@ -66,7 +66,7 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 - **Limitação conhecida**: sem captcha de terceiros nem verificação de e-mail; um atacante com muitos IPs ainda consegue encher a seção de destino de envios privados (a equipe os manda para a lixeira). Captcha plugável e quotas globais são próximos passos.
 - Testes: `tests/FormulariosTest.php`.
 
-## Upload de arquivos (fase 7a)
+## Upload de arquivos (fase 7a + 7b)
 
 Único lugar, fora dos moldes, em que a administração grava o **conteúdo** de um arquivo (não só texto). Desenho completo no
 [ADR 0014](../adr/0014-upload-de-arquivos.md).
@@ -97,7 +97,18 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
   por envio, a mesma `chave` em disco); `bin/pbl limpar-uploads` só remove o arquivo físico depois de apagar **todas**
   as linhas órfãs e confirmar que nenhuma linha (viva ou ainda não examinada) continua usando aquela chave — nunca
   apaga um arquivo que outra linha, viva ou só fora da carência, ainda precise.
-- Testes: `tests/ArquivosTest.php`, `tests/AdminUploadTest.php`.
+- **Criação atômica (fase 7b)**: a tela de criar conteúdo também aceita upload; o envio só acontece **dentro da mesma
+  transação** do `INSERT` do objeto (depois dele, já com o id novo), através de um gancho `$aposInserir` em
+  `ObjetoRepositorio::criar`/`criarDentro`. Upload que falhe desfaz a transação inteira — o objeto nunca chega a existir
+  pela metade. O arquivo físico em disco, gravado antes do insert do banco, não entra na transação; numa falha depois
+  dele já escrito, fica órfão de fábrica (sem linha em `arquivo`, nunca listado por `limpar-uploads`, reaproveitado por
+  dedup se o mesmo conteúdo for enviado de novo).
+- **Comandos de molde (fase 7b)**: `<@arquivo valor=… info="url|nome|tamanho|tipo"@>` e `<@miniatura valor=… tamanho=n@>`
+  sempre escapam a saída (como `eco_limite`/`formatadata`, sem variante "cru") e só imprimem algo para um arquivo cujo
+  objeto dono está publicado e vigente **no mesmo site do objeto corrente** — a mesma regra do `ArquivoController`,
+  repetida em `FonteRepositorio::arquivo` (o `Runtime` continua sem depender de `Pbl\Arquivos`, só da interface
+  `FonteDeDados`).
+- Testes: `tests/ArquivosTest.php`, `tests/AdminUploadTest.php`, `tests/LinguagemTest.php`, `tests/AdminClassesTest.php`.
 
 ## Escrita em disco pela administração (moldes de pele)
 
@@ -117,7 +128,7 @@ A edição de peles é a única superfície em que a administração **grava arq
 | Recuperação de senha por e-mail, autenticação em dois fatores | depois da fase 4 ([ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md)) |
 | Permissão por campo | a decidir (o modelo de classes não tem permissão por campo; as telas de objetos tratam todos os campos não arquivados igual) |
 | Captcha plugável, verificação de e-mail e quota global em formulários públicos | próximas fatias da fase 6 ([ADR 0013](../adr/0013-formularios-publicos.md)) |
-| Upload na criação do conteúdo (hoje só na edição); anexo de formulário público; `tipos`/`tamanho_max_mb` por propriedade na tela de tipos de conteúdo (hoje só pelo `ClasseRepositorio` direto) | próximas fatias do fluxo 7 ([ADR 0014](../adr/0014-upload-de-arquivos.md)) |
+| Anexo de arquivo em formulário público | próxima fatia do fluxo 6 ([ADR 0013](../adr/0013-formularios-publicos.md)) |
 | Atualizar pelo painel sem que o PHP web precise gravar o código (hoje o processo de segundo plano roda com o mesmo usuário do PHP, então a pasta do PBL4 precisa ser gravável por ele; onde isso é indesejável, use a linha de comando com outro usuário) | a decidir ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | Política para quando existir migração **destrutiva** de verdade (hoje nenhuma existe — ADR 0006 §8 —, então `bin/pbl reverter` sempre é seguro quando o registro da atualização confere) | a decidir ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | HTTPS forçado na administração (hoje é recomendação) | a decidir |
