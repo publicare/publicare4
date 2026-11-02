@@ -14,6 +14,7 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Busca por palavras** | Procura todas as palavras digitadas, em qualquer ordem, aceitando só o começo da palavra e o plural; mostra primeiro o que combina melhor (relevância). |
 | **Relevância** | A pontuação que ordena os resultados da busca: título vale mais que descrição, que vale mais que o texto. |
 | **Busca sem acento** | A busca trata `Presidência`, `presidencia` e `PRESIDÊNCIA` como a mesma palavra. |
+| **Sugestão de busca ("você quis dizer…")** | Quando a busca não acha nada, o site pode sugerir uma palavra parecida do próprio vocabulário indexado (`Fernandha` sugere `Fernanda`). Opcional, liga-se por site no painel; nunca sugere termo de um conteúdo privado ou fora do ar. |
 | **Consulta** | Um pedido de lista de conteúdos com filtros e ordem (por exemplo, "eventos da Sala 1, em ordem de data"). |
 | **Árvore** | A organização em níveis: uma seção contém páginas, que podem conter outras páginas. |
 | **Pele** | A aparência do site: cores, layout, cabeçalho e rodapé. Trocar a pele muda o visual, não o conteúdo. |

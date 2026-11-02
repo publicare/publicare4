@@ -40,6 +40,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Mover um conteúdo escolhendo o novo lugar andando pela árvore, sem digitar número | ✅ |
 | Busca que ignora maiúsculas e acentos (`presidencia` acha `Presidência`) | ✅ |
 | Busca com várias palavras (todas), começo de palavra (`presid` acha `Presidência`), plural e singular (`ações`/`ação`) e ordem por relevância (título antes de descrição e texto), no título, na descrição e no texto | ✅ |
+| Busca que corrige erros de digitação (`Fernandha` sugere `Fernanda`, "você quis dizer…") | ✅ (opcional por site, desligada por padrão — liga no painel, em cada site; nunca sugere termo de conteúdo privado ou fora do ar) |
 | Ligar conteúdos entre si (uma notícia aponta para seu autor) e, nos moldes, mostrar, filtrar e ordenar pelo conteúdo apontado | ✅ |
 | **Formulário público simples** (inscrição, contato, cadastro): você escolhe o tipo de conteúdo, quais campos mostrar e onde guardar; cada envio chega **privado**, a equipe vê em "Envios recebidos" e aprova publicando. Com proteção contra robôs (campo escondido), limite de envios por pessoa, conferência de origem e conteúdo limpo | ✅ (o formulário é um conteúdo comum, sem editor visual; veja o [ADR 0013](../adr/0013-formularios-publicos.md)) |
 | Consultas com até três condições, comparações (maior, menor, contém) e carga rápida de listas | ✅ |
@@ -48,7 +49,6 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 
 | Recurso | Estado |
 |---|---|
-| Busca que corrige erros de digitação (`Fernandha` sugere `Fernanda`, "você quis dizer…"), opcional por site | 🗓️ |
 | Busca para portais muito grandes (centenas de milhares de páginas) com serviço de busca próprio | 🗓️ |
 | Atualização automática com cópia de segurança | 🔨 (funciona por linha de comando e pelo painel — tela **Atualização**, só administrador, pede a senha de novo —, com assinatura, cópia do banco e volta atrás se falhar; falta a chave de assinatura de produção e a primeira versão publicada, então ainda não há o que baixar; voltar atrás **depois** de uma atualização concluída ainda é manual) |
 | Editor de peles completo (realce de código, pré-visualização, histórico e voltar atrás, arquivos de CSS e imagens) | 🗓️ (hoje só a caixa de texto simples) |
