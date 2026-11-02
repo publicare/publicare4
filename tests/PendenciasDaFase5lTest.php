@@ -81,6 +81,34 @@ final class PendenciasDaFase5lTest extends TestCase
         self::assertMatchesRegularExpression('#<lastmod>\d{4}-\d{2}-\d{2}</lastmod>#', $xml);
     }
 
+    public function testSitemapViraIndiceQuandoPassaDoLimiteSemPerderUrls(): void
+    {
+        $site = $this->s->sites->porId($this->siteId) ?? self::fail();
+        $inteiro = (new \Pbl\Publicacao\SitemapERobots($this->s))->tratar($site, '/sitemap.xml') ?? self::fail();
+        preg_match_all('#<loc>([^<]+)</loc>#', $this->html($inteiro), $todas);
+        self::assertGreaterThan(3, count($todas[1]));
+        self::assertStringContainsString('<urlset', $this->html($inteiro));
+        self::assertNull((new \Pbl\Publicacao\SitemapERobots($this->s))->tratar($site, '/sitemap-1.xml'), 'sem índice não há sitemap-N');
+
+        $menor = new \Pbl\Publicacao\SitemapERobots($this->s, 2);
+        $indice = $this->html($menor->tratar($site, '/sitemap.xml') ?? self::fail());
+        self::assertStringContainsString('<sitemapindex', $indice);
+        preg_match_all('#<loc>(https://www\.exemplo\.org/sitemap-\d+\.xml)</loc>#', $indice, $partes);
+        self::assertCount((int) ceil(count($todas[1]) / 2), $partes[1]);
+
+        $juntas = [];
+        foreach ($partes[1] as $i => $_) {
+            $xml = $this->html($menor->tratar($site, '/sitemap-' . ($i + 1) . '.xml') ?? self::fail());
+            preg_match_all('#<loc>([^<]+)</loc>#', $xml, $m);
+            self::assertLessThanOrEqual(2, count($m[1]));
+            $juntas = array_merge($juntas, $m[1]);
+        }
+        self::assertSame($todas[1], $juntas);
+        self::assertNull($menor->tratar($site, '/sitemap-' . (count($partes[1]) + 1) . '.xml'));
+        self::assertTrue(\Pbl\Publicacao\SitemapERobots::atende('/sitemap-12.xml'));
+        self::assertFalse(\Pbl\Publicacao\SitemapERobots::atende('/sitemap-0.xml'));
+    }
+
     public function testSitemapERobotsNaoCaemEmPaginaPublicadaNemEmMetodoDiferente(): void
     {
         self::assertSame(404, (new \Pbl\Aplicacao($this->caminhos))->tratar(\Symfony\Component\HttpFoundation\Request::create('https://www.exemplo.org/sitemap.xml', 'POST'))->getStatusCode());

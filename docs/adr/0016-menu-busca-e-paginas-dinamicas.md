@@ -82,5 +82,5 @@ resumo e imagem, paginados), `noticia` (data, imagem de destaque, resumo), `busc
 - Custo do menu: 1 consulta ao reconstruir (publicar o site, ou conferir o hash numa edição) e 0 por página.
 - Uma edição que mexe no menu de um site pequeno republica o site na própria requisição (até 300 objetos); acima disso, o
   efeito vem com o próximo `bin/pbl agendados`.
-- O host do site vem do domínio principal (`EnderecoDoSite`, `https` salvo `PBL_ESQUEMA=http`), nunca da requisição, e chega ao molde como `#base_url`: `canonical`, `og:url` e `og:image` saem absolutos, e `/sitemap.xml` e `/robots.txt` são gerados por site (`SitemapERobots`). Trocar o domínio principal republica o site. Site sem domínio principal volta aos endereços relativos e sem sitemap.
+- O host do site vem do domínio principal (`EnderecoDoSite`, `https` salvo `PBL_ESQUEMA=http`), nunca da requisição, e chega ao molde como `#base_url`: `canonical`, `og:url` e `og:image` saem absolutos, e `/sitemap.xml` e `/robots.txt` são gerados por site (`SitemapERobots`); acima de 50.000 URLs `sitemap.xml` vira índice de `sitemap-N.xml`. Trocar o domínio principal republica o site. Site sem domínio principal volta aos endereços relativos e sem sitemap.
 - `/busca` e `?pagina=` não são cacheados (renderizam a cada pedido). Para tráfego alto, ponha uma CDN na frente.
