@@ -27,6 +27,10 @@ O público do PBL4 inclui quem instala por FTP em hospedagem compartilhada e nã
 - Verificação de hash e assinatura **antes** de extrair; extração com checagem de caminhos (zip-slip) e lista de arquivos esperada.
 - Falha de rede, de assinatura, de espaço ou de permissão nunca deixa o site meio atualizado.
 
+## Estado da implementação
+
+CLI (`bin/pbl atualizar`) e painel (`/_pbl/atualizacao`, fase 4c, [ADR 0012](0012-administracao-web.md) §12) existem e usam o mesmo `Atualizador`. No modo assistido a janela de escrita é a do próprio processo de atualização, iniciado em segundo plano depois da reautenticação; o "token de uso único" do desenho original virou a **trava** de uma atualização por vez. Faltam a chave de produção, a verificação periódica por cron e o modo manual guiado pelo painel.
+
 ## Consequências
 
 - Exige um pipeline de release (empacotar, assinar, publicar manifesto) e disciplina de migrações compatíveis.

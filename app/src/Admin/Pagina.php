@@ -42,7 +42,7 @@ final class Pagina
         return '<nav class="navbar navbar-expand bg-dark" data-bs-theme="dark" aria-label="Administração"><div class="container">'
             . '<a class="navbar-brand" href="/_pbl/">PBL4</a>'
             . '<ul class="navbar-nav"><li class="nav-item"><a class="nav-link" href="/_pbl/classes">Tipos de conteúdo</a></li>'
-            . ($administrador ? '<li class="nav-item"><a class="nav-link" href="/_pbl/contas">Contas</a></li>' : '')
+            . ($administrador ? '<li class="nav-item"><a class="nav-link" href="/_pbl/contas">Contas</a></li><li class="nav-item"><a class="nav-link" href="/_pbl/atualizacao">Atualização</a></li>' : '')
             . '</ul>'
             . '<div class="d-flex align-items-center gap-2 ms-auto"><span class="navbar-text text-truncate">' . self::h($nome) . '</span>'
             . '<form method="post" action="/_pbl/sair"><input type="hidden" name="_csrf" value="' . self::h($tokenCsrf) . '">'

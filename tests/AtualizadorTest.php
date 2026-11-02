@@ -100,6 +100,35 @@ final class AtualizadorTest extends TestCase
         self::assertFalse(Manutencao::ativa(new Caminhos($raiz)), 'manutenção desligada no fim');
     }
 
+    public function testDuasAtualizacoesAoMesmoTempoSoUmaPassa(): void
+    {
+        [, $manifesto] = $this->publicar('0.2.0', 'novo');
+        $raiz = $this->projeto('0.1.0', 'velho');
+        mkdir($raiz . '/dados', 0775, true);
+        $segunda = null;
+        $a = $this->atualizador($raiz, '0.1.0', function () use ($raiz, $manifesto, &$segunda): void {
+            // a primeira está no meio da troca: uma segunda tentativa (outro "processo") tem de ser recusada
+            try {
+                $b = $this->atualizador($raiz);
+                $b->aplicar($b->verificar($manifesto), $manifesto);
+            } catch (ErroDeAtualizacao $e) {
+                $segunda = $e->getMessage();
+            }
+        });
+
+        $a->aplicar($a->verificar($manifesto), $manifesto);
+
+        self::assertNotNull($segunda);
+        self::assertStringContainsString('Outra atualização em andamento', $segunda);
+        self::assertSame('novo', file_get_contents($raiz . '/app/src/marcador.txt'));
+        // terminada a primeira, a trava foi solta
+        $c = $this->atualizador($raiz, '0.2.0');
+        self::assertFalse($c->verificar($manifesto)->disponivel);
+        $lock = fopen($raiz . '/dados/atualizacao.lock', 'c');
+        self::assertNotFalse($lock);
+        self::assertTrue(flock($lock, LOCK_EX | LOCK_NB));
+    }
+
     public function testCopiaDoBancoSqliteEhConsistenteELegivel(): void
     {
         [, $manifesto] = $this->publicar('0.2.0', 'novo');

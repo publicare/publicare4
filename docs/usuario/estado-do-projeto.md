@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Última atualização: **novembro de 2026** (contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, publicação agendada, mover pela árvore e formulários públicos simples). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
+Última atualização: **novembro de 2026** (tela de atualização no painel; contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, publicação agendada, mover pela árvore e formulários públicos simples). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
 
 ## Legenda
 
@@ -50,7 +50,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 |---|---|
 | Busca que corrige erros de digitação (`Fernandha` sugere `Fernanda`, "você quis dizer…"), opcional por site | 🗓️ |
 | Busca para portais muito grandes (centenas de milhares de páginas) com serviço de busca próprio | 🗓️ |
-| Atualização automática com cópia de segurança | 🔨 (já funciona por linha de comando, com assinatura, cópia do banco e volta atrás; falta o botão no painel e a primeira versão publicada) |
+| Atualização automática com cópia de segurança | 🔨 (funciona por linha de comando e pelo painel — tela **Atualização**, só administrador, pede a senha de novo —, com assinatura, cópia do banco e volta atrás se falhar; falta a chave de assinatura de produção e a primeira versão publicada, então ainda não há o que baixar; voltar atrás **depois** de uma atualização concluída ainda é manual) |
 | Editor de peles completo (realce de código, pré-visualização, histórico e voltar atrás, arquivos de CSS e imagens) | 🗓️ (hoje só a caixa de texto simples) |
 | Galeria de peles prontas para instalar | 🗓️ |
 | Formulários com aprovação em etapas, aviso por e-mail, anexos, captcha, prazos, vagas e participante identificado; editor visual de formulários | 🗓️ |

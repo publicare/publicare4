@@ -73,6 +73,10 @@ Pode. O site pode ter vários domínios: o antigo continua funcionando e leva ao
 
 Se você é administrador, clique em **Contas** na barra da administração e em **Nova conta**: informe login (não muda depois), nome, e-mail e uma senha de pelo menos 10 caracteres, sem nada óbvio. Abra a conta para dar um **papel numa seção** (leitor, autor ou editor, pelo número da seção), editar nome e e-mail, tornar a pessoa administradora, **redefinir a senha** (ela é desconectada de todas as sessões) ou **desativar** a conta (não consegue mais entrar; nada do que ela fez se perde). Você não pode desativar a própria conta nem tirar a sua marca de administrador, e a última conta de administrador ativa fica sempre protegida.
 
+## Como atualizo o PBL4 pelo painel?
+
+Se você é administrador, clique em **Atualização** na barra: a tela mostra a versão instalada e se há uma nova. Para aplicar, digite sua senha de novo, marque a confirmação e clique em **Atualizar agora**; a atualização roda em segundo plano e você acompanha recarregando a página. É preciso antes configurar o endereço das atualizações (`dados/config/atualizacao.json`), e a tela só funciona depois que o PBL4 trouxer uma chave de assinatura (ainda não traz: ela avisa isso). Se a atualização falhar, o código anterior volta sozinho. Detalhes em [como atualizar](atualizar.md).
+
 ## É seguro?
 
 Segurança é critério de aceite do projeto. As peles rodam em ambiente restrito, o texto é protegido contra injeção de HTML, as entradas são validadas e há testes automáticos a cada mudança. Isso não dispensa as boas práticas de quem administra (senhas fortes, atualizações em dia, cópia de segurança). Se achar uma falha, veja a [política de segurança](../../SECURITY.md).

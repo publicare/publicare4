@@ -49,7 +49,7 @@ make pbl ARGS="redirecionamento remover 3"
 
 ## `atualizar`, `migrar`, `empacotar`, `chaves:gerar`
 
-`atualizar [--verificar] [--manifesto=ARQ] [--canal=…]` verifica e aplica uma atualização assinada; `migrar` aplica as migrações pendentes; `empacotar` e `chaves:gerar` são do mantenedor. Tudo em [atualização](atualizacao.md).
+`atualizar [--verificar] [--manifesto=ARQ] [--canal=…]` verifica e aplica uma atualização assinada; `migrar` aplica as migrações pendentes; `empacotar` e `chaves:gerar` são do mantenedor. Tudo em [atualização](atualizacao.md). O botão do painel (`/_pbl/atualizacao`) executa este mesmo `atualizar` em segundo plano.
 
 ## `converter-moldes`
 

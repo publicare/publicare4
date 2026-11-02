@@ -22,7 +22,7 @@ O **Publicare** é um programa **livre** (você pode usar, estudar e adaptar, se
 - **Português de ponta a ponta**: nome dos comandos, mensagens e documentação.
 - **Seguro por padrão**: o que se escreve nas peles não consegue executar código perigoso, e o texto exibido é protegido contra injeção de HTML.
 - **Seus endereços não quebram**: a ideia de manter funcionando os endereços (URLs) antigos é parte do projeto, porque endereço divulgado ou impresso é compromisso.
-- **Atualização simples e segura** (em desenvolvimento): o programa avisa quando há versão nova e se atualiza com cópia de segurança e volta atrás se algo falhar.
+- **Atualização simples e segura** (em desenvolvimento): o programa avisa quando há versão nova (tela de atualização no painel) e se atualiza com cópia de segurança e volta atrás se algo falhar.
 
 ## O que ele não é
 

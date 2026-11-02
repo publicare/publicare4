@@ -169,6 +169,13 @@ Domínios seguem o mesmo caminho com `podeAdministrarSite` (ação `Administrar`
 12. **Trocar a senha derruba as sessões** da conta; a senha nunca volta à página nem vai para a auditoria.
 13. **O site sempre tem um domínio principal**; os outros são alias (mesmo conteúdo) ou redirecionador (301 para o principal).
 
+### Atualização (fase 4c)
+
+Mesmo desenho das contas: `TelasDeAtualizacao` confere origem e CSRF (403), depois `podeAdministrarContas` (403 + auditoria `atualizacao.negado`), e só então age. O desenho completo, com o processo em segundo plano, está no [fluxo 11](11-atualizacao.md#pelo-painel-fase-4c).
+
+14. **Atualizar exige a senha de novo** e a caixa de confirmação; senha errada conta no limite de tentativas do login e nada é iniciado.
+15. **Só uma atualização por vez**, e ela nunca roda no processo da requisição.
+
 ### Editar um molde de pele (fase 5e)
 
 ```mermaid

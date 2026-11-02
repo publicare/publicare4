@@ -46,7 +46,7 @@ final class Servicos
 
     private ?string $segredo = null;
 
-    public function __construct(private readonly Caminhos $caminhos, private readonly Connection $conexao)
+    public function __construct(public readonly Caminhos $caminhos, private readonly Connection $conexao)
     {
         $this->classes = new ClasseRepositorio($conexao);
         $this->auditoria = new Auditoria($conexao);

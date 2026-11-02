@@ -26,7 +26,32 @@ flowchart TD
     R --> S[Sai da manutenção e mostra o motivo]
 ```
 
-> **Estado:** o caminho pela linha de comando (verificar, baixar, conferir, extrair, backup, manutenção, troca, migrar, conferir, volta atrás) está implementado; veja [atualização](../tecnica/atualizacao.md). Na troca real usamos `rename` de cada pasta (`app/`, `vendor/`, …) com o código antigo guardado em `dados/atualizacao/anterior/`, em vez de `releases/` com links; o botão no painel e a verificação periódica dependem da administração.
+> **Estado:** o caminho pela linha de comando (verificar, baixar, conferir, extrair, backup, manutenção, troca, migrar, conferir, volta atrás) está implementado; veja [atualização](../tecnica/atualizacao.md). Na troca real usamos `rename` de cada pasta (`app/`, `vendor/`, …) com o código antigo guardado em `dados/atualizacao/anterior/`, em vez de `releases/` com links; o botão no painel existe (fase 4c, [ADR 0012](../adr/0012-administracao-web.md) §12): ele só inicia o mesmo comando em segundo plano. Falta a chave de assinatura de produção e a verificação sem abrir o painel (por cron).
+
+### Pelo painel (fase 4c)
+
+```mermaid
+sequenceDiagram
+    participant V as Navegador (administrador)
+    participant T as TelasDeAtualizacao
+    participant E as EstadoDoPainel (dados/atualizacao-painel)
+    participant P as Processo em segundo plano
+    V->>T: GET /_pbl/atualizacao
+    T->>E: cache de 24 h vencido? consulta o manifesto assinado e guarda
+    T-->>V: versão instalada, canal, versão nova, mudanças, segurança
+    V->>T: POST /_pbl/atualizacao/aplicar (senha, confirmar, versão, CSRF, origem)
+    T->>T: senha confere (limite de tentativas)? manifesto ao vivo = mesma versão?
+    T->>E: trava (flock): já há uma em andamento? 409
+    T->>P: sh -c "php bin/pbl atualizar" em segundo plano
+    T-->>V: 303 de volta à tela (andamento)
+    P->>P: o MESMO Atualizador da CLI (manutenção, troca, migra, confere)
+    P->>E: saida.txt e codigo (quando acabou)
+    V->>T: recarrega: concluída, falhou (motivo) ou sem resposta
+```
+
+- A requisição web nunca troca código: ela consulta, valida a senha e **dispara** `bin/pbl atualizar`. O processo grava `saida.txt` e, só ao terminar, `codigo` (0 = sem erro); a tela lê os dois a cada recarga. Sem `codigo` depois de 1 hora, a trava é considerada solta ("sem resposta").
+- Durante a troca o site inteiro responde 503 (manutenção), inclusive a própria tela; basta recarregar depois.
+- O estado fica em `dados/atualizacao-painel/` e não em `dados/atualizacao/`, que o atualizador apaga a cada execução.
 
 ### Layout de pastas
 
