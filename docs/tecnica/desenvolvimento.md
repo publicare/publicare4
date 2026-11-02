@@ -49,7 +49,7 @@ app/src/        código do produto
   Console/      comandos de bin/pbl
 app/recursos/   arquivos que viajam com o produto (pele básica)
 bin/pbl         linha de comando
-public/         front controller (index.php) e _pbl/assets/ (CSS da administração: Bootstrap local + pbl.css)
+public/         front controller (index.php) e _pbl/assets/ (CSS da administração: Bootstrap local (CSS e bundle JS) + pbl.css + pbl-admin.js; tabelas com `<thead>` viram cartões no celular via `Pagina::tabelasEmCartoes` + `data-label`)
 tests/          PHPUnit
 docs/           documentação (usuário, técnica, ADRs, fluxos)
 ```

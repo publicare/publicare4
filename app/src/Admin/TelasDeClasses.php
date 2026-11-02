@@ -664,6 +664,7 @@ final class TelasDeClasses
             $corpo .= '<p class="text-body-secondary">Este tipo ainda não tem campos.</p>';
         } else {
             $corpo .= '<p class="form-text">Mude a ordem trocando os números (menor primeiro). Campo com valores guardados não troca de tipo e não pode ser removido, só arquivado.</p>';
+            $paineis = '';
             foreach ($r['campos'] as $i => $c) {
                 $p = $this->definicao($classe, $c['nome']);
                 $objetos = $uso[$c['nome']]['objetos'] ?? 0;
@@ -672,6 +673,7 @@ final class TelasDeClasses
                 $base = 'p[' . $c['nome'] . ']';
                 $id = 'campo-' . $i . '-' . (preg_replace('/[^A-Za-z0-9_-]/', '-', $c['nome']) ?? '');
                 $selos = (($p['indexavel'] ?? false) ? ' <span class="badge text-bg-light border">indexável</span>' : '')
+                    . ($c['obrigatorio'] ? ' <span class="badge text-bg-light border">obrigatório</span>' : '')
                     . ($c['situacao'] === 'arquivada' ? ' <span class="badge text-bg-secondary">arquivado</span>' : '');
                 $situacoes = [];
                 foreach (self::SITUACOES as $valor => $texto) {
@@ -701,8 +703,12 @@ final class TelasDeClasses
                     . ($historico > $objetos ? ' (+ versões antigas)' : '') . '.</p>'
                     . '<div class="pbl-largo">' . $this->camposDeArquivo($id, $base, $c['tipos'], $c['tamanho_max_mb'], in_array($c['tipo'], ['arquivo', 'imagem'], true)) . '</div>'
                     . '</div>';
-                $corpo .= '<fieldset class="pbl-card"><legend><code>' . Pagina::h($c['nome']) . '</code>' . $selos . '</legend>' . $interno . '</fieldset>';
+                $resumo = '<code>' . Pagina::h($c['nome']) . '</code>'
+                    . ($c['rotulo'] === '' ? '' : ' <span class="ms-2">' . Pagina::h($c['rotulo']) . '</span>')
+                    . ' <span class="pbl-resumo-meta ms-2">' . Pagina::h($this->descreverTipo($c['tipo'], $c['classe'])) . ' · ordem ' . Pagina::h($c['ordem']) . '</span>' . $selos;
+                $paineis .= Pagina::recolhivel($id, $resumo, $interno, $erro !== null);
             }
+            $corpo .= '<div class="accordion mb-3">' . $paineis . '</div>';
         }
 
         $n = $r['novo'];
@@ -713,9 +719,9 @@ final class TelasDeClasses
             . '<div class="pbl-largo">' . $this->seletorDeTipo('novo', 'novo', $n['tipo'], $n['classe'], $todas) . '</div>'
             . '<div class="pbl-largo">' . $this->checkbox('novo-obrigatorio', 'novo[obrigatorio]', 'Obrigatório', $n['obrigatorio'])
             . $this->checkbox('novo-indexavel', 'novo[indexavel]', 'Indexável', $n['indexavel'], 'Permite filtrar e ordenar por este campo nos moldes. Não muda depois que houver valores. Referências são sempre indexáveis.') . '</div>'
-            . '<div class="pbl-largo">' . $this->camposDeArquivo('novo', 'novo', $n['tipos'], $n['tamanho_max_mb'], in_array($n['tipo'], ['arquivo', 'imagem'], true)) . '</div>'
+            . '<div class="pbl-largo">' . $this->camposDeArquivo('novo', 'novo', $n['tipos'], $n['tamanho_max_mb'], in_array($n['tipo'], ['arquivo', 'imagem'], true), true) . '</div>'
             . '</div>';
-        $corpo .= $this->card('Adicionar um campo (opcional)', $novo)
+        $corpo .= '<div class="accordion mb-3">' . Pagina::recolhivel('novo-campo', '<strong>Adicionar um campo</strong> <span class="pbl-resumo-meta ms-2">(opcional)</span>', $novo, $this->novoPreenchido($n)) . '</div>'
             . '<p class="form-text">"Obrigatório" fica guardado no tipo; a exigência ao salvar um conteúdo vem com as telas de conteúdo.</p>'
             . $this->acoes('Salvar alterações', [['Voltar aos tipos', $this->linkLista()]], $classe->fixa ? null : ['Apagar este tipo de conteúdo', $this->link($classe->id) . '/apagar'])
             . '</form>';
@@ -727,14 +733,18 @@ final class TelasDeClasses
 
     /**
      * `tipos` (subconjunto da whitelist, por categoria) e `tamanho_max_mb` (até `TiposDeArquivo::TETO_MB`) de uma propriedade
-     * `arquivo`/`imagem` (ADR 0014). Sem JavaScript a tela não sabe trocar o que aparece quando o tipo muda: para campo que já é
-     * Arquivo/Imagem os controles aparecem abertos; para os demais ficam num `<details>` fechado (a pessoa pode abrir, preencher e
-     * trocar o tipo na mesma gravação). O `ClasseRepositorio` ignora os dois fora de `arquivo`/`imagem`.
+     * `arquivo`/`imagem` (ADR 0014). Em campo existente os controles só são desenhados se o tipo atual já é Arquivo/Imagem. No
+     * formulário de campo novo (`$condicional`) o tipo ainda vai ser escolhido: o bloco é desenhado `hidden` e o `pbl-admin.js` o
+     * mostra quando o seletor `novo-tipo` vira arquivo/imagem (`data-pbl-visivel-se`); sem JavaScript ele fica oculto e as opções
+     * aparecem ao editar o campo depois de criado. O `ClasseRepositorio` ignora os dois fora de `arquivo`/`imagem`.
      *
      * @param list<string> $tiposSelecionados
      */
-    private function camposDeArquivo(string $id, string $base, array $tiposSelecionados, string $tamanhoMaxMb, bool $relevante): string
+    private function camposDeArquivo(string $id, string $base, array $tiposSelecionados, string $tamanhoMaxMb, bool $relevante, bool $condicional = false): string
     {
+        if (!$relevante && !$condicional) {
+            return '';
+        }
         $caixas = '';
         foreach ([TiposDeArquivo::imagens(), TiposDeArquivo::documentos()] as $extensoes) {
             foreach ($extensoes as $extensao) {
@@ -748,11 +758,16 @@ final class TelasDeClasses
                 'tipo' => 'number', 'min' => 1, 'max' => TiposDeArquivo::TETO_MB, 'step' => 1, 'classe' => 'pbl-tamanho', 'grupo' => 'mb-0',
                 'ajuda' => 'Em branco: ' . TiposDeArquivo::PADRAO_MB . ' MB. Máximo permitido: ' . TiposDeArquivo::TETO_MB . ' MB.',
             ]);
-        if ($relevante) {
-            return '<div class="border-top pt-3">' . $html . '</div>';
-        }
 
-        return '<details><summary class="py-2">Opções de arquivo e imagem <span class="text-body-secondary">(só valem se o tipo for Arquivo ou Imagem)</span></summary><div class="pt-2">' . $html . '</div></details>';
+        $gatilho = $condicional ? ' data-pbl-visivel-se="' . Pagina::h($id . '-tipo') . ':arquivo,imagem"' . ($relevante ? '' : ' hidden') : '';
+
+        return '<div class="border-top pt-3"' . $gatilho . '><h3 class="h6">Opções de arquivo e imagem</h3>' . $html . '</div>';
+    }
+
+    /** @param array<string, mixed> $n */
+    private function novoPreenchido(array $n): bool
+    {
+        return ($n['nome'] ?? '') !== '' || ($n['rotulo'] ?? '') !== '';
     }
 
     /** @param list<Classe> $todas */
@@ -784,9 +799,8 @@ final class TelasDeClasses
      */
     private function camposDaClasse(string $descricao, bool $aceita, array $filhas, array $todas, ?string $propria): string
     {
-        $html = $this->campo('campo-descricao', 'descricao', 'Descrição', $descricao, ['tipo' => 'textarea', 'linhas' => 3, 'maxlength' => ClasseRepositorio::MAX_DESCRICAO, 'ajuda' => 'Opcional: para que serve este tipo, em poucas palavras.'])
-            . '<fieldset class="mb-0"><legend class="fs-6 fw-semibold mb-1">Conteúdo dentro deste tipo</legend>'
-            . $this->checkbox('campo-aceita', 'aceita_filhos', 'Pode ter conteúdo dentro (filhos)', $aceita);
+        $html = $this->campo('campo-descricao', 'descricao', 'Descrição', $descricao, ['tipo' => 'textarea', 'linhas' => 3, 'maxlength' => ClasseRepositorio::MAX_DESCRICAO, 'ajuda' => 'Opcional: para que serve este tipo, em poucas palavras.']);
+        $dentro = $this->checkbox('campo-aceita', 'aceita_filhos', 'Pode ter conteúdo dentro (filhos)', $aceita);
         $opcoes = '';
         $nomes = array_map(static fn (Classe $c): string => $c->nome, $todas);
         if ($propria === null || !in_array($propria, $nomes, true)) {
@@ -796,10 +810,11 @@ final class TelasDeClasses
             $opcoes .= $this->checkbox('filha-' . $i, 'filhas[]', '<code>' . Pagina::h($nome) . '</code>' . ($nome === $propria ? ' (o próprio)' : ''), in_array($nome, $filhas, true), '', $nome, true);
         }
         if ($opcoes !== '') {
-            $html .= '<p class="form-text mb-1 mt-2">Que tipos podem ficar dentro. Nenhum marcado: qualquer tipo. Ignorado se não pode ter filhos.</p><div class="pbl-extensoes">' . $opcoes . '</div>';
+            $dentro .= '<p class="form-text mb-1 mt-2">Que tipos podem ficar dentro. Nenhum marcado: qualquer tipo. Ignorado se não pode ter filhos.</p><div class="pbl-extensoes">' . $opcoes . '</div>';
         }
+        $dentro .= '<p class="form-text">A regra de filhos fica guardada no tipo; a conferência ao criar ou mover conteúdo vem com as telas de conteúdo.</p>';
 
-        return $html . '<p class="form-text">A regra de filhos fica guardada no tipo; a conferência ao criar ou mover conteúdo vem com as telas de conteúdo.</p></fieldset>';
+        return $html . '<div class="accordion mb-3">' . Pagina::recolhivel('filhos', '<strong>Que tipos podem ficar dentro</strong> <span class="pbl-resumo-meta ms-2">(conteúdo dentro deste tipo)</span>', $dentro, $filhas !== []) . '</div>';
     }
 
     // ---------------------------------------------------------------- apagar
