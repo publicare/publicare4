@@ -10,6 +10,7 @@ use Pbl\Acesso\Rede;
 use Pbl\Acesso\SessaoAtiva;
 use Pbl\Arquivos\ErroDeUpload;
 use Pbl\Arquivos\ServicoDeUpload;
+use Pbl\Arquivos\TamanhoLegivel;
 use Pbl\Arquivos\TiposDeArquivo;
 use Pbl\Caminhos;
 use Pbl\Busca\Texto;
@@ -318,8 +319,7 @@ final class TelasDeObjetos
             return '<em>arquivo nº ' . $id . ' (não encontrado)</em>';
         }
         $link = Painel::PREFIXO . '/arquivo/' . $arquivo->id;
-        $tamanho = round($arquivo->tamanho / 1024, 1) . ' KB';
-        $html = '<a href="' . Pagina::h($link) . '">' . Pagina::h($arquivo->nome) . '</a> (' . $tamanho . ')';
+        $html = '<a href="' . Pagina::h($link) . '">' . Pagina::h($arquivo->nome) . '</a> (' . TamanhoLegivel::formatar($arquivo->tamanho) . ')';
         if ($arquivo->ehImagem()) {
             $html .= '<br><img src="' . Pagina::h($link . '/miniatura/150') . '" alt="" width="150" loading="lazy">';
         }
@@ -422,6 +422,7 @@ final class TelasDeObjetos
         if ($erros !== []) {
             return $this->telaDeEdicao($sessao, $o, $classe, $digitado, $versao, $erros, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
+        // Na edição $pendentes vem sempre vazio (o arquivo é enviado na hora, ver lerFormulario); só a criação adia.
 
         $mudancas = [];
         foreach (['titulo' => $o->titulo, 'descricao' => $o->descricao, 'url_amigavel' => $o->urlAmigavel, 'peso' => $o->peso] as $campo => $atual) {
@@ -551,14 +552,14 @@ final class TelasDeObjetos
         }
         $classeId = $this->numero($campos['classe'] ?? null);
         $classe = $classeId === null ? null : $this->servicos->classes->porId($classeId);
-        $lido = $classe === null ? null : $this->lerFormulario($sessao, $pai->siteId, $classe, $campos, null);
+        $lido = $classe === null ? null : $this->lerFormulario($sessao, $pai->siteId, $classe, $campos, null, $r);
         if ($classe === null || $lido === null) {
             return $this->pedidoInvalido($sessao);
         }
         if (!$this->aceita($pai, $classe)) {
             return $this->recusa($sessao, 'Tipo não aceito', 'O tipo de ' . $pai->titulo . ' não aceita conteúdo do tipo ' . $classe->nome . ' dentro dele.', $pai, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-        [$valores, $digitado, $erros] = $lido;
+        [$valores, $digitado, $erros, $pendentes] = $lido;
         $url = $valores['url_amigavel'] ?? '';
         if ($erros === [] && $url === '') {
             $url = $this->urlLivre($pai->siteId, $valores['titulo']) ?? '';
@@ -570,12 +571,22 @@ final class TelasDeObjetos
             return $this->telaDeCriacao($sessao, $pai, $classe, $digitado, $erros, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $dados = array_filter($valores['dados'], static fn (string|int|float|null $v): bool => $v !== null);
+        $aposInserir = $pendentes === [] ? null : $this->enviarArquivosPendentes($pendentes, $classe, $pai->siteId, $u->id);
         try {
+            // Atômico: o objeto só existe se os arquivos pendentes também foram gravados (ADR 0014 §4). `$aposInserir`
+            // roda dentro da mesma transação de `criarDentro`/`criar`; se algum upload falhar (`ErroDeUpload`), o insert
+            // inteiro é desfeito e nada fica pela metade.
             $novo = $this->servicos->objetos->criarDentro($pai->siteId, $classe, $pai->id, $valores['titulo'], $url, $dados, 'privado', [
                 'peso' => $valores['peso'], 'descricao' => $valores['descricao'], 'criado_por' => $u->id,
-            ]);
+            ], $aposInserir);
         } catch (ConflitoDeArvore) {
             return $this->naLixeira($sessao, $pai);
+        // phpstan não enxerga o que um Closure genérico (`$aposInserir`, construído em `enviarArquivosPendentes`) lança: o
+        // catch é real (ver o teste de upload inválido na criação), só opaco para a análise estática através do tipo `Closure`.
+        } catch (ErroDeUpload $e) { // @phpstan-ignore catch.neverThrown
+            $erroArquivo = $e->propriedade !== '' ? ['dados.' . $e->propriedade => $e->getMessage()] : ['_' => $e->getMessage()];
+
+            return $this->telaDeCriacao($sessao, $pai, $classe, $digitado, $erroArquivo, Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (ViolacaoDeRegra $e) {
             return $this->telaDeCriacao($sessao, $pai, $classe, $digitado, $this->erroDaRegra($e), Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\InvalidArgumentException|\Doctrine\DBAL\Exception\UniqueConstraintViolationException) {
@@ -600,7 +611,7 @@ final class TelasDeObjetos
     {
         $corpo = $this->migalhas($sessao, $pai) . $this->resumoDeErros($erros)
             . '<p>Novo conteúdo do tipo <strong>' . Pagina::h($classe->nome) . '</strong> dentro de <strong>' . Pagina::h($pai->titulo) . '</strong>. Ele começa fora do ar (privado).</p>'
-            . '<form method="post" action="' . $this->link($pai->id) . '/novo" novalidate>'
+            . '<form method="post" action="' . $this->link($pai->id) . '/novo" enctype="multipart/form-data" novalidate>'
             . '<input type="hidden" name="_csrf" value="' . Pagina::h($this->csrf->daSessao($sessao->idHash)) . '">'
             . '<input type="hidden" name="classe" value="' . $classe->id . '">'
             . $this->camposDoFormulario($classe, $digitado, $erros, false, true)
@@ -640,11 +651,14 @@ final class TelasDeObjetos
      * Lê e valida título, descrição, endereço, peso e as propriedades da classe. null = o pedido veio malformado (campo não
      * textual ou ausente): 400. Valor vazio numa propriedade = remover o valor.
      *
-     * `$r` só é usado para os arquivos enviados (`dados[nome]`, `multipart/form-data`) numa propriedade `arquivo`/`imagem`, e só
-     * quando `$atual` existe: criar um conteúdo com arquivo fica para depois de salvá-lo (o arquivo precisa de um dono).
+     * `$r` só é usado para os arquivos enviados (`dados[nome]`, `multipart/form-data`) numa propriedade `arquivo`/`imagem`.
+     * Na edição (`$atual` existe), o arquivo é enviado na hora (o dono já existe) e o id resultante já entra em `dados`. Na
+     * criação (`$atual` null), o arquivo ainda não tem dono: fica em `$pendentes` (4º item do retorno) para `criar()` enviar
+     * só depois que o objeto existir, dentro da mesma transação (ADR 0014 §4) — por isso aqui só valida se o campo é
+     * obrigatório e nada foi enviado; o conteúdo do arquivo em si só é conferido depois.
      *
      * @param array<string, mixed> $campos
-     * @return array{0: array{titulo: string, descricao: string, url_amigavel?: string, peso: int, dados: array<string, string|int|float|null>}, 1: array<string, string>, 2: array<string, string>}|null
+     * @return array{0: array{titulo: string, descricao: string, url_amigavel?: string, peso: int, dados: array<string, string|int|float|null>}, 1: array<string, string>, 2: array<string, string>, 3: array<string, UploadedFile>}|null
      */
     private function lerFormulario(SessaoAtiva $sessao, int $siteId, Classe $classe, array $campos, ?Objeto $atual, ?Request $r = null): ?array
     {
@@ -697,6 +711,8 @@ final class TelasDeObjetos
 
         $removerBrutos = $campos['dados_remover'] ?? [];
         $arquivosBrutos = $r?->files->all()['dados'] ?? [];
+        /** @var array<string, UploadedFile> $pendentes */
+        $pendentes = [];
         // Campo arquivado não aparece no formulário e não é tocado: o valor guardado continua como está.
         foreach ($this->propriedadesAtivas($classe) as $p) {
             $nome = $p['nome'];
@@ -704,9 +720,20 @@ final class TelasDeObjetos
             if (in_array($p['tipo'], ['arquivo', 'imagem'], true)) {
                 $digitado['dados.' . $nome] = $guardado ?? '';
                 $enviado = is_array($arquivosBrutos) ? ($arquivosBrutos[$nome] ?? null) : null;
+                $enviado = $enviado instanceof UploadedFile ? $enviado : null;
                 $removido = is_array($removerBrutos) && ($removerBrutos[$nome] ?? null) === '1';
-                [$valor, $erro] = $this->lerPropriedadeDeArquivo($p, $atual, $enviado instanceof UploadedFile ? $enviado : null, $removido, $guardado, $sessao->usuario->id);
-                if ($erro === null && $valor === null && ($p['obrigatorio'] ?? false) && $atual !== null) {
+                if ($atual === null) {
+                    // Criando: o arquivo ainda não tem dono, então só fica pendente (ver `criar()`); aqui só confere se um
+                    // campo obrigatório ficou mesmo sem nada enviado.
+                    if ($enviado !== null) {
+                        $pendentes[$nome] = $enviado;
+                    } elseif ($p['obrigatorio'] ?? false) {
+                        $erros['dados.' . $nome] = 'Este campo é obrigatório.';
+                    }
+                    continue;
+                }
+                [$valor, $erro] = $this->lerPropriedadeDeArquivo($p, $atual, $enviado, $removido, $guardado, $sessao->usuario->id);
+                if ($erro === null && $valor === null && ($p['obrigatorio'] ?? false)) {
                     $erro = 'Este campo é obrigatório.';
                 }
                 if ($erro !== null) {
@@ -733,23 +760,55 @@ final class TelasDeObjetos
             }
         }
 
-        return [$valores, $digitado, $erros];
+        return [$valores, $digitado, $erros, $pendentes];
     }
 
     /**
-     * Lê uma propriedade `arquivo`/`imagem`: arquivo novo enviado substitui o atual (`ServicoDeUpload` valida tipo, tamanho e
-     * conteúdo); "remover" marcado tira o valor; sem nenhum dos dois, o valor guardado continua (o arquivo físico só é
-     * removido pelo `bin/pbl limpar-uploads`, nunca na requisição).
+     * O `$aposInserir` de `ObjetoRepositorio::criar`: envia, dentro da mesma transação, cada arquivo que ficou pendente na
+     * criação (ADR 0014 §4) — agora que o objeto novo já tem um id para ser o dono. Uma falha de upload vira `ErroDeUpload`
+     * com a propriedade marcada, para `criar()` mostrar o erro no campo certo; a exceção desfaz a transação inteira.
+     *
+     * @param array<string, UploadedFile> $pendentes
+     * @return \Closure(int): array<string, int>
+     */
+    private function enviarArquivosPendentes(array $pendentes, Classe $classe, int $siteId, int $usuarioId): \Closure
+    {
+        $definidas = [];
+        foreach ($this->propriedadesAtivas($classe) as $p) {
+            $definidas[$p['nome']] = $p;
+        }
+
+        return function (int $novoId) use ($pendentes, $definidas, $siteId, $usuarioId): array {
+            $extra = [];
+            foreach ($pendentes as $nome => $enviado) {
+                $p = $definidas[$nome] ?? null;
+                if ($p === null) {
+                    continue; // campo removido da classe entre o formulário ser montado e o envio: ignora, não trava a criação
+                }
+                try {
+                    $arquivo = $this->servicos->uploads()->enviar($enviado, $p, $siteId, $novoId, $usuarioId);
+                } catch (ErroDeUpload $e) {
+                    throw new ErroDeUpload($e->getMessage(), $nome, $e);
+                }
+                $extra[$nome] = $arquivo->id;
+            }
+
+            return $extra;
+        };
+    }
+
+    /**
+     * Lê uma propriedade `arquivo`/`imagem` na edição (o objeto já existe, então o arquivo já tem dono na hora: diferente da
+     * criação, que adia o envio, ver `lerFormulario`): arquivo novo enviado substitui o atual (`ServicoDeUpload` valida
+     * tipo, tamanho e conteúdo); "remover" marcado tira o valor; sem nenhum dos dois, o valor guardado continua (o arquivo
+     * físico só é removido pelo `bin/pbl limpar-uploads`, nunca na requisição).
      *
      * @param array{nome: string, tipo: string, tipos?: list<string>, tamanho_max_mb?: int} $p
      * @return array{0: int|null, 1: string|null} [id do arquivo, erro]
      */
-    private function lerPropriedadeDeArquivo(array $p, ?Objeto $atual, ?UploadedFile $enviado, bool $removido, ?string $guardado, int $usuarioId): array
+    private function lerPropriedadeDeArquivo(array $p, Objeto $atual, ?UploadedFile $enviado, bool $removido, ?string $guardado, int $usuarioId): array
     {
         if ($enviado !== null) {
-            if ($atual === null) {
-                return [null, 'Envie o arquivo depois de criar o conteúdo.'];
-            }
             try {
                 $arquivo = $this->servicos->uploads()->enviar($enviado, $p, $atual->siteId, $atual->id, $usuarioId);
 
@@ -899,9 +958,10 @@ final class TelasDeObjetos
     }
 
     /**
-     * Campo de uma propriedade `arquivo`/`imagem`: além do `<input type="file">`, mostra o arquivo já guardado (se houver) e
-     * uma caixa para removê-lo. Sem `multipart/form-data` não há envio de arquivo: só existe na tela de editar (`$criando`
-     * falso), porque o upload precisa de um objeto já existente para registrar o dono do arquivo.
+     * Campo de uma propriedade `arquivo`/`imagem`: `<input type="file">` e, na edição, o arquivo já guardado (se houver) com
+     * uma caixa para removê-lo. Na criação (`$criando`) o arquivo enviado fica pendente até o objeto existir (ADR 0014 §4:
+     * criação e upload são atômicos, dentro da mesma transação) — por isso não há "arquivo atual" nem "remover" para
+     * mostrar, mas o campo de envio é o mesmo.
      *
      * @param array{nome: string, tipo: string, rotulo?: string, obrigatorio?: bool, tipos?: list<string>, tamanho_max_mb?: int} $p
      * @param array<string, string> $erros
@@ -911,18 +971,19 @@ final class TelasDeObjetos
         $chave = 'dados.' . $p['nome'];
         $id = 'campo-dados-' . $p['nome'];
         $rotulo = Classe::rotuloDe($p) . (($p['obrigatorio'] ?? false) ? ' (obrigatório)' : '');
-        if ($criando) {
-            return $this->campo($chave, $rotulo, '<p class="form-text">Disponível depois de criar o conteúdo: salve primeiro, depois edite para enviar o arquivo.</p>', $erros);
-        }
         $extensoes = TiposDeArquivo::aceitasPor($p);
         $limiteMb = intdiv(TiposDeArquivo::limiteBytes($p), 1024 * 1024);
-        $atual = $valor !== '' && ctype_digit($valor) ? $this->arquivoLegivel((int) $valor) : '<em>nenhum arquivo enviado</em>';
-        $controle = '<div class="mb-2">' . $atual . '</div>'
-            . '<input class="form-control' . $this->invalido($erros, $chave) . '" id="' . Pagina::h($id) . '" type="file" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '" accept="' . Pagina::h(implode(',', array_map(static fn (string $e): string => '.' . $e, $extensoes))) . '"' . $this->descrito($erros, $chave, true) . '>';
-        if ($valor !== '') {
+        $controle = '';
+        if (!$criando) {
+            $atual = $valor !== '' && ctype_digit($valor) ? $this->arquivoLegivel((int) $valor) : '<em>nenhum arquivo enviado</em>';
+            $controle .= '<div class="mb-2">' . $atual . '</div>';
+        }
+        $controle .= '<input class="form-control' . $this->invalido($erros, $chave) . '" id="' . Pagina::h($id) . '" type="file" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '" accept="' . Pagina::h(implode(',', array_map(static fn (string $e): string => '.' . $e, $extensoes))) . '"' . $this->descrito($erros, $chave, true) . '>';
+        if (!$criando && $valor !== '') {
             $controle .= '<div class="form-check mt-1"><input class="form-check-input" type="checkbox" value="1" id="' . $id . '-remover" name="' . Pagina::h('dados_remover[' . $p['nome'] . ']') . '"><label class="form-check-label" for="' . $id . '-remover">Remover o arquivo atual</label></div>';
         }
-        $ajuda = 'Tipos aceitos: ' . implode(', ', $extensoes) . '. Até ' . $limiteMb . ' MB. Deixe em branco para manter o arquivo atual.';
+        $ajuda = 'Tipos aceitos: ' . implode(', ', $extensoes) . '. Até ' . $limiteMb . ' MB.'
+            . ($criando ? '' : ' Deixe em branco para manter o arquivo atual.');
 
         return $this->campo($chave, $rotulo, $controle, $erros, $ajuda, $id);
     }

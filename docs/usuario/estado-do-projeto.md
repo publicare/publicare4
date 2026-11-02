@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Última atualização: **novembro de 2026** (voltar atrás de uma atualização concluída e aviso de versão nova na página inicial; tela de atualização no painel; contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, publicação agendada, mover pela árvore e formulários públicos simples; modo elevado nas ações sensíveis do painel e lista de contas paginada/com busca; histórico, rascunho/pré-visualização e realce de leitura no editor de peles). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
+Última atualização: **novembro de 2026** (voltar atrás de uma atualização concluída e aviso de versão nova na página inicial; tela de atualização no painel; contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, varredura do HTML gravado antes dessa limpeza, publicação agendada, mover pela árvore e formulários públicos simples; modo elevado nas ações sensíveis do painel e lista de contas paginada/com busca; histórico, rascunho/pré-visualização e realce de leitura no editor de peles). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
 
 ## Legenda
 
@@ -40,6 +40,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Salvar um molde como rascunho (sem publicar) e pré-visualizar uma página do site com o rascunho, sem afetar o que está no ar | ✅ (a pré-visualização é só para quem administra o site) |
 | Ver o conteúdo de um molde com as cores da sintaxe (histórico, diferença e visualização) | ✅ (só leitura; a caixa de edição continua texto simples) |
 | Campos de texto com HTML são limpos ao salvar (sem scripts, estilos, formulários nem eventos; só marcações comuns, links e imagens seguros) | ✅ |
+| Varredura do HTML gravado antes dessa limpeza existir, ou importado sem passar pela gravação normal (`bin/pbl sanitizar-html`, com simulação) | ✅ |
 | Publicar numa data futura e tirar do ar numa data de validade: a página mostra "agendado" e o comando `bin/pbl agendados` (para o cron do servidor) põe no ar e tira na hora certa | ✅ (precisa agendar o comando no servidor) |
 | Mover um conteúdo escolhendo o novo lugar andando pela árvore, sem digitar número | ✅ |
 | Busca que ignora maiúsculas e acentos (`presidencia` acha `Presidência`) | ✅ |
@@ -48,7 +49,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Ligar conteúdos entre si (uma notícia aponta para seu autor) e, nos moldes, mostrar, filtrar e ordenar pelo conteúdo apontado | ✅ |
 | **Formulário público simples** (inscrição, contato, cadastro): você escolhe o tipo de conteúdo, quais campos mostrar e onde guardar; cada envio chega **privado**, a equipe vê em "Envios recebidos" e aprova publicando. Com proteção contra robôs (campo escondido), limite de envios por pessoa, conferência de origem e conteúdo limpo | ✅ (o formulário é um conteúdo comum, sem editor visual; veja o [ADR 0013](../adr/0013-formularios-publicos.md)) |
 | Consultas com até três condições, comparações (maior, menor, contém) e carga rápida de listas | ✅ |
-| **Upload de arquivo e imagem**: um tipo de conteúdo pode ter um campo de arquivo (documento) ou de imagem; você envia pelo navegador, ao editar o conteúdo, e o PBL4 confere o tipo de verdade (não só pelo nome), recodifica a imagem quando possível e só mostra o arquivo em páginas publicadas | ✅ (só na edição, não ainda ao criar; veja o [ADR 0014](../adr/0014-upload-de-arquivos.md)) |
+| **Upload de arquivo e imagem**: um tipo de conteúdo pode ter um campo de arquivo (documento) ou de imagem, com os tipos aceitos e o tamanho máximo configuráveis por campo; você envia pelo navegador, ao criar ou editar o conteúdo (na criação, o envio e a criação são uma coisa só: se o arquivo falhar, nada é criado), e o PBL4 confere o tipo de verdade (não só pelo nome), recodifica a imagem quando possível e só mostra o arquivo em páginas publicadas. Os moldes mostram o link, o nome, o tamanho, o tipo e a miniatura do arquivo | ✅ (veja o [ADR 0014](../adr/0014-upload-de-arquivos.md)) |
 
 ## O que vem a seguir
 

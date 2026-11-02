@@ -543,6 +543,82 @@ final class AdminClassesTest extends TestCase
         self::assertSame(303, $this->post($token, "/_pbl/classe/{$autor->id}/apagar", ['versao' => '1'])->getStatusCode(), 'sem dependentes, sai');
     }
 
+    // ---------------------------------------------------------------- restrições de arquivo/imagem (fase 7b, ADR 0014)
+
+    public function testCriarCampoDeImagemComTiposETamanhoMaximo(): void
+    {
+        $token = $this->token('admin');
+        $this->post($token, '/_pbl/classes/nova', ['nome' => 'album_teste']);
+        $classe = $this->classe('album_teste');
+        $f = $this->formulario($classe);
+        $f['novo'] = ['nome' => 'capa', 'rotulo' => 'Capa', 'tipo' => 'imagem', 'classe' => '', 'ordem' => '', 'tipos' => ['jpg', 'png'], 'tamanho_max_mb' => '5'];
+        $r = $this->salvar($token, $classe, $f);
+        self::assertSame(303, $r->getStatusCode(), (string) $r->getContent());
+
+        $nova = $this->classe('album_teste');
+        $prop = $nova->propriedades[0];
+        self::assertSame('capa', $prop['nome']);
+        self::assertSame('imagem', $prop['tipo']);
+        self::assertSame(['jpg', 'png'], $prop['tipos'] ?? null);
+        self::assertSame(5, $prop['tamanho_max_mb'] ?? null);
+    }
+
+    public function testExtensaoForaDaCategoriaDaErroClaroNoCampoCerto(): void
+    {
+        $token = $this->token('admin');
+        $this->post($token, '/_pbl/classes/nova', ['nome' => 'album_teste2']);
+        $classe = $this->classe('album_teste2');
+        $f = $this->formulario($classe);
+        // "pdf" é documento, não imagem: a propriedade é do tipo imagem, então não pode aceitar pdf.
+        $f['novo'] = ['nome' => 'capa', 'rotulo' => '', 'tipo' => 'imagem', 'classe' => '', 'ordem' => '', 'tipos' => ['pdf'], 'tamanho_max_mb' => ''];
+        $r = $this->salvar($token, $classe, $f);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertStringContainsString('capa', (string) $r->getContent());
+        self::assertStringContainsString('pdf', (string) $r->getContent());
+        self::assertNull($this->classe('album_teste2')->propriedades[0] ?? null, 'nada foi salvo');
+    }
+
+    public function testTamanhoMaximoForaDaFaixaDaErroClaro(): void
+    {
+        $token = $this->token('admin');
+        $this->post($token, '/_pbl/classes/nova', ['nome' => 'album_teste3']);
+        $classe = $this->classe('album_teste3');
+        $f = $this->formulario($classe);
+        $f['novo'] = ['nome' => 'capa', 'rotulo' => '', 'tipo' => 'imagem', 'classe' => '', 'ordem' => '', 'tipos' => [], 'tamanho_max_mb' => '101'];
+        $r = $this->salvar($token, $classe, $f);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertStringContainsString('1 a 100', (string) $r->getContent());
+    }
+
+    public function testTelaDeEdicaoMostraOsControlesDeArquivoJaPreenchidos(): void
+    {
+        $token = $this->token('admin');
+        $classe = $this->s->classes->criar('album_tela', [
+            ['nome' => 'capa', 'tipo' => 'imagem', 'tipos' => ['jpg'], 'tamanho_max_mb' => 3],
+        ]);
+        $html = (string) $this->req('GET', '/_pbl/classe/' . $classe->id . '/editar', $token)->getContent();
+        self::assertStringContainsString('name="p[capa][tipos][]" value="jpg" checked', $html);
+        self::assertStringContainsString('name="p[capa][tipos][]" value="png"', $html);
+        self::assertStringNotContainsString('name="p[capa][tipos][]" value="png" checked', $html);
+        self::assertStringContainsString('name="p[capa][tamanho_max_mb]" value="3"', $html);
+    }
+
+    public function testTelaDeEdicaoNaoRepeteIdsEntreAsLinhasDeCampos(): void
+    {
+        $token = $this->token('admin');
+        $classe = $this->s->classes->criar('album_ids', [
+            ['nome' => 'capa', 'tipo' => 'imagem'],
+            ['nome' => 'contrato', 'tipo' => 'arquivo'],
+            ['nome' => 'titulo_extra', 'tipo' => 'texto'],
+        ]);
+        $html = (string) $this->req('GET', '/_pbl/classe/' . $classe->id . '/editar', $token)->getContent();
+        preg_match_all('/\sid="([^"]+)"/', $html, $m);
+        $repetidos = array_keys(array_filter(array_count_values($m[1]), static fn (int $n): bool => $n > 1));
+        self::assertSame([], $repetidos, 'ids duplicados: ' . implode(', ', $repetidos));
+        self::assertStringContainsString('-capa-tipo-jpg"', $html);
+        self::assertStringContainsString('-contrato-tipo-jpg"', $html);
+    }
+
     // ---------------------------------------------------------------- modo elevado (fase 5h)
 
     public function testApagarTipoDeConteudoExigeSenhaDeNovo(): void

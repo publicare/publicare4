@@ -15,6 +15,8 @@ final class Parser
         'usarobjeto' => ['id', 'url', 'titulo'],
         'temfilho' => ['id'],
         'formulario' => ['id'],
+        'arquivo' => ['valor', 'info'],
+        'miniatura' => ['valor', 'tamanho'],
     ];
 
     /** comando de abertura => [tipo da coleção, aleatório] */
@@ -157,6 +159,12 @@ final class Parser
                     break;
                 case 'formulario':
                     $adicionar(new NoFormulario($this->parametros($nome, $resto, $linha, [])));
+                    break;
+                case 'arquivo':
+                    $adicionar(new NoArquivo($this->parametros($nome, $resto, $linha, ['valor', 'info'])));
+                    break;
+                case 'miniatura':
+                    $adicionar(new NoMiniatura($this->parametros($nome, $resto, $linha, ['valor', 'tamanho'])));
                     break;
                 case 'incluir':
                     $p = $this->parametros($nome, $resto, $linha, ['arquivo']);

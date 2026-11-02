@@ -7,6 +7,7 @@ namespace Pbl\Admin;
 use Pbl\Acesso\Csrf;
 use Pbl\Acesso\Rede;
 use Pbl\Acesso\SessaoAtiva;
+use Pbl\Arquivos\TiposDeArquivo;
 use Pbl\Conteudo\Classe;
 use Pbl\Conteudo\ClasseRepositorio;
 use Pbl\Conteudo\ConflitoDeVersao;
@@ -25,8 +26,12 @@ use Symfony\Component\HttpFoundation\Response;
  * o `ClasseRepositorio` repete essas regras. A versão da classe evita sobrescrever o trabalho de outra pessoa. A auditoria guarda
  * só nomes de classe e de campo, nunca rótulos nem descrições.
  *
- * @phpstan-type LinhaDeCampo array{nome: string, rotulo: string, tipo: string, classe: string, obrigatorio: bool, ordem: string, situacao: string}
- * @phpstan-type CampoNovo array{nome: string, rotulo: string, tipo: string, classe: string, indexavel: bool, obrigatorio: bool, ordem: string}
+ * Campos `arquivo`/`imagem` ganham `tipos` (subconjunto da whitelist global, ADR 0014) e `tamanho_max_mb` (até
+ * `TiposDeArquivo::TETO_MB`); a validação de verdade é sempre a do `ClasseRepositorio` — esta tela só monta os campos e
+ * mostra o erro dele se a combinação não bater (extensão de fora da categoria, tamanho fora da faixa).
+ *
+ * @phpstan-type LinhaDeCampo array{nome: string, rotulo: string, tipo: string, classe: string, obrigatorio: bool, ordem: string, situacao: string, tipos: list<string>, tamanho_max_mb: string}
+ * @phpstan-type CampoNovo array{nome: string, rotulo: string, tipo: string, classe: string, indexavel: bool, obrigatorio: bool, ordem: string, tipos: list<string>, tamanho_max_mb: string}
  * @phpstan-type Rascunho array{descricao: string, aceita_filhos: bool, filhas: list<string>, campos: list<LinhaDeCampo>, novo: CampoNovo}
  * @phpstan-import-type Propriedade from Classe
  */
@@ -214,12 +219,13 @@ final class TelasDeClasses
                 'nome' => $p['nome'], 'rotulo' => $p['rotulo'] ?? '', 'tipo' => $p['tipo'], 'classe' => $p['classe'] ?? '',
                 'obrigatorio' => $p['obrigatorio'] ?? false, 'ordem' => (string) (($i + 1) * 10),
                 'situacao' => ($p['arquivada'] ?? false) ? 'arquivada' : 'ativa',
+                'tipos' => $p['tipos'] ?? [], 'tamanho_max_mb' => isset($p['tamanho_max_mb']) ? (string) $p['tamanho_max_mb'] : '',
             ];
         }
 
         return [
             'descricao' => $classe->descricao, 'aceita_filhos' => $classe->aceitaFilhos, 'filhas' => $classe->filhas, 'campos' => $campos,
-            'novo' => ['nome' => '', 'rotulo' => '', 'tipo' => 'texto', 'classe' => '', 'indexavel' => false, 'obrigatorio' => false, 'ordem' => ''],
+            'novo' => ['nome' => '', 'rotulo' => '', 'tipo' => 'texto', 'classe' => '', 'indexavel' => false, 'obrigatorio' => false, 'ordem' => '', 'tipos' => [], 'tamanho_max_mb' => ''],
         ];
     }
 
@@ -253,6 +259,12 @@ final class TelasDeClasses
                 $linha[$chave] = $chave === 'rotulo' ? trim($valor) : $valor;
             }
             $linha['obrigatorio'] = ($e['obrigatorio'] ?? null) === '1';
+            $tipos = $this->listaDeTextos($e['tipos'] ?? []);
+            if ($tipos === null) {
+                return null;
+            }
+            $linha['tipos'] = $tipos;
+            $linha['tamanho_max_mb'] = is_string($e['tamanho_max_mb'] ?? null) ? trim($e['tamanho_max_mb']) : '';
             $campos[] = $linha;
         }
         $linhaNova = [];
@@ -265,6 +277,12 @@ final class TelasDeClasses
         }
         $linhaNova['indexavel'] = ($novo['indexavel'] ?? null) === '1';
         $linhaNova['obrigatorio'] = ($novo['obrigatorio'] ?? null) === '1';
+        $tiposNovo = $this->listaDeTextos($novo['tipos'] ?? []);
+        if ($tiposNovo === null) {
+            return null;
+        }
+        $linhaNova['tipos'] = $tiposNovo;
+        $linhaNova['tamanho_max_mb'] = is_string($novo['tamanho_max_mb'] ?? null) ? trim($novo['tamanho_max_mb']) : '';
 
         /** @var Rascunho $rascunho */
         $rascunho = [
@@ -301,7 +319,8 @@ final class TelasDeClasses
             $rotulo = 'O campo ' . $c['nome'];
             $erro = $this->erroDeTexto($c['rotulo'], ClasseRepositorio::MAX_ROTULO, false, 'O rótulo de ' . $c['nome'])
                 ?? $this->erroDeOrdem($c['ordem'], $c['nome'])
-                ?? $this->erroDeTipo($c['tipo'], $c['classe'], $classe, $c['nome']);
+                ?? $this->erroDeTipo($c['tipo'], $c['classe'], $classe, $c['nome'])
+                ?? $this->erroDeArquivo($c['tipo'], $c['tipos'], $c['tamanho_max_mb'], $c['nome']);
             if ($erro !== null) {
                 return $erro;
             }
@@ -335,7 +354,32 @@ final class TelasDeClasses
 
         return $this->erroDeTexto($n['rotulo'], ClasseRepositorio::MAX_ROTULO, false, 'O rótulo do campo novo')
             ?? ($n['ordem'] === '' ? null : $this->erroDeOrdem($n['ordem'], $n['nome']))
-            ?? $this->erroDeTipo($n['tipo'], $n['classe'], $classe, $n['nome']);
+            ?? $this->erroDeTipo($n['tipo'], $n['classe'], $classe, $n['nome'])
+            ?? $this->erroDeArquivo($n['tipo'], $n['tipos'], $n['tamanho_max_mb'], $n['nome']);
+    }
+
+    /**
+     * `tipos`/`tamanho_max_mb` só valem em `arquivo`/`imagem` (ignorados nos outros tipos). Confere de novo o que o
+     * `ClasseRepositorio::normalizarRestricoesDeArquivo` também confere, para o erro aparecer ligado ao campo certo.
+     *
+     * @param list<string> $tipos
+     */
+    private function erroDeArquivo(string $tipo, array $tipos, string $tamanhoMaxMb, string $campo): ?string
+    {
+        if (!in_array($tipo, ['arquivo', 'imagem'], true)) {
+            return null;
+        }
+        $base = $tipo === 'imagem' ? TiposDeArquivo::imagens() : TiposDeArquivo::documentos();
+        foreach ($tipos as $extensao) {
+            if (!in_array($extensao, $base, true)) {
+                return 'O campo ' . $campo . ' aceita só tipos de ' . ($tipo === 'imagem' ? 'imagem' : 'arquivo') . '; ' . $extensao . ' não é um deles.';
+            }
+        }
+        if ($tamanhoMaxMb !== '' && (!ctype_digit($tamanhoMaxMb) || (int) $tamanhoMaxMb < 1 || (int) $tamanhoMaxMb > TiposDeArquivo::TETO_MB)) {
+            return 'O tamanho máximo do campo ' . $campo . ' deve ser um número de 1 a ' . TiposDeArquivo::TETO_MB . ' (MB).';
+        }
+
+        return null;
     }
 
     private function erroDeOrdem(string $ordem, string $campo): ?string
@@ -378,7 +422,7 @@ final class TelasDeClasses
             if ($c['tipo'] === 'ref' && $c['classe'] !== '') {
                 $p['classe'] = $c['classe'];
             }
-            $itens[] = [(int) $c['ordem'], $i, $this->comApresentacao($p, $c['rotulo'], $c['obrigatorio'], $c['situacao'] === 'arquivada')];
+            $itens[] = [(int) $c['ordem'], $i, $this->comApresentacao($p, $c['rotulo'], $c['obrigatorio'], $c['situacao'] === 'arquivada', $c['tipos'], $c['tamanho_max_mb'])];
         }
         $n = $r['novo'];
         if ($n['nome'] !== '') {
@@ -387,7 +431,7 @@ final class TelasDeClasses
                 $p['classe'] = $n['classe'];
             }
             $ordem = $n['ordem'] === '' ? PHP_INT_MAX : (int) $n['ordem'];
-            $itens[] = [$ordem, PHP_INT_MAX, $this->comApresentacao($p, $n['rotulo'], $n['obrigatorio'], false)];
+            $itens[] = [$ordem, PHP_INT_MAX, $this->comApresentacao($p, $n['rotulo'], $n['obrigatorio'], false, $n['tipos'], $n['tamanho_max_mb'])];
         }
         usort($itens, static fn (array $a, array $b): int => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
 
@@ -395,10 +439,14 @@ final class TelasDeClasses
     }
 
     /**
+     * `$tipos`/`$tamanhoMaxMb` só pesam em propriedades `arquivo`/`imagem` (o `ClasseRepositorio` ignora nas demais, e
+     * confere de novo a combinação: extensão fora da categoria ou tamanho fora da faixa vira erro no `salvar()`).
+     *
      * @param array{nome: string, tipo: string, indexavel: bool, classe?: string} $p
+     * @param list<string> $tipos
      * @return array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool, tipos?: list<string>, tamanho_max_mb?: int}
      */
-    private function comApresentacao(array $p, string $rotulo, bool $obrigatorio, bool $arquivada): array
+    private function comApresentacao(array $p, string $rotulo, bool $obrigatorio, bool $arquivada, array $tipos = [], string $tamanhoMaxMb = ''): array
     {
         if ($p['tipo'] === 'ref') {
             $p['indexavel'] = true; // o repositório faz o mesmo; aqui para a comparação de "nada mudou" bater
@@ -411,6 +459,12 @@ final class TelasDeClasses
         }
         if ($arquivada) {
             $p['arquivada'] = true;
+        }
+        if ($tipos !== []) {
+            $p['tipos'] = $tipos;
+        }
+        if ($tamanhoMaxMb !== '' && ctype_digit($tamanhoMaxMb)) {
+            $p['tamanho_max_mb'] = (int) $tamanhoMaxMb;
         }
 
         return $p;
@@ -569,15 +623,21 @@ final class TelasDeClasses
         }
         foreach ($r['campos'] as $c) {
             $base = 'p[' . $c['nome'] . ']';
-            foreach (['rotulo', 'tipo', 'classe', 'ordem', 'situacao'] as $chave) {
+            foreach (['rotulo', 'tipo', 'classe', 'ordem', 'situacao', 'tamanho_max_mb'] as $chave) {
                 $saida .= $h($base . '[' . $chave . ']', $c[$chave]);
             }
             $saida .= $c['obrigatorio'] ? $h($base . '[obrigatorio]', '1') : '';
+            foreach ($c['tipos'] as $extensao) {
+                $saida .= $h($base . '[tipos][]', $extensao);
+            }
         }
-        foreach (['nome', 'rotulo', 'tipo', 'classe', 'ordem'] as $chave) {
+        foreach (['nome', 'rotulo', 'tipo', 'classe', 'ordem', 'tamanho_max_mb'] as $chave) {
             $saida .= $h('novo[' . $chave . ']', $r['novo'][$chave]);
         }
         $saida .= ($r['novo']['indexavel'] ? $h('novo[indexavel]', '1') : '') . ($r['novo']['obrigatorio'] ? $h('novo[obrigatorio]', '1') : '');
+        foreach ($r['novo']['tipos'] as $extensao) {
+            $saida .= $h('novo[tipos][]', $extensao);
+        }
 
         return $saida;
     }
@@ -601,12 +661,12 @@ final class TelasDeClasses
             $corpo .= '<p class="form-text">Mude a ordem trocando os números (menor primeiro). Campo com valores guardados não troca de tipo e não pode ser removido, só arquivado.</p>'
                 . '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Campos deste tipo de conteúdo</caption><thead><tr>'
                 . '<th scope="col">Nome técnico</th><th scope="col">Rótulo</th><th scope="col">Tipo</th><th scope="col">Obrigatório</th>'
-                . '<th scope="col">Ordem</th><th scope="col">Situação</th><th scope="col">Em uso</th></tr></thead><tbody>';
+                . '<th scope="col">Ordem</th><th scope="col">Situação</th><th scope="col">Em uso</th><th scope="col">Arquivo (se for Arquivo/Imagem)</th></tr></thead><tbody>';
             foreach ($r['campos'] as $i => $c) {
                 $p = $this->definicao($classe, $c['nome']);
                 $emUso = max($uso[$c['nome']]['objetos'] ?? 0, $uso[$c['nome']]['historico'] ?? 0);
                 $base = 'p[' . $c['nome'] . ']';
-                $id = 'campo-' . $i;
+                $id = 'campo-' . $i . '-' . (preg_replace('/[^A-Za-z0-9_-]/', '-', $c['nome']) ?? '');
                 $corpo .= '<tr><th scope="row"><code>' . Pagina::h($c['nome']) . '</code>'
                     . (($p['indexavel'] ?? false) ? ' <span class="badge text-bg-light">indexável</span>' : '')
                     . ($c['situacao'] === 'arquivada' ? ' <span class="badge text-bg-secondary">arquivado</span>' : '') . '</th>'
@@ -632,7 +692,8 @@ final class TelasDeClasses
                     $corpo .= '<option value="' . $valor . '"' . ($c['situacao'] === $valor ? ' selected' : '') . '>' . $texto . '</option>';
                 }
                 $corpo .= '</select></td><td>' . ($uso[$c['nome']]['objetos'] ?? 0)
-                    . (($uso[$c['nome']]['historico'] ?? 0) > ($uso[$c['nome']]['objetos'] ?? 0) ? ' <span class="text-body-secondary">(+ versões antigas)</span>' : '') . '</td></tr>';
+                    . (($uso[$c['nome']]['historico'] ?? 0) > ($uso[$c['nome']]['objetos'] ?? 0) ? ' <span class="text-body-secondary">(+ versões antigas)</span>' : '') . '</td>'
+                    . '<td>' . $this->camposDeArquivo($id, $base, $c['tipos'], $c['tamanho_max_mb']) . '</td></tr>';
             }
             $corpo .= '</tbody></table></div>';
         }
@@ -648,12 +709,38 @@ final class TelasDeClasses
             . '<div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="novo-obrigatorio" name="novo[obrigatorio]" value="1"' . ($n['obrigatorio'] ? ' checked' : '') . '><label class="form-check-label" for="novo-obrigatorio">Obrigatório</label></div>'
             . '<div class="form-check"><input class="form-check-input" type="checkbox" id="novo-indexavel" name="novo[indexavel]" value="1"' . ($n['indexavel'] ? ' checked' : '') . ' aria-describedby="ajuda-novo-indexavel"><label class="form-check-label" for="novo-indexavel">Indexável</label>'
             . '<div id="ajuda-novo-indexavel" class="form-text">Permite filtrar e ordenar por este campo nos moldes. Não muda depois que houver valores. Referências são sempre indexáveis.</div></div></div>'
+            . '<div class="col-12">' . $this->camposDeArquivo('novo', 'novo', $n['tipos'], $n['tamanho_max_mb']) . '</div>'
             . '</div></fieldset>'
             . '<p class="form-text">"Obrigatório" fica guardado no tipo; a exigência ao salvar um conteúdo vem com as telas de conteúdo.</p>'
             . '<button type="submit" class="btn btn-primary">Salvar</button> <a class="btn btn-outline-secondary" href="' . $this->linkLista() . '">Voltar aos tipos</a></form>'
             . '<p class="mt-4"><a class="link-danger" href="' . $this->link($classe->id) . '/apagar">Apagar este tipo de conteúdo</a></p>';
 
         return Pagina::resposta('Tipo de conteúdo: ' . $classe->nome, $corpo, $status, false, $this->barra($sessao));
+    }
+
+    /**
+     * `tipos` (subconjunto da whitelist, por categoria) e `tamanho_max_mb` (até `TiposDeArquivo::TETO_MB`) de uma propriedade
+     * `arquivo`/`imagem` (ADR 0014). Sem JavaScript a tela não sabe trocar o que aparece quando o tipo muda, então os
+     * controles ficam sempre visíveis; o `ClasseRepositorio` ignora os dois fora de `arquivo`/`imagem`, e nenhuma extensão
+     * marcada aqui some: ela só passa a valer se e quando o campo for mesmo um arquivo ou imagem.
+     *
+     * @param list<string> $tiposSelecionados
+     */
+    private function camposDeArquivo(string $id, string $base, array $tiposSelecionados, string $tamanhoMaxMb): string
+    {
+        $html = '<div class="form-text mb-1">Só vale se o tipo do campo for Arquivo ou Imagem; sem marcar nenhum tipo, vale a categoria inteira.</div>'
+            . '<div class="d-flex flex-wrap gap-2 mb-1">';
+        foreach ([TiposDeArquivo::imagens(), TiposDeArquivo::documentos()] as $extensoes) {
+            foreach ($extensoes as $extensao) {
+                $checkId = $id . '-tipo-' . $extensao;
+                $html .= '<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="' . $checkId . '" name="' . Pagina::h($base) . '[tipos][]" value="' . $extensao . '"'
+                    . (in_array($extensao, $tiposSelecionados, true) ? ' checked' : '') . '><label class="form-check-label" for="' . $checkId . '">' . $extensao . '</label></div>';
+            }
+        }
+        $html .= '</div><label class="visually-hidden" for="' . $id . '-tamanho-max-mb">Tamanho máximo em MB, se o tipo do campo for Arquivo ou Imagem</label>'
+            . '<input type="number" min="1" max="' . TiposDeArquivo::TETO_MB . '" step="1" class="form-control form-control-sm" style="max-width: 10rem" id="' . $id . '-tamanho-max-mb" name="' . Pagina::h($base) . '[tamanho_max_mb]" value="' . Pagina::h($tamanhoMaxMb) . '" placeholder="padrão: ' . TiposDeArquivo::PADRAO_MB . ' MB">';
+
+        return $html;
     }
 
     /** @param list<Classe> $todas */
