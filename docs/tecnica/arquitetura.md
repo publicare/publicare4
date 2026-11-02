@@ -61,6 +61,8 @@ flowchart LR
 
 Os tipos de conteúdo (`/_pbl/classes`, `/_pbl/classe/{id}/...`) seguem a mesma receita em `TelasDeClasses`, com `Permissoes::podeModelarClasses` no lugar de `pode` e `ClasseRepositorio` (versão esperada, regra de não apagar valores) no lugar de `ObjetoRepositorio`; veja o [fluxo 12](../fluxos/12-administracao-web.md).
 
+Redirecionamentos e peles de um site (`/_pbl/site/{id}/...`) ficam em `TelasDeSite`, com `Permissoes::pode(Acao::Administrar)` na seção raiz; os moldes são lidos e gravados só por `GerenciadorDePeles` (nomes validados, sem links simbólicos, gravação atômica, validação pelo parser antes de salvar) e o site é republicado pelo `Publicador` depois.
+
 As telas são HTML montado no servidor, sem JavaScript, com o CSS do Bootstrap servido do próprio site (`public/_pbl/assets/`). Arquivo existente em `public/` é entregue direto pelo servidor web; o resto de `/_pbl/` vai para o `Painel`. Detalhes no [ADR 0012](../adr/0012-administracao-web.md) e no [fluxo 12](../fluxos/12-administracao-web.md).
 
 ## Modelo de dados

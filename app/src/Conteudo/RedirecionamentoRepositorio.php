@@ -23,6 +23,55 @@ final class RedirecionamentoRepositorio
 
     public function adicionar(int $siteId, string $origem, string $destino, int $codigo = 301, bool $prefixo = false): int
     {
+        $origem = $this->validar($siteId, $origem, $destino, $codigo);
+        if ((int) $this->conexao->fetchOne('SELECT COUNT(*) FROM redirecionamento WHERE site_id = ?', [$siteId]) >= self::MAX_REGRAS) {
+            throw new \InvalidArgumentException('Limite de regras de redirecionamento do site atingido');
+        }
+        if ($prefixo && (int) $this->conexao->fetchOne('SELECT COUNT(*) FROM redirecionamento WHERE site_id = ? AND prefixo = 1', [$siteId]) >= self::MAX_PREFIXOS) {
+            throw new \InvalidArgumentException('Limite de regras por prefixo do site atingido');
+        }
+        if ($this->conexao->fetchOne('SELECT 1 FROM redirecionamento WHERE site_id = ? AND origem = ? AND prefixo = ?', [$siteId, $origem, $prefixo ? 1 : 0]) !== false) {
+            throw new \InvalidArgumentException("Já existe uma regra para {$origem}");
+        }
+        $this->conexao->insert('redirecionamento', [
+            'site_id' => $siteId, 'origem' => $origem, 'destino' => $destino, 'codigo' => $codigo,
+            'prefixo' => $prefixo ? 1 : 0, 'criado_em' => gmdate('c'),
+        ]);
+
+        return (int) $this->conexao->lastInsertId();
+    }
+
+    /** Troca origem, destino, código e prefixo de uma regra do site, com as mesmas validações de `adicionar`. */
+    public function atualizar(int $siteId, int $id, string $origem, string $destino, int $codigo = 301, bool $prefixo = false): void
+    {
+        if ($this->porId($siteId, $id) === null) {
+            throw new \InvalidArgumentException("Regra {$id} não existe neste site");
+        }
+        $origem = $this->validar($siteId, $origem, $destino, $codigo);
+        if ($prefixo && (int) $this->conexao->fetchOne('SELECT COUNT(*) FROM redirecionamento WHERE site_id = ? AND prefixo = 1 AND id <> ?', [$siteId, $id]) >= self::MAX_PREFIXOS) {
+            throw new \InvalidArgumentException('Limite de regras por prefixo do site atingido');
+        }
+        if ($this->conexao->fetchOne('SELECT 1 FROM redirecionamento WHERE site_id = ? AND origem = ? AND prefixo = ? AND id <> ?', [$siteId, $origem, $prefixo ? 1 : 0, $id]) !== false) {
+            throw new \InvalidArgumentException("Já existe uma regra para {$origem}");
+        }
+        $this->conexao->update('redirecionamento', ['origem' => $origem, 'destino' => $destino, 'codigo' => $codigo, 'prefixo' => $prefixo ? 1 : 0], ['id' => $id, 'site_id' => $siteId]);
+    }
+
+    /** @return array{id: int, origem: string, destino: string, codigo: int, prefixo: bool}|null */
+    public function porId(int $siteId, int $id): ?array
+    {
+        foreach ($this->doSite($siteId) as $r) {
+            if ($r['id'] === $id) {
+                return $r;
+            }
+        }
+
+        return null;
+    }
+
+    /** Valida os campos e devolve a origem como é guardada (decodificada). */
+    private function validar(int $siteId, string $origem, string $destino, int $codigo): string
+    {
         $digitada = self::normalizar($origem);
         if (!self::origemValida($digitada)) {
             throw new \InvalidArgumentException("Origem inválida: {$digitada}");
@@ -41,21 +90,8 @@ final class RedirecionamentoRepositorio
         if ($this->conexao->fetchOne('SELECT 1 FROM site WHERE id = ?', [$siteId]) === false) {
             throw new \InvalidArgumentException("Site {$siteId} não existe");
         }
-        if ((int) $this->conexao->fetchOne('SELECT COUNT(*) FROM redirecionamento WHERE site_id = ?', [$siteId]) >= self::MAX_REGRAS) {
-            throw new \InvalidArgumentException('Limite de regras de redirecionamento do site atingido');
-        }
-        if ($prefixo && (int) $this->conexao->fetchOne('SELECT COUNT(*) FROM redirecionamento WHERE site_id = ? AND prefixo = 1', [$siteId]) >= self::MAX_PREFIXOS) {
-            throw new \InvalidArgumentException('Limite de regras por prefixo do site atingido');
-        }
-        if ($this->conexao->fetchOne('SELECT 1 FROM redirecionamento WHERE site_id = ? AND origem = ? AND prefixo = ?', [$siteId, $origem, $prefixo ? 1 : 0]) !== false) {
-            throw new \InvalidArgumentException("Já existe uma regra para {$origem}");
-        }
-        $this->conexao->insert('redirecionamento', [
-            'site_id' => $siteId, 'origem' => $origem, 'destino' => $destino, 'codigo' => $codigo,
-            'prefixo' => $prefixo ? 1 : 0, 'criado_em' => gmdate('c'),
-        ]);
 
-        return (int) $this->conexao->lastInsertId();
+        return $origem;
     }
 
     public function remover(int $siteId, int $id): void

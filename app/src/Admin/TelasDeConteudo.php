@@ -57,6 +57,9 @@ final class TelasDeConteudo
                 continue;
             }
             $corpo .= '<section class="mb-4"><h2 class="h5">' . Pagina::h($site->nome) . '</h2>';
+            if ($u->administrador) {
+                $corpo .= '<p><a href="' . Painel::PREFIXO . '/site/' . $site->id . '/redirecionamentos">Redirecionamentos</a> · <a href="' . Painel::PREFIXO . '/site/' . $site->id . '/peles">Peles</a></p>';
+            }
             if ($lista === []) {
                 $corpo .= '<p class="text-body-secondary">Este site ainda não tem conteúdo inicial.</p></section>';
                 continue;
