@@ -29,6 +29,7 @@ use Pbl\Formularios\FormularioParaMolde;
 use Pbl\Formularios\FormularioRepositorio;
 use Pbl\Linguagem\Compilador;
 use Pbl\Publicacao\FonteRepositorio;
+use Pbl\Publicacao\MenuDoSite;
 use Pbl\Publicacao\GerenciadorDePeles;
 use Pbl\Publicacao\Publicador;
 use Pbl\Publicacao\Renderizador;
@@ -46,8 +47,9 @@ final class Servicos
     public readonly UsuarioRepositorio $usuarios;
     public readonly Permissoes $permissoes;
     public readonly Publicador $publicador;
-    /** Renderiza um objeto sem publicar (fase 5j): só a pré-visualização isolada de rascunho o usa diretamente. */
+    /** Renderiza um objeto sem publicar (fase 5j): a pré-visualização isolada de rascunho e as páginas dinâmicas (fase 5l) o usam diretamente. */
     public readonly Renderizador $renderizador;
+    public readonly MenuDoSite $menu;
     public readonly GerenciadorDePeles $peles;
     public readonly FormularioRepositorio $formularios;
     public readonly ArquivoRepositorio $arquivos;
@@ -67,9 +69,10 @@ final class Servicos
         $this->usuarios = new UsuarioRepositorio($conexao, $this->auditoria);
         $this->permissoes = new Permissoes($conexao);
         $this->formularios = new FormularioRepositorio($this->objetos, $this->classes);
-        $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos);
-        $this->renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
-        $this->publicador = new Publicador($caminhos, $this->objetos, $this->renderizador);
+        $this->menu = new MenuDoSite($conexao, $caminhos, $this->auditoria, (int) (getenv('PBL_MENU_PROFUNDIDADE') ?: MenuDoSite::PROFUNDIDADE_PADRAO));
+        $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos, $this->menu);
+        $this->renderizador = $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
+        $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador, $this->menu);
         $this->peles = new GerenciadorDePeles($caminhos, $conexao);
     }
 

@@ -866,6 +866,6 @@ final class AdminObjetosTest extends TestCase
         $o->atualizar($this->sobre->id, ['url_amigavel' => 'quem-somos']);
         self::assertFalse($o->urlDisponivel($this->site->id, 'sobre'), 'endereço antigo redireciona: não está livre');
         self::assertTrue($o->urlDisponivel($this->site->id, 'sobre', $this->sobre->id), 'mas o dono pode voltar a ele');
-        self::assertSame(['evento', 'formulario', 'pagina'], array_map(static fn (Classe $c): string => $c->nome, $this->s->classes->todas()));
+        self::assertSame(['arquivo', 'evento', 'formulario', 'imagem', 'link', 'mensagem_contato', 'noticia', 'pagina', 'pasta'], array_map(static fn (Classe $c): string => $c->nome, $this->s->classes->todas()));
     }
 }

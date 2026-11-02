@@ -17,6 +17,11 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Instalar (por linha de comando) com um site de exemplo | ✅ |
 | Criar conteúdos em árvore | ✅ (por código; sem tela ainda) |
 | Tipos de conteúdo pelo navegador (só administrador): criar, descrever, dizer que tipos podem ficar dentro, adicionar campos, mudar rótulo, ordem e obrigatório, arquivar campo e apagar tipo sem uso, sem nunca apagar dado guardado | ✅ (e a exigência de "obrigatório" e de "tipos que podem ficar dentro" vale ao salvar qualquer conteúdo, pelo navegador ou pela linha de comando) |
+| Site novo já nasce com exemplos (Sobre, Notícias com uma notícia, Contato com formulário) e os tipos básicos: pasta, página, formulário, arquivo, imagem, link e notícia. Os seis primeiros são **fixos** (não se apagam) | ✅ |
+| Link para outra página do site (acompanha o endereço dela) ou para um endereço externo, com a opção de abrir em nova aba | ✅ |
+| Título, descrição e imagem para buscadores e redes sociais (opcionais) em páginas, pastas e notícias | ✅ (o endereço completo e o `sitemap.xml` ainda não) |
+| Menu principal do site (escolher quais páginas entram, o nome no menu e a ordem), com submenus, sem JavaScript | ✅ (avisos de corte e "republicar em segundo plano" no painel ainda não) |
+| Busca no site, listas de notícias com páginas e página de "não encontrado" com o visual do site | ✅ |
 | Linguagem de moldes para montar páginas (listas, menus, herança de layout) | ✅ |
 | Publicar as páginas e entregá-las prontas, com cache | ✅ |
 | Vários sites e domínios no mesmo programa | ✅ |

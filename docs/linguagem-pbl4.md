@@ -76,9 +76,18 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `<@formulario [id=n]@>` | imprime o **formulário público** de envio do conteúdo `id` (padrão: o objeto corrente, que então precisa ser do tipo `formulario`). Sem corpo. O HTML sai escapado, com token e campo-armadilha, sem JavaScript; o envio vai para `/_pbl/enviar/{id}` ([ADR 0013](adr/0013-formularios-publicos.md)). Formulário de outro site, fora do ar, fechado ou mal configurado não imprime nada. O HTML é gerado ao publicar a página: se mudar o formulário, republique |
 | `<@arquivo valor=… info="url\|nome\|tamanho\|tipo"@>` | imprime (sempre escapado) um dado de uma propriedade `arquivo`/`imagem`: `url` (link de entrega, `/_pbl/arquivo/<id>`), `nome` (nome original do arquivo), `tamanho` (legível: `340 KB`, `2,1 MB`) ou `tipo` (extensão: `pdf`, `jpg`...). `valor` é o id guardado na propriedade (`#propriedade`); vazio se o arquivo não existe neste site, o objeto dono não está publicado e vigente, ou `info` é desconhecido — ver [fluxo 7](fluxos/07-upload-blobs.md) |
 | `<@miniatura valor=… tamanho=n@>` | imprime (sempre escapada) a URL da miniatura de uma propriedade `imagem` (`/_pbl/arquivo/<id>/miniatura/<tamanho>`); `tamanho` só de `64`, `150`, `400` ou `800` (a mesma whitelist da entrega). Vazio se não é imagem, o tamanho não é da lista, ou o arquivo não está visível |
+| `<@menu [profundidade=n] [inicio="Início"]@>` | imprime o **menu principal** do site (`<nav><ul>` aninhado, sem JavaScript): os objetos marcados `no_menu`, na ordem do `peso`, até `profundidade` níveis (padrão 3, máximo 5), com `class="ativo"`/`aria-current` no item da página e `class="ancestral"` nos de cima. `inicio=` acrescenta o item `/` no começo. Lê o snapshot do site, **sem consultar o banco**; rótulos e URLs saem escapados. Sem corpo |
 | `<@estende "layout"@>` + `<@bloco nome@>…<@/bloco@>` | herança de layout |
 | `<@incluir arquivo="parte"@>` | inclui outro molde da mesma pele |
 | `<@-- texto --@>` | comentário: não gera saída e pode ter aspas e símbolos; vai até o primeiro `--@>` |
+
+### Menu, busca e paginação (fase 5l)
+
+- Variáveis do molde: `$q` (termo da busca, até 200 caracteres), `$q_url` (o mesmo, já codificado para URL), `$pagina` (1 por padrão; `?pagina=N` nas listagens). Variável indefinida vale vazio.
+- Propriedades do objeto corrente: `#no_menu`, `#rotulo_menu` (vazio = usa o título), `#caminho` (`/1/5/9/`, ids dos ancestrais), `#raiz` (id da página inicial do site) e `#site_nome`.
+- Paginação sem total: `<@filhos inicio=($pagina-1)*10 limite=11@>`, mostrar os 10 primeiros e tratar o 11º como "há próxima página". `%INDICE` começa em 1.
+- Moldes especiais da pele: `busca` (servido em `/busca?q=…`, se não existir a página `busca`) e `erro404` (resposta 404 das páginas públicas, com fallback ao texto simples).
+- Corte: o menu respeita profundidade máxima e 50 itens por nível. Para sites grandes, use menu até 3 níveis mais uma página de mapa do site com `<@localizar@>`/`<@filhos@>` paginados.
 
 ### Herança de layout
 

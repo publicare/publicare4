@@ -21,7 +21,7 @@ final class ClasseRepositorio
 {
     public const TIPOS = ['texto', 'numero', 'html', 'data', 'booleano', 'ref', 'arquivo', 'imagem'];
     /** Nomes que o contexto do molde já usa (`#id`, `#titulo`...). */
-    public const RESERVADOS = ['id', 'titulo', 'url', 'url_amigavel', 'classe', 'classe_id', 'site', 'pai', 'filhos', 'peso', 'descricao', 'data_publicacao', 'data_validade', 'status', 'apagado', 'temfilhos'];
+    public const RESERVADOS = ['id', 'titulo', 'url', 'url_amigavel', 'classe', 'classe_id', 'site', 'pai', 'filhos', 'peso', 'descricao', 'no_menu', 'rotulo_menu', 'raiz', 'site_nome', 'caminho', 'data_publicacao', 'data_validade', 'status', 'apagado', 'temfilhos'];
     public const MAX_NOME = 64;
     public const MAX_ROTULO = 100;
     public const MAX_DESCRICAO = 2000;
@@ -33,7 +33,7 @@ final class ClasseRepositorio
 
     /**
      * @param list<array{nome: string, tipo: string, indexavel?: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool, tipos?: list<string>, tamanho_max_mb?: int}> $propriedades
-     * @param array{descricao?: string, aceita_filhos?: bool, filhas?: list<string>} $meta
+     * @param array{descricao?: string, aceita_filhos?: bool, filhas?: list<string>, fixa?: bool} $meta
      */
     public function criar(string $nome, array $propriedades, array $meta = []): Classe
     {
@@ -49,9 +49,10 @@ final class ClasseRepositorio
             'aceita_filhos' => $aceita ? 1 : 0,
             'filhas' => $filhas === [] ? null : json_encode($filhas, JSON_THROW_ON_ERROR),
             'versao' => 1,
+            'fixa' => ($meta['fixa'] ?? false) ? 1 : 0,
         ]);
 
-        return new Classe((int) $this->conexao->lastInsertId(), $nome, $normalizadas, $descricao, $aceita, $filhas, 1);
+        return new Classe((int) $this->conexao->lastInsertId(), $nome, $normalizadas, $descricao, $aceita, $filhas, 1, $meta['fixa'] ?? false);
     }
 
     public function porNome(string $nome): ?Classe
@@ -174,6 +175,9 @@ final class ClasseRepositorio
             foreach ($novas as $p) {
                 $porNome[$p['nome']] = $p;
             }
+            if ($atual->fixa) {
+                $this->exigirBaseDaClasseFixa($atual, $novas);
+            }
             $uso = null;
             foreach ($atual->propriedades as $antiga) {
                 $nova = $porNome[$antiga['nome']] ?? null;
@@ -202,7 +206,7 @@ final class ClasseRepositorio
                 throw new ConflitoDeVersao($versaoEsperada, (int) $this->conexao->fetchOne('SELECT versao FROM classe WHERE id = ?', [$id]));
             }
 
-            return new Classe($id, $atual->nome, $novas, $descricao, $aceita, $filhas, $versaoEsperada + 1);
+            return new Classe($id, $atual->nome, $novas, $descricao, $aceita, $filhas, $versaoEsperada + 1, $atual->fixa);
         });
     }
 
@@ -219,6 +223,9 @@ final class ClasseRepositorio
             if ($atual->versao !== $versaoEsperada) {
                 throw new ConflitoDeVersao($versaoEsperada, $atual->versao);
             }
+            if ($atual->fixa) {
+                throw new \InvalidArgumentException("A classe {$atual->nome} é fixa (essencial ao sistema) e não pode ser apagada");
+            }
             $n = $this->contarObjetos($id);
             if ($n > 0) {
                 throw new \InvalidArgumentException("A classe {$atual->nome} é usada por {$n} conteúdo(s)");
@@ -231,6 +238,32 @@ final class ClasseRepositorio
                 throw new ConflitoDeVersao($versaoEsperada, (int) $this->conexao->fetchOne('SELECT versao FROM classe WHERE id = ?', [$id]));
             }
         });
+    }
+
+    /**
+     * Classe fixa não perde as propriedades da base (as de `ClassesPadrao::nomesDaBase`): nem removidas, nem arquivadas.
+     * Propriedades acrescentadas depois seguem as regras de sempre.
+     *
+     * @param list<Propriedade> $novas
+     */
+    private function exigirBaseDaClasseFixa(Classe $atual, array $novas): void
+    {
+        $porNome = [];
+        foreach ($novas as $p) {
+            $porNome[$p['nome']] = $p;
+        }
+        $existentes = array_map(static fn (array $p): string => $p['nome'], $atual->propriedades);
+        foreach (ClassesPadrao::nomesDaBase($atual->nome) as $nome) {
+            if (!in_array($nome, $existentes, true)) {
+                continue; // base que este banco nunca teve (classe criada à mão antes): nada a proteger
+            }
+            if (!isset($porNome[$nome])) {
+                throw new \InvalidArgumentException("A classe {$atual->nome} é fixa: a propriedade {$nome} faz parte da base e não pode ser removida");
+            }
+            if ($porNome[$nome]['arquivada'] ?? false) {
+                throw new \InvalidArgumentException("A classe {$atual->nome} é fixa: a propriedade {$nome} faz parte da base e não pode ser arquivada");
+            }
+        }
     }
 
     public static function nomeValido(string $nome): bool
@@ -390,6 +423,7 @@ final class ClasseRepositorio
             (int) ($linha['aceita_filhos'] ?? 1) === 1,
             is_array($filhas) ? array_values(array_map('strval', $filhas)) : [],
             (int) ($linha['versao'] ?? 1),
+            (int) ($linha['fixa'] ?? 0) === 1,
         );
     }
 }

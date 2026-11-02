@@ -423,7 +423,7 @@ final class FormulariosTest extends TestCase
         self::assertNotNull($f);
         $html = (string) file_get_contents($this->s->publicador->publicar($site, $f));
 
-        self::assertStringNotContainsString('<form', $html);
+        self::assertStringNotContainsString('action="/_pbl/enviar/', $html);
     }
 
     public function testRotulosENomesNoHtmlDoFormularioSaoEscapados(): void

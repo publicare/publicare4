@@ -11,7 +11,9 @@ use Pbl\Atualizacao\Manutencao;
 use Pbl\Conteudo\Dominio;
 use Pbl\Formularios\EnvioDeFormulario;
 use Pbl\Instalacao\Instalador;
+use Pbl\Conteudo\Site;
 use Pbl\Instalacao\InstaladorWeb;
+use Pbl\Publicacao\PaginasDinamicas;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -91,6 +93,12 @@ final class Aplicacao
         }
 
         if ($arquivo === null || !is_file($arquivo)) {
+            if ($url === 'busca') {
+                $busca = (new PaginasDinamicas($servicos))->busca($site, $requisicao);
+                if ($busca !== null) {
+                    return $busca;
+                }
+            }
             if ($arquivo !== null) {
                 $atual = $servicos->objetos->urlAtualDoHistorico($site->id, $url);
                 if ($atual !== null) {
@@ -102,10 +110,16 @@ final class Aplicacao
                 return new RedirectResponse($this->comConsulta($requisicao, $regra['destino']), $regra['codigo']);
             }
 
-            return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
+            return $this->naoEncontrado($servicos, $site);
         }
         if (is_file($arquivo . '.expira') && trim((string) file_get_contents($arquivo . '.expira')) < gmdate('c')) {
-            return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
+            return $this->naoEncontrado($servicos, $site);
+        }
+        if ($requisicao->query->has('pagina')) {
+            $paginada = (new PaginasDinamicas($servicos))->paginada($site, $url, $requisicao);
+            if ($paginada !== null) {
+                return $paginada;
+            }
         }
 
         $cabecalhos = ['Content-Type' => 'text/html; charset=utf-8', 'X-Content-Type-Options' => 'nosniff'];
@@ -115,6 +129,12 @@ final class Aplicacao
         }
 
         return new Response((string) file_get_contents($arquivo), Response::HTTP_OK, $cabecalhos);
+    }
+
+    /** 404 de página pública: o molde `erro404` da pele, se houver; senão o texto simples de sempre. */
+    private function naoEncontrado(Servicos $servicos, Site $site): Response
+    {
+        return (new PaginasDinamicas($servicos))->naoEncontrado($site) ?? $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
     }
 
     /** Mesmo caminho (e, se `$comConsulta`, a mesma query string) no domínio dado; o host vem do cadastro, nunca da requisição. */

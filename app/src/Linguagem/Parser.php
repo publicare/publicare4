@@ -15,6 +15,7 @@ final class Parser
         'usarobjeto' => ['id', 'url', 'titulo'],
         'temfilho' => ['id'],
         'formulario' => ['id'],
+        'menu' => ['profundidade', 'inicio'],
         'arquivo' => ['valor', 'info'],
         'miniatura' => ['valor', 'tamanho'],
     ];
@@ -159,6 +160,9 @@ final class Parser
                     break;
                 case 'formulario':
                     $adicionar(new NoFormulario($this->parametros($nome, $resto, $linha, [])));
+                    break;
+                case 'menu':
+                    $adicionar(new NoMenu($this->parametros($nome, $resto, $linha, [])));
                     break;
                 case 'arquivo':
                     $adicionar(new NoArquivo($this->parametros($nome, $resto, $linha, ['valor', 'info'])));

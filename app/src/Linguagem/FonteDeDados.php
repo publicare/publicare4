@@ -51,6 +51,14 @@ interface FonteDeDados
     public function formulario(array $objeto, ?int $id): string;
 
     /**
+     * O menu principal do site do objeto corrente (HTML pronto, tudo escapado), lido do snapshot — sem consultar o banco por
+     * página. O item do objeto corrente e seus ancestrais saem marcados. Vazio se o site não tem itens de menu.
+     *
+     * @param array<string, mixed> $objeto
+     */
+    public function menu(array $objeto, int $profundidade, string $inicio): string;
+
+    /**
      * @param array<string, mixed> $objeto
      */
     public function temFilhos(array $objeto, ?int $id): bool;

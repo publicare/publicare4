@@ -29,6 +29,9 @@ final class FonteRepositorio implements FonteDeDados
     /** @var array<int, string> */
     private array $nomesDeClasse = [];
 
+    /** @var array<int, \Pbl\Conteudo\Site|null> */
+    private array $sitesDoMenu = [];
+
     public function __construct(
         private readonly ObjetoRepositorio $objetos,
         private readonly ClasseRepositorio $classes,
@@ -36,6 +39,7 @@ final class FonteRepositorio implements FonteDeDados
         private readonly ?FormularioParaMolde $formularios = null,
         private readonly ?SiteRepositorio $sites = null,
         private readonly ?ArquivoRepositorio $arquivos = null,
+        private readonly ?MenuDoSite $menus = null,
     ) {
     }
 
@@ -102,6 +106,24 @@ final class FonteRepositorio implements FonteDeDados
         }
 
         return $this->contextoDe($achado);
+    }
+
+    public function menu(array $objeto, int $profundidade, string $inicio): string
+    {
+        $siteId = $objeto['site'] ?? null;
+        $site = is_int($siteId) ? ($this->sitesDoMenu[$siteId] ??= $this->sites?->porId($siteId)) : null;
+        if ($site === null || $this->menus === null) {
+            return '';
+        }
+
+        return MenuHtml::gerar(
+            $this->menus->arvore($site),
+            min($profundidade, $this->menus->profundidade()),
+            $inicio,
+            is_int($objeto['id'] ?? null) ? $objeto['id'] : 0,
+            is_string($objeto['caminho'] ?? null) ? $objeto['caminho'] : '',
+            $site->objetoRaizId,
+        );
     }
 
     public function temFilhos(array $objeto, ?int $id): bool
@@ -228,6 +250,7 @@ final class FonteRepositorio implements FonteDeDados
             return [];
         }
         $site = $objetos[0]->siteId;
+        $config = $this->sites?->porId($site);
         $comFilhos = array_flip($this->motor->idsComFilhos(array_map(static fn (Objeto $o): int => $o->id, $objetos), $site));
         $referenciados = [];
         foreach ($expandir as $propriedade) {
@@ -244,6 +267,9 @@ final class FonteRepositorio implements FonteDeDados
         $lista = [];
         foreach ($objetos as $o) {
             $contexto = ContextoDeObjeto::de($o, $this->nomeDaClasse($o->classeId), isset($comFilhos[$o->id]));
+            // Dados do site para o molde montar menu e título: `#raiz` (id da página inicial) e `#site_nome`.
+            $contexto['raiz'] = $config->objetoRaizId ?? '';
+            $contexto['site_nome'] = $config === null ? '' : $config->nome;
             foreach ($referenciados as $propriedade => $alvos) {
                 $alvo = $alvos[(int) ($o->dados[$propriedade] ?? 0)] ?? null;
                 if ($alvo !== null) {

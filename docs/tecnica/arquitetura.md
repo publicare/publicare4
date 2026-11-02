@@ -43,6 +43,25 @@ flowchart LR
 
 O molde é compilado **uma vez** para PHP; o hash cobre o molde, a cadeia de layouts e a versão do formato do compilador. O PHP gerado só chama o `Runtime`; nada escrito no molde vira código.
 
+## Menu, busca e desempenho (fase 5l)
+
+O menu **não** consulta o banco por página nem por item. `MenuDoSite` monta a árvore com **uma** consulta por site (objeto + classe, mais um `LEFT JOIN` para o destino dos `link`), filtrada por `no_menu = 1`, publicado e vigente, e a grava em `dados/cache/menu/<site>.json` com o hash SHA-256 da árvore. O comando `<@menu@>` só lê esse arquivo.
+
+```mermaid
+flowchart LR
+    E[edição, mover, agendamento] --> V[MenuDoSite.verificar: 1 consulta]
+    V -->|hash igual| O[republica objeto e pai]
+    V -->|hash mudou| S[novo snapshot + pendente + auditoria menu.invalidado]
+    S -->|site com até 300 objetos| R[publicarSite na hora]
+    S -->|maior| C[bin/pbl publicar ou agendados]
+    C --> R
+```
+
+- Edições que não entram no menu (corpo, outros campos) não mudam o hash.
+- Limites: profundidade 3 por padrão (`PBL_MENU_PROFUNDIDADE`, até 5) e 50 itens por nível; o excedente é contado em `cortes` (o aviso no painel é pendência do plano).
+- `/busca` e `?pagina=N` são páginas dinâmicas (`PaginasDinamicas`), não cacheadas; o resto continua estático. Para tráfego alto, ponha uma CDN na frente.
+- Detalhes e decisões: [ADR 0016](../adr/0016-menu-busca-e-paginas-dinamicas.md).
+
 ## Administração pelo navegador
 
 ```mermaid

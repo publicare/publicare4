@@ -343,7 +343,7 @@ final class AdminSiteTest extends TestCase
             $r = $this->post($t, "{$b}/novo", ['nome' => $nome, 'conteudo' => '<p>x</p>']);
             self::assertSame(422, $r->getStatusCode(), $nome);
         }
-        self::assertSame(['formulario.pbl', 'padrao.pbl'], array_values(array_diff(scandir($this->caminhos->peles() . '/basica') ?: [], ['.', '..'])));
+        self::assertSame(['busca.pbl', 'cabeca.pbl', 'erro404.pbl', 'estilo.pbl', 'formulario.pbl', 'item.pbl', 'link.pbl', 'link_a.pbl', 'noticia.pbl', 'padrao.pbl', 'paginacao.pbl', 'pasta.pbl', 'topo.pbl'], array_values(array_diff(scandir($this->caminhos->peles() . '/basica') ?: [], ['.', '..'])));
         self::assertFileDoesNotExist($this->caminhos->peles() . '/x.pbl');
         self::assertFileDoesNotExist($this->raiz . '/x.pbl');
         // Leitura, edição e apagar com nomes maus não encontram nada (404) e não apagam.

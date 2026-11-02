@@ -254,6 +254,21 @@ final class Runtime
     }
 
     /**
+     * `menu`: o HTML do menu principal do site (snapshot, já escapado pela fonte). `profundidade=` (padrão 3) limita os
+     * níveis; `inicio="Texto"` acrescenta o item da página inicial no começo.
+     *
+     * @param array<string, mixed> $objeto
+     * @param array<string, mixed> $p
+     */
+    public function menu(array $objeto, array $p): string
+    {
+        $profundidade = is_numeric($p['profundidade'] ?? null) ? (int) $p['profundidade'] : 3;
+        $inicio = is_scalar($p['inicio'] ?? null) ? (string) $p['inicio'] : '';
+
+        return $this->fonte?->menu($objeto, max(1, $profundidade), $inicio) ?? '';
+    }
+
+    /**
      * `arquivo`: um dado (nome, tamanho legível, tipo ou a URL de entrega) de uma propriedade `arquivo`/`imagem`, sempre
      * escapado e só se o arquivo existe e seu objeto dono está publicado e vigente (`FonteDeDados::arquivo`); fora disso,
      * ou com `info` desconhecido, vazio.

@@ -42,6 +42,8 @@ Se a lista de requisitos mostrar "Acesso do PHP à pasta dados/ (open_basedir)" 
 - Confira que a pasta `dados/` **não** abre pelo navegador (`https://seu-endereco/dados/` deve dar "proibido" ou "não encontrado").
 - Faça uma **cópia de segurança** da pasta `dados/`: é onde ficam o banco, os arquivos e as peles do seu site.
 
+- O site já vem com exemplos: **Sobre**, **Notícias** (com uma notícia) e **Contato** (um formulário cujas mensagens ficam numa pasta privada, para você ler no painel). Os três aparecem no menu. Edite ou apague o que quiser pelo painel.
+
 ## O que ainda não dá para fazer pelo navegador
 
 Depois de instalar, entre em `/_pbl/` com a conta de administrador: já dá para andar pelas páginas e corrigir título e descrição. Criar e mover páginas, trocar a aparência e gerenciar contas ainda se faz por linha de comando (veja a [documentação técnica](../tecnica/cli.md)); as demais telas vêm nas próximas versões. Acompanhe o [estado do projeto](estado-do-projeto.md).

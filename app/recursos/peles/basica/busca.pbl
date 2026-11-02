@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Busca<@se $q != ""@>: <@eco $q@><@/se@> - <@eco #site_nome@></title>
+<@incluir arquivo="estilo"@>
+</head>
+<body>
+<@incluir arquivo="topo"@>
+<main>
+<h1>Busca</h1>
+<@se $q == ""@><p>Digite o que procura no campo acima.</p><@senao@>
+<p>Resultados para <strong><@eco $q@></strong></p>
+<@var $tem_mais = 0@>
+<@var $inicio_da_pagina = ($pagina - 1) * 10@>
+<@localizar busca=$q inicio=$inicio_da_pagina limite=11@><@se %INDICE <= 10@><@incluir arquivo="item"@><@senao@><@var $tem_mais = 1@><@/se@><@/localizar@>
+<@naolocalizado@>
+<p>Nada encontrado para <strong><@eco $q@></strong>.</p>
+<@se %SUGESTAO != ""@><p>Você quis dizer <a href="/busca?q=<@eco %SUGESTAO@>"><@eco %SUGESTAO@></a>?</p><@/se@>
+<@/naolocalizado@>
+<@incluir arquivo="paginacao"@>
+<@/se@>
+</main>
+</body>
+</html>

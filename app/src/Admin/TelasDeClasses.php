@@ -10,6 +10,7 @@ use Pbl\Acesso\SessaoAtiva;
 use Pbl\Arquivos\TiposDeArquivo;
 use Pbl\Conteudo\Classe;
 use Pbl\Conteudo\ClasseRepositorio;
+use Pbl\Conteudo\ClassesPadrao;
 use Pbl\Conteudo\ConflitoDeVersao;
 use Pbl\Servicos;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -144,13 +145,14 @@ final class TelasDeClasses
         foreach ($classes as $c) {
             $arquivados = count(array_filter($c->propriedades, static fn (array $p): bool => $p['arquivada'] ?? false));
             $ativos = count($c->propriedades) - $arquivados;
-            $corpo .= '<tr><td><code>' . Pagina::h($c->nome) . '</code></td>'
+            $corpo .= '<tr><td><code>' . Pagina::h($c->nome) . '</code>'
+                . ($c->fixa ? ' <span class="badge text-bg-dark" title="Tipo essencial: não se apaga e mantém os campos de base">fixa</span>' : '') . '</td>'
                 . '<td>' . ($c->descricao === '' ? '<span class="text-body-secondary">—</span>' : Pagina::h(mb_strimwidth($c->descricao, 0, 160, '…'))) . '</td>'
                 . '<td>' . $ativos . ($arquivados > 0 ? ' <span class="text-body-secondary">(+' . $arquivados . ' arquivado' . ($arquivados > 1 ? 's' : '') . ')</span>' : '') . '</td>';
             if ($modela) {
                 $corpo .= '<td>' . ($usos[$c->id] ?? 0) . '</td><td class="text-end text-nowrap">'
                     . '<a class="btn btn-sm btn-outline-primary" href="' . $this->link($c->id) . '/editar">Editar<span class="visually-hidden"> ' . Pagina::h($c->nome) . '</span></a> '
-                    . '<a class="btn btn-sm btn-outline-danger" href="' . $this->link($c->id) . '/apagar">Apagar<span class="visually-hidden"> ' . Pagina::h($c->nome) . '</span></a></td>';
+                    . ($c->fixa ? '' : '<a class="btn btn-sm btn-outline-danger" href="' . $this->link($c->id) . '/apagar">Apagar<span class="visually-hidden"> ' . Pagina::h($c->nome) . '</span></a>') . '</td>';
             }
             $corpo .= '</tr>';
         }
@@ -326,6 +328,9 @@ final class TelasDeClasses
             }
             if (!isset(self::SITUACOES[$c['situacao']])) {
                 return $rotulo . ' tem uma situação inválida.';
+            }
+            if ($classe->fixa && in_array($c['nome'], ClassesPadrao::nomesDaBase($classe->nome), true) && $c['situacao'] !== 'ativa') {
+                return $rotulo . ' faz parte da base do tipo fixo ' . $classe->nome . ' e não pode ser ' . ($c['situacao'] === 'remover' ? 'removido' : 'arquivado') . '.';
             }
             $comValor = max($uso[$c['nome']]['objetos'] ?? 0, $uso[$c['nome']]['historico'] ?? 0);
             $classeNova = $c['tipo'] === 'ref' ? $c['classe'] : '';
@@ -649,6 +654,7 @@ final class TelasDeClasses
         $uso = $this->servicos->classes->usoDasPropriedades($classe);
         $total = $this->servicos->classes->contarObjetos($classe->id);
         $corpo = $aviso . $this->erro($erro)
+            . ($classe->fixa ? '<div class="alert alert-info" role="status">Este é um tipo <strong>fixo</strong> (essencial ao sistema): não pode ser apagado nem renomeado, e os campos de base dele não podem ser removidos nem arquivados. Acrescentar campos é permitido.</div>' : '')
             . '<p>Nome técnico: <code>' . Pagina::h($classe->nome) . '</code> · ' . $total . ' conteúdo' . ($total === 1 ? ' usa' : 's usam') . ' este tipo · versão ' . $classe->versao . '.</p>'
             . '<form method="post" action="' . $this->link($classe->id) . '/editar"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>'
             . $this->campoCsrf($sessao) . '<input type="hidden" name="versao" value="' . $classe->versao . '">'
@@ -689,6 +695,9 @@ final class TelasDeClasses
                     if ($valor === 'remover' && $emUso > 0) {
                         continue;
                     }
+                    if ($valor !== 'ativa' && $classe->fixa && in_array($c['nome'], ClassesPadrao::nomesDaBase($classe->nome), true)) {
+                        continue; // campo de base de tipo fixo (ADR 0015)
+                    }
                     $corpo .= '<option value="' . $valor . '"' . ($c['situacao'] === $valor ? ' selected' : '') . '>' . $texto . '</option>';
                 }
                 $corpo .= '</select></td><td>' . ($uso[$c['nome']]['objetos'] ?? 0)
@@ -713,7 +722,7 @@ final class TelasDeClasses
             . '</div></fieldset>'
             . '<p class="form-text">"Obrigatório" fica guardado no tipo; a exigência ao salvar um conteúdo vem com as telas de conteúdo.</p>'
             . '<button type="submit" class="btn btn-primary">Salvar</button> <a class="btn btn-outline-secondary" href="' . $this->linkLista() . '">Voltar aos tipos</a></form>'
-            . '<p class="mt-4"><a class="link-danger" href="' . $this->link($classe->id) . '/apagar">Apagar este tipo de conteúdo</a></p>';
+            . ($classe->fixa ? '' : '<p class="mt-4"><a class="link-danger" href="' . $this->link($classe->id) . '/apagar">Apagar este tipo de conteúdo</a></p>');
 
         return Pagina::resposta('Tipo de conteúdo: ' . $classe->nome, $corpo, $status, false, $this->barra($sessao));
     }
@@ -820,6 +829,9 @@ final class TelasDeClasses
     /** Explicação (HTML) de por que a classe não pode ser apagada agora, ou null. */
     private function bloqueioDeApagar(Classe $classe): ?string
     {
+        if ($classe->fixa) {
+            return '<div class="alert alert-info" role="status">O tipo <code>' . Pagina::h($classe->nome) . '</code> é fixo (essencial ao sistema) e não pode ser apagado.</div>';
+        }
         $n = $this->servicos->classes->contarObjetos($classe->id);
         if ($n > 0) {
             return '<div class="alert alert-info" role="status">Este tipo não pode ser apagado: ' . $n . ' conteúdo' . ($n > 1 ? 's usam' : ' usa') . ' o tipo <code>' . Pagina::h($classe->nome) . '</code> '

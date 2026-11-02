@@ -1,17 +1,15 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title><@eco #titulo@></title>
-<style>
-body{font-family:system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#222}
-.pbl-campo{margin:.75rem 0}label{display:block}input[type=text],input[type=date],textarea{width:100%;box-sizing:border-box}
-</style>
+<@incluir arquivo="cabeca"@>
+<@incluir arquivo="estilo"@>
 </head>
 <body>
+<@incluir arquivo="topo"@>
+<main>
 <h1><@eco #titulo@></h1>
 <div><@ecocru #corpo@></div>
 <@formulario@>
+</main>
 </body>
 </html>

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Página não encontrada - <@eco #site_nome@></title>
+<@incluir arquivo="estilo"@>
+</head>
+<body>
+<@incluir arquivo="topo"@>
+<main>
+<h1>Página não encontrada</h1>
+<p>O endereço que você abriu não existe ou saiu do ar. Use o menu ou a busca acima, ou <a href="/">volte à página inicial</a>.</p>
+</main>
+</body>
+</html>
