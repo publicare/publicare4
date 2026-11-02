@@ -302,6 +302,17 @@ final class BuscaNivelBTest extends TestCase
         self::assertSame([$id], array_map(static fn ($o): int => $o->id, $achados));
     }
 
+    public function testCorpoGiganteNaoCortaTermosDoTituloEDaDescricao(): void
+    {
+        $corpo = implode(' ', array_map(static fn (int $i): string => 'palavra' . $i, range(1, Termos::MAX_TERMOS_POR_OBJETO + 500)));
+        $this->criar('Titulounico especial', 'a', ['resumo' => $corpo], ['descricao' => 'descricaounica']);
+
+        self::assertSame(['Titulounico especial'], $this->achar('titulounico'));
+        self::assertSame(['Titulounico especial'], $this->achar('descricaounica'));
+        self::assertSame(['Titulounico especial'], $this->achar('palavra1'));
+        self::assertLessThanOrEqual(Termos::MAX_TERMOS_POR_OBJETO, (int) $this->con->fetchOne('SELECT COUNT(*) FROM objeto_termo'));
+    }
+
     public function testRemoverTiraDoIndice(): void
     {
         $id = $this->criar('Efêmero', 'a');

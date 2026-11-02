@@ -51,6 +51,8 @@ final class BuscaSql implements BuscaInterface
                 }
             }
         }
+        // O teto vale depois de priorizar por pontos: título e descrição nunca são cortados por causa do corpo.
+        arsort($pontos);
         $this->conexao->transactional(function () use ($objetoId, $pontos): void {
             $this->conexao->delete('objeto_termo', ['objeto_id' => $objetoId]);
             foreach (array_slice($pontos, 0, Termos::MAX_TERMOS_POR_OBJETO, true) as $termo => $p) {
