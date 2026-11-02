@@ -92,6 +92,13 @@ final class LinguagemTest extends TestCase
                 return $this->filhos !== [] && ($id === null || $id > 0);
             }
 
+            public function sugestao(array $objeto, array $filtros): ?string
+            {
+                $busca = $filtros['busca'] ?? null;
+
+                return is_string($busca) && $busca === 'fernandha' ? 'fernanda' : null;
+            }
+
             /**
              * @param array<string, int|string> $filtros
              * @return list<array<string, mixed>>
@@ -221,6 +228,26 @@ final class LinguagemTest extends TestCase
     public function testNaolocalizadoEquivaleASemfilhos(): void
     {
         self::assertSame('vazio', $this->render('<@localizar classes="x"@>a<@/localizar@><@naolocalizado@>vazio<@/naolocalizado@>'));
+    }
+
+    public function testSugestaoApareceSoQuandoABuscaNaoAchaNadaEAFontDevolveAlgo(): void
+    {
+        $m = '<@localizar busca="fernandha"@>x<@/localizar@><@naolocalizado@>você quis dizer <@eco %SUGESTAO@>?<@/naolocalizado@>';
+        self::assertSame('você quis dizer fernanda?', $this->render($m));
+
+        // busca sem sugestão da fonte (nenhum candidato confiável): %SUGESTAO fica vazia
+        self::assertSame('você quis dizer ?', $this->render('<@localizar busca="xyzxyz"@>x<@/localizar@><@naolocalizado@>você quis dizer <@eco %SUGESTAO@>?<@/naolocalizado@>'));
+    }
+
+    public function testSugestaoNaoVazaDeUmLocalizarAnteriorParaUmFilhosSemBusca(): void
+    {
+        $m = '<@localizar busca="fernandha"@>x<@/localizar@><@filhos@>x<@/filhos@><@eco %SUGESTAO@>';
+        self::assertSame('', $this->render($m), 'filhos não usa busca: não deve herdar a sugestão do localizar anterior');
+    }
+
+    public function testSugestaoEDesconhecidaComoMacroSemBuscaAnterior(): void
+    {
+        self::assertSame('', $this->render('<@eco %SUGESTAO@>'), 'sem nenhum localizar com busca, %SUGESTAO é vazia');
     }
 
     public function testObjetoNoLacoDeLocalizarMudaOContexto(): void
