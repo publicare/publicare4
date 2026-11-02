@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Última atualização: **novembro de 2026** (voltar atrás de uma atualização concluída e aviso de versão nova na página inicial; tela de atualização no painel; contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, varredura do HTML gravado antes dessa limpeza, publicação agendada, mover pela árvore e formulários públicos simples; modo elevado nas ações sensíveis do painel e lista de contas paginada/com busca). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
+Última atualização: **novembro de 2026** (voltar atrás de uma atualização concluída e aviso de versão nova na página inicial; tela de atualização no painel; contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, varredura do HTML gravado antes dessa limpeza, publicação agendada, mover pela árvore e formulários públicos simples; modo elevado nas ações sensíveis do painel e lista de contas paginada/com busca; histórico, rascunho/pré-visualização e realce de leitura no editor de peles). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
 
 ## Legenda
 
@@ -40,7 +40,10 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Administração pelo navegador: ver os sites que você pode acessar e andar pelas páginas de cada um (inclusive as que ainda não estão no ar) | ✅ |
 | Corrigir o título e a descrição de uma página pelo navegador, com aviso se outra pessoa mudou a página ao mesmo tempo; a página no ar é atualizada na hora | ✅ |
 | Pelo navegador: criar páginas e outros conteúdos, editar todos os campos, publicar ou tirar do ar (com datas), mover, mandar para a lixeira e tirar de lá, ver o histórico e voltar a uma versão antiga; ordenar e filtrar a lista de conteúdo | ✅ |
-| Pelo navegador (só administrador): editar o texto dos moldes de uma pele numa caixa de texto, com conferência da sintaxe antes de salvar, criar e apagar moldes e escolher a pele do site; as páginas são republicadas em seguida | ✅ |
+| Pelo navegador (só administrador): editar o texto dos moldes de uma pele, com conferência da sintaxe antes de salvar, criar e apagar moldes e escolher a pele do site; as páginas são republicadas em seguida | ✅ |
+| Histórico de cada molde (quem salvou, criou ou apagou, e quando), diferença entre duas versões e "voltar a esta versão" (com a mesma conferência de sintaxe de uma edição comum) | ✅ (até 200 versões guardadas por molde) |
+| Salvar um molde como rascunho (sem publicar) e pré-visualizar uma página do site com o rascunho, sem afetar o que está no ar | ✅ (a pré-visualização é só para quem administra o site) |
+| Ver o conteúdo de um molde com as cores da sintaxe (histórico, diferença e visualização) | ✅ (só leitura; a caixa de edição continua texto simples) |
 | Campos de texto com HTML são limpos ao salvar (sem scripts, estilos, formulários nem eventos; só marcações comuns, links e imagens seguros) | ✅ |
 | Varredura do HTML gravado antes dessa limpeza existir, ou importado sem passar pela gravação normal (`bin/pbl sanitizar-html`, com simulação) | ✅ |
 | Publicar numa data futura e tirar do ar numa data de validade: a página mostra "agendado" e o comando `bin/pbl agendados` (para o cron do servidor) põe no ar e tira na hora certa | ✅ (precisa agendar o comando no servidor) |
@@ -59,7 +62,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 |---|---|
 | Busca para portais muito grandes (centenas de milhares de páginas) com serviço de busca próprio | 🗓️ |
 | Atualização automática com cópia de segurança e volta atrás | 🔨 (funciona por linha de comando e pelo painel — tela **Atualização**, só administrador, pede a senha de novo —, com assinatura, cópia do banco, volta atrás automática se a atualização falhar, aviso de versão nova na página inicial (lendo o cache; sem chamada de rede ao abrir a página) e `bin/pbl verificar-atualizacao` para o cron atualizar esse cache; `bin/pbl reverter` (e o botão correspondente) desfaz uma atualização **já concluída**, devolvendo código e banco de antes dela, com as mesmas conferências de segurança; falta a chave de assinatura de produção e a primeira versão publicada, então ainda não há o que baixar) |
-| Editor de peles completo (realce de código, pré-visualização, histórico e voltar atrás, arquivos de CSS e imagens) | 🗓️ (hoje só a caixa de texto simples) |
+| Editor de peles completo (hoje tem histórico, rascunho/pré-visualização e realce só leitura; faltam arquivos de CSS e imagens, importar/exportar pele, pele filha) | 🔨 |
 | Galeria de peles prontas para instalar | 🗓️ |
 | Formulários com aprovação em etapas, aviso por e-mail, anexos, captcha, prazos, vagas e participante identificado; editor visual de formulários | 🗓️ |
 | Importar um site feito no Publicare antigo | 🗓️ |

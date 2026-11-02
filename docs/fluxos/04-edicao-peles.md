@@ -1,5 +1,13 @@
 # Fluxo 4 — Edição de peles, templates e layouts
 
+> **Nota (fase 5j):** o editor de um molde (texto, validação, histórico com diferença e voltar atrás, rascunho com
+> pré-visualização e realce **só leitura**) já está implementado, pelo navegador e **sem JavaScript** — veja o
+> [ADR 0012](../adr/0012-administracao-web.md) §9 e §14 e o [fluxo 12](12-administracao-web.md). Isto já cumpre os itens
+> 3, 4 e 5 da lista abaixo, de um jeito diferente do desenhado aqui (sem CodeMirror nem realce ao digitar, por decisão
+> do ADR 0012: nenhuma tela da administração depende de JavaScript). O resto deste fluxo (navegador de arquivos restrito
+> à pele, import/export `.zip`, galeria, assistente "criar pele", duplicar/apagar pele inteira) continua só planejado
+> ([ADR 0007](../adr/0007-galeria-pacotes-peles.md)).
+
 ## Hoje (p3)
 
 - `manage/peles.php` e `peles_post.php` fazem CRUD de **nome/prefixo/pública** na tabela `pele`. Nada além.

@@ -47,6 +47,7 @@ final class Servicos
     public readonly UsuarioRepositorio $usuarios;
     public readonly Permissoes $permissoes;
     public readonly Publicador $publicador;
+    /** Renderiza um objeto sem publicar (fase 5j): a pré-visualização isolada de rascunho e as páginas dinâmicas (fase 5l) o usam diretamente. */
     public readonly Renderizador $renderizador;
     public readonly MenuDoSite $menu;
     public readonly GerenciadorDePeles $peles;
@@ -72,7 +73,7 @@ final class Servicos
         $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos, $this->menu);
         $this->renderizador = $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador, $this->menu);
-        $this->peles = new GerenciadorDePeles($caminhos);
+        $this->peles = new GerenciadorDePeles($caminhos, $conexao);
     }
 
     /** Segredo do site (criado na primeira vez se ainda não existir). Lido só quando preciso, para a área pública não depender dele. */

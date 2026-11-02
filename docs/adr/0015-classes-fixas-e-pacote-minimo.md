@@ -36,7 +36,7 @@ nome, e-mail e mensagem; os envios vão para a pasta privada). Sobre, Notícias 
 ### 3. Migração 16, idempotente
 `M016ClassesFixas` acrescenta `classe.fixa` (e as colunas de menu, ADR 0016) **se faltarem** e marca as seis classes que já
 existirem. O `Migrador` só guarda a versão máxima, então a migração confere a coluna antes de alterar; rodar de novo é
-inofensivo. Não existe migração 15 (a numeração pulou; não há lacuna a preencher).
+inofensivo. A migração 15 é a do histórico de moldes (fase 5j); a 16 não depende dela.
 
 ### 4. Link
 Propriedades `destino_interno` (`ref`), `destino_externo` (texto), `nova_aba` (booleano) e `descricao`. O nome é

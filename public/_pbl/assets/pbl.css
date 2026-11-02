@@ -22,3 +22,15 @@ main table:not(.table) td { padding: .25rem .5rem; border-bottom: 1px solid var(
 
 /* Tipos de conteúdo: a coluna de ordem dos campos não precisa ser larga. */
 .campo-ordem { width: 5rem; }
+
+/* Realce de sintaxe dos moldes, só leitura (fase 5j, ADR 0012 §9): visualização, diferença e histórico. A caixa de
+   edição continua uma <textarea> simples, sem realce (ver o ADR). */
+.pbl-realce { background: var(--bs-tertiary-bg, #f8f9fa); border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); padding: .75rem; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+.pbl-rc-tag { color: #57606a; }
+.pbl-rc-nome { color: #0550ae; font-weight: 600; }
+.pbl-rc-string { color: #116329; }
+.pbl-rc-comentario { color: #57606a; font-style: italic; }
+
+/* Diferença entre versões: cada linha ganha a cor de fundo do que ela é (Bootstrap já cuida do contraste). */
+.pbl-diff-add { background: var(--bs-success-bg-subtle, #d1e7dd); display: inline-block; width: 100%; }
+.pbl-diff-rem { background: var(--bs-danger-bg-subtle, #f8d7da); display: inline-block; width: 100%; }

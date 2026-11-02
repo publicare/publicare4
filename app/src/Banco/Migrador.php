@@ -20,6 +20,7 @@ use Pbl\Banco\Migracoes\M011ClasseFormulario;
 use Pbl\Banco\Migracoes\M012BuscaTolerancia;
 use Pbl\Banco\Migracoes\M013Arquivos;
 use Pbl\Banco\Migracoes\M014ModoElevado;
+use Pbl\Banco\Migracoes\M015HistoricoDeMoldes;
 use Pbl\Banco\Migracoes\M016ClassesFixas;
 
 /**
@@ -35,7 +36,7 @@ final class Migrador
     /** @param list<Migracao>|null $migracoes */
     public function __construct(private readonly Connection $conexao, ?array $migracoes = null)
     {
-        $this->migracoes = $migracoes ?? [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada(), new M005VersoesEHistoricoDeUrls(), new M006DominiosERedirecionamentos(), new M007Acesso(), new M008Sessoes(), new M009ClassesNaAdministracao(), new M010IndiceDeBusca(), new M011ClasseFormulario(), new M012BuscaTolerancia(), new M013Arquivos(), new M014ModoElevado(), new M016ClassesFixas()];
+        $this->migracoes = $migracoes ?? [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada(), new M005VersoesEHistoricoDeUrls(), new M006DominiosERedirecionamentos(), new M007Acesso(), new M008Sessoes(), new M009ClassesNaAdministracao(), new M010IndiceDeBusca(), new M011ClasseFormulario(), new M012BuscaTolerancia(), new M013Arquivos(), new M014ModoElevado(), new M015HistoricoDeMoldes(), new M016ClassesFixas()];
     }
 
     /** @return list<int> versões aplicadas nesta chamada */
