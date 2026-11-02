@@ -87,7 +87,7 @@ Quando o comando age, escreve uma linha por site (`Meu Site: 1 entrou(aram) no a
 
 ## `sanitizar-html` (varredura do HTML gravado antes da fase 5g)
 
-A limpeza de `html` por lista de permissões (`HtmlSeguro`) só passou a rodar na gravação a partir da fase 5g: conteúdo gravado antes disso, ou trazido de fora sem passar pela gravação normal, podia continuar guardando marcação perigosa (`script`, `on*`, `javascript:`…). Este comando varre tudo isso de uma vez:
+A limpeza de `html` por lista de permissões (`HtmlSeguro`; a lista inclui, desde o editor de texto rico — [ADR 0020](../adr/0020-editor-de-texto-rico.md) —, tabelas completas e `style` limitado a alinhamento e tamanho do texto, e remove lixo de Word/Google Docs) só passou a rodar na gravação a partir da fase 5g: conteúdo gravado antes disso, ou trazido de fora sem passar pela gravação normal, podia continuar guardando marcação perigosa (`script`, `on*`, `javascript:`…). Este comando varre tudo isso de uma vez:
 
 ```bash
 make pbl ARGS="sanitizar-html --simular"             # só mostra o que mudaria

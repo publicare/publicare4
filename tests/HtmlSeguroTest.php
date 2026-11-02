@@ -172,4 +172,84 @@ final class HtmlSeguroTest extends TestCase
         $limpo = HtmlSeguro::limpar('</div></body></html><script>alert(1)</script><p>depois</p>');
         self::assertStringNotContainsString('script', $limpo);
     }
+    private function amostra(string $nome): string
+    {
+        return (string) file_get_contents(__DIR__ . '/fixtures/html/' . $nome);
+    }
+
+    public function testColadoDoWordFicaSemLixoDoOffice(): void
+    {
+        $limpo = HtmlSeguro::limpar($this->amostra('word.html'));
+        self::assertStringContainsString('<p style="text-align: center"><b><span style="font-size: 16.0pt">Edital 01/2026</span></b></p>', $limpo);
+        self::assertStringContainsString('<p>Item um</p>', $limpo, 'o marcador falso de lista do Word some');
+        self::assertStringContainsString('<i>itálico</i>', $limpo);
+        self::assertStringContainsString('<table border="1" cellspacing="0" cellpadding="0" style="border-collapse: collapse">', $limpo);
+        self::assertDoesNotMatchRegularExpression('/mso-|Mso|<o:|<\/?xml|<!--|<!\[|<style|<meta|StartFragment|supportLists|OfficeDocumentSettings|class=|font-family|Symbol/i', $limpo, $limpo);
+        self::assertSame($limpo, HtmlSeguro::limpar($limpo));
+    }
+
+    public function testColadoDoGoogleDocsViraMarcacaoSemanticaSemOInvolucroEmNegrito(): void
+    {
+        $limpo = HtmlSeguro::limpar($this->amostra('gdocs.html'));
+        self::assertStringNotContainsString('<b', $limpo, 'o <b style="font-weight:normal"> invólucro não pode deixar tudo em negrito');
+        self::assertStringContainsString('<h1 dir="ltr"><strong><span style="font-size: 20pt">Aviso</span></strong></h1>', $limpo);
+        self::assertStringContainsString('<p dir="ltr" style="text-align: justify">', $limpo);
+        self::assertStringContainsString('<span style="font-size: 11pt">Normal </span>', $limpo);
+        self::assertStringContainsString('<strong><span style="font-size: 11pt">negrito</span></strong>', $limpo);
+        self::assertStringContainsString('<em><u> ital sub</u></em>', $limpo);
+        self::assertStringContainsString('<a href="https://exemplo.gov.br/x" rel="noopener noreferrer"><u>link</u></a>', $limpo);
+        self::assertStringContainsString('<table style="border-collapse: collapse">', $limpo);
+        self::assertStringContainsString('<td><p dir="ltr">c</p></td>', $limpo, 'span sem efeito é desembrulhado');
+        self::assertDoesNotMatchRegularExpression('/docs-internal-guid|font-family|color|background|line-height|<meta/i', $limpo, $limpo);
+        self::assertSame($limpo, HtmlSeguro::limpar($limpo));
+    }
+
+    public function testHtmlAntigoDeSiteDeOrgaoPublico(): void
+    {
+        $entrada = '<center><font face="Verdana" size="2" color="red"><p align="right">Direita</p><div align="CENTER" class="x" id="y">Meio</div>'
+            . '<p align="evil&quot;onclick=1">x</p></font></center><table border="1" width="100%" bgcolor="#eee"><tr><td align="center" valign="top" style="background:url(javascript:1)">c</td></tr></table>';
+        $limpo = HtmlSeguro::limpar($entrada);
+        self::assertSame('<p style="text-align: right">Direita</p><div style="text-align: center">Meio</div><p>x</p>'
+            . '<table border="1"><tr><td style="text-align: center">c</td></tr></table>', $limpo);
+        self::assertSame($limpo, HtmlSeguro::limpar($limpo));
+    }
+
+    public function testEstiloSoGuardaPropriedadesDaListaComValorEstrito(): void
+    {
+        self::assertSame('<p style="text-align: center; font-size: 14px">x</p>', HtmlSeguro::limpar('<p style="color:red; FONT-SIZE : 14PX; text-align:Center; position:fixed; mso-foo:1">x</p>'));
+        self::assertSame('<p style="font-size: 14px">x</p>', HtmlSeguro::limpar('<p style="font-size:14px;;text-align:center/**/ url(x)">x</p>'));
+        self::assertSame('<p>x</p>', HtmlSeguro::limpar('<p style="font-size:calc(1px + 1000vw);text-align:javascript:alert(1)">x</p>'));
+        self::assertSame('<p>x</p>', HtmlSeguro::limpar('<p style="font-size:999999px;font-size:-1px;font-size:1e9px">x</p>'));
+        self::assertSame('<table style="width: 100%; border-collapse: collapse"><tr><td style="width: 50%">a</td></tr></table>', HtmlSeguro::limpar('<table style="border-collapse:collapse;width:100%;behavior:url(x.htc)"><tr><td style="width:50%">a</td></tr></table>'));
+        self::assertSame('<p>x</p>', HtmlSeguro::limpar('<p style="width:100%">x</p>'), 'width não vale em parágrafo');
+        self::assertSame('<img src="/a.png" alt="">', HtmlSeguro::limpar('<img src="/a.png" alt="" style="position:fixed">'));
+        self::assertSame('<p style="font-size: 12px">x</p>', HtmlSeguro::limpar('<p style="font-size:12px; background:url(&quot;javascript:alert(1)&quot;)">x</p>'));
+    }
+
+    public function testSpansDoOfficeViramSemanticaOuSomem(): void
+    {
+        self::assertSame('<p>a</p>', HtmlSeguro::limpar('<p><span></span><span style="mso-x:1"></span><span>a</span></p>'));
+        self::assertSame('<p><strong>a</strong></p>', HtmlSeguro::limpar('<p><span style="font-weight:bold">a</span></p>'));
+        self::assertSame('<p>a</p>', HtmlSeguro::limpar('<p><span style="font-weight:400;font-style:normal">a</span></p>'));
+        self::assertSame('<p><sup>2</sup></p>', HtmlSeguro::limpar('<p><span style="vertical-align:super">2</span></p>'));
+        self::assertSame('<p>a</p>', HtmlSeguro::limpar('<p><b style="font-weight:normal">a</b></p>'));
+        self::assertSame('<p><b>a</b></p>', HtmlSeguro::limpar('<p><b>a</b></p>'));
+        self::assertSame('<p><span lang="en">hi</span> <span dir="rtl">x</span> <span title="t" style="font-size: 12px">y</span></p>', HtmlSeguro::limpar('<p><span lang="en" class="z">hi</span> <span dir="rtl">x</span> <span title="t" style="font-size:12px;color:red">y</span></p>'));
+        self::assertSame('<p><strong><span lang="pt">a</span></strong></p>', HtmlSeguro::limpar('<p><span lang="pt" style="font-weight:700">a</span></p>'));
+    }
+
+    public function testComentariosCondicionaisStyleMetaEXmlSomem(): void
+    {
+        $entrada = '<meta charset="utf-8"><style>p{color:red}</style><!--[if gte mso 9]><xml><w:WordDocument><w:View>Normal</w:View></w:WordDocument></xml><![endif]-->'
+            . '<xml><o:shapedefaults v:ext="edit"/></xml><p><o:p></o:p>texto<o:p>&nbsp;</o:p></p><!--[if !supportLists]-->·<!--[endif]-->';
+        $limpo = HtmlSeguro::limpar($entrada);
+        self::assertStringContainsString('<p>texto', $limpo);
+        self::assertDoesNotMatchRegularExpression('/xml|style|meta|WordDocument|shapedefaults|<!|Normal/i', $limpo, $limpo);
+        self::assertSame($limpo, HtmlSeguro::limpar($limpo));
+    }
+
+    public function testAtributosDeTabelaSaoNumericos(): void
+    {
+        self::assertSame('<table border="1" cellpadding="4"><caption>t</caption><colgroup><col span="2"></colgroup></table>', HtmlSeguro::limpar('<table border="1" cellpadding="4" cellspacing="x"><caption>t</caption><colgroup><col span="2" onclick="1"></colgroup></table>'));
+    }
 }

@@ -229,3 +229,7 @@ stateDiagram-v2
 - **Editor de tipo de conteúdo**: cada campo existente é um item de `accordion` do Bootstrap, fechado (resumo: nome técnico, rótulo, tipo, ordem e selos indexável/obrigatório/arquivado); "Adicionar um campo" e "Que tipos podem ficar dentro" também começam recolhidos (`Pagina::recolhivel`). "Sobre o tipo" fica aberto. Campo inválido dentro de painel fechado abre o painel (`pbl-admin.js`), senão o navegador não conseguiria mostrar o erro. Sem JavaScript os painéis não abrem: a tela depende do script.
 - **Opções de arquivo e imagem**: em campo existente só são desenhadas se o tipo atual já é Arquivo/Imagem; no formulário de campo novo o bloco vem `hidden` com `data-pbl-visivel-se="novo-tipo:arquivo,imagem"` e o `pbl-admin.js` o mostra quando o tipo escolhido é um desses (sem JavaScript fica oculto; as opções aparecem ao editar o campo criado).
 - **Tabelas em cartões**: `Pagina::tabelasEmCartoes` (aplicada em `Pagina::resposta`) marca toda tabela com `<thead>` com `pbl-cartoes` e põe `data-label` em cada célula; abaixo de 768 px o CSS empilha cada linha como cartão (rótulo + valor), sem cabeçalho quebrado.
+
+### Editor de texto rico (2026-11)
+
+Os campos `html` ganharam um editor (TinyMCE 6.8.6, MIT, hospedado, carregado só nas telas com esse campo), com `HtmlSeguro` ampliado (tabelas e `style` limitado) e CSP um pouco mais larga **só nessas telas** (`style-src 'unsafe-inline'`, `img-src https:`; `script-src` segue `'self'`). Ver o [ADR 0020](0020-editor-de-texto-rico.md).

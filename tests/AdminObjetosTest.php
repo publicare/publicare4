@@ -6,6 +6,7 @@ namespace Pbl\Testes;
 
 use Pbl\Acesso\Perfil;
 use Pbl\Acesso\SessaoRepositorio;
+use Pbl\Admin\Pagina;
 use Pbl\Aplicacao;
 use Pbl\Caminhos;
 use Pbl\Banco\Conexao;
@@ -867,5 +868,48 @@ final class AdminObjetosTest extends TestCase
         self::assertFalse($o->urlDisponivel($this->site->id, 'sobre'), 'endereço antigo redireciona: não está livre');
         self::assertTrue($o->urlDisponivel($this->site->id, 'sobre', $this->sobre->id), 'mas o dono pode voltar a ele');
         self::assertSame(['arquivo', 'evento', 'formulario', 'imagem', 'link', 'mensagem_contato', 'noticia', 'pagina', 'pasta'], array_map(static fn (Classe $c): string => $c->nome, $this->s->classes->todas()));
+    }
+    public function testEditorDeTextoRicoSoCarregaEmTelaComCampoHtmlEOsScriptsNaoSaoInline(): void
+    {
+        $token = $this->token('admin');
+        $base = '/_pbl/objeto/' . $this->sobre->id . '/novo';
+
+        $comCampo = $this->req('GET', $base . '?classe=' . $this->evento->id, $token);
+        $html = $this->html($comCampo);
+        self::assertStringContainsString('data-pbl-editor="html" data-pbl-editor-base="' . Pagina::TINYMCE . '"', $html);
+        self::assertStringContainsString('<script src="' . Pagina::TINYMCE_JS . '?v=', $html);
+        self::assertStringContainsString('<script src="' . Pagina::EDITOR_JS . '?v=', $html);
+        self::assertGreaterThan(strpos($html, Pagina::JS), strpos($html, Pagina::TINYMCE_JS), 'o editor vem depois do script geral');
+        self::assertSame(0, preg_match('/<script(?![^>]*\ssrc=)/', $html), 'nenhum script inline');
+        self::assertDoesNotMatchRegularExpression('/\son[a-z]+=/i', $html);
+        self::assertStringNotContainsString('//cdn', $html);
+        self::assertStringContainsString('<textarea', $html, 'o textarea continua existindo (funciona sem JavaScript)');
+        $csp = (string) $comCampo->headers->get('Content-Security-Policy');
+        self::assertStringContainsString("script-src 'self';", $csp, 'scripts continuam só do próprio site');
+        self::assertStringContainsString("style-src 'self' 'unsafe-inline'", $csp, 'o editor aplica estilos em linha no conteúdo');
+        self::assertStringContainsString("img-src 'self' data: https:", $csp);
+        self::assertStringNotContainsString("script-src 'self' 'unsafe", $csp);
+
+        // Telas sem campo html: nada do editor e a CSP estrita de antes.
+        foreach ([$base, '/_pbl/objeto/' . $this->sobre->id, '/_pbl/objeto/' . $this->sobre->id . '/historico'] as $url) {
+            $r = $this->req('GET', $url, $token);
+            $semCampo = $this->html($r);
+            self::assertStringNotContainsString('tinymce', $semCampo, $url);
+            self::assertStringNotContainsString('pbl-editor', $semCampo, $url);
+            self::assertStringNotContainsString('data-pbl-editor', $semCampo, $url);
+            self::assertStringNotContainsString('unsafe-inline', (string) $r->headers->get('Content-Security-Policy'), $url);
+        }
+    }
+
+    public function testHtmlColadoDoWordEhLimpoPeloServidorAoSalvar(): void
+    {
+        $token = $this->token('admin');
+        $base = '/_pbl/objeto/' . $this->sobre->id . '/novo';
+        $word = '<p class=MsoNormal style="mso-line-height-alt:12pt;text-align:center"><span style="mso-bidi-font-weight:normal">Aviso<o:p></o:p></span></p>'
+            . '<!--[if gte mso 9]><xml><o:x/></xml><![endif]--><style>p{color:red}</style><script>alert(1)</script>';
+        $r = $this->post($token, $base, $this->formEvento('Com Word', ['dados' => ['corpo' => $word]]));
+
+        self::assertSame(303, $r->getStatusCode(), $this->html($r));
+        self::assertSame('<p style="text-align: center">Aviso</p>', $this->obj($this->idCriado($r))->dados['corpo']);
     }
 }

@@ -21,6 +21,12 @@ final class Pagina
     /** Scripts da administração: só arquivos do próprio site (Bootstrap local + `pbl-admin.js`), nunca inline (CSP `script-src 'self'`). */
     public const BOOTSTRAP_JS = self::ASSETS . '/bootstrap-5.3.8/bootstrap.bundle.min.js';
     public const JS = self::ASSETS . '/pbl-admin.js';
+    /** Editor de texto rico (TinyMCE 6.8, MIT, hospedado aqui; ADR 0020). Só é carregado em telas com campo `data-pbl-editor`. */
+    public const TINYMCE = self::ASSETS . '/tinymce-6.8.6';
+    public const TINYMCE_JS = self::TINYMCE . '/tinymce.min.js';
+    public const EDITOR_JS = self::ASSETS . '/pbl-editor.js';
+    /** Marca que as telas põem no `<textarea>` de um campo `html`; a página usa para decidir carregar o editor. */
+    public const MARCA_EDITOR = 'data-pbl-editor="';
 
     public static function h(string $texto): string
     {
@@ -60,10 +66,12 @@ final class Pagina
      */
     public static function resposta(string $titulo, string $corpo, int $status = Response::HTTP_OK, bool $seguro = false, string $navegacao = '', array $migalhas = [], string $descricao = ''): Response
     {
+        $editor = str_contains($corpo, self::MARCA_EDITOR);
         $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
             . '<meta name="robots" content="noindex"><title>' . self::h($titulo) . ' — PBL4</title>'
             . '<link rel="stylesheet" href="' . self::urlVersionada(self::BOOTSTRAP) . '"><link rel="stylesheet" href="' . self::urlVersionada(self::CSS) . '">'
             . '<script src="' . self::urlVersionada(self::BOOTSTRAP_JS) . '" defer></script><script src="' . self::urlVersionada(self::JS) . '" defer></script>'
+            . ($editor ? '<script src="' . self::urlVersionada(self::TINYMCE_JS) . '" defer></script><script src="' . self::urlVersionada(self::EDITOR_JS) . '" defer></script>' : '')
             . '</head><body><a class="visually-hidden-focusable" href="#conteudo">Pular para o conteúdo</a>'
             . ($navegacao === '' ? '' : '<header>' . $navegacao . '</header>')
             . '<main id="conteudo" class="container py-3 py-md-4">' . self::migalhas($migalhas)
@@ -71,7 +79,7 @@ final class Pagina
             . ($descricao === '' ? '<div class="mb-4"></div>' : '<p class="text-body-secondary mb-4">' . $descricao . '</p>')
             . self::tabelasEmCartoes($corpo) . '</main></body></html>';
 
-        return self::protegida(new Response($html, $status, ['Content-Type' => 'text/html; charset=utf-8']), $seguro);
+        return self::protegida(new Response($html, $status, ['Content-Type' => 'text/html; charset=utf-8']), $seguro, $editor);
     }
 
     /**
@@ -260,15 +268,22 @@ final class Pagina
         return $html . '</div>';
     }
 
-    /** Cabeçalhos de segurança das páginas de administração (ADR 0011 e 0012). `$seguro` = a conexão é HTTPS (liga o HSTS). */
-    public static function protegida(Response $r, bool $seguro): Response
+    /**
+     * Cabeçalhos de segurança das páginas de administração (ADR 0011 e 0012). `$seguro` = a conexão é HTTPS (liga o HSTS).
+     * `$editor` = a página tem o editor de texto rico (ADR 0020): o TinyMCE aplica estilos em linha (alinhamento, tamanho) no
+     * conteúdo editado e mostra imagens por endereço https; por isso, só nessas páginas, `style-src` aceita `'unsafe-inline'` e
+     * `img-src` aceita `https:`. `script-src` continua `'self'`: nenhum script inline ou de fora em lugar nenhum.
+     */
+    public static function protegida(Response $r, bool $seguro, bool $editor = false): Response
     {
+        // O painel passa por aqui de novo depois da tela: a página que traz o editor é reconhecida pela marca no corpo.
+        $editor = $editor || (str_starts_with((string) $r->headers->get('Content-Type'), 'text/html') && str_contains((string) $r->getContent(), self::MARCA_EDITOR));
         $r->headers->set('Cache-Control', 'no-store');
         $r->headers->set('X-Frame-Options', 'DENY');
         $r->headers->set('X-Content-Type-Options', 'nosniff');
         $r->headers->set('Referrer-Policy', 'same-origin');
         // img-src data: só porque o CSS do Bootstrap desenha alguns ícones de formulário como SVG embutido.
-        $r->headers->set('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+        $r->headers->set('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'" . ($editor ? " 'unsafe-inline'" : '') . "; img-src 'self' data:" . ($editor ? ' https:' : '') . "; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
         if ($seguro) {
             $r->headers->set('Strict-Transport-Security', 'max-age=31536000');
         }

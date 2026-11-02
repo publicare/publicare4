@@ -41,6 +41,35 @@ final class AssetsAdminTest extends TestCase
         self::assertFileExists($this->publico(Pagina::JS));
     }
 
+    public function testTinymceVendorizadoBateComAProcedenciaESoTemOQueEUsado(): void
+    {
+        $procedencia = (string) file_get_contents($this->publico(Pagina::ASSETS . '/PROVENIENCIA.md'));
+        $pasta = $this->publico(Pagina::TINYMCE);
+        self::assertStringContainsString('tinymce@6.8.6', $procedencia);
+        $arquivos = [];
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($pasta, \FilesystemIterator::SKIP_DOTS));
+        foreach ($it as $f) {
+            $arquivos[] = substr((string) $f, strlen($pasta) + 1);
+        }
+        sort($arquivos);
+        self::assertGreaterThan(10, count($arquivos));
+        foreach ($arquivos as $arquivo) {
+            $sha = hash_file('sha256', $pasta . '/' . $arquivo);
+            self::assertIsString($sha);
+            self::assertStringContainsString('`tinymce-6.8.6/' . $arquivo . '`', $procedencia, "{$arquivo} não está na procedência");
+            self::assertStringContainsString($sha, $procedencia, "SHA-256 de {$arquivo} difere do registrado");
+            self::assertStringEndsNotWith('.map', $arquivo, 'sourcemaps não são distribuídos');
+        }
+        self::assertContains('LICENSE.txt', $arquivos, 'a licença MIT vai junto');
+        self::assertStringContainsString('MIT License', (string) file_get_contents($pasta . '/LICENSE.txt'));
+        self::assertStringNotContainsString('sourceMappingURL', (string) file_get_contents($pasta . '/tinymce.min.js'));
+        self::assertFileExists($this->publico(Pagina::EDITOR_JS));
+        // Sem telemetria nem nuvem: nenhum endereço de rede além de espaços de nomes e documentação.
+        $editor = (string) file_get_contents($this->publico(Pagina::EDITOR_JS));
+        self::assertStringContainsString('promotion: false', $editor);
+        self::assertDoesNotMatchRegularExpression('#https?://#', $editor);
+    }
+
     public function testUrlVersionadaMudaComOConteudoDoArquivo(): void
     {
         $url = Pagina::urlVersionada(Pagina::CSS);
@@ -95,7 +124,7 @@ final class AssetsAdminTest extends TestCase
         $publico = (string) file_get_contents($this->raiz() . '/public/.htaccess');
         self::assertStringContainsString('RewriteCond %{REQUEST_FILENAME} !-f', $publico, 'arquivo existente não vai para o index.php');
         $negados = preg_match('/<FilesMatch "([^"]+)">/', $publico, $m) === 1 ? $m[1] : self::fail('FilesMatch não encontrado');
-        foreach (['bootstrap.min.css', 'bootstrap.bundle.min.js', 'pbl.css', 'pbl-admin.js'] as $nome) {
+        foreach (['bootstrap.min.css', 'bootstrap.bundle.min.js', 'pbl.css', 'pbl-admin.js', 'pbl-editor.js', 'tinymce.min.js', 'plugin.min.js', 'pt_BR.js', 'LICENSE.txt'] as $nome) {
             self::assertSame(0, preg_match('/' . str_replace('/', '\/', $negados) . '/', $nome), "{$nome} não pode cair na lista negada");
         }
 
@@ -131,7 +160,7 @@ final class AssetsAdminTest extends TestCase
         preg_match_all('/location ~ (\S+) \{ return 404; \}/', $conf, $bloqueios);
         self::assertNotEmpty($bloqueios[1]);
         foreach ($bloqueios[1] as $regra) {
-            foreach ([Pagina::BOOTSTRAP, Pagina::BOOTSTRAP_JS, Pagina::CSS, Pagina::JS] as $url) {
+            foreach ([Pagina::BOOTSTRAP, Pagina::BOOTSTRAP_JS, Pagina::CSS, Pagina::JS, Pagina::TINYMCE_JS, Pagina::EDITOR_JS] as $url) {
                 self::assertSame(0, preg_match('#' . $regra . '#', $url), "location {$regra} bloquearia {$url}");
             }
         }
