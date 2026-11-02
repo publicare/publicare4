@@ -7,12 +7,12 @@ namespace Pbl\Atualizacao;
 use Pbl\Caminhos;
 
 /**
- * `dados/config/atualizacao.json`, por exemplo `{"url": "https://exemplo.org/pbl4/latest.json", "canal": "estavel", "verificar": true}`.
+ * `dados/config/atualizacao.json`, por exemplo `{"url": "https://exemplo.org/pbl4/latest.json", "canal": "estavel", "verificar": true}`; `php` (opcional) é o caminho absoluto do PHP de linha de comando, usado só pelo botão do painel.
  * `verificar: false` desliga qualquer consulta ao servidor de atualizações (o PBL4 não envia nenhum dado do site; só o agente `PBL4/versão`).
  */
 final class Configuracao
 {
-    public function __construct(public readonly string $url, public readonly string $canal, public readonly bool $verificar)
+    public function __construct(public readonly string $url, public readonly string $canal, public readonly bool $verificar, public readonly string $php = '')
     {
     }
 
@@ -26,6 +26,7 @@ final class Configuracao
             isset($d['url']) && is_string($d['url']) ? $d['url'] : '',
             isset($d['canal']) && in_array($d['canal'], ['estavel', 'beta'], true) ? $d['canal'] : 'estavel',
             ($d['verificar'] ?? true) !== false,
+            isset($d['php']) && is_string($d['php']) && strlen($d['php']) <= 300 ? $d['php'] : '',
         );
     }
 }

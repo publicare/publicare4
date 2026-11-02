@@ -43,6 +43,7 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Regra de redirecionamento** | Uma instrução que você cadastra: "quem pedir `/antigo` vai para `/novo`". Serve para endereços antigos que já não são uma página do site. |
 | **Redirecionamento** | Fazer um endereço antigo levar ao endereço novo, para não quebrar links já divulgados. |
 | **Migração (de banco)** | Ajuste interno nos dados guardados, feito ao instalar ou atualizar. |
+| **Manifesto (de atualização)** | Pequeno arquivo assinado que diz qual é a versão mais nova, o que mudou e como baixá-la. O PBL4 só confia nele se a assinatura conferir. |
 | **Cópia de segurança (backup)** | Cópia dos arquivos e dados para voltar atrás em caso de problema. |
 | **Software livre / MIT** | Licença que permite usar, estudar, modificar e distribuir o programa gratuitamente. |
 | **PBL3** | A versão anterior do Publicare. |

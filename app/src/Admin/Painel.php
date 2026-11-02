@@ -53,6 +53,7 @@ final class Painel
         $rotaDeConta = TelasDeContas::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeDominio = TelasDeDominios::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeSite = TelasDeSite::rota(self::PREFIXO, $caminho, $metodo);
+        $rotaDeAtualizacao = TelasDeAtualizacao::rota(self::PREFIXO, $caminho, $metodo);
         $resposta = match (true) {
             $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s)),
             $objeto !== null && TelasDeObjetos::atende($subrota, $metodo) => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->objetos()->tratar($s, $objeto, $subrota, $requisicao)),
@@ -60,6 +61,7 @@ final class Painel
             $rotaDeConta !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeContas($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeConta, $requisicao)),
             $rotaDeDominio !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeDominios($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeDominio, $requisicao)),
             $rotaDeSite !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeSite($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeSite, $requisicao)),
+            $rotaDeAtualizacao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeAtualizacao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeAtualizacao, $requisicao)),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'GET' => $this->formularioDeEntrar($requisicao),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'POST' => $this->entrar($requisicao),
             $caminho === self::PREFIXO . '/sair' && $metodo === 'POST' => $this->sair($requisicao),
