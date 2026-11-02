@@ -450,6 +450,92 @@ final class AdminObjetosTest extends TestCase
         self::assertCount(3, $estados);
     }
 
+    public function testEdicaoSalvaEstadoEDatasJuntoEValida(): void
+    {
+        $e = $this->evento('Agendar na edição', null, [], 'privado');
+        $token = $this->token('editor');
+        $url = '/_pbl/objeto/' . $e->id . '/editar';
+        $base = ['titulo' => 'Agendar na edição', 'descricao' => '', 'url' => $e->urlAmigavel, 'peso' => '0'];
+
+        $form = $this->html($this->req('GET', $url, $token));
+        foreach (['name="estado"', 'name="data_publicacao"', 'name="data_validade"', 'Vazio = assim que publicado.', 'Vazio = sem prazo.', 'name="peso"'] as $trecho) {
+            self::assertStringContainsString($trecho, $form, $trecho);
+        }
+        self::assertStringContainsString('<option value="privado" selected>', $form);
+
+        // datas invertidas: 422, nada gravado, o que foi digitado continua nos campos
+        $r = $this->post($token, $url, $base + ['versao' => (string) $e->versao, 'estado' => 'publicado', 'data_publicacao' => '2099-12-31T10:00', 'data_validade' => '2099-12-30T10:00']);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertStringContainsString('precisa ser depois da data de publicação', $this->html($r));
+        self::assertStringContainsString('value="2099-12-31T10:00"', $this->html($r));
+        self::assertSame('privado', $this->obj($e->id)->status);
+        self::assertSame(422, $this->post($token, $url, $base + ['versao' => (string) $e->versao, 'estado' => 'publicado', 'data_publicacao' => '31/12/2026'])->getStatusCode());
+        self::assertSame(422, $this->post($token, $url, $base + ['versao' => (string) $e->versao, 'estado' => 'qualquer'])->getStatusCode());
+
+        // agendar pela edição, junto com outro campo
+        $r = $this->post($token, $url, ['titulo' => 'Novo título', 'descricao' => '', 'url' => $e->urlAmigavel, 'peso' => '3', 'versao' => (string) $e->versao,
+            'estado' => 'publicado', 'data_publicacao' => '2099-01-01T00:00', 'data_validade' => '2099-12-31T18:30']);
+        self::assertSame('/_pbl/objeto/' . $e->id . '?salvo=agendado', $r->headers->get('Location'));
+        $salvo = $this->obj($e->id);
+        self::assertSame('publicado', $salvo->status);
+        self::assertSame('Novo título', $salvo->titulo);
+        self::assertSame(3, $salvo->peso);
+        self::assertSame('2099-01-01T03:00:00+00:00', $salvo->dataPublicacao, 'Brasília gravado em UTC');
+        self::assertSame('2099-12-31T21:30:00+00:00', $salvo->dataValidade);
+
+        // a tela mostra de volta (mesmo fuso), o selo de agendamento e as datas nos metadados
+        self::assertStringContainsString('value="2099-12-31T18:30"', $this->html($this->req('GET', $url, $token)));
+        $ver = $this->html($this->req('GET', '/_pbl/objeto/' . $e->id, $token));
+        self::assertStringContainsString('agendado para 01/01/2099 00:00', $ver);
+        self::assertStringContainsString('Fora do ar a partir de', $ver);
+
+        // sem mudança nenhuma: nada de versão nova; limpar as datas pela edição também funciona
+        $mesma = $this->post($token, $url, ['titulo' => 'Novo título', 'descricao' => '', 'url' => $salvo->urlAmigavel, 'peso' => '3', 'versao' => (string) $salvo->versao,
+            'estado' => 'publicado', 'data_publicacao' => '2099-01-01T00:00', 'data_validade' => '2099-12-31T18:30']);
+        self::assertSame('/_pbl/objeto/' . $e->id . '?salvo=nada', $mesma->headers->get('Location'));
+        $limpo = $this->post($token, $url, ['titulo' => 'Novo título', 'descricao' => '', 'url' => $salvo->urlAmigavel, 'peso' => '3', 'versao' => (string) $salvo->versao,
+            'estado' => 'publicado', 'data_publicacao' => '', 'data_validade' => '']);
+        self::assertSame('/_pbl/objeto/' . $e->id . '?salvo=sim', $limpo->headers->get('Location'));
+        self::assertNull($this->obj($e->id)->dataPublicacao);
+        self::assertNull($this->obj($e->id)->dataValidade);
+    }
+
+    public function testEdicaoSemPermissaoDePublicarNaoMostraNemGravaEstado(): void
+    {
+        $meu = $this->s->objetos->criar($this->site->id, $this->pagina, $this->inicio->id, 'Do autor 2', 'do-autor-2', [], 'privado', ['criado_por' => $this->ids['autor']]);
+        $autor = $this->token('autor');
+        $url = '/_pbl/objeto/' . $meu->id . '/editar';
+
+        self::assertStringNotContainsString('name="estado"', $this->html($this->req('GET', $url, $autor)));
+        $this->post($autor, $url, ['titulo' => 'Do autor 2', 'descricao' => 'x', 'url' => 'do-autor-2', 'peso' => '0', 'versao' => (string) $meu->versao, 'estado' => 'publicado']);
+        self::assertSame('privado', $this->obj($meu->id)->status, 'o estado vindo no pedido é ignorado sem permissão de publicar');
+    }
+
+    public function testTelaDoConteudoUsaSelosGradeCartoesEMaisAcoes(): void
+    {
+        $pai = $this->evento('Pai da lista');
+        $this->evento('Filho um', $pai);
+        $html = $this->html($this->req('GET', '/_pbl/objeto/' . $pai->id, $this->token('editor')));
+
+        foreach (['class="pbl-selos"', 'class="pbl-meta"', 'class="pbl-card pbl-conteudo"', '>Mais ações</button>', 'Filtrar e ordenar', 'data-bs-target="#filtros-lista"', 'class="list-group pbl-filhos d-md-none', 'pbl-filho-titulo'] as $trecho) {
+            self::assertStringContainsString($trecho, $html, $trecho);
+        }
+        self::assertStringContainsString('class="btn btn-primary" href="/_pbl/objeto/' . $pai->id . '/editar"', $html, 'Editar sempre à vista');
+        self::assertStringNotContainsString('<th scope="row">', $html, 'sem a tabela de propriedades de rótulo/valor');
+        self::assertStringNotContainsString('style=', $html);
+        self::assertStringNotContainsString('<script>', $html);
+    }
+
+    public function testCorpoHtmlApareceRenderizadoELimpoComCodigoRecolhido(): void
+    {
+        $e = $this->evento('Com corpo', null, ['corpo' => '<p>Olá <strong>mundo</strong></p>']);
+        $html = $this->html($this->req('GET', '/_pbl/objeto/' . $e->id, $this->token('editor')));
+
+        self::assertStringContainsString('<div class="pbl-corpo"><p>Olá <strong>mundo</strong></p></div>', $html);
+        self::assertStringContainsString('<details class="pbl-ver-html"><summary>Ver HTML</summary>', $html);
+        self::assertStringContainsString('&lt;p&gt;Olá &lt;strong&gt;mundo', $html, 'o código aparece escapado, recolhido');
+    }
+
     public function testEstadoValidaEConcorrencia(): void
     {
         $e = $this->evento('Validar', null, [], 'privado');

@@ -131,28 +131,34 @@ final class TelasDeObjetos
 
         $corpo = $this->migalhas($sessao, $o) . $this->aviso($q['salvo'] ?? null);
         if ($o->status === self::LIXEIRA) {
-            $corpo .= '<div class="alert alert-warning" role="status">Este conteúdo está na lixeira: fora do ar e sem edição. ';
-            if ($this->pode($sessao, Acao::Apagar, $o)) {
-                $corpo .= '<form method="post" action="' . $this->link($o->id) . '/recuperar" class="d-inline">' . $this->camposOcultos($sessao, $o->versao)
-                    . '<button type="submit" class="btn btn-sm btn-outline-dark">Tirar da lixeira</button></form>';
-            }
-            $corpo .= '</div>';
+            $corpo .= Pagina::alerta('warning', 'Este conteúdo está na lixeira: fora do ar e sem edição. ' . ($this->pode($sessao, Acao::Apagar, $o)
+                ? '<form method="post" action="' . $this->link($o->id) . '/recuperar" class="d-inline">' . $this->camposOcultos($sessao, $o->versao)
+                    . '<button type="submit" class="btn btn-sm btn-outline-dark">Tirar da lixeira</button></form>' : ''), '', true);
         }
-        $corpo .= $this->tabelaDeDados($sessao, $o, $agora) . $this->botoes($sessao, $o);
+        $corpo .= $this->selos($o, $agora) . $this->botoes($sessao, $o) . $this->tabelaDeDados($sessao, $o, $agora);
 
         $corpo .= '<h2 class="h5 mt-4">Conteúdo dentro desta página</h2>' . $this->filtrosDaLista($o, $classes, $ordem, $classeId, $estado);
         if ($filhos === []) {
             $corpo .= '<p class="text-body-secondary">Nenhum.</p>';
         } else {
-            $corpo .= '<div class="table-responsive"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Conteúdo dentro desta página</caption>'
-                . '<thead><tr><th scope="col">Título</th><th scope="col">Tipo</th><th scope="col">Estado</th><th scope="col">Peso</th></tr></thead><tbody>';
+            $cartoes = '';
+            $linhas = '';
             foreach ($filhos as $f) {
-                $corpo .= '<tr><td><a href="' . $this->link($f->id) . '">' . Pagina::h($f->titulo) . '</a></td>'
-                    . '<td>' . Pagina::h($this->nomeDaClasse($f->classeId)) . '</td>'
-                    . '<td>' . Pagina::h($f->visivel($agora) ? $f->status : $this->estadoLegivel($f, $agora, true)) . '</td>'
-                    . '<td>' . $f->peso . '</td></tr>';
+                $quando = $f->visivel($agora) ? $f->status : $this->estadoLegivel($f, $agora, true);
+                $tipo = $this->nomeDaClasse($f->classeId);
+                $editar = $f->status !== self::LIXEIRA && $this->pode($sessao, Acao::Editar, $f)
+                    ? '<a class="btn btn-sm btn-outline-primary" href="' . $this->link($f->id) . '/editar">Editar</a>' : '';
+                $cartoes .= '<li class="list-group-item pbl-filho"><div class="pbl-filho-corpo"><a class="pbl-filho-titulo" href="' . $this->link($f->id) . '">' . Pagina::h($f->titulo) . '</a>'
+                    . '<div class="pbl-filho-meta"><span class="badge text-bg-light border">' . Pagina::h($tipo) . '</span> <span class="badge ' . $this->classeDoEstado($f, $agora) . '">' . Pagina::h($quando) . '</span>'
+                    . ' <span class="text-body-secondary small">peso ' . $f->peso . '</span></div></div>' . $editar . '</li>';
+                $linhas .= '<tr><td><a href="' . $this->link($f->id) . '">' . Pagina::h($f->titulo) . '</a></td>'
+                    . '<td>' . Pagina::h($tipo) . '</td>'
+                    . '<td>' . Pagina::h($quando) . '</td>'
+                    . '<td>' . $f->peso . '</td><td class="text-end">' . $editar . '</td></tr>';
             }
-            $corpo .= '</tbody></table></div>';
+            $corpo .= '<ul class="list-group pbl-filhos d-md-none mb-3">' . $cartoes . '</ul>'
+                . '<div class="table-responsive d-none d-md-block"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Conteúdo dentro desta página</caption>'
+                . '<thead><tr><th scope="col">Título</th><th scope="col">Tipo</th><th scope="col">Estado</th><th scope="col">Peso</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>' . $linhas . '</tbody></table></div>';
             if ($total > self::POR_PAGINA) {
                 $base = $this->link($o->id) . '?' . http_build_query(array_filter(['ordem' => $ordem === 'peso' ? '' : $ordem, 'classe' => $classeId === null ? '' : (string) $classeId, 'estado' => $estado], static fn (string $v): bool => $v !== ''));
                 $corpo .= '<p class="text-body-secondary">Mostrando ' . ($inicio + 1) . ' a ' . min($total, $inicio + count($filhos)) . ' de ' . $total . '.';
@@ -186,7 +192,7 @@ final class TelasDeObjetos
         $tipo = is_string($tipoNome) ? $this->servicos->classes->porNome(trim($tipoNome)) : null;
         if ($destino === null || $destino->siteId !== $o->siteId || $tipo === null || !$this->pode($sessao, Acao::Ver, $destino)) {
             return Pagina::resposta('Envios recebidos', $this->migalhas($sessao, $o)
-                . '<div class="alert alert-warning" role="alert">Este formulário não tem uma seção de destino e um tipo de envio válidos. Confira a configuração dele.</div>', Response::HTTP_OK, false, $this->barra($sessao));
+                . Pagina::alerta('warning', 'Este formulário não tem uma seção de destino e um tipo de envio válidos. Confira a configuração dele.'), Response::HTTP_OK, false, $this->barra($sessao));
         }
         $inicio = $this->numero($r->query->all()['inicio'] ?? null) ?? 0;
         $consulta = new Consulta($o->siteId, $destino->id, 1, [$tipo->id], [new Filtro('status', '!=', self::LIXEIRA)], '-id', $inicio, self::POR_PAGINA, false);
@@ -236,31 +242,76 @@ final class TelasDeObjetos
             default => null,
         };
 
-        return $texto === null ? '' : '<div class="alert alert-' . $texto[0] . '" role="status">' . Pagina::h($texto[1]) . '</div>';
+        return $texto === null ? '' : Pagina::alerta($texto[0], $texto[1]);
     }
 
+    /** Selos do topo da tela: tipo, estado e versão (o título é o `<h1>` da página). */
+    private function selos(Objeto $o, string $agora): string
+    {
+        return '<p class="pbl-selos"><span class="badge text-bg-light border">' . Pagina::h($this->nomeDaClasse($o->classeId)) . '</span> '
+            . '<span class="badge ' . $this->classeDoEstado($o, $agora) . '">' . Pagina::h($o->status === self::LIXEIRA ? 'na lixeira' : ($o->visivel($agora) ? $o->status . ', no ar' : $o->status . ', fora do ar')) . '</span> '
+            . '<span class="badge text-bg-light border">versão ' . $o->versao . '</span>'
+            . (($v = $this->vigencia($o, $agora)) === '' ? '' : ' <span class="badge text-bg-warning">' . Pagina::h($v) . '</span>') . '</p>';
+    }
+
+    private function classeDoEstado(Objeto $o, string $agora): string
+    {
+        return match (true) {
+            $o->status === self::LIXEIRA => 'text-bg-danger',
+            $o->visivel($agora) => 'text-bg-success',
+            $o->status === 'publicado' => 'text-bg-warning',
+            default => 'text-bg-secondary',
+        };
+    }
+
+    /** Metadados em grade compacta (rótulo pequeno em cima, valor embaixo) e os campos de conteúdo, cada um num cartão. */
     private function tabelaDeDados(SessaoAtiva $sessao, Objeto $o, string $agora): string
     {
-        $html = '<div class="table-responsive"><table class="table table-sm"><caption class="visually-hidden">Dados deste conteúdo</caption><tbody>'
-            . '<tr><th scope="row">Número</th><td>' . $o->id . '</td></tr>'
-            . '<tr><th scope="row">Tipo</th><td>' . Pagina::h($this->nomeDaClasse($o->classeId)) . '</td></tr>'
-            . '<tr><th scope="row">Estado</th><td>' . Pagina::h($this->estadoLegivel($o, $agora)) . '</td></tr>'
-            . '<tr><th scope="row">Endereço</th><td><code>/' . Pagina::h($o->urlAmigavel) . '</code></td></tr>'
-            . '<tr><th scope="row">Peso</th><td>' . $o->peso . '</td></tr>';
+        $item = static fn (string $rotulo, string $valor, string $classe = ''): string => '<div' . ($classe === '' ? '' : ' class="' . $classe . '"') . '><dt>' . $rotulo . '</dt><dd>' . $valor . '</dd></div>';
+        $html = '<dl class="pbl-meta">'
+            . $item('Número', (string) $o->id)
+            . $item('Peso', (string) $o->peso)
+            . $item('Estado', Pagina::h($this->estadoLegivel($o, $agora)), 'pbl-largo');
         if ($o->dataPublicacao !== null) {
-            $html .= '<tr><th scope="row">Publicação a partir de</th><td>' . Pagina::h($this->dataLegivel($o->dataPublicacao)) . '</td></tr>';
+            $html .= $item('Publicação a partir de', Pagina::h($this->dataLegivel($o->dataPublicacao)));
         }
         if ($o->dataValidade !== null) {
-            $html .= '<tr><th scope="row">Fora do ar a partir de</th><td>' . Pagina::h($this->dataLegivel($o->dataValidade)) . '</td></tr>';
+            $html .= $item('Fora do ar a partir de', Pagina::h($this->dataLegivel($o->dataValidade)));
         }
-        $html .= '<tr><th scope="row">Versão</th><td>' . $o->versao . '</td></tr>'
-            . '<tr><th scope="row">Descrição</th><td>' . ($o->descricao === '' ? '<em>sem descrição</em>' : nl2br(Pagina::h($o->descricao))) . '</td></tr>';
+        $html .= $item('Endereço', '<code class="pbl-endereco">/' . Pagina::h($o->urlAmigavel) . '</code>', 'pbl-largo') . '</dl>';
+
+        $html .= '<section class="pbl-card pbl-conteudo"><h2 class="pbl-card-titulo">Descrição</h2>'
+            . ($o->descricao === '' ? '<p class="mb-0"><em>sem descrição</em></p>' : '<p class="mb-0">' . nl2br(Pagina::h($o->descricao)) . '</p>') . '</section>';
         foreach ($this->classeDe($o)->propriedades ?? [] as $p) {
             $valor = $o->dados[$p['nome']] ?? null;
-            $html .= '<tr><th scope="row">' . Pagina::h(Classe::rotuloDe($p)) . '</th><td>' . $this->valorLegivel($sessao, $o, $p, $valor) . '</td></tr>';
+            $html .= '<section class="pbl-card pbl-conteudo"><h2 class="pbl-card-titulo">' . Pagina::h(Classe::rotuloDe($p)) . '</h2>' . $this->valorEmCartao($sessao, $o, $p, $valor) . '</section>';
         }
 
-        return $html . '</tbody></table></div>';
+        return $html;
+    }
+
+    /**
+     * Valor de uma propriedade no cartão da tela do conteúdo. Campo `html`: o corpo aparece já renderizado (limpo de novo por
+     * HtmlSeguro, mesmo vindo do banco), com altura limitada, e o código fica num "Ver HTML" recolhido (texto escapado, nunca
+     * interpretado). Os demais tipos seguem `valorLegivel`.
+     *
+     * @param array{nome: string, tipo: string, indexavel: bool, classe?: string} $p
+     */
+    private function valorEmCartao(SessaoAtiva $sessao, Objeto $o, array $p, string|int|float|null $valor): string
+    {
+        if ($p['tipo'] !== 'html' || $valor === null || $valor === '') {
+            return '<div class="pbl-valor">' . $this->valorLegivel($sessao, $o, $p, $valor) . '</div>';
+        }
+        $texto = (string) $valor;
+        try {
+            $limpo = HtmlSeguro::limpar($texto);
+        } catch (ViolacaoDeRegra) {
+            $limpo = '<p><em>Conteúdo grande demais para mostrar aqui.</em></p>';
+        }
+        $codigo = mb_strlen($texto) > 20000 ? mb_substr($texto, 0, 20000) . '…' : $texto;
+
+        return '<div class="pbl-corpo">' . $limpo . '</div>'
+            . '<details class="pbl-ver-html"><summary>Ver HTML</summary><pre class="pbl-realce mb-0"><code class="text-break">' . Pagina::h($codigo) . '</code></pre></details>';
     }
 
     /**
@@ -328,30 +379,41 @@ final class TelasDeObjetos
         return $html . '<div class="form-text">O link só funciona se este conteúdo estiver publicado e vigente.</div>';
     }
 
-    /** Botões das ações que a pessoa pode fazer aqui (esconder é só conforto: cada rota confere de novo). */
+    /**
+     * Ações que a pessoa pode fazer aqui (esconder é só conforto: cada rota confere de novo). "Editar" fica sempre à vista; as demais
+     * ficam em linha no desktop e num dropdown "Mais ações" (Bootstrap) no celular.
+     */
     private function botoes(SessaoAtiva $sessao, Objeto $o): string
     {
-        $links = [];
+        $outras = [];
         $naLixeira = $o->status === self::LIXEIRA;
-        if (!$naLixeira && $this->pode($sessao, Acao::Editar, $o)) {
-            $links[] = '<a class="btn btn-primary" href="' . $this->link($o->id) . '/editar">Editar</a>';
-        }
+        $editar = !$naLixeira && $this->pode($sessao, Acao::Editar, $o) ? '<a class="btn btn-primary" href="' . $this->link($o->id) . '/editar">Editar</a>' : '';
         if (!$naLixeira && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o) && $this->classesAceitas($o) !== []) {
-            $links[] = '<a class="btn btn-outline-primary" href="' . $this->link($o->id) . '/novo">Criar conteúdo aqui dentro</a>';
+            $outras[] = ['Criar conteúdo aqui dentro', $this->link($o->id) . '/novo', false];
         }
         if (!$naLixeira && $this->pode($sessao, Acao::Publicar, $o)) {
-            $links[] = '<a class="btn btn-outline-primary" href="' . $this->link($o->id) . '/estado">Publicar ou tirar do ar</a>';
-        }
-        if (!$naLixeira && $o->paiId !== null && $this->pode($sessao, Acao::Apagar, $o)) {
-            $links[] = '<a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '/mover">Mover</a>';
-            $links[] = '<a class="btn btn-outline-danger" href="' . $this->link($o->id) . '/apagar">Mandar para a lixeira</a>';
+            $outras[] = ['Publicar ou tirar do ar', $this->link($o->id) . '/estado', false];
         }
         if ($this->nomeDaClasse($o->classeId) === \Pbl\Formularios\FormularioRepositorio::CLASSE) {
-            $links[] = '<a class="btn btn-outline-primary" href="' . $this->link($o->id) . '/envios">Envios recebidos</a>';
+            $outras[] = ['Envios recebidos', $this->link($o->id) . '/envios', false];
         }
-        $links[] = '<a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '/versoes">Histórico de versões</a>';
+        $outras[] = ['Histórico de versões', $this->link($o->id) . '/versoes', false];
+        if (!$naLixeira && $o->paiId !== null && $this->pode($sessao, Acao::Apagar, $o)) {
+            $outras[] = ['Mover', $this->link($o->id) . '/mover', false];
+            $outras[] = ['Mandar para a lixeira', $this->link($o->id) . '/apagar', true];
+        }
 
-        return '<div class="d-flex flex-wrap gap-2 mb-3">' . implode('', $links) . '</div>';
+        $desktop = '';
+        $menu = '';
+        foreach ($outras as [$rotulo, $href, $perigo]) {
+            $desktop .= '<a class="btn ' . ($perigo ? 'btn-outline-danger' : 'btn-outline-secondary') . '" href="' . Pagina::h($href) . '">' . Pagina::h($rotulo) . '</a>';
+            $menu .= '<li><a class="dropdown-item' . ($perigo ? ' text-danger' : '') . '" href="' . Pagina::h($href) . '">' . Pagina::h($rotulo) . '</a></li>';
+        }
+
+        return '<div class="pbl-barra-acoes">' . $editar
+            . '<div class="dropdown d-md-none"><button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Mais ações</button>'
+            . '<ul class="dropdown-menu dropdown-menu-end">' . $menu . '</ul></div>'
+            . '<div class="d-none d-md-flex flex-wrap gap-2">' . $desktop . '</div></div>';
     }
 
     /** @param list<Classe> $classes */
@@ -371,11 +433,14 @@ final class TelasDeObjetos
         }
         $opcoesEstado .= $this->opcao(self::LIXEIRA, 'Na lixeira', $estado === self::LIXEIRA);
 
-        return '<form method="get" action="' . $this->link($o->id) . '" class="row g-2 align-items-end mb-3" aria-label="Ordem e filtros da lista">'
-            . '<div class="col-sm-4"><label for="campo-ordem" class="form-label">Ordem</label><select id="campo-ordem" name="ordem" class="form-select form-select-sm">' . $opcoesOrdem . '</select></div>'
-            . '<div class="col-sm-3"><label for="campo-classe" class="form-label">Tipo</label><select id="campo-classe" name="classe" class="form-select form-select-sm">' . $opcoesClasse . '</select></div>'
-            . '<div class="col-sm-3"><label for="campo-estado" class="form-label">Estado</label><select id="campo-estado" name="estado" class="form-select form-select-sm">' . $opcoesEstado . '</select></div>'
-            . '<div class="col-sm-2"><button type="submit" class="btn btn-sm btn-outline-secondary w-100">Aplicar</button></div></form>';
+        $filtrando = $ordem !== 'peso' || $classeId !== null || $estado !== '';
+
+        return '<p class="mb-2"><button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtros-lista" aria-expanded="' . ($filtrando ? 'true' : 'false') . '" aria-controls="filtros-lista">Filtrar e ordenar' . ($filtrando ? ' (ativo)' : '') . '</button></p>'
+            . '<div id="filtros-lista" class="collapse' . ($filtrando ? ' show' : '') . '"><form method="get" action="' . $this->link($o->id) . '" class="pbl-filtros mb-3" aria-label="Ordem e filtros da lista">'
+            . '<div><label for="campo-ordem" class="form-label">Ordem</label><select id="campo-ordem" name="ordem" class="form-select form-select-sm">' . $opcoesOrdem . '</select></div>'
+            . '<div><label for="campo-classe" class="form-label">Tipo</label><select id="campo-classe" name="classe" class="form-select form-select-sm">' . $opcoesClasse . '</select></div>'
+            . '<div><label for="campo-estado" class="form-label">Estado</label><select id="campo-estado" name="estado" class="form-select form-select-sm">' . $opcoesEstado . '</select></div>'
+            . '<div class="pbl-filtros-aplicar"><button type="submit" class="btn btn-sm btn-primary">Aplicar</button></div></form></div>';
     }
 
     // ---------------------------------------------------------------- editar
@@ -420,6 +485,20 @@ final class TelasDeObjetos
             return $this->pedidoInvalido($sessao);
         }
         [$valores, $digitado, $erros] = $lido;
+        // Estado e datas de vigência só valem para quem pode publicar (mesma regra da tela "Publicar ou tirar do ar") e se o formulário os trouxe.
+        $vigente = [];
+        if (isset($campos['estado']) && $this->pode($sessao, Acao::Publicar, $o)) {
+            $ee = $this->lerEstadoEDatas($campos);
+            if ($ee === null) {
+                return $this->pedidoInvalido($sessao);
+            }
+            [$estado, $inicio, $fim, $dataInicio, $dataFim, $errosDatas] = $ee;
+            $digitado['estado'] = $estado;
+            $digitado['data_publicacao'] = $inicio;
+            $digitado['data_validade'] = $fim;
+            $erros += $errosDatas;
+            $vigente = $this->mudancasDeEstado($o, $estado, $dataInicio, $dataFim);
+        }
         if ($erros !== []) {
             return $this->telaDeEdicao($sessao, $o, $classe, $digitado, $versao, $erros, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -441,6 +520,7 @@ final class TelasDeObjetos
         if ($dados !== []) {
             $mudancas['dados'] = $dados;
         }
+        $mudancas += $vigente;
         if ($mudancas === []) {
             return new RedirectResponse($this->link($o->id) . '?salvo=nada', Response::HTTP_SEE_OTHER);
         }
@@ -463,8 +543,9 @@ final class TelasDeObjetos
             $ok = $this->tirarDoAr($o); // o endereço antigo passa a redirecionar (histórico de URLs)
         }
         $ok = $this->sincronizar($novo, $this->pai($novo)) && $ok;
+        $agendado = $vigente !== [] && $novo->status === 'publicado' && $novo->dataPublicacao !== null && $novo->dataPublicacao > gmdate('c');
 
-        return new RedirectResponse($this->link($novo->id) . '?salvo=' . ($ok ? 'sim' : 'aviso'), Response::HTTP_SEE_OTHER);
+        return new RedirectResponse($this->link($novo->id) . '?salvo=' . (!$ok ? 'aviso' : ($agendado ? 'agendado' : 'sim')), Response::HTTP_SEE_OTHER);
     }
 
     /**
@@ -475,8 +556,8 @@ final class TelasDeObjetos
     {
         $corpo = $this->migalhas($sessao, $o) . $this->resumoDeErros($erros)
             . '<form method="post" action="' . $this->link($o->id) . '/editar" enctype="multipart/form-data" novalidate>' . $this->camposOcultos($sessao, $versao)
-            . $this->camposDoFormulario($classe, $digitado, $erros, $o->paiId === null)
-            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar</button><a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></div></form>';
+            . $this->camposDoFormulario($classe, $digitado, $erros, $o->paiId === null, false, $this->pode($sessao, Acao::Publicar, $o) ? $this->vigencia($o, gmdate('c')) : null)
+            . Pagina::acoes('Salvar', [['Cancelar', $this->link($o->id)]], null, 'btn-primary', 'pbl-acoes-fixas') . '</form>';
         if ($mostrarAtual) {
             $corpo .= '<h2 class="h5 mt-4">Salvo agora (versão ' . $o->versao . ')</h2><div class="table-responsive"><table class="table table-sm"><caption class="visually-hidden">Valores salvos agora</caption><tbody>'
                 . '<tr><th scope="row">Título</th><td>' . Pagina::h($o->titulo) . '</td></tr>'
@@ -517,8 +598,8 @@ final class TelasDeObjetos
     {
         $classes = $this->classesAceitas($pai);
         if ($classes === []) {
-            return Pagina::resposta('Criar conteúdo', $this->migalhas($sessao, $pai) . '<div class="alert alert-info" role="status">O tipo de ' . Pagina::h($pai->titulo) . ' não aceita conteúdo dentro dele (ou ainda não há tipos cadastrados).</div>'
-                . '<p><a class="btn btn-outline-secondary" href="' . $this->link($pai->id) . '">Voltar</a></p>', Response::HTTP_OK, false, $this->barra($sessao));
+            return Pagina::resposta('Criar conteúdo', $this->migalhas($sessao, $pai) . Pagina::alerta('info', 'O tipo de ' . $pai->titulo . ' não aceita conteúdo dentro dele (ou ainda não há tipos cadastrados).')
+                . Pagina::acoes('', [['Voltar', $this->link($pai->id)]]), Response::HTTP_OK, false, $this->barra($sessao));
         }
         $opcoes = '';
         foreach ($classes as $c) {
@@ -528,7 +609,7 @@ final class TelasDeObjetos
             . '<p>O novo conteúdo vai ficar dentro de <strong>' . Pagina::h($pai->titulo) . '</strong>. Primeiro escolha o tipo: os campos do formulário dependem dele.</p>'
             . '<form method="get" action="' . $this->link($pai->id) . '/novo">'
             . '<div class="mb-3"><label for="campo-tipo" class="form-label">Tipo de conteúdo</label><select id="campo-tipo" name="classe" class="form-select" required>' . $opcoes . '</select></div>'
-            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Continuar</button><a class="btn btn-outline-secondary" href="' . $this->link($pai->id) . '">Cancelar</a></div></form>';
+            . Pagina::acoes('Continuar', [['Cancelar', $this->link($pai->id)]]) . '</form>';
 
         return Pagina::resposta('Criar conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao));
     }
@@ -616,7 +697,7 @@ final class TelasDeObjetos
             . '<input type="hidden" name="_csrf" value="' . Pagina::h($this->csrf->daSessao($sessao->idHash)) . '">'
             . '<input type="hidden" name="classe" value="' . $classe->id . '">'
             . $this->camposDoFormulario($classe, $digitado, $erros, false, true)
-            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Criar</button><a class="btn btn-outline-secondary" href="' . $this->link($pai->id) . '">Cancelar</a></div></form>';
+            . Pagina::acoes('Criar', [['Cancelar', $this->link($pai->id)]], null, 'btn-primary', 'pbl-acoes-fixas') . '</form>';
 
         return Pagina::resposta('Criar conteúdo', $corpo, $status, false, $this->barra($sessao));
     }
@@ -906,7 +987,8 @@ final class TelasDeObjetos
     /** @return array<string, string> os valores atuais como texto, para preencher o formulário */
     private function digitadoDe(Objeto $o, Classe $classe): array
     {
-        $d = ['titulo' => $o->titulo, 'descricao' => $o->descricao, 'url' => $o->urlAmigavel, 'peso' => (string) $o->peso, 'no_menu' => $o->noMenu ? '1' : '0', 'rotulo_menu' => $o->rotuloMenu];
+        $d = ['titulo' => $o->titulo, 'descricao' => $o->descricao, 'url' => $o->urlAmigavel, 'peso' => (string) $o->peso, 'no_menu' => $o->noMenu ? '1' : '0', 'rotulo_menu' => $o->rotuloMenu,
+            'estado' => $o->status, 'data_publicacao' => $this->dataParaCampo($o->dataPublicacao), 'data_validade' => $this->dataParaCampo($o->dataValidade)];
         foreach ($classe->propriedades as $p) {
             $d['dados.' . $p['nome']] = isset($o->dados[$p['nome']]) ? (string) $o->dados[$p['nome']] : '';
         }
@@ -915,29 +997,51 @@ final class TelasDeObjetos
     }
 
     /**
+     * Formulário de conteúdo em seções: "Identificação", um cartão por campo do tipo, "Publicação" (estado e datas só para quem pode
+     * publicar na edição; endereço, peso) e o menu num accordion fechado. `$vigencia` = null esconde estado e datas (criação ou sem
+     * permissão de publicar); texto (pode ser '') mostra e usa como aviso de agendamento.
+     *
      * @param array<string, string> $digitado
      * @param array<string, string> $erros
      */
-    private function camposDoFormulario(Classe $classe, array $digitado, array $erros, bool $raiz, bool $criando = false): string
+    private function camposDoFormulario(Classe $classe, array $digitado, array $erros, bool $raiz, bool $criando = false, ?string $vigencia = null): string
     {
-        $html = $this->campo('titulo', 'Título', '<input id="campo-titulo" class="form-control' . $this->invalido($erros, 'titulo') . '" name="titulo" maxlength="' . self::MAX_TITULO . '" required value="' . Pagina::h($digitado['titulo'] ?? '') . '"' . $this->descrito($erros, 'titulo') . '>', $erros)
+        $identificacao = $this->campo('titulo', 'Título', '<input id="campo-titulo" class="form-control' . $this->invalido($erros, 'titulo') . '" name="titulo" maxlength="' . self::MAX_TITULO . '" required value="' . Pagina::h($digitado['titulo'] ?? '') . '"' . $this->descrito($erros, 'titulo') . '>', $erros)
             . $this->campo('descricao', 'Descrição', '<textarea id="campo-descricao" class="form-control' . $this->invalido($erros, 'descricao') . '" name="descricao" rows="3" maxlength="' . self::MAX_DESCRICAO . '"' . $this->descrito($erros, 'descricao', true) . '>' . Pagina::h($digitado['descricao'] ?? '') . '</textarea>', $erros, 'Opcional, até ' . self::MAX_DESCRICAO . ' caracteres.');
         if (!$raiz) {
-            $html .= $this->campo('url', 'Endereço (URL amigável)', '<div class="input-group"><span class="input-group-text">/</span><input id="campo-url" class="form-control' . $this->invalido($erros, 'url') . '" name="url" maxlength="' . Caminhos::URL_TAMANHO_MAXIMO . '" value="' . Pagina::h($digitado['url'] ?? '') . '"' . $this->descrito($erros, 'url', true) . '></div>', $erros,
-                $criando ? 'Opcional: se ficar vazio, é criado a partir do título. Letras minúsculas sem acento, números, hífen e "/".' : 'Letras minúsculas sem acento, números, hífen e "/". Se mudar, o endereço antigo passa a levar ao novo.');
+            $identificacao .= $this->campo('url', 'Endereço (URL amigável)', '<div class="input-group"><span class="input-group-text">/</span><input id="campo-url" class="form-control' . $this->invalido($erros, 'url') . '" name="url" maxlength="' . Caminhos::URL_TAMANHO_MAXIMO . '" value="' . Pagina::h($digitado['url'] ?? '') . '"' . $this->descrito($erros, 'url', true) . '></div>', $erros,
+                ($criando ? 'Opcional: se vazio, vem do título.' : 'Se mudar, o endereço antigo leva ao novo.') . $this->ajudaDetalhada('Letras minúsculas sem acento, números, hífen e "/".'));
         }
-        $html .= $this->campo('peso', 'Peso', '<input id="campo-peso" class="form-control' . $this->invalido($erros, 'peso') . '" name="peso" type="number" step="1" min="-999999" max="999999" value="' . Pagina::h($digitado['peso'] ?? '0') . '"' . $this->descrito($erros, 'peso', true) . '>', $erros, 'Ordem nas listas e no menu: menor aparece primeiro.');
-        if ($criando || !$raiz) {
-            $html .= $this->campo('no_menu', 'Aparece no menu do site', '<select id="campo-no-menu" class="form-select" name="no_menu">' . $this->opcao('1', 'Sim', ($digitado['no_menu'] ?? '0') === '1') . $this->opcao('0', 'Não', ($digitado['no_menu'] ?? '0') !== '1') . '</select>', $erros, 'Vale para conteúdo publicado direto na página inicial (ou dentro de um item do menu, como submenu).')
-                . $this->campo('rotulo_menu', 'Texto no menu', '<input id="campo-rotulo-menu" class="form-control' . $this->invalido($erros, 'rotulo_menu') . '" name="rotulo_menu" maxlength="' . self::MAX_ROTULO_MENU . '" value="' . Pagina::h($digitado['rotulo_menu'] ?? '') . '"' . $this->descrito($erros, 'rotulo_menu', true) . '>', $erros, 'Opcional: se ficar vazio, o menu usa o título.');
+        $html = Pagina::card('Identificação', $identificacao);
+
+        foreach ($this->propriedadesAtivas($classe) as $p) {
+            $html .= $this->campoDePropriedade($p, $digitado['dados.' . $p['nome']] ?? '', $erros, $criando);
         }
-        $ativas = $this->propriedadesAtivas($classe);
-        if ($ativas !== []) {
-            $html .= '<fieldset class="mb-3"><legend class="h6">Campos do tipo ' . Pagina::h($classe->nome) . '</legend>';
-            foreach ($ativas as $p) {
-                $html .= $this->campoDePropriedade($p, $digitado['dados.' . $p['nome']] ?? '', $erros, $criando);
+
+        $ajudaData = 'Horário de Brasília. ';
+        $publicacao = '';
+        if ($vigencia !== null) {
+            $opcoes = '';
+            foreach (self::ESTADOS as $chave => $rotulo) {
+                $opcoes .= $this->opcao($chave, $rotulo, $chave === ($digitado['estado'] ?? 'privado'));
             }
-            $html .= '</fieldset>';
+            $publicacao .= ($vigencia === '' ? '' : '<p class="pbl-vigencia"><span class="badge text-bg-warning">' . Pagina::h($vigencia) . '</span></p>')
+                . $this->campo('estado', 'Estado', '<select id="campo-estado" name="estado" class="form-select' . $this->invalido($erros, 'estado') . '"' . $this->descrito($erros, 'estado') . '>' . $opcoes . '</select>', $erros)
+                . '<div class="pbl-grade">'
+                . $this->campo('data_publicacao', 'Publicar a partir de', '<input id="campo-data_publicacao" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_publicacao') . '" name="data_publicacao" value="' . Pagina::h($digitado['data_publicacao'] ?? '') . '"' . $this->descrito($erros, 'data_publicacao', true) . '>', $erros, $ajudaData . 'Vazio = assim que publicado.')
+                . $this->campo('data_validade', 'Tirar do ar a partir de', '<input id="campo-data_validade" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_validade') . '" name="data_validade" value="' . Pagina::h($digitado['data_validade'] ?? '') . '"' . $this->descrito($erros, 'data_validade', true) . '>', $erros, $ajudaData . 'Vazio = sem prazo.')
+                . '</div>';
+        }
+        $publicacao .= $this->campo('peso', 'Peso', '<input id="campo-peso" class="form-control campo-ordem' . $this->invalido($erros, 'peso') . '" name="peso" type="number" step="1" min="-999999" max="999999" value="' . Pagina::h($digitado['peso'] ?? '0') . '"' . $this->descrito($erros, 'peso', true) . '>', $erros, 'Menor aparece primeiro nas listas e no menu.');
+        $html .= Pagina::card('Publicação', $publicacao);
+
+        if ($criando || !$raiz) {
+            $menu = $this->campo('no_menu', 'Aparece no menu do site', '<select id="campo-no-menu" class="form-select" name="no_menu">' . $this->opcao('1', 'Sim', ($digitado['no_menu'] ?? '0') === '1') . $this->opcao('0', 'Não', ($digitado['no_menu'] ?? '0') !== '1') . '</select>', $erros, 'Vale para conteúdo direto na página inicial ou dentro de um item do menu.')
+                . $this->campo('rotulo_menu', 'Texto no menu', '<input id="campo-rotulo-menu" class="form-control' . $this->invalido($erros, 'rotulo_menu') . '" name="rotulo_menu" maxlength="' . self::MAX_ROTULO_MENU . '" value="' . Pagina::h($digitado['rotulo_menu'] ?? '') . '"' . $this->descrito($erros, 'rotulo_menu', true) . '>', $erros, 'Opcional: vazio usa o título.');
+            $abrir = isset($erros['no_menu']) || isset($erros['rotulo_menu']);
+            $html .= '<div class="accordion mb-3" id="acc-secundarias"><div class="accordion-item"><h2 class="accordion-header">'
+                . '<button class="accordion-button' . ($abrir ? '' : ' collapsed') . '" type="button" data-bs-toggle="collapse" data-bs-target="#sec-menu" aria-expanded="' . ($abrir ? 'true' : 'false') . '" aria-controls="sec-menu">Menu do site</button></h2>'
+                . '<div id="sec-menu" class="accordion-collapse collapse' . ($abrir ? ' show' : '') . '"><div class="accordion-body">' . $menu . '</div></div></div></div>';
         }
 
         return $html;
@@ -962,12 +1066,18 @@ final class TelasDeObjetos
             'numero' => ['<input class="form-control' . $classe . '"' . $comum . ' inputmode="decimal" value="' . Pagina::h($valor) . '">', 'Número (use vírgula ou ponto para decimais).'],
             'data' => ['<input class="form-control' . $classe . '"' . $comum . ' maxlength="25" value="' . Pagina::h($valor) . '">', 'Data no formato aaaa-mm-dd, com hora opcional (2026-12-31 18:30).'],
             'booleano' => ['<select class="form-select' . $classe . '"' . $comum . '>' . $this->opcao('', '(sem valor)', $valor === '') . $this->opcao('1', 'Sim', $valor === '1') . $this->opcao('0', 'Não', $valor === '0') . '</select>', 'Sim ou não.'],
-            'ref' => ['<input class="form-control' . $classe . '"' . $comum . ' type="number" min="1" step="1" value="' . Pagina::h($valor) . '">', 'Número de outro conteúdo deste site' . (isset($p['classe']) ? ' (do tipo ' . Pagina::h($p['classe']) . ')' : '') . '. O número aparece na página de cada conteúdo.'],
-            'html' => ['<textarea class="form-control font-monospace' . $classe . '"' . $comum . ' rows="10" maxlength="' . self::MAX_HTML . '" ' . Pagina::MARCA_EDITOR . 'html" data-pbl-editor-base="' . Pagina::h(Pagina::TINYMCE) . '">' . Pagina::h($valor) . '</textarea>', 'Editor de texto: títulos, negrito, listas, links, tabelas e imagens por endereço; pode colar do Word, do Google Docs ou de uma página (use o botão de código-fonte para ver o HTML). Até ' . self::MAX_HTML . ' caracteres. Ao salvar, o HTML é limpo: ficam só marcações comuns; scripts, formulários, eventos e estilos além de alinhamento e tamanho do texto são removidos. Sem JavaScript, o campo aceita HTML direto.'],
+            'ref' => ['<input class="form-control' . $classe . '"' . $comum . ' type="number" min="1" step="1" value="' . Pagina::h($valor) . '">', 'Número de outro conteúdo deste site' . (isset($p['classe']) ? ' (do tipo ' . Pagina::h($p['classe']) . ')' : '') . '.' . $this->ajudaDetalhada('O número aparece na página de cada conteúdo.')],
+            'html' => ['<textarea class="form-control font-monospace' . $classe . '"' . $comum . ' rows="10" maxlength="' . self::MAX_HTML . '" ' . Pagina::MARCA_EDITOR . 'html" data-pbl-editor-base="' . Pagina::h(Pagina::TINYMCE) . '">' . Pagina::h($valor) . '</textarea>', 'Use os botões acima para formatar. Até ' . self::MAX_HTML . ' caracteres.' . $this->ajudaDetalhada('Dá para colar do Word, do Google Docs ou de uma página. Títulos, negrito, listas, links, tabelas e imagens por endereço funcionam; o botão de código-fonte mostra o HTML. Ao salvar, o HTML é limpo: ficam só marcações comuns; scripts, formulários, eventos e estilos além de alinhamento e tamanho do texto são removidos. Sem JavaScript, o campo aceita HTML direto.')],
             default => ['<textarea class="form-control' . $classe . '"' . $comum . ' rows="3" maxlength="' . self::MAX_TEXTO . '">' . Pagina::h($valor) . '</textarea>', 'Texto, até ' . self::MAX_TEXTO . ' caracteres.'],
         };
 
-        return $this->campo($chave, Classe::rotuloDe($p) . (($p['obrigatorio'] ?? false) ? ' (obrigatório)' : ''), $controle, $erros, $ajuda, $id);
+        return '<div class="pbl-card pbl-campo-tipo">' . $this->campo($chave, Classe::rotuloDe($p) . (($p['obrigatorio'] ?? false) ? ' (obrigatório)' : ''), $controle, $erros, $ajuda, $id) . '</div>';
+    }
+
+    /** Detalhe de ajuda recolhido atrás de um "?" (sem JavaScript: `<details>`); `$texto` já escapado. */
+    private function ajudaDetalhada(string $texto): string
+    {
+        return ' <details class="pbl-ajuda"><summary aria-label="Mais ajuda">?</summary><span>' . $texto . '</span></details>';
     }
 
     /**
@@ -998,7 +1108,7 @@ final class TelasDeObjetos
         $ajuda = 'Tipos aceitos: ' . implode(', ', $extensoes) . '. Até ' . $limiteMb . ' MB.'
             . ($criando ? '' : ' Deixe em branco para manter o arquivo atual.');
 
-        return $this->campo($chave, $rotulo, $controle, $erros, $ajuda, $id);
+        return '<div class="pbl-card pbl-campo-tipo">' . $this->campo($chave, $rotulo, $controle, $erros, $ajuda, $id) . '</div>';
     }
 
     /**
@@ -1048,10 +1158,10 @@ final class TelasDeObjetos
             return '';
         }
         if (isset($erros['_'])) {
-            return '<div class="alert alert-danger" role="alert">' . Pagina::h($erros['_']) . '</div>';
+            return Pagina::alerta('danger', $erros['_']);
         }
 
-        return '<div class="alert alert-danger" role="alert">Confira ' . (count($erros) === 1 ? 'o campo marcado' : 'os ' . count($erros) . ' campos marcados') . ' abaixo.</div>';
+        return Pagina::alerta('danger', 'Confira ' . (count($erros) === 1 ? 'o campo marcado' : 'os ' . count($erros) . ' campos marcados') . ' abaixo.');
     }
 
     // ---------------------------------------------------------------- estado e datas
@@ -1083,42 +1193,15 @@ final class TelasDeObjetos
             return $this->naLixeira($sessao, $o);
         }
         $versao = $this->numero($campos['versao'] ?? null);
-        $estado = $campos['estado'] ?? null;
-        $inicio = $campos['data_publicacao'] ?? '';
-        $fim = $campos['data_validade'] ?? '';
-        if ($versao === null || $versao < 1 || !is_string($estado) || !is_string($inicio) || !is_string($fim)) {
+        $lido = $this->lerEstadoEDatas($campos);
+        if ($versao === null || $versao < 1 || $lido === null) {
             return $this->pedidoInvalido($sessao);
         }
-        $inicio = trim($inicio);
-        $fim = trim($fim);
-        $erros = [];
-        if (!isset(self::ESTADOS[$estado])) {
-            $erros['estado'] = 'Escolha um dos estados da lista.';
-        }
-        $dataInicio = $this->dataDoCampo($inicio);
-        $dataFim = $this->dataDoCampo($fim);
-        if ($dataInicio === false) {
-            $erros['data_publicacao'] = 'Data inválida. Use dia e hora (exemplo: 2026-12-31 18:30).';
-        }
-        if ($dataFim === false) {
-            $erros['data_validade'] = 'Data inválida. Use dia e hora (exemplo: 2026-12-31 18:30).';
-        }
-        if (is_string($dataInicio) && is_string($dataFim) && $dataFim <= $dataInicio) {
-            $erros['data_validade'] = 'A data de saída do ar precisa ser depois da data de publicação.';
-        }
-        if ($erros !== [] || $dataInicio === false || $dataFim === false) {
+        [$estado, $inicio, $fim, $dataInicio, $dataFim, $erros] = $lido;
+        if ($erros !== []) {
             return $this->telaDeEstado($sessao, $o, $estado, $inicio, $fim, $versao, $erros, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-        $mudancas = [];
-        if ($estado !== $o->status) {
-            $mudancas['status'] = $estado;
-        }
-        if ($dataInicio !== $this->normalizarGravada($o->dataPublicacao)) {
-            $mudancas['data_publicacao'] = $dataInicio;
-        }
-        if ($dataFim !== $this->normalizarGravada($o->dataValidade)) {
-            $mudancas['data_validade'] = $dataFim;
-        }
+        $mudancas = $this->mudancasDeEstado($o, $estado, $dataInicio, $dataFim);
         if ($mudancas === []) {
             return new RedirectResponse($this->link($o->id) . '?salvo=nada', Response::HTTP_SEE_OTHER);
         }
@@ -1137,6 +1220,75 @@ final class TelasDeObjetos
         return new RedirectResponse($this->link($novo->id) . '?salvo=' . (!$ok ? 'aviso' : ($agendado ? 'agendado' : 'estado')), Response::HTTP_SEE_OTHER);
     }
 
+    /**
+     * Lê e valida estado e datas de vigência (tela "Publicar ou tirar do ar" e card "Publicação" da edição). `null` = pedido malformado.
+     * Datas: texto do campo `datetime-local` em Brasília → ISO em UTC (`dataDoCampo`); a saída do ar precisa ser depois da publicação.
+     *
+     * @param array<string, mixed> $campos
+     * @return array{0: string, 1: string, 2: string, 3: ?string, 4: ?string, 5: array<string, string>}|null estado, início e fim digitados, início e fim gravados, erros
+     */
+    private function lerEstadoEDatas(array $campos): ?array
+    {
+        $estado = $campos['estado'] ?? null;
+        $inicio = $campos['data_publicacao'] ?? '';
+        $fim = $campos['data_validade'] ?? '';
+        if (!is_string($estado) || !is_string($inicio) || !is_string($fim)) {
+            return null;
+        }
+        $inicio = trim($inicio);
+        $fim = trim($fim);
+        $erros = [];
+        if (!isset(self::ESTADOS[$estado])) {
+            $erros['estado'] = 'Escolha um dos estados da lista.';
+        }
+        $dataInicio = $this->dataDoCampo($inicio);
+        $dataFim = $this->dataDoCampo($fim);
+        if ($dataInicio === false) {
+            $erros['data_publicacao'] = 'Data inválida. Use dia e hora (exemplo: 2026-12-31 18:30).';
+        }
+        if ($dataFim === false) {
+            $erros['data_validade'] = 'Data inválida. Use dia e hora (exemplo: 2026-12-31 18:30).';
+        }
+        if (is_string($dataInicio) && is_string($dataFim) && $dataFim <= $dataInicio) {
+            $erros['data_validade'] = 'A data de saída do ar precisa ser depois da data de publicação.';
+        }
+
+        return [$estado, $inicio, $fim, $dataInicio === false ? null : $dataInicio, $dataFim === false ? null : $dataFim, $erros];
+    }
+
+    /** @return array{status?: string, data_publicacao?: string|null, data_validade?: string|null} só o que mudou em relação ao objeto atual */
+    private function mudancasDeEstado(Objeto $o, string $estado, ?string $dataInicio, ?string $dataFim): array
+    {
+        $mudancas = [];
+        if ($estado !== $o->status) {
+            $mudancas['status'] = $estado;
+        }
+        if ($dataInicio !== $this->normalizarGravada($o->dataPublicacao)) {
+            $mudancas['data_publicacao'] = $dataInicio;
+        }
+        if ($dataFim !== $this->normalizarGravada($o->dataValidade)) {
+            $mudancas['data_validade'] = $dataFim;
+        }
+
+        return $mudancas;
+    }
+
+    /** Aviso de vigência em palavras ("agendado para…", "sai do ar em…", "vencido em…"); '' quando não há o que dizer. */
+    private function vigencia(Objeto $o, string $agora): string
+    {
+        if ($o->status !== 'publicado') {
+            return '';
+        }
+        if ($o->dataPublicacao !== null && $o->dataPublicacao > $agora) {
+            return 'agendado para ' . $this->dataLegivel($o->dataPublicacao);
+        }
+        if ($o->dataValidade !== null) {
+            return ($o->dataValidade < $agora ? 'vencido em ' : 'expira em ') . $this->dataLegivel($o->dataValidade);
+        }
+
+        return '';
+    }
+
     /** @param array<string, string> $erros */
     private function telaDeEstado(SessaoAtiva $sessao, Objeto $o, string $estado, string $inicio, string $fim, int $versao, array $erros = [], int $status = Response::HTTP_OK): Response
     {
@@ -1152,7 +1304,7 @@ final class TelasDeObjetos
             . $this->campo('estado', 'Estado', '<select id="campo-estado" name="estado" class="form-select' . $this->invalido($erros, 'estado') . '"' . $this->descrito($erros, 'estado') . '>' . $opcoes . '</select>', $erros)
             . $this->campo('data_publicacao', 'Publicar a partir de', '<input id="campo-data_publicacao" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_publicacao') . '" name="data_publicacao" value="' . Pagina::h($inicio) . '"' . $this->descrito($erros, 'data_publicacao', true) . '>', $erros, $ajudaData . ' Vazio = assim que publicado.')
             . $this->campo('data_validade', 'Tirar do ar a partir de', '<input id="campo-data_validade" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_validade') . '" name="data_validade" value="' . Pagina::h($fim) . '"' . $this->descrito($erros, 'data_validade', true) . '>', $erros, $ajudaData . ' Vazio = sem prazo.')
-            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar</button><a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></div></form>';
+            . Pagina::acoes('Salvar', [['Cancelar', $this->link($o->id)]], null, 'btn-primary', 'pbl-acoes-fixas') . '</form>';
 
         return Pagina::resposta('Publicar ou tirar do ar: ' . $o->titulo, $corpo, $status, false, $this->barra($sessao));
     }
@@ -1311,11 +1463,11 @@ final class TelasDeObjetos
         }
         $aqui = $this->lugarNavegavel($sessao, $o, $em) ?? $this->lugarNavegavel($sessao, $o, $o->paiId) ?? $this->primeiroLugarVisivel($sessao, $o);
         $pai = $this->pai($o);
-        $corpo = $this->migalhas($sessao, $o) . ($erro === null ? '' : '<div class="alert alert-danger" role="alert">' . Pagina::h($erro) . '</div>')
+        $corpo = $this->migalhas($sessao, $o) . ($erro === null ? '' : Pagina::alerta('danger', $erro))
             . '<p>Hoje está dentro de <strong>' . ($pai === null ? '?' : Pagina::h($pai->titulo)) . '</strong>. '
             . 'Tudo o que está dentro dele vai junto. O endereço não muda.</p>';
         if ($aqui === null) {
-            return Pagina::resposta('Mover: ' . $o->titulo, $corpo . '<div class="alert alert-warning" role="alert">Não há onde navegar a partir da sua permissão.</div>', $status, false, $this->barra($sessao));
+            return Pagina::resposta('Mover: ' . $o->titulo, $corpo . Pagina::alerta('warning', 'Não há onde navegar a partir da sua permissão.'), $status, false, $this->barra($sessao));
         }
 
         $consulta = new Consulta($o->siteId, $aqui->id, 1, null, [new Filtro('status', '!=', self::LIXEIRA)], 'peso, titulo', $inicio, self::POR_PAGINA, false);
@@ -1440,15 +1592,15 @@ final class TelasDeObjetos
     private function telaDeApagar(SessaoAtiva $sessao, Objeto $o, ?string $erro = null, int $status = Response::HTTP_OK): Response
     {
         $filhos = $this->filhosForaDaLixeira($o);
-        $corpo = $this->migalhas($sessao, $o) . ($erro === null ? '' : '<div class="alert alert-danger" role="alert">' . Pagina::h($erro) . '</div>');
+        $corpo = $this->migalhas($sessao, $o) . ($erro === null ? '' : Pagina::alerta('danger', $erro));
         if ($filhos > 0) {
-            $corpo .= '<div class="alert alert-warning" role="alert">Este conteúdo tem ' . $filhos . ' ' . ($filhos === 1 ? 'conteúdo' : 'conteúdos') . ' dentro dele. '
-                . 'Mova ou mande para a lixeira o que está dentro antes.</div><p><a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Voltar</a></p>';
+            $corpo .= Pagina::alerta('warning', 'Este conteúdo tem ' . $filhos . ' ' . ($filhos === 1 ? 'conteúdo' : 'conteúdos') . ' dentro dele. Mova ou mande para a lixeira o que está dentro antes.')
+                . Pagina::acoes('', [['Voltar', $this->link($o->id)]]);
         } else {
             $corpo .= '<p>Mandar <strong>' . Pagina::h($o->titulo) . '</strong> para a lixeira? Ele sai do ar na hora e deixa de aparecer nas listas. '
                 . 'Nada é apagado de vez: dá para tirá-lo da lixeira depois, com o histórico inteiro.</p>'
                 . '<form method="post" action="' . $this->link($o->id) . '/apagar">' . $this->camposOcultos($sessao, $o->versao)
-                . '<div class="pbl-acoes"><button type="submit" class="btn btn-danger">Mandar para a lixeira</button><a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></div></form>';
+                . Pagina::acoes('Mandar para a lixeira', [['Cancelar', $this->link($o->id)]], null, 'btn-danger') . '</form>';
         }
 
         return Pagina::resposta('Mandar para a lixeira: ' . $o->titulo, $corpo, $status, false, $this->barra($sessao));
@@ -1593,7 +1745,7 @@ final class TelasDeObjetos
         if (count($todas) > self::MAX_VERSOES) {
             $corpo .= '<p class="text-body-secondary">Mostrando as ' . self::MAX_VERSOES . ' versões mais novas de ' . count($todas) . '.</p>';
         }
-        $corpo .= '<p><a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Voltar</a></p>';
+        $corpo .= Pagina::acoes('', [['Voltar', $this->link($o->id)]]);
 
         return Pagina::resposta('Histórico: ' . $o->titulo, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
     }
@@ -1769,7 +1921,7 @@ final class TelasDeObjetos
     /** Mesma resposta para "não existe" e "sem permissão": não revela quais ids existem. */
     private function semAcesso(SessaoAtiva $sessao): Response
     {
-        return Pagina::resposta('Sem acesso', '<div class="alert alert-warning" role="alert">Você não tem acesso a este conteúdo, ou ele não existe.</div>', Response::HTTP_FORBIDDEN, false, $this->barra($sessao));
+        return Pagina::resposta('Sem acesso', Pagina::alerta('warning', 'Você não tem acesso a este conteúdo, ou ele não existe.'), Response::HTTP_FORBIDDEN, false, $this->barra($sessao));
     }
 
     private function pedidoInvalido(SessaoAtiva $sessao): Response
@@ -1789,13 +1941,13 @@ final class TelasDeObjetos
 
     private function classeSumiu(SessaoAtiva $sessao): Response
     {
-        return Pagina::resposta('Tipo indisponível', '<div class="alert alert-danger" role="alert">O tipo deste conteúdo não foi encontrado. Fale com um administrador.</div>', Response::HTTP_CONFLICT, false, $this->barra($sessao));
+        return Pagina::resposta('Tipo indisponível', Pagina::alerta('danger', 'O tipo deste conteúdo não foi encontrado. Fale com um administrador.'), Response::HTTP_CONFLICT, false, $this->barra($sessao));
     }
 
     private function recusa(SessaoAtiva $sessao, string $titulo, string $mensagem, Objeto $o, int $status = Response::HTTP_CONFLICT): Response
     {
-        return Pagina::resposta($titulo, $this->migalhas($sessao, $o) . '<div class="alert alert-warning" role="alert">' . Pagina::h($mensagem) . '</div>'
-            . '<p><a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Voltar</a></p>', $status, false, $this->barra($sessao));
+        return Pagina::resposta($titulo, $this->migalhas($sessao, $o) . Pagina::alerta('warning', $mensagem)
+            . Pagina::acoes('', [['Voltar', $this->link($o->id)]]), $status, false, $this->barra($sessao));
     }
 
     /** Ancestrais que a pessoa pode ver, da raiz até o objeto. Quem vê um ancestral vê todos abaixo dele (herança pelo caminho). */
