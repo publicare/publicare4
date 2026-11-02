@@ -683,7 +683,9 @@ final class AdminObjetosTest extends TestCase
     public function testTodaSaidaNovaEhEscapada(): void
     {
         $hostil = '"><script>alert(1)</script><img src=x onerror=alert(2)>';
-        $e = $this->evento($hostil, null, ['local' => $hostil, 'corpo' => '<script>alert(3)</script>'], 'publicado', ['descricao' => $hostil]);
+        $e = $this->evento($hostil, null, ['local' => $hostil], 'publicado', ['descricao' => $hostil]);
+        // Conteúdo antigo, gravado antes da limpeza do HTML: a administração o mostra como texto, nunca interpretado.
+        Conexao::sqlite($this->caminhos->banco())->executeStatement('UPDATE objeto SET dados = ? WHERE id = ?', [json_encode(['local' => $hostil, 'corpo' => '<script>alert(3)</script>'], JSON_THROW_ON_ERROR), $e->id]);
         $this->s->objetos->atualizar($e->id, ['titulo' => $hostil . ' 2'], $hostil);
         $token = $this->token('admin');
         $telas = [];

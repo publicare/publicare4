@@ -16,6 +16,7 @@ final class Requisitos
         'sodium' => 'assinatura das atualizações',
         'json' => 'leitura de dados',
         'ctype' => 'validação de textos',
+        'dom' => 'limpeza do HTML dos campos de texto',
     ];
 
     /** @param string|null $openBasedir valor do open_basedir (null = o do PHP em uso; só os testes passam outro) */

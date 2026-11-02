@@ -44,4 +44,10 @@ final class Classe
 
         return is_string($rotulo) && $rotulo !== '' ? $rotulo : (string) ($propriedade['nome'] ?? '');
     }
+
+    /** Este tipo aceita conteúdo do tipo `$filha` dentro dele? (`aceita_filhos` e a lista `filhas`; vazia = qualquer tipo) */
+    public function aceita(Classe $filha): bool
+    {
+        return $this->aceitaFilhos && ($this->filhas === [] || in_array($filha->nome, $this->filhas, true));
+    }
 }

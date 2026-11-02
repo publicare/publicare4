@@ -43,11 +43,19 @@ Entre em `/_pbl/` com seu login. Você vê os sites e as seções que pode acess
 
 - **cria** conteúdo dentro de uma página (escolhe entre os tipos que ela aceita e preenche os campos); o conteúdo novo começa fora do ar;
 - **edita** todos os campos (título, descrição, endereço, peso e os campos do tipo; os obrigatórios precisam ser preenchidos);
-- **publica ou tira do ar**, com data para entrar e para sair do ar (editor);
-- **move** um conteúdo, com tudo que está dentro dele, ou o manda para a **lixeira** (editor); da lixeira dá para tirar de volta;
+- **publica ou tira do ar**, com data para entrar e para sair do ar (editor); uma data futura aparece como "agendado", e a página entra no ar quando o servidor rodar `bin/pbl agendados` (de preferência a cada poucos minutos, no cron);
+- **move** um conteúdo (escolhendo o novo lugar andando pela árvore) com tudo que está dentro dele, ou o manda para a **lixeira** (editor); da lixeira dá para tirar de volta;
 - vê o **histórico** e volta a uma versão antiga (isso cria uma versão nova; nada se perde).
 
 Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou o mesmo conteúdo enquanto você mexia, aparece um aviso e nada é sobrescrito sem você decidir. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). O administrador também edita os **redirecionamentos** e as **peles** de cada site (o texto dos moldes, com a sintaxe conferida antes de salvar). Contas e domínios ainda se cuidam por linha de comando.
+
+## Colei HTML num campo e ele mudou. Por quê?
+
+Campos de HTML são **limpos ao salvar**: ficam só marcações comuns e seguras (parágrafos, títulos, listas, tabelas, citações, links e imagens). Scripts, estilos, formulários, `iframe`, eventos (como `onclick`) e links `javascript:` são removidos, para que um texto colado não possa atacar quem visita o site. O visual das páginas vem da pele, não do campo. Isso vale também para quem grava pela linha de comando.
+
+## Programei uma publicação para o futuro e nada aconteceu. E agora?
+
+O servidor precisa rodar `bin/pbl agendados` de tempos em tempos (por exemplo, a cada 5 minutos, no agendador "cron" da hospedagem). O comando não faz nada se não houver o que mudar. Sem ele, o conteúdo agendado só entra quando alguém rodar `bin/pbl publicar`. Veja a [linha de comando](../tecnica/cli.md).
 
 ## Como crio um tipo de conteúdo novo (por exemplo, "Evento")?
 

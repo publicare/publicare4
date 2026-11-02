@@ -20,8 +20,11 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Publicar** | Tornar o conteúdo visível para os visitantes. O Publicare prepara as páginas prontas para entregar rápido. |
 | **Rascunho / privado** | Conteúdo que ainda não está visível ao público. Todo conteúdo criado pela administração começa assim. |
 | **Lixeira** | Onde fica o conteúdo "apagado" pela administração: some do site e das listas, mas nada se perde, e dá para tirá-lo de lá (ele volta fora do ar). Para ver, filtre a lista pelo estado "Na lixeira". |
-| **Número (id)** | O número de cada conteúdo, mostrado na página dele na administração. É usado para apontar uma referência ou escolher para onde mover. |
+| **Número (id)** | O número de cada conteúdo, mostrado na página dele na administração. É usado para apontar uma referência de um campo para outro conteúdo. |
 | **Vigência** | O período em que um conteúdo vale: ele só aparece depois da data de publicação e some depois da data de validade. |
+| **Agendado** | Conteúdo publicado cuja data de publicação ainda não chegou. Ele entra no ar sozinho na data, quando o servidor rodar o comando `bin/pbl agendados` (que a hospedagem agenda no "cron"). |
+| **Cron** | O agendador de tarefas do servidor. O Publicare usa para rodar `bin/pbl agendados` de tempos em tempos. |
+| **HTML limpo** | Em campos de texto com HTML, o Publicare guarda só marcações comuns e seguras (parágrafos, títulos, listas, tabelas, links, imagens) e tira scripts, estilos, formulários e eventos. |
 | **Peso** | Número que define a ordem manual de itens (menores primeiro). |
 | **Cache** | Cópia pronta de uma página, guardada para ser entregue sem refazer o trabalho. |
 | **URL amigável** | Endereço legível de uma página (por exemplo, `/sobre`), em vez de números e símbolos. |

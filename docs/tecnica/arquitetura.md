@@ -38,6 +38,8 @@ flowchart LR
     RE --> HTML[HTML] --> F[(cache de páginas)]
 ```
 
+`bin/pbl agendados` (cron) usa o mesmo `Publicador`: `pendentes` compara o banco com o cache (visível sem página, ou fora do ar com página) e `aplicarAgendados` republica o site só se houver diferença, o que põe no ar o que a `data_publicacao` liberou e tira o que a `data_validade` venceu.
+
 O molde é compilado **uma vez** para PHP; o hash cobre o molde, a cadeia de layouts e a versão do formato do compilador. O PHP gerado só chama o `Runtime`; nada escrito no molde vira código.
 
 ## Administração pelo navegador
@@ -58,6 +60,8 @@ flowchart LR
     OR -->|ConflitoDeVersao| C409[409, nada sobrescrito]
     OR --> PU[Publicador: regrava ou tira do cache<br/>a página, o pai e o endereço antigo] --> R[303 de volta à tela]
 ```
+
+As regras de integridade não moram nas telas: `ObjetoRepositorio` recusa (com `ViolacaoDeRegra`) tipo não aceito pelo pai e campo obrigatório vazio, normaliza as datas de vigência para UTC e limpa propriedades `html` com `HtmlSeguro`; as telas só traduzem o erro em mensagem. A tela de mover navega pela árvore com links (`?em=`) e botões de `POST`.
 
 Os tipos de conteúdo (`/_pbl/classes`, `/_pbl/classe/{id}/...`) seguem a mesma receita em `TelasDeClasses`, com `Permissoes::podeModelarClasses` no lugar de `pode` e `ClasseRepositorio` (versão esperada, regra de não apagar valores) no lugar de `ObjetoRepositorio`; veja o [fluxo 12](../fluxos/12-administracao-web.md).
 

@@ -41,6 +41,15 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 3. Testar com entrada hostil (veja `tests/CaminhosTest.php`, `tests/ConsultaTest.php`).
 4. Regex sobre entrada pública: sem quantificadores sobrepostos, com teto de tamanho e teste de tempo.
 
+## HTML em propriedades `html` e integridade do conteúdo (fase 5g)
+
+- **Limpeza na gravação, por lista de permissões** ([ADR 0012](../adr/0012-administracao-web.md) §9). `HtmlSeguro::limpar` lê o HTML com `DOMDocument` e **reescreve** a saída a partir da árvore (texto e atributos sempre escapados), em vez de filtrar por regex; o que o parser e o navegador entendam diferente vira, no pior caso, texto escapado. Roda em `ObjetoRepositorio::validar`, então vale para tela, linha de comando, importador e restauração de versão.
+- Permitido: parágrafos, títulos, ênfase, listas, tabelas, citações, código, `a[href]`, `img[src alt width height]` e `title`/`lang`/`dir`. Proibido: `script`, `style`, `iframe`, `object`, `embed`, `svg`, `math`, `form` e controles, `template`, `meta`/`link`/`base`, **qualquer** `on*`, `style`, `class`, `id`, `target`, `srcset`; comentários, CDATA e instruções.
+- Endereços: caracteres de controle e espaços são removidos antes de olhar o esquema (`java<TAB>script:`), entidades já vêm decodificadas pelo parser; links `http`/`https`/`mailto`/`tel`/relativo; imagens `http`/`https`/relativo; `javascript:`, `vbscript:`, `data:`, `file:` e qualquer outro são descartados. Todo link ganha `rel="noopener noreferrer"`. Profundidade e tamanho limitados (1 MB).
+- Os moldes continuam escapando por padrão; `ecocru` de um campo `html` agora imprime HTML já limpo. O HTML gravado **antes** da fase 5g só é limpo quando o campo for gravado de novo; a administração nunca o interpreta (mostra como texto).
+- Testes: `tests/HtmlSeguroTest.php` (mais de 60 vetores de XSS, mutação, idempotência), `tests/IntegridadeDeConteudoTest.php` e `tests/AdminIntegridadeTest.php`.
+- Regras de tipos aceitos e campos obrigatórios no repositório (`ViolacaoDeRegra`): um formulário forjado, um script de importação ou a linha de comando não contornam o que a tela exige.
+
 ## Escrita em disco pela administração (moldes de pele)
 
 A edição de peles é a única superfície em que a administração **grava arquivos** (`dados/peles/<pele>/<molde>.pbl`), e moldes são código-ish, então ela é fechada em `GerenciadorDePeles` ([ADR 0012](../adr/0012-administracao-web.md) §8):
@@ -63,8 +72,7 @@ A edição de peles é a única superfície em que a administração **grava arq
 | HTTPS forçado na administração (hoje é recomendação) | a decidir |
 | Telas de contas e domínios, com as mesmas defesas | próximas fatias da fase 5 ([ADR 0012](../adr/0012-administracao-web.md)) |
 | Pele inteira (criar, importar, apagar), arquivos de pele que não sejam `.pbl`, histórico de moldes | com o editor e a galeria de peles ([fluxo 4](../fluxos/04-edicao-peles.md)) |
-| `ObjetoRepositorio` repetir as regras de tipos aceitos e de campos obrigatórios (hoje só as telas exigem; a linha de comando não) | a decidir |
-| Saneamento por tipo do HTML guardado em propriedades `html` (hoje o molde decide se mostra com escape ou cru; quem edita pode gravar HTML) | com o editor ([fluxo 5](../fluxos/05-conteudo-workflow.md)) |
+| Limpar o HTML antigo já gravado antes da fase 5g (hoje ele é limpo na próxima gravação do campo; a leitura não altera nada) | a decidir (um comando de varredura) |
 
 ## Atrás de um proxy (Cloudflare, nginx)
 

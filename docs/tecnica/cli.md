@@ -7,6 +7,7 @@ No ambiente de desenvolvimento: `make pbl ARGS="<comando> …"`. Em um servidor:
 | `versao` | mostra a versão do PBL4 (`Pbl\Versao::ATUAL`) |
 | `instalar [--nome=…] [--host=…]` | cria `dados/`, o banco SQLite, copia a pele básica e cria um site de exemplo. Recusa rodar duas vezes (trava `dados/config/instalado.lock`) |
 | `publicar` | renderiza todas as páginas visíveis de todos os sites para o cache e **remove do cache** o que deixou de estar visível (despublicado, vencido, rascunho) ou ficou órfão (a página de um endereço que mudou) |
+| `agendados [--simular]` | aplica a passagem do tempo no cache: põe no ar o que teve a `data_publicacao` liberada e tira o que passou da `data_validade`, republicando o site só se houve mudança. **Idempotente e silencioso** quando não há nada a fazer, feito para o cron (veja abaixo). `--simular` só mostra quantos entrariam e sairiam |
 | `converter-moldes <origem> <destino> [--seguro]` | converte moldes do PBL3 em moldes PBL4 e escreve `RELATORIO.md` |
 
 ## `usuario`
@@ -63,4 +64,14 @@ Regras completas de conversão: [linguagem-pbl4.md](../linguagem-pbl4.md#convers
 
 ## Quando a página aparece para o visitante
 
-`publicar` é o que grava as páginas no cache. Páginas com `data_validade` ganham um arquivo `.expira` ao lado e deixam de ser servidas quando a data passa, mesmo sem nova publicação. Para algo entrar no ar numa data futura (`data_publicacao`), é preciso rodar `publicar` depois dessa data (por exemplo, por agendamento do servidor).
+`publicar` é o que grava as páginas no cache. Páginas com `data_validade` ganham um arquivo `.expira` ao lado e deixam de ser servidas quando a data passa, mesmo sem nova publicação. Para algo entrar no ar numa data futura (`data_publicacao`), é preciso rodar `publicar` ou **`agendados`** depois dessa data.
+
+## `agendados` (publicação por data)
+
+Datas de publicação e de validade são sempre gravadas em UTC (ISO 8601). A consulta pública e os moldes só enxergam o que está dentro da vigência, mas a **página pronta** só existe no cache depois de publicada; `agendados` fecha essa lacuna: compara o banco com o cache (`Publicador::pendentes`) e, se algo deveria estar no ar e não está (ou o contrário), republica o site inteiro (assim as listas dos pais também mudam). Sem pendências não grava nada, então pode rodar com frequência. Exemplo de cron a cada 5 minutos, a partir da raiz do projeto:
+
+```
+*/5 * * * * cd /caminho/do/projeto && php bin/pbl agendados >/dev/null 2>&1
+```
+
+Quando o comando age, escreve uma linha por site (`Meu Site: 1 entrou(aram) no ar, 0 saiu(saíram) do ar; site republicado`); `--simular` mostra o que mudaria sem publicar. Código de saída diferente de zero se algo falhar.
