@@ -213,3 +213,10 @@ stateDiagram-v2
 - Atualizar o Bootstrap é tarefa de manutenção: baixar a nova versão, conferir o `integrity` do npm, registrar o SHA-256 e trocar `Pagina::BOOTSTRAP`.
 - Sem JavaScript, a interface é simples e segue o visual padrão do Bootstrap; melhorias de conforto (pré-visualização, arrastar para mover) poderão vir depois como camada opcional, sem tirar as checagens do servidor.
 - A API de conteúdo (ADR 0009) poderá reutilizar as mesmas decisões de permissão; esta administração não depende dela.
+
+## Adendo: layout para celular (2026-11)
+
+- **Cache do CSS**: `pbl.css` e o Bootstrap são servidos com cache longo e imutável; por isso toda URL de asset do painel e do instalador leva `?v=<crc32 do conteúdo>` (`Pagina::urlVersionada`). Mudou o arquivo, mudou a URL; a CSP (`style-src 'self'`) segue igual, sem nada inline.
+- **Peças únicas**: `Pagina::campo`, `checkbox`, `card`, `alerta`, `acoes` e `migalhas` (e os atalhos de mesmo nome em `AuxiliaresDeTela`) montam rótulo + controle + ajuda com `id`/`for` únicos, escapando tudo; as telas não repetem marcação.
+- **Layout só com CSS**: barra em duas linhas (marca e sair em cima, seções embaixo, item atual com `aria-current`), grade `.pbl-grade` (1 coluna no celular, 2-3 a partir de 768 px), `.pbl-acoes` (botões em largura total no celular), alvos de toque de 44 px, tabelas em `table-responsive`.
+- Verificação: testes de HTML (rótulos, ids únicos, migalhas, ausência de `style=`/`<script>`); sem captura de tela automática no ambiente de desenvolvimento.

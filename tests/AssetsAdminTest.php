@@ -39,14 +39,32 @@ final class AssetsAdminTest extends TestCase
         self::assertFileExists($this->publico(Pagina::CSS));
     }
 
+    public function testUrlVersionadaMudaComOConteudoDoArquivo(): void
+    {
+        $url = Pagina::urlVersionada(Pagina::CSS);
+        self::assertMatchesRegularExpression('#^' . preg_quote(Pagina::CSS, '#') . '\?v=[0-9a-f]{8}$#', $url);
+        self::assertSame(hash_file('crc32b', $this->publico(Pagina::CSS)), substr($url, -8));
+        self::assertStringContainsString('?v=', Pagina::urlVersionada('/_pbl/assets/inexistente.css'));
+    }
+
+    public function testPaginaTemNavegacaoMigalhasEAlertasAcessiveis(): void
+    {
+        $html = (string) Pagina::resposta('T', Pagina::alerta('danger', 'x') . Pagina::campo('a-b', 'a', 'Nome', 'v'), 200, false, Pagina::barra('Ana', 'tok', true), [['Início', '/_pbl/'], ['Aqui', null]])->getContent();
+        self::assertStringContainsString('aria-label="Você está em"', $html);
+        self::assertStringContainsString('aria-current="page">Aqui</li>', $html);
+        self::assertStringContainsString('role="alert"', $html);
+        self::assertStringContainsString('<label for="a-b"', $html);
+        self::assertStringContainsString('id="a-b"', $html);
+    }
+
     public function testPaginaUsaSoArquivosDoProprioSiteSemInlineNemScript(): void
     {
         $r = Pagina::resposta('Teste', '<p>ok</p>', 200, true, Pagina::barra('Ana', 'token'));
         $html = (string) $r->getContent();
         $csp = (string) $r->headers->get('Content-Security-Policy');
 
-        self::assertStringContainsString('href="' . Pagina::BOOTSTRAP . '"', $html);
-        self::assertStringContainsString('href="' . Pagina::CSS . '"', $html);
+        self::assertStringContainsString('href="' . Pagina::BOOTSTRAP . '?v=', $html);
+        self::assertStringContainsString('href="' . Pagina::CSS . '?v=', $html);
         self::assertStringNotContainsString('<style', $html);
         self::assertStringNotContainsString('style=', $html);
         self::assertStringNotContainsString('<script', $html);

@@ -45,6 +45,7 @@ final class Painel
     public function tratar(Request $requisicao): Response
     {
         $caminho = rtrim($requisicao->getPathInfo(), '/');
+        Pagina::definirCaminho($caminho);
         $metodo = $requisicao->getMethod();
         // Id validado por expressão ancorada e sem ambiguidade antes de virar inteiro; a sub-rota precisa existir para o método.
         $objeto = preg_match('#^' . self::PREFIXO . '/objeto/([1-9][0-9]{0,9})(?:/([a-z]{1,20}))?$#D', $caminho, $m) === 1 ? (int) $m[1] : null;
@@ -99,18 +100,18 @@ final class Painel
             return new RedirectResponse(self::PREFIXO . '/', Response::HTTP_SEE_OTHER);
         }
 
-        return $this->pagina('Entrar', ($aviso === null ? '' : '<div class="alert alert-danger" role="alert">' . $this->h($aviso) . '</div>')
-            . '<form method="post" action="' . self::PREFIXO . '/entrar" autocomplete="on">'
+        return Pagina::resposta('Entrar', ($aviso === null ? '' : Pagina::alerta('danger', $aviso))
+            . '<form method="post" action="' . self::PREFIXO . '/entrar" autocomplete="on" class="pbl-entrar">'
             . '<input type="hidden" name="_csrf" value="' . $this->h($this->csrf->paraEntrar()) . '">'
-            . '<div class="mb-3"><label for="campo-login" class="form-label">Login</label><input id="campo-login" class="form-control" name="login" autocomplete="username" maxlength="64" required autofocus></div>'
-            . '<div class="mb-3"><label for="campo-senha" class="form-label">Senha</label><input id="campo-senha" class="form-control" name="senha" type="password" autocomplete="current-password" maxlength="1024" required></div>'
-            . '<button type="submit" class="btn btn-primary">Entrar</button></form>', $status);
+            . Pagina::campo('campo-login', 'login', 'Login', '', ['autocomplete' => 'username', 'maxlength' => 64, 'obrigatorio' => true, 'autofocus' => true])
+            . Pagina::campo('campo-senha', 'senha', 'Senha', '', ['tipo' => 'password', 'autocomplete' => 'current-password', 'maxlength' => 1024, 'obrigatorio' => true])
+            . Pagina::acoes('Entrar') . '</form>', $status, false, '', [], 'Entre com o login e a senha da sua conta.');
     }
 
     private function entrar(Request $requisicao): Response
     {
         if (!$this->rede->origemConfere($requisicao) || !$this->csrf->conferirEntrar((string) $requisicao->request->get('_csrf', ''))) {
-            return $this->pagina('Pedido recusado', '<p>O pedido não pôde ser confirmado. Volte e tente de novo.</p>', Response::HTTP_FORBIDDEN);
+            return $this->pagina('Pedido recusado', Pagina::alerta('danger', 'O pedido não pôde ser confirmado. Volte e tente de novo.'), Response::HTTP_FORBIDDEN);
         }
         $login = mb_substr(trim((string) $requisicao->request->get('login', '')), 0, 64);
         $senha = mb_substr((string) $requisicao->request->get('senha', ''), 0, 1024);

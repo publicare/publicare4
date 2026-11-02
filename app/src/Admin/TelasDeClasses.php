@@ -40,6 +40,7 @@ final class TelasDeClasses
 {
     use AuxiliaresDeTela;
 
+    private const DESCRICAO_LISTA = 'Um tipo de conteúdo diz quais campos um conteúdo tem, como "Notícia" com data e autor. Os tipos valem para todos os sites desta instalação.';
     public const SITUACOES = ['ativa' => 'Ativo', 'arquivada' => 'Arquivado', 'remover' => 'Remover'];
     public const NOMES_DOS_TIPOS = [
         'texto' => 'Texto curto', 'numero' => 'Número', 'html' => 'Texto formatado (HTML)', 'data' => 'Data',
@@ -130,14 +131,13 @@ final class TelasDeClasses
         $classes = $this->servicos->classes->todas();
         $usos = $modela ? $this->servicos->classes->objetosPorClasse() : [];
         $corpo = ($requisicao->query->all()['ok'] ?? null) === 'apagada' ? '<div class="alert alert-success" role="status">Tipo de conteúdo apagado.</div>' : '';
-        $corpo .= '<p>Um tipo de conteúdo (classe) diz quais campos um conteúdo tem, como "Notícia" com data e autor. Os tipos valem para todos os sites desta instalação.</p>';
         if ($modela) {
             $corpo .= '<p><a class="btn btn-primary" href="' . Painel::PREFIXO . '/classes/nova">Novo tipo de conteúdo</a></p>';
         } else {
             $corpo .= '<p class="text-body-secondary">Só administradores criam e alteram tipos de conteúdo.</p>';
         }
         if ($classes === []) {
-            return Pagina::resposta('Tipos de conteúdo', $corpo . '<p>Nenhum tipo de conteúdo ainda.</p>', Response::HTTP_OK, false, $this->barra($sessao));
+            return Pagina::resposta('Tipos de conteúdo', $corpo . '<p>Nenhum tipo de conteúdo ainda.</p>', Response::HTTP_OK, false, $this->barra($sessao), [], self::DESCRICAO_LISTA);
         }
         $corpo .= '<div class="table-responsive"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Tipos de conteúdo</caption><thead><tr>'
             . '<th scope="col">Nome</th><th scope="col">Descrição</th><th scope="col">Campos</th>'
@@ -158,7 +158,7 @@ final class TelasDeClasses
         }
         $corpo .= '</tbody></table></div>';
 
-        return Pagina::resposta('Tipos de conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Tipos de conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], self::DESCRICAO_LISTA);
     }
 
     // ---------------------------------------------------------------- criar
@@ -169,14 +169,14 @@ final class TelasDeClasses
         $corpo = $this->erro($erro)
             . '<form method="post" action="' . Painel::PREFIXO . '/classes/nova"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>'
             . $this->campoCsrf($sessao)
-            . '<div class="mb-3"><label for="campo-nome" class="form-label">Nome técnico</label>'
-            . '<input id="campo-nome" class="form-control" name="nome" maxlength="' . ClasseRepositorio::MAX_NOME . '" required value="' . Pagina::h($nome) . '" aria-describedby="ajuda-nome">'
-            . '<div id="ajuda-nome" class="form-text">Letras minúsculas sem acento, números e <code>_</code>, começando por letra (por exemplo <code>noticia</code>). É o nome que os moldes usam e não muda depois.</div></div>'
-            . $this->camposDaClasse($descricao, $aceita, $filhas, $this->servicos->classes->todas(), null)
+            . $this->card('Identificação', $this->campo('campo-nome', 'nome', 'Nome técnico', $nome, [
+                'maxlength' => ClasseRepositorio::MAX_NOME, 'obrigatorio' => true,
+                'ajuda' => 'Letras minúsculas sem acento, números e <code>_</code>, começando por letra (por exemplo <code>noticia</code>). É o nome que os moldes usam e não muda depois.',
+            ]) . $this->camposDaClasse($descricao, $aceita, $filhas, $this->servicos->classes->todas(), null))
             . '<p class="form-text">Os campos (propriedades) são adicionados depois de criar o tipo.</p>'
-            . '<button type="submit" class="btn btn-primary">Criar tipo de conteúdo</button> <a class="btn btn-outline-secondary" href="' . $this->linkLista() . '">Cancelar</a></form>';
+            . $this->acoes('Criar tipo de conteúdo', [['Cancelar', $this->linkLista()]]) . '</form>';
 
-        return Pagina::resposta('Novo tipo de conteúdo', $corpo, $status, false, $this->barra($sessao));
+        return Pagina::resposta('Novo tipo de conteúdo', $corpo, $status, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], ['Novo', null]], 'Dê um nome ao tipo; os campos entram na tela seguinte.');
     }
 
     private function criar(SessaoAtiva $sessao, Request $requisicao): Response
@@ -612,10 +612,10 @@ final class TelasDeClasses
             . 'Dá para voltar o campo a "Ativo" depois.</p></div>'
             . '<form method="post" action="' . $this->link($classe->id) . '/editar">' . $this->campoCsrf($sessao)
             . '<input type="hidden" name="versao" value="' . $classe->versao . '">' . $this->camposOcultos($r)
-            . '<button type="submit" class="btn btn-warning" name="confirmar" value="1">Confirmar e salvar</button> '
-            . '<button type="submit" class="btn btn-outline-secondary" name="revisar" value="1">Voltar ao formulário</button></form>';
+            . '<div class="pbl-acoes"><button type="submit" class="btn btn-warning" name="confirmar" value="1">Confirmar e salvar</button>'
+            . '<button type="submit" class="btn btn-outline-secondary" name="revisar" value="1">Voltar ao formulário</button></div></form>';
 
-        return Pagina::resposta('Confirmar: ' . $classe->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Confirmar: ' . $classe->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], [$classe->nome, $this->link($classe->id) . '/editar'], ['Confirmar', null]]);
     }
 
     /** @param Rascunho $r */
@@ -654,43 +654,26 @@ final class TelasDeClasses
         $uso = $this->servicos->classes->usoDasPropriedades($classe);
         $total = $this->servicos->classes->contarObjetos($classe->id);
         $corpo = $aviso . $this->erro($erro)
-            . ($classe->fixa ? '<div class="alert alert-info" role="status">Este é um tipo <strong>fixo</strong> (essencial ao sistema): não pode ser apagado nem renomeado, e os campos de base dele não podem ser removidos nem arquivados. Acrescentar campos é permitido.</div>' : '')
-            . '<p>Nome técnico: <code>' . Pagina::h($classe->nome) . '</code> · ' . $total . ' conteúdo' . ($total === 1 ? ' usa' : 's usam') . ' este tipo · versão ' . $classe->versao . '.</p>'
+            . ($classe->fixa ? $this->alerta('info', 'Este é um tipo <strong>fixo</strong> (essencial ao sistema): não pode ser apagado nem renomeado, e os campos de base dele não podem ser removidos nem arquivados. Acrescentar campos é permitido.', '', true) : '')
             . '<form method="post" action="' . $this->link($classe->id) . '/editar"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>'
             . $this->campoCsrf($sessao) . '<input type="hidden" name="versao" value="' . $classe->versao . '">'
-            . $this->camposDaClasse($r['descricao'], $r['aceita_filhos'], $r['filhas'], $todas, $classe->nome)
-            . '<h2 class="h5 mt-4">Campos</h2>';
+            . $this->card('Sobre o tipo', $this->camposDaClasse($r['descricao'], $r['aceita_filhos'], $r['filhas'], $todas, $classe->nome))
+            . '<h2 class="h5 mt-4">Campos deste tipo</h2>';
 
         if ($r['campos'] === []) {
             $corpo .= '<p class="text-body-secondary">Este tipo ainda não tem campos.</p>';
         } else {
-            $corpo .= '<p class="form-text">Mude a ordem trocando os números (menor primeiro). Campo com valores guardados não troca de tipo e não pode ser removido, só arquivado.</p>'
-                . '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Campos deste tipo de conteúdo</caption><thead><tr>'
-                . '<th scope="col">Nome técnico</th><th scope="col">Rótulo</th><th scope="col">Tipo</th><th scope="col">Obrigatório</th>'
-                . '<th scope="col">Ordem</th><th scope="col">Situação</th><th scope="col">Em uso</th><th scope="col">Arquivo (se for Arquivo/Imagem)</th></tr></thead><tbody>';
+            $corpo .= '<p class="form-text">Mude a ordem trocando os números (menor primeiro). Campo com valores guardados não troca de tipo e não pode ser removido, só arquivado.</p>';
             foreach ($r['campos'] as $i => $c) {
                 $p = $this->definicao($classe, $c['nome']);
-                $emUso = max($uso[$c['nome']]['objetos'] ?? 0, $uso[$c['nome']]['historico'] ?? 0);
+                $objetos = $uso[$c['nome']]['objetos'] ?? 0;
+                $historico = $uso[$c['nome']]['historico'] ?? 0;
+                $emUso = max($objetos, $historico);
                 $base = 'p[' . $c['nome'] . ']';
                 $id = 'campo-' . $i . '-' . (preg_replace('/[^A-Za-z0-9_-]/', '-', $c['nome']) ?? '');
-                $corpo .= '<tr><th scope="row"><code>' . Pagina::h($c['nome']) . '</code>'
-                    . (($p['indexavel'] ?? false) ? ' <span class="badge text-bg-light">indexável</span>' : '')
-                    . ($c['situacao'] === 'arquivada' ? ' <span class="badge text-bg-secondary">arquivado</span>' : '') . '</th>'
-                    . '<td><label class="visually-hidden" for="' . $id . '-rotulo">Rótulo de ' . Pagina::h($c['nome']) . '</label>'
-                    . '<input id="' . $id . '-rotulo" class="form-control form-control-sm" name="' . Pagina::h($base) . '[rotulo]" maxlength="' . ClasseRepositorio::MAX_ROTULO . '" value="' . Pagina::h($c['rotulo']) . '"></td><td>';
-                if ($emUso > 0) {
-                    $corpo .= Pagina::h($this->descreverTipo($c['tipo'], $c['classe']))
-                        . '<input type="hidden" name="' . Pagina::h($base) . '[tipo]" value="' . Pagina::h($c['tipo']) . '">'
-                        . '<input type="hidden" name="' . Pagina::h($base) . '[classe]" value="' . Pagina::h($c['classe']) . '">';
-                } else {
-                    $corpo .= $this->seletorDeTipo($id, $base, $c['tipo'], $c['classe'], $todas, $c['nome']);
-                }
-                $corpo .= '</td><td><div class="form-check"><input class="form-check-input" type="checkbox" id="' . $id . '-obrigatorio" name="' . Pagina::h($base) . '[obrigatorio]" value="1"' . ($c['obrigatorio'] ? ' checked' : '') . '>'
-                    . '<label class="form-check-label" for="' . $id . '-obrigatorio"><span class="visually-hidden">' . Pagina::h($c['nome']) . ' é </span>obrigatório</label></div></td>'
-                    . '<td><label class="visually-hidden" for="' . $id . '-ordem">Ordem de ' . Pagina::h($c['nome']) . '</label>'
-                    . '<input id="' . $id . '-ordem" class="form-control form-control-sm campo-ordem" name="' . Pagina::h($base) . '[ordem]" inputmode="numeric" pattern="[0-9]{1,4}" maxlength="4" required value="' . Pagina::h($c['ordem']) . '"></td>'
-                    . '<td><label class="visually-hidden" for="' . $id . '-situacao">Situação de ' . Pagina::h($c['nome']) . '</label>'
-                    . '<select id="' . $id . '-situacao" class="form-select form-select-sm" name="' . Pagina::h($base) . '[situacao]">';
+                $selos = (($p['indexavel'] ?? false) ? ' <span class="badge text-bg-light border">indexável</span>' : '')
+                    . ($c['situacao'] === 'arquivada' ? ' <span class="badge text-bg-secondary">arquivado</span>' : '');
+                $situacoes = [];
                 foreach (self::SITUACOES as $valor => $texto) {
                     if ($valor === 'remover' && $emUso > 0) {
                         continue;
@@ -698,77 +681,92 @@ final class TelasDeClasses
                     if ($valor !== 'ativa' && $classe->fixa && in_array($c['nome'], ClassesPadrao::nomesDaBase($classe->nome), true)) {
                         continue; // campo de base de tipo fixo (ADR 0015)
                     }
-                    $corpo .= '<option value="' . $valor . '"' . ($c['situacao'] === $valor ? ' selected' : '') . '>' . $texto . '</option>';
+                    $situacoes[$valor] = $texto;
                 }
-                $corpo .= '</select></td><td>' . ($uso[$c['nome']]['objetos'] ?? 0)
-                    . (($uso[$c['nome']]['historico'] ?? 0) > ($uso[$c['nome']]['objetos'] ?? 0) ? ' <span class="text-body-secondary">(+ versões antigas)</span>' : '') . '</td>'
-                    . '<td>' . $this->camposDeArquivo($id, $base, $c['tipos'], $c['tamanho_max_mb']) . '</td></tr>';
+                if ($emUso > 0) {
+                    $tipo = '<div class="pbl-largo"><span class="form-label d-block">Tipo do campo</span><p class="mb-1">' . Pagina::h($this->descreverTipo($c['tipo'], $c['classe'])) . '</p>'
+                        . '<div class="form-text">Não muda porque há conteúdo com valor neste campo.</div>'
+                        . '<input type="hidden" name="' . Pagina::h($base) . '[tipo]" value="' . Pagina::h($c['tipo']) . '">'
+                        . '<input type="hidden" name="' . Pagina::h($base) . '[classe]" value="' . Pagina::h($c['classe']) . '"></div>';
+                } else {
+                    $tipo = '<div class="pbl-largo">' . $this->seletorDeTipo($id, $base, $c['tipo'], $c['classe'], $todas) . '</div>';
+                }
+                $interno = '<div class="pbl-grade">'
+                    . $this->campo($id . '-rotulo', $base . '[rotulo]', 'Rótulo', $c['rotulo'], ['maxlength' => ClasseRepositorio::MAX_ROTULO, 'ajuda' => 'O nome que aparece nos formulários.', 'grupo' => 'mb-0'])
+                    . $this->campo($id . '-ordem', $base . '[ordem]', 'Ordem', $c['ordem'], ['inputmode' => 'numeric', 'pattern' => '[0-9]{1,4}', 'maxlength' => 4, 'obrigatorio' => true, 'classe' => 'campo-ordem', 'ajuda' => 'Menor número aparece primeiro.', 'grupo' => 'mb-0'])
+                    . $tipo
+                    . $this->campo($id . '-situacao', $base . '[situacao]', 'Situação', $c['situacao'], ['tipo' => 'select', 'opcoes' => $situacoes, 'grupo' => 'mb-0'])
+                    . '<div class="d-flex align-items-end">' . $this->checkbox($id . '-obrigatorio', $base . '[obrigatorio]', 'Obrigatório', $c['obrigatorio']) . '</div>'
+                    . '<p class="form-text pbl-largo mb-0">Em uso por ' . $objetos . ' conteúdo' . ($objetos === 1 ? '' : 's')
+                    . ($historico > $objetos ? ' (+ versões antigas)' : '') . '.</p>'
+                    . '<div class="pbl-largo">' . $this->camposDeArquivo($id, $base, $c['tipos'], $c['tamanho_max_mb'], in_array($c['tipo'], ['arquivo', 'imagem'], true)) . '</div>'
+                    . '</div>';
+                $corpo .= '<fieldset class="pbl-card"><legend><code>' . Pagina::h($c['nome']) . '</code>' . $selos . '</legend>' . $interno . '</fieldset>';
             }
-            $corpo .= '</tbody></table></div>';
         }
 
         $n = $r['novo'];
-        $corpo .= '<fieldset class="border rounded p-3 mb-3"><legend class="h6 float-none w-auto px-1">Adicionar um campo (opcional)</legend><div class="row g-2">'
-            . '<div class="col-md-4"><label for="novo-nome" class="form-label">Nome técnico</label><input id="novo-nome" class="form-control" name="novo[nome]" maxlength="' . ClasseRepositorio::MAX_NOME . '" value="' . Pagina::h($n['nome']) . '" aria-describedby="ajuda-novo-nome">'
-            . '<div id="ajuda-novo-nome" class="form-text">Minúsculas, números e <code>_</code>; não muda depois.</div></div>'
-            . '<div class="col-md-4"><label for="novo-rotulo" class="form-label">Rótulo</label><input id="novo-rotulo" class="form-control" name="novo[rotulo]" maxlength="' . ClasseRepositorio::MAX_ROTULO . '" value="' . Pagina::h($n['rotulo']) . '"></div>'
-            . '<div class="col-md-4"><label for="novo-ordem" class="form-label">Ordem</label><input id="novo-ordem" class="form-control" name="novo[ordem]" inputmode="numeric" pattern="[0-9]{1,4}" maxlength="4" value="' . Pagina::h($n['ordem']) . '" aria-describedby="ajuda-novo-ordem">'
-            . '<div id="ajuda-novo-ordem" class="form-text">Em branco: vai para o fim.</div></div>'
-            . '<div class="col-md-8">' . $this->seletorDeTipo('novo', 'novo', $n['tipo'], $n['classe'], $todas, null, true) . '</div>'
-            . '<div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="novo-obrigatorio" name="novo[obrigatorio]" value="1"' . ($n['obrigatorio'] ? ' checked' : '') . '><label class="form-check-label" for="novo-obrigatorio">Obrigatório</label></div>'
-            . '<div class="form-check"><input class="form-check-input" type="checkbox" id="novo-indexavel" name="novo[indexavel]" value="1"' . ($n['indexavel'] ? ' checked' : '') . ' aria-describedby="ajuda-novo-indexavel"><label class="form-check-label" for="novo-indexavel">Indexável</label>'
-            . '<div id="ajuda-novo-indexavel" class="form-text">Permite filtrar e ordenar por este campo nos moldes. Não muda depois que houver valores. Referências são sempre indexáveis.</div></div></div>'
-            . '<div class="col-12">' . $this->camposDeArquivo('novo', 'novo', $n['tipos'], $n['tamanho_max_mb']) . '</div>'
-            . '</div></fieldset>'
+        $novo = '<div class="pbl-grade pbl-grade-3">'
+            . $this->campo('novo-nome', 'novo[nome]', 'Nome técnico', $n['nome'], ['maxlength' => ClasseRepositorio::MAX_NOME, 'ajuda' => 'Minúsculas, números e <code>_</code>; não muda depois.', 'grupo' => 'mb-0'])
+            . $this->campo('novo-rotulo', 'novo[rotulo]', 'Rótulo', $n['rotulo'], ['maxlength' => ClasseRepositorio::MAX_ROTULO, 'grupo' => 'mb-0'])
+            . $this->campo('novo-ordem', 'novo[ordem]', 'Ordem', $n['ordem'], ['inputmode' => 'numeric', 'pattern' => '[0-9]{1,4}', 'maxlength' => 4, 'ajuda' => 'Em branco: vai para o fim.', 'grupo' => 'mb-0'])
+            . '<div class="pbl-largo">' . $this->seletorDeTipo('novo', 'novo', $n['tipo'], $n['classe'], $todas) . '</div>'
+            . '<div class="pbl-largo">' . $this->checkbox('novo-obrigatorio', 'novo[obrigatorio]', 'Obrigatório', $n['obrigatorio'])
+            . $this->checkbox('novo-indexavel', 'novo[indexavel]', 'Indexável', $n['indexavel'], 'Permite filtrar e ordenar por este campo nos moldes. Não muda depois que houver valores. Referências são sempre indexáveis.') . '</div>'
+            . '<div class="pbl-largo">' . $this->camposDeArquivo('novo', 'novo', $n['tipos'], $n['tamanho_max_mb'], in_array($n['tipo'], ['arquivo', 'imagem'], true)) . '</div>'
+            . '</div>';
+        $corpo .= $this->card('Adicionar um campo (opcional)', $novo)
             . '<p class="form-text">"Obrigatório" fica guardado no tipo; a exigência ao salvar um conteúdo vem com as telas de conteúdo.</p>'
-            . '<button type="submit" class="btn btn-primary">Salvar</button> <a class="btn btn-outline-secondary" href="' . $this->linkLista() . '">Voltar aos tipos</a></form>'
-            . ($classe->fixa ? '' : '<p class="mt-4"><a class="link-danger" href="' . $this->link($classe->id) . '/apagar">Apagar este tipo de conteúdo</a></p>');
+            . $this->acoes('Salvar alterações', [['Voltar aos tipos', $this->linkLista()]], $classe->fixa ? null : ['Apagar este tipo de conteúdo', $this->link($classe->id) . '/apagar'])
+            . '</form>';
 
-        return Pagina::resposta('Tipo de conteúdo: ' . $classe->nome, $corpo, $status, false, $this->barra($sessao));
+        $descricao = '<code>' . Pagina::h($classe->nome) . '</code> · ' . $total . ' conteúdo' . ($total === 1 ? ' usa' : 's usam') . ' este tipo · versão ' . $classe->versao;
+
+        return Pagina::resposta('Tipo de conteúdo: ' . $classe->nome, $corpo, $status, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], [$classe->nome, null]], $descricao);
     }
 
     /**
      * `tipos` (subconjunto da whitelist, por categoria) e `tamanho_max_mb` (até `TiposDeArquivo::TETO_MB`) de uma propriedade
-     * `arquivo`/`imagem` (ADR 0014). Sem JavaScript a tela não sabe trocar o que aparece quando o tipo muda, então os
-     * controles ficam sempre visíveis; o `ClasseRepositorio` ignora os dois fora de `arquivo`/`imagem`, e nenhuma extensão
-     * marcada aqui some: ela só passa a valer se e quando o campo for mesmo um arquivo ou imagem.
+     * `arquivo`/`imagem` (ADR 0014). Sem JavaScript a tela não sabe trocar o que aparece quando o tipo muda: para campo que já é
+     * Arquivo/Imagem os controles aparecem abertos; para os demais ficam num `<details>` fechado (a pessoa pode abrir, preencher e
+     * trocar o tipo na mesma gravação). O `ClasseRepositorio` ignora os dois fora de `arquivo`/`imagem`.
      *
      * @param list<string> $tiposSelecionados
      */
-    private function camposDeArquivo(string $id, string $base, array $tiposSelecionados, string $tamanhoMaxMb): string
+    private function camposDeArquivo(string $id, string $base, array $tiposSelecionados, string $tamanhoMaxMb, bool $relevante): string
     {
-        $html = '<div class="form-text mb-1">Só vale se o tipo do campo for Arquivo ou Imagem; sem marcar nenhum tipo, vale a categoria inteira.</div>'
-            . '<div class="d-flex flex-wrap gap-2 mb-1">';
+        $caixas = '';
         foreach ([TiposDeArquivo::imagens(), TiposDeArquivo::documentos()] as $extensoes) {
             foreach ($extensoes as $extensao) {
-                $checkId = $id . '-tipo-' . $extensao;
-                $html .= '<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="' . $checkId . '" name="' . Pagina::h($base) . '[tipos][]" value="' . $extensao . '"'
-                    . (in_array($extensao, $tiposSelecionados, true) ? ' checked' : '') . '><label class="form-check-label" for="' . $checkId . '">' . $extensao . '</label></div>';
+                $caixas .= $this->checkbox($id . '-tipo-' . $extensao, $base . '[tipos][]', $extensao, in_array($extensao, $tiposSelecionados, true), '', $extensao);
             }
         }
-        $html .= '</div><label class="visually-hidden" for="' . $id . '-tamanho-max-mb">Tamanho máximo em MB, se o tipo do campo for Arquivo ou Imagem</label>'
-            . '<input type="number" min="1" max="' . TiposDeArquivo::TETO_MB . '" step="1" class="form-control form-control-sm" style="max-width: 10rem" id="' . $id . '-tamanho-max-mb" name="' . Pagina::h($base) . '[tamanho_max_mb]" value="' . Pagina::h($tamanhoMaxMb) . '" placeholder="padrão: ' . TiposDeArquivo::PADRAO_MB . ' MB">';
+        $html = '<fieldset><legend>Arquivos permitidos</legend>'
+            . '<div class="form-text mb-1">Sem marcar nenhum, vale a categoria inteira do tipo (imagens ou documentos).</div>'
+            . '<div class="pbl-extensoes">' . $caixas . '</div></fieldset>'
+            . $this->campo($id . '-tamanho-max-mb', $base . '[tamanho_max_mb]', 'Tamanho máximo (MB)', $tamanhoMaxMb, [
+                'tipo' => 'number', 'min' => 1, 'max' => TiposDeArquivo::TETO_MB, 'step' => 1, 'classe' => 'pbl-tamanho', 'grupo' => 'mb-0',
+                'ajuda' => 'Em branco: ' . TiposDeArquivo::PADRAO_MB . ' MB. Máximo permitido: ' . TiposDeArquivo::TETO_MB . ' MB.',
+            ]);
+        if ($relevante) {
+            return '<div class="border-top pt-3">' . $html . '</div>';
+        }
 
-        return $html;
+        return '<details><summary class="py-2">Opções de arquivo e imagem <span class="text-body-secondary">(só valem se o tipo for Arquivo ou Imagem)</span></summary><div class="pt-2">' . $html . '</div></details>';
     }
 
     /** @param list<Classe> $todas */
-    private function seletorDeTipo(string $id, string $base, string $tipo, string $alvo, array $todas, ?string $nomeDoCampo, bool $comRotulos = false): string
+    private function seletorDeTipo(string $id, string $base, string $tipo, string $alvo, array $todas): string
     {
-        $sufixo = $nomeDoCampo === null ? ' do campo novo' : ' de ' . $nomeDoCampo;
-        $html = '<label class="' . ($comRotulos ? 'form-label' : 'visually-hidden') . '" for="' . $id . '-tipo">Tipo' . ($comRotulos ? '' : Pagina::h($sufixo)) . '</label>'
-            . '<select id="' . $id . '-tipo" class="form-select' . ($comRotulos ? '' : ' form-select-sm') . '" name="' . Pagina::h($base) . '[tipo]">';
-        foreach (self::NOMES_DOS_TIPOS as $valor => $texto) {
-            $html .= '<option value="' . $valor . '"' . ($tipo === $valor ? ' selected' : '') . '>' . $texto . '</option>';
-        }
-        $html .= '</select><label class="' . ($comRotulos ? 'form-label mt-2' : 'visually-hidden') . '" for="' . $id . '-classe">Se for referência, aponta para' . ($comRotulos ? '' : Pagina::h($sufixo)) . '</label>'
-            . '<select id="' . $id . '-classe" class="form-select' . ($comRotulos ? '' : ' form-select-sm mt-1') . '" name="' . Pagina::h($base) . '[classe]">'
-            . '<option value=""' . ($alvo === '' ? ' selected' : '') . '>' . ($comRotulos ? 'qualquer tipo (ou não é referência)' : 'referência: qualquer tipo') . '</option>';
+        $referencias = ['' => 'qualquer tipo (ou não é referência)'];
         foreach ($todas as $c) {
-            $html .= '<option value="' . Pagina::h($c->nome) . '"' . ($alvo === $c->nome ? ' selected' : '') . '>referência: ' . Pagina::h($c->nome) . '</option>';
+            $referencias[$c->nome] = 'referência: ' . $c->nome;
         }
 
-        return $html . '</select>';
+        return '<div class="pbl-grade">'
+            . $this->campo($id . '-tipo', $base . '[tipo]', 'Tipo do campo', $tipo, ['tipo' => 'select', 'opcoes' => self::NOMES_DOS_TIPOS, 'grupo' => 'mb-0'])
+            . $this->campo($id . '-classe', $base . '[classe]', 'Se for referência, aponta para', $alvo, ['tipo' => 'select', 'opcoes' => $referencias, 'grupo' => 'mb-0'])
+            . '</div>';
     }
 
     private function descreverTipo(string $tipo, string $alvo): string
@@ -786,23 +784,19 @@ final class TelasDeClasses
      */
     private function camposDaClasse(string $descricao, bool $aceita, array $filhas, array $todas, ?string $propria): string
     {
-        $html = '<div class="mb-3"><label for="campo-descricao" class="form-label">Descrição</label>'
-            . '<textarea id="campo-descricao" class="form-control" name="descricao" rows="3" maxlength="' . ClasseRepositorio::MAX_DESCRICAO . '" aria-describedby="ajuda-descricao">' . Pagina::h($descricao) . '</textarea>'
-            . '<div id="ajuda-descricao" class="form-text">Opcional: para que serve este tipo, em poucas palavras.</div></div>'
-            . '<fieldset class="mb-3"><legend class="form-label fs-6">Conteúdo dentro deste</legend>'
-            . '<div class="form-check"><input class="form-check-input" type="checkbox" id="campo-aceita" name="aceita_filhos" value="1"' . ($aceita ? ' checked' : '') . '>'
-            . '<label class="form-check-label" for="campo-aceita">Pode ter conteúdo dentro (filhos)</label></div>';
+        $html = $this->campo('campo-descricao', 'descricao', 'Descrição', $descricao, ['tipo' => 'textarea', 'linhas' => 3, 'maxlength' => ClasseRepositorio::MAX_DESCRICAO, 'ajuda' => 'Opcional: para que serve este tipo, em poucas palavras.'])
+            . '<fieldset class="mb-0"><legend class="fs-6 fw-semibold mb-1">Conteúdo dentro deste tipo</legend>'
+            . $this->checkbox('campo-aceita', 'aceita_filhos', 'Pode ter conteúdo dentro (filhos)', $aceita);
         $opcoes = '';
         $nomes = array_map(static fn (Classe $c): string => $c->nome, $todas);
         if ($propria === null || !in_array($propria, $nomes, true)) {
             $nomes[] = $propria ?? '';
         }
         foreach (array_values(array_filter($nomes, static fn (string $n): bool => $n !== '')) as $i => $nome) {
-            $opcoes .= '<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="filha-' . $i . '" name="filhas[]" value="' . Pagina::h($nome) . '"' . (in_array($nome, $filhas, true) ? ' checked' : '') . '>'
-                . '<label class="form-check-label" for="filha-' . $i . '"><code>' . Pagina::h($nome) . '</code>' . ($nome === $propria ? ' (o próprio)' : '') . '</label></div>';
+            $opcoes .= $this->checkbox('filha-' . $i, 'filhas[]', '<code>' . Pagina::h($nome) . '</code>' . ($nome === $propria ? ' (o próprio)' : ''), in_array($nome, $filhas, true), '', $nome, true);
         }
         if ($opcoes !== '') {
-            $html .= '<p class="form-text mb-1 mt-2">Que tipos podem ficar dentro. Nenhum marcado: qualquer tipo. Ignorado se não pode ter filhos.</p>' . $opcoes;
+            $html .= '<p class="form-text mb-1 mt-2">Que tipos podem ficar dentro. Nenhum marcado: qualquer tipo. Ignorado se não pode ter filhos.</p><div class="pbl-extensoes">' . $opcoes . '</div>';
         }
 
         return $html . '<p class="form-text">A regra de filhos fica guardada no tipo; a conferência ao criar ou mover conteúdo vem com as telas de conteúdo.</p></fieldset>';
@@ -820,10 +814,9 @@ final class TelasDeClasses
             . 'moldes da pele com esse nome deixam de ser usados.</div>'
             . '<form method="post" action="' . $this->link($classe->id) . '/apagar">' . $this->campoCsrf($sessao)
             . '<input type="hidden" name="versao" value="' . $classe->versao . '">' . $this->campoSenha($sessao)
-            . '<button type="submit" class="btn btn-danger">Apagar o tipo ' . Pagina::h($classe->nome) . '</button> '
-            . '<a class="btn btn-outline-secondary" href="' . $this->linkLista() . '">Cancelar</a></form>';
+            . $this->acoes('Apagar o tipo ' . $classe->nome, [['Cancelar', $this->link($classe->id) . '/editar']], null, 'btn-danger') . '</form>';
 
-        return Pagina::resposta('Apagar: ' . $classe->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Apagar: ' . $classe->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], [$classe->nome, $this->link($classe->id) . '/editar'], ['Apagar', null]]);
     }
 
     /** Explicação (HTML) de por que a classe não pode ser apagada agora, ou null. */

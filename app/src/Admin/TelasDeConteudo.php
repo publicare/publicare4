@@ -57,34 +57,47 @@ final class TelasDeConteudo
                 continue;
             }
             $raiz = $site->objetoRaizId === null ? null : $this->servicos->objetos->porId($site->objetoRaizId);
-            $dominios = $this->servicos->permissoes->podeAdministrarSite($u, $raiz)
-                ? ' <a class="btn btn-sm btn-outline-secondary ms-2" href="' . Painel::PREFIXO . '/site/' . $site->id . '/dominios">Domínios<span class="visually-hidden"> de ' . Pagina::h($site->nome) . '</span></a>' : '';
-            $corpo .= '<section class="mb-4"><h2 class="h5">' . Pagina::h($site->nome) . $dominios . '</h2>';
-            if ($u->administrador) {
-                $corpo .= '<p><a href="' . Painel::PREFIXO . '/site/' . $site->id . '/redirecionamentos">Redirecionamentos</a> · <a href="' . Painel::PREFIXO . '/site/' . $site->id . '/peles">Peles</a> · <a href="' . Painel::PREFIXO . '/site/' . $site->id . '/publicacao">Menu e publicação</a></p>'
-                    . TelasDeSite::avisosDeMenu($this->servicos, $site, Painel::PREFIXO . '/site/' . $site->id . '/publicacao');
-            }
+            $base = Painel::PREFIXO . '/site/' . $site->id;
+            $nomeDoSite = Pagina::h($site->nome);
+            $acoes = [];
             if ($this->servicos->permissoes->podeAdministrarSite($u, $raiz)) {
-                $corpo .= '<p><a href="' . Painel::PREFIXO . '/site/' . $site->id . '/configuracoes">Configurações do site</a></p>';
+                $acoes[] = [$base . '/dominios', 'Domínios'];
+                $acoes[] = [$base . '/configuracoes', 'Configurações'];
+            }
+            if ($u->administrador) {
+                $acoes[] = [$base . '/redirecionamentos', 'Redirecionamentos'];
+                $acoes[] = [$base . '/peles', 'Peles e moldes'];
+                $acoes[] = [$base . '/publicacao', 'Menu e publicação'];
+            }
+            $corpo .= '<section class="pbl-card" aria-labelledby="site-' . $site->id . '"><h2 id="site-' . $site->id . '" class="h5">' . $nomeDoSite . '</h2>';
+            if ($acoes !== []) {
+                $corpo .= '<ul class="pbl-lista-acoes" aria-label="Ações do site ' . $nomeDoSite . '">';
+                foreach ($acoes as [$href, $rotulo]) {
+                    $corpo .= '<li><a class="btn btn-sm btn-outline-secondary" href="' . $href . '">' . $rotulo . '<span class="visually-hidden"> do site ' . $nomeDoSite . '</span></a></li>';
+                }
+                $corpo .= '</ul>';
+            }
+            if ($u->administrador) {
+                $corpo .= TelasDeSite::avisosDeMenu($this->servicos, $site, $base . '/publicacao');
             }
             if ($lista === []) {
                 $corpo .= '<p class="text-body-secondary">Este site ainda não tem conteúdo inicial.</p></section>';
                 continue;
             }
-            $corpo .= '<ul class="list-group">';
+            $corpo .= '<p class="form-text mb-1">Seções que você pode abrir:</p><ul class="list-group">';
             foreach ($lista as [$o, $perfil]) {
-                $corpo .= '<li class="list-group-item d-flex justify-content-between align-items-center"><a href="' . $this->link($o->id) . '">' . Pagina::h($o->titulo) . '</a>'
-                    . ' <span class="badge text-bg-secondary">' . Pagina::h($perfil) . '</span></li>';
+                $corpo .= '<li class="list-group-item d-flex justify-content-between align-items-center gap-2"><a href="' . $this->link($o->id) . '">' . Pagina::h($o->titulo) . '</a>'
+                    . ' <span class="badge text-bg-secondary" title="Seu papel nesta seção">' . Pagina::h($perfil) . '</span></li>';
             }
             $corpo .= '</ul></section>';
         }
         if ($corpo === '') {
-            $corpo = '<div class="alert alert-info" role="status">Você ainda não recebeu acesso a nenhuma seção. Peça a um administrador.</div>';
+            $corpo = Pagina::alerta('info', 'Você ainda não recebeu acesso a nenhuma seção. Peça a um administrador.');
         }
-        $saudacao = '<p>Olá, <strong>' . Pagina::h($u->nome) . '</strong>.' . ($u->administrador ? ' Você é administrador.' : '') . '</p>';
+        $saudacao = '';
         $avisoDeVersao = TelasDeAtualizacao::avisoHomePage($this->servicos, $u);
 
-        return Pagina::resposta('Administração', $saudacao . $avisoDeVersao . $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Sites e conteúdo', $saudacao . $avisoDeVersao . $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Olá, <strong>' . Pagina::h($u->nome) . '</strong>. ' . ($u->administrador ? 'Você é administrador: escolha um site para cuidar dele ou abra uma seção para editar conteúdo.' : 'Abra uma seção para editar o conteúdo.'));
     }
 
     private function barra(SessaoAtiva $sessao): string

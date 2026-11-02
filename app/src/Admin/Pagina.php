@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pbl\Admin;
 
+use Pbl\Versao;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -23,30 +24,186 @@ final class Pagina
         return htmlspecialchars($texto, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
-    /** `$navegacao` (HTML já escapado, em geral uma `<nav>`) vai num `<header>` antes do `<main>`; o título vira o `<h1>`. */
-    public static function resposta(string $titulo, string $corpo, int $status = Response::HTTP_OK, bool $seguro = false, string $navegacao = ''): Response
+    /**
+     * URL de um arquivo estático da administração com `?v=` (hash curto do conteúdo): o servidor/CDN guarda esses arquivos por
+     * anos, então sem a versão na URL um ajuste de CSS nunca chegaria a quem já abriu o painel. Arquivo ausente: versão do produto.
+     */
+    public static function urlVersionada(string $url): string
+    {
+        static $cache = [];
+        if (!isset($cache[$url])) {
+            $arquivo = dirname(__DIR__, 3) . '/public' . $url;
+            $hash = is_file($arquivo) ? hash_file('crc32b', $arquivo) : false;
+            $cache[$url] = $url . '?v=' . ($hash === false ? rawurlencode(Versao::ATUAL) : $hash);
+        }
+
+        return $cache[$url];
+    }
+
+    /** Caminho da requisição em curso, para a barra marcar o item ativo (definido por `Painel::tratar`). */
+    private static string $caminhoAtual = '';
+
+    public static function definirCaminho(string $caminho): void
+    {
+        self::$caminhoAtual = $caminho;
+    }
+
+    /**
+     * `$navegacao` (HTML já escapado, em geral uma `<nav>`) vai num `<header>` antes do `<main>`; o título vira o `<h1>`.
+     * `$migalhas` (lista de `[rótulo, href|null]`, o último sem href = tela atual) vira o caminho de volta acima do título;
+     * `$descricao` (HTML já escapado) é uma frase curta abaixo dele.
+     *
+     * @param list<array{0: string, 1: string|null}> $migalhas
+     */
+    public static function resposta(string $titulo, string $corpo, int $status = Response::HTTP_OK, bool $seguro = false, string $navegacao = '', array $migalhas = [], string $descricao = ''): Response
     {
         $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
             . '<meta name="robots" content="noindex"><title>' . self::h($titulo) . ' — PBL4</title>'
-            . '<link rel="stylesheet" href="' . self::BOOTSTRAP . '"><link rel="stylesheet" href="' . self::CSS . '">'
+            . '<link rel="stylesheet" href="' . self::urlVersionada(self::BOOTSTRAP) . '"><link rel="stylesheet" href="' . self::urlVersionada(self::CSS) . '">'
             . '</head><body><a class="visually-hidden-focusable" href="#conteudo">Pular para o conteúdo</a>'
             . ($navegacao === '' ? '' : '<header>' . $navegacao . '</header>')
-            . '<main id="conteudo" class="container py-4"><h1 class="h3 mb-4">' . self::h($titulo) . '</h1>' . $corpo . '</main></body></html>';
+            . '<main id="conteudo" class="container py-3 py-md-4">' . self::migalhas($migalhas)
+            . '<h1 class="h3 mb-2">' . self::h($titulo) . '</h1>'
+            . ($descricao === '' ? '<div class="mb-4"></div>' : '<p class="text-body-secondary mb-4">' . $descricao . '</p>')
+            . $corpo . '</main></body></html>';
 
         return self::protegida(new Response($html, $status, ['Content-Type' => 'text/html; charset=utf-8']), $seguro);
     }
 
-    /** Barra de navegação de quem entrou (sem JavaScript: sem menu recolhível). `$nome` e `$tokenCsrf` chegam sem escape. */
+    /** @param list<array{0: string, 1: string|null}> $migalhas */
+    public static function migalhas(array $migalhas): string
+    {
+        if ($migalhas === []) {
+            return '';
+        }
+        $itens = '';
+        $ultimo = array_key_last($migalhas);
+        foreach ($migalhas as $i => [$rotulo, $href]) {
+            $itens .= $i === $ultimo || $href === null
+                ? '<li class="breadcrumb-item active" aria-current="page">' . self::h($rotulo) . '</li>'
+                : '<li class="breadcrumb-item"><a href="' . self::h($href) . '">' . self::h($rotulo) . '</a></li>';
+        }
+
+        return '<nav aria-label="Você está em" class="pbl-migalhas"><ol class="breadcrumb mb-2">' . $itens . '</ol></nav>';
+    }
+
+    /**
+     * Barra de quem entrou, sem JavaScript: na primeira linha a marca, o nome e o botão Sair; na segunda os links das seções, que
+     * quebram de linha em vez de estourar a largura. A seção atual leva `aria-current="page"`. `$nome` e `$tokenCsrf` chegam sem escape.
+     */
     public static function barra(string $nome, string $tokenCsrf, bool $administrador = false): string
     {
-        return '<nav class="navbar navbar-expand bg-dark" data-bs-theme="dark" aria-label="Administração"><div class="container">'
+        $caminho = rtrim(self::$caminhoAtual, '/');
+        $secao = match (true) {
+            str_starts_with($caminho, '/_pbl/classes') => 'classes',
+            str_starts_with($caminho, '/_pbl/contas') => 'contas',
+            str_starts_with($caminho, '/_pbl/atualizacao') => 'atualizacao',
+            default => 'inicio',
+        };
+        $itens = ['inicio' => ['/_pbl/', 'Sites e conteúdo'], 'classes' => ['/_pbl/classes', 'Tipos de conteúdo']];
+        if ($administrador) {
+            $itens['contas'] = ['/_pbl/contas', 'Contas'];
+            $itens['atualizacao'] = ['/_pbl/atualizacao', 'Atualização'];
+        }
+        $links = '';
+        foreach ($itens as $chave => [$href, $rotulo]) {
+            $links .= '<li class="nav-item"><a class="nav-link' . ($chave === $secao ? ' active' : '') . '" href="' . $href . '"' . ($chave === $secao ? ' aria-current="page"' : '') . '>' . $rotulo . '</a></li>';
+        }
+
+        return '<nav class="navbar navbar-expand bg-dark pbl-barra" data-bs-theme="dark" aria-label="Administração"><div class="container">'
             . '<a class="navbar-brand" href="/_pbl/">PBL4</a>'
-            . '<ul class="navbar-nav pbl-links"><li class="nav-item"><a class="nav-link" href="/_pbl/classes">Tipos de conteúdo</a></li>'
-            . ($administrador ? '<li class="nav-item"><a class="nav-link" href="/_pbl/contas">Contas</a></li><li class="nav-item"><a class="nav-link" href="/_pbl/atualizacao">Atualização</a></li>' : '')
-            . '</ul>'
-            . '<div class="d-flex align-items-center gap-2 ms-auto"><span class="navbar-text text-truncate">' . self::h($nome) . '</span>'
+            . '<div class="pbl-usuario d-flex align-items-center gap-2 ms-auto"><span class="navbar-text pbl-nome">' . self::h($nome) . '</span>'
             . '<form method="post" action="/_pbl/sair"><input type="hidden" name="_csrf" value="' . self::h($tokenCsrf) . '">'
-            . '<button type="submit" class="btn btn-sm btn-outline-light">Sair</button></form></div></div></nav>';
+            . '<button type="submit" class="btn btn-sm btn-outline-light">Sair</button></form></div>'
+            . '<ul class="navbar-nav pbl-links">' . $links . '</ul></div></nav>';
+    }
+
+    // ---------------------------------------------------------------- componentes de formulário (HTML sempre escapado)
+
+    /**
+     * Campo com `<label>` visível e associado (`for`/`id`), ajuda abaixo e `mb-3`. `$tipo`: `text`, `password`, `email`, `number`,
+     * `textarea` ou `select` (neste caso `$opcoes['opcoes']` = valor => rótulo). Opções: `ajuda` (HTML já escapado), `obrigatorio`,
+     * `maxlength`, `autocomplete`, `inputmode`, `min`, `max`, `linhas`, `classe` (do controle), `grupo` (classe do `div`), `pattern`, `autofocus`.
+     *
+     * @param array<string, mixed> $o
+     */
+    public static function campo(string $id, string $nome, string $rotulo, string $valor = '', array $o = []): string
+    {
+        $tipo = is_string($o['tipo'] ?? null) ? $o['tipo'] : 'text';
+        $ajuda = is_string($o['ajuda'] ?? null) ? $o['ajuda'] : '';
+        $attrs = ' id="' . self::h($id) . '" name="' . self::h($nome) . '"'
+            . ($ajuda === '' ? '' : ' aria-describedby="' . self::h($id) . '-ajuda"')
+            . (($o['obrigatorio'] ?? false) ? ' required' : '')
+            . (($o['autofocus'] ?? false) ? ' autofocus' : '');
+        foreach (['maxlength', 'autocomplete', 'inputmode', 'min', 'max', 'pattern', 'step'] as $a) {
+            if (isset($o[$a]) && (is_string($o[$a]) || is_int($o[$a]))) {
+                $attrs .= ' ' . $a . '="' . self::h((string) $o[$a]) . '"';
+            }
+        }
+        $classe = is_string($o['classe'] ?? null) ? ' ' . $o['classe'] : '';
+        if ($tipo === 'textarea') {
+            $controle = '<textarea class="form-control' . $classe . '"' . $attrs . ' rows="' . (is_int($o['linhas'] ?? null) ? $o['linhas'] : 4) . '">' . self::h($valor) . '</textarea>';
+        } elseif ($tipo === 'select') {
+            $controle = '<select class="form-select' . $classe . '"' . $attrs . '>';
+            $opcoes = is_array($o['opcoes'] ?? null) ? $o['opcoes'] : [];
+            foreach ($opcoes as $v => $texto) {
+                $controle .= '<option value="' . self::h((string) $v) . '"' . ((string) $v === $valor ? ' selected' : '') . '>' . self::h((string) $texto) . '</option>';
+            }
+            $controle .= '</select>';
+        } else {
+            $controle = '<input type="' . self::h($tipo) . '" class="form-control' . $classe . '"' . $attrs . ' value="' . self::h($valor) . '">';
+        }
+
+        return '<div class="' . (is_string($o['grupo'] ?? null) ? $o['grupo'] : 'mb-3') . '"><label for="' . self::h($id) . '" class="form-label">' . self::h($rotulo) . '</label>'
+            . $controle . ($ajuda === '' ? '' : '<div id="' . self::h($id) . '-ajuda" class="form-text">' . $ajuda . '</div>') . '</div>';
+    }
+
+    /**
+     * Caixa de marcar (`form-check`: input antes do label, `for`/`id` únicos). `$rotulo` é texto puro, salvo `$rotuloHtml` (HTML já
+     * escapado); `$ajuda` é HTML já escapado.
+     */
+    public static function checkbox(string $id, string $nome, string $rotulo, bool $marcado, string $ajuda = '', string $valor = '1', bool $rotuloHtml = false, string $tipo = 'checkbox'): string
+    {
+        return '<div class="form-check"><input class="form-check-input" type="' . $tipo . '" id="' . self::h($id) . '" name="' . self::h($nome) . '" value="' . self::h($valor) . '"'
+            . ($marcado ? ' checked' : '') . ($ajuda === '' ? '' : ' aria-describedby="' . self::h($id) . '-ajuda"') . '>'
+            . '<label class="form-check-label" for="' . self::h($id) . '">' . ($rotuloHtml ? $rotulo : self::h($rotulo)) . '</label>'
+            . ($ajuda === '' ? '' : '<div id="' . self::h($id) . '-ajuda" class="form-text w-100">' . $ajuda . '</div>') . '</div>';
+    }
+
+    /** Quadro com título (`<fieldset><legend>` por padrão; `$tag = 'section'` para quadro sem campos). Título em texto puro, corpo em HTML. */
+    public static function card(string $titulo, string $corpo, string $ajuda = '', string $tag = 'fieldset', string $classe = ''): string
+    {
+        $cab = $tag === 'fieldset' ? '<legend>' . self::h($titulo) . '</legend>' : '<h2 class="pbl-card-titulo">' . self::h($titulo) . '</h2>';
+
+        return '<' . $tag . ' class="pbl-card' . ($classe === '' ? '' : ' ' . $classe) . '">' . $cab
+            . ($ajuda === '' ? '' : '<p class="form-text mt-0">' . $ajuda . '</p>') . $corpo . '</' . $tag . '>';
+    }
+
+    /** Aviso Bootstrap: `$tipo` = danger, success, warning ou info; erro/aviso usam `role="alert"`, o resto `role="status"`. `$texto` é texto puro. */
+    public static function alerta(string $tipo, string $texto, string $id = '', bool $html = false): string
+    {
+        return '<div' . ($id === '' ? '' : ' id="' . self::h($id) . '"') . ' class="alert alert-' . self::h($tipo) . '" role="' . (in_array($tipo, ['danger', 'warning'], true) ? 'alert' : 'status') . '">'
+            . ($html ? $texto : self::h($texto)) . '</div>';
+    }
+
+    /**
+     * Linha de botões de um formulário: o primário (`<button type="submit">`), os secundários (links em outline, `[rótulo, href]`) e,
+     * afastado, um destrutivo opcional (`[rótulo, href]`, link em vermelho). `$primario` é o rótulo do botão de envio.
+     *
+     * @param list<array{0: string, 1: string}> $secundarios
+     * @param array{0: string, 1: string}|null $destrutivo
+     */
+    public static function acoes(string $primario, array $secundarios = [], ?array $destrutivo = null, string $classePrimario = 'btn-primary'): string
+    {
+        $html = '<div class="pbl-acoes">' . ($primario === '' ? '' : '<button type="submit" class="btn ' . self::h($classePrimario) . '">' . self::h($primario) . '</button>');
+        foreach ($secundarios as [$rotulo, $href]) {
+            $html .= '<a class="btn btn-outline-secondary" href="' . self::h($href) . '">' . self::h($rotulo) . '</a>';
+        }
+        if ($destrutivo !== null) {
+            $html .= '<a class="btn btn-outline-danger pbl-acao-destrutiva" href="' . self::h($destrutivo[1]) . '">' . self::h($destrutivo[0]) . '</a>';
+        }
+
+        return $html . '</div>';
     }
 
     /** Cabeçalhos de segurança das páginas de administração (ADR 0011 e 0012). `$seguro` = a conexão é HTTPS (liga o HSTS). */

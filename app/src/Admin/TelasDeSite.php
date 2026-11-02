@@ -186,7 +186,7 @@ final class TelasDeSite
         $corpo .= $regras === [] ? '<tr><td colspan="5" class="text-body-secondary">Nenhuma regra ainda.</td></tr>' : '';
         $corpo .= '</tbody></table></div><h2 class="h5 mt-4">Nova regra</h2>' . $this->formRegra($sessao, $site, null, ['codigo' => '301'], null);
 
-        return Pagina::resposta('Redirecionamentos de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Redirecionamentos de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Redirecionamentos', null]]);
     }
 
     /**
@@ -406,7 +406,7 @@ final class TelasDeSite
             . '<form method="post" action="' . $this->linkPublicacao($site) . '">' . $this->campoCsrf($sessao)
             . '<input type="hidden" name="depois" value="0"><button type="submit" class="btn btn-primary">Republicar agora</button></form>';
 
-        return Pagina::resposta('Publicação de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Publicação de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Publicação', null]]);
     }
 
     private function republicarAgora(SessaoAtiva $sessao, Site $site, Request $req): Response
@@ -456,7 +456,7 @@ final class TelasDeSite
             . '<label for="b-ligado" class="form-check-label">Sugerir grafia parecida quando a busca não encontra nada</label></div>'
             . '<button type="submit" class="btn btn-primary">Salvar</button></form>';
 
-        return Pagina::resposta('Busca de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Busca de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Busca', null]]);
     }
 
     private function salvarBusca(SessaoAtiva $sessao, Site $site, Request $req): Response
@@ -526,7 +526,7 @@ final class TelasDeSite
         }
         $corpo .= '</tbody></table></div>';
 
-        return Pagina::resposta('Peles de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Peles de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Peles', null]]);
     }
 
     private function ativarPele(SessaoAtiva $sessao, Site $site, Request $req): Response
@@ -562,7 +562,7 @@ final class TelasDeSite
         }
         $corpo .= '</tbody></table></div><p><a href="' . $this->linkPeles($site) . '">Voltar às peles</a></p>';
 
-        return Pagina::resposta('Pele ' . $pele, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Pele ' . $pele, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Peles', $this->linkPeles($site)], [$pele, null]]);
     }
 
     private function abrirMolde(SessaoAtiva $sessao, Site $site, string $pele, Request $req): Response

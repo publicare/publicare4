@@ -143,7 +143,7 @@ final class TelasDeContas
         }
         $corpo .= '</tbody></table></div>' . $this->paginacao($pagina, $totalPaginas, $busca, $situacao);
 
-        return Pagina::resposta('Contas', $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Contas', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Contas', null]]);
     }
 
     /** Busca e filtro (GET, sem CSRF: não altera nada) em cima da lista de contas. */
@@ -190,9 +190,9 @@ final class TelasDeContas
             . '<div class="form-check mb-3"><input id="campo-admin" class="form-check-input" type="checkbox" name="administrador" value="1"' . (($v['administrador'] ?? '') === '1' ? ' checked' : '') . '>'
             . '<label for="campo-admin" class="form-check-label">Administrador (vê e altera tudo, em todos os sites)</label></div>'
             . $this->campoSenha($sessao, 'campo-senha-confirmar', 'senha_atual')
-            . '<button type="submit" class="btn btn-primary">Criar conta</button> <a class="btn btn-outline-secondary" href="' . $this->linkLista() . '">Cancelar</a></form>';
+            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Criar conta</button><a class="btn btn-outline-secondary" href="' . $this->linkLista() . '">Cancelar</a></div></form>';
 
-        return Pagina::resposta('Nova conta', $corpo, $status, false, $this->barra($sessao));
+        return Pagina::resposta('Nova conta', $corpo, $status, false, $this->barra($sessao), [['Contas', $this->linkLista()], ['Nova conta', null]]);
     }
 
     private function criar(SessaoAtiva $sessao, Request $requisicao): Response
@@ -250,16 +250,16 @@ final class TelasDeContas
                 : '<div class="form-check mb-3"><input id="campo-admin" class="form-check-input" type="checkbox" name="administrador" value="1"' . ($admin ? ' checked' : '') . '>'
                     . '<label for="campo-admin" class="form-check-label">Administrador (vê e altera tudo, em todos os sites)</label></div>')
             . $this->campoSenha($sessao, 'campo-senha-editar')
-            . '<button type="submit" class="btn btn-primary">Salvar dados</button></form></section>'
+            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar dados</button></div></form></section>'
             . '<section class="mb-4"><h2 class="h5">Redefinir senha</h2>' . ($eu ? '<p class="form-text">Ao trocar a sua senha você sai e precisa entrar de novo.</p>' : '<p class="form-text">A conta sai de todas as sessões abertas e entra com a senha nova.</p>')
             . '<form method="post" action="' . $base . '/senha">' . $csrf . $this->camposDeSenha('nova senha')
             . $this->campoSenha($sessao, 'campo-senha-atual-redefinir', 'senha_atual')
-            . '<button type="submit" class="btn btn-warning">Trocar senha</button></form></section>'
+            . '<div class="pbl-acoes"><button type="submit" class="btn btn-warning">Trocar senha</button></div></form></section>'
             . '<section class="mb-4"><h2 class="h5">Situação</h2>' . $this->blocoDeSituacao($sessao, $csrf, $c, $eu, $base) . '</section>'
             . '<section class="mb-4"><h2 class="h5">Papéis por seção</h2>' . $this->blocoDeAcessos($sessao, $csrf, $c, $base) . '</section>'
             . '<p><a href="' . $this->linkLista() . '">Voltar às contas</a></p>';
 
-        return Pagina::resposta('Conta: ' . $c->login, $corpo, $status, false, $this->barra($sessao));
+        return Pagina::resposta('Conta: ' . $c->login, $corpo, $status, false, $this->barra($sessao), [['Contas', $this->linkLista()], [$c->login, null]]);
     }
 
     private function blocoDeSituacao(SessaoAtiva $sessao, string $csrf, Usuario $c, bool $eu, string $base): string
