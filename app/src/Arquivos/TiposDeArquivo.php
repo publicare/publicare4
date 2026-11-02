@@ -18,7 +18,16 @@ final class TiposDeArquivo
     /** Teto absoluto: nenhuma classe pode configurar mais que isto, mesmo que `upload_max_filesize`/`post_max_size` permitam. */
     public const TETO_MB = 100;
 
-    private const ZIP = ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'];
+    /**
+     * MIMEs genéricos de contêiner (nunca dizem, por si só, qual é o formato de verdade): o `finfo` às vezes devolve um
+     * destes para `docx`/`xlsx`/`pptx`/`odt`/`ods`/`odp`, que por dentro são um ZIP. Quem recebe um destes precisa olhar
+     * dentro do pacote (`ServicoDeUpload::identificarPacoteZip`) antes de aceitar.
+     */
+    public const MIME_GENERICO_DE_CONTEINER = ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'];
+    /** Extensões cujo formato por dentro é um ZIP (Office/OpenDocument): precisam da verificação extra acima. */
+    public const BASEADOS_EM_ZIP = ['docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp'];
+
+    private const ZIP = self::MIME_GENERICO_DE_CONTEINER;
 
     /** @var array<string, Tipo> por extensão (minúscula, sem ponto) */
     private const TODOS = [

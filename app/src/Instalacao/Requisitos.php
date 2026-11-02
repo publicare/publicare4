@@ -60,10 +60,11 @@ final class Requisitos
         ];
         $zip = extension_loaded('zip');
         $itens[] = [
-            'nome' => 'Extensão zip (atualização automática)',
+            'nome' => 'Extensão zip (atualização automática e upload de documento de escritório)',
             'ok' => $zip,
             'obrigatorio' => false,
-            'detalhe' => $zip ? 'Presente: o PBL4 poderá se atualizar sozinho.' : 'Ausente: o site funciona, mas a atualização automática não. Peça à hospedagem para ativá-la quando puder.',
+            'detalhe' => $zip ? 'Presente: o PBL4 poderá se atualizar sozinho e aceitar upload de docx/xlsx/pptx/odt/ods/odp.'
+                : 'Ausente: o site funciona, mas a atualização automática não, e upload de docx/xlsx/pptx/odt/ods/odp é recusado (sem ela não há como confirmar o formato de verdade). Peça à hospedagem para ativá-la quando puder.',
         ];
         $gd = extension_loaded('gd');
         $itens[] = [

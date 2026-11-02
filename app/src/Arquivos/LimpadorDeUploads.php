@@ -38,6 +38,8 @@ final class LimpadorDeUploads
         $apagados = 0;
         $bytes = 0;
         $nomes = [];
+        /** @var list<Arquivo> $orfaos linhas órfãs desta passada (ainda não apagadas) */
+        $orfaos = [];
         $cursor = 0;
         while (($lote = $this->arquivos->lote($cursor)) !== []) {
             foreach ($lote as $arquivo) {
@@ -51,9 +53,26 @@ final class LimpadorDeUploads
                 if (count($nomes) < 20) {
                     $nomes[] = $arquivo->nome . ' (nº ' . $arquivo->id . ')';
                 }
-                if (!$simular) {
+                $orfaos[] = $arquivo;
+            }
+        }
+        if (!$simular) {
+            // Upload deduplica por conteúdo: mais de uma linha pode compartilhar a mesma chave em disco. Apaga primeiro
+            // todas as linhas órfãs e só então o arquivo físico de cada chave — e só se nenhuma linha (viva ou órfã que
+            // ainda não tenha sido apagada) continuar usando aquela chave. Isso nunca derruba um arquivo que uma outra
+            // linha, viva ou ainda na carência, precise.
+            foreach ($orfaos as $arquivo) {
+                $this->arquivos->apagar($arquivo->id);
+            }
+            $chavesJaConferidas = [];
+            foreach ($orfaos as $arquivo) {
+                $chaveUnica = $arquivo->chave . '.' . $arquivo->extensao;
+                if (isset($chavesJaConferidas[$chaveUnica])) {
+                    continue;
+                }
+                $chavesJaConferidas[$chaveUnica] = true;
+                if ($this->arquivos->contarPorChave($arquivo->chave, $arquivo->extensao) === 0) {
                     $this->armazenamento->remover($arquivo->chave, $arquivo->extensao);
-                    $this->arquivos->apagar($arquivo->id);
                 }
             }
         }

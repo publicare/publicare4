@@ -46,8 +46,11 @@ flowchart TD
   da whitelist, nunca do nome enviado. O nome original só é guardado como metadado saneado, para mostrar na tela e no
   `Content-Disposition`.
 - **Tipo real por conteúdo**, nunca pela extensão do nome: `finfo` lê os bytes; para os formatos que são contêineres ZIP
-  (`docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`) o `finfo` às vezes só diz "zip", então confere também a assinatura `PK\x03\x04` —
-  mais fraco que os outros tipos, é uma limitação conhecida (não valida a estrutura interna do documento, só que é um ZIP).
+  (`docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`) o `finfo` às vezes só diz "zip", então o `ServicoDeUpload` confere a
+  assinatura `PK\x03\x04` e **olha dentro do pacote** (`ZipArchive`: `word/document.xml`, `xl/workbook.xml`,
+  `ppt/presentation.xml` ou o `mimetype` do ODF) para saber qual dos seis formatos é de verdade — nunca aceita pelo
+  primeiro candidato da lista. Pacote que não bate com nenhum formato conhecido, ou sem a extensão `zip` do PHP, é
+  recusado como ambíguo.
 - **Imagem**: com GD, `imagecreatefromstring` decodifica de verdade (um `.jpg` que não é imagem de verdade é recusado) e o
   resultado é **recodificado** — recria os pixels, então qualquer payload escondido e o EXIF somem (`sanitizada = true`). Sem
   GD, só confere os bytes mágicos do formato (mais fraco; `sanitizada = false`), registrado na tela de requisitos do instalador.

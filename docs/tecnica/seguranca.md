@@ -77,8 +77,11 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
   (mais fraco, registrado em `sanitizada = false`).
 - **Nunca o nome do cliente como caminho**: chave aleatória de 16 bytes no disco; a extensão vem sempre da whitelist. O nome
   original só é metadado saneado (exibição e `Content-Disposition`).
-- **Whitelist fechada por categoria** (`imagem`: jpg/png/gif/webp; documento: pdf/txt/csv e, com verificação mais fraca por
-  só confirmar a assinatura ZIP, docx/xlsx/pptx/odt/ods/odp): nunca `php`, `phtml`, `html`, `svg` ou `js`.
+- **Whitelist fechada por categoria** (`imagem`: jpg/png/gif/webp; documento: pdf/txt/csv e docx/xlsx/pptx/odt/ods/odp):
+  nunca `php`, `phtml`, `html`, `svg` ou `js`. Os seis formatos de Office/OpenDocument são contêineres ZIP: quando o
+  `finfo` só diz "é um ZIP", `ServicoDeUpload` confere a assinatura e **olha dentro do pacote** (`word/document.xml`,
+  `xl/workbook.xml`, `ppt/presentation.xml` ou o arquivo `mimetype` do ODF) antes de aceitar; sem bater com nenhum
+  formato conhecido, ou sem a extensão `zip` do PHP para abrir o pacote, o envio é recusado como ambíguo.
 - **Defesa em profundidade no repositório**: `ObjetoRepositorio::validar` confere de novo que o arquivo apontado existe, é
   do mesmo site e da categoria certa — um formulário forjado não troca o valor por um arquivo de outro site ou tipo.
 - **Entrega só por `ArquivoController`**, rota pública (sem sessão, como `EnvioDeFormulario`) que só serve o arquivo de um
@@ -87,9 +90,13 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 - **Nunca apaga na requisição**: trocar ou remover o valor de uma propriedade só deixa de referenciar o arquivo antigo; só
   `bin/pbl limpar-uploads` (cron, fora da requisição) apaga o que nenhum objeto nem versão antiga referencia mais, com
   carência de 1 hora.
-- **Limitação conhecida**: a verificação de `docx`/`xlsx`/`pptx`/`odt`/`ods`/`odp` confere a assinatura ZIP, não a
-  estrutura interna do documento (ver ADR 0014 §2). Sem GD, upload de imagem fica só com a verificação de cabeçalho (mais
-  fraca que decodificar de verdade); o instalador avisa quando o GD falta.
+- **Limitação conhecida**: sem GD, upload de imagem fica só com a verificação de cabeçalho (mais fraca que decodificar
+  de verdade); sem a extensão `zip`, upload de `docx`/`xlsx`/`pptx`/`odt`/`ods`/`odp` é sempre recusado (não há como
+  olhar dentro do pacote). O instalador avisa nos dois casos.
+- **Deduplicação e limpeza**: dois uploads com o mesmo conteúdo compartilham o arquivo físico (uma linha de `arquivo`
+  por envio, a mesma `chave` em disco); `bin/pbl limpar-uploads` só remove o arquivo físico depois de apagar **todas**
+  as linhas órfãs e confirmar que nenhuma linha (viva ou ainda não examinada) continua usando aquela chave — nunca
+  apaga um arquivo que outra linha, viva ou só fora da carência, ainda precise.
 - Testes: `tests/ArquivosTest.php`, `tests/AdminUploadTest.php`.
 
 ## Escrita em disco pela administração (moldes de pele)
@@ -110,7 +117,7 @@ A edição de peles é a única superfície em que a administração **grava arq
 | Recuperação de senha por e-mail, autenticação em dois fatores | depois da fase 4 ([ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md)) |
 | Permissão por campo | a decidir (o modelo de classes não tem permissão por campo; as telas de objetos tratam todos os campos não arquivados igual) |
 | Captcha plugável, verificação de e-mail e quota global em formulários públicos | próximas fatias da fase 6 ([ADR 0013](../adr/0013-formularios-publicos.md)) |
-| Upload na criação do conteúdo (hoje só na edição); verificação da estrutura interna de `docx`/`xlsx`/`pptx`/`odt`/`ods`/`odp` (hoje só a assinatura ZIP); anexo de formulário público; `tipos`/`tamanho_max_mb` por propriedade na tela de tipos de conteúdo (hoje só pelo `ClasseRepositorio` direto) | próximas fatias do fluxo 7 ([ADR 0014](../adr/0014-upload-de-arquivos.md)) |
+| Upload na criação do conteúdo (hoje só na edição); anexo de formulário público; `tipos`/`tamanho_max_mb` por propriedade na tela de tipos de conteúdo (hoje só pelo `ClasseRepositorio` direto) | próximas fatias do fluxo 7 ([ADR 0014](../adr/0014-upload-de-arquivos.md)) |
 | Atualizar pelo painel sem que o PHP web precise gravar o código (hoje o processo de segundo plano roda com o mesmo usuário do PHP, então a pasta do PBL4 precisa ser gravável por ele; onde isso é indesejável, use a linha de comando com outro usuário) | a decidir ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | Política para quando existir migração **destrutiva** de verdade (hoje nenhuma existe — ADR 0006 §8 —, então `bin/pbl reverter` sempre é seguro quando o registro da atualização confere) | a decidir ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | HTTPS forçado na administração (hoje é recomendação) | a decidir |

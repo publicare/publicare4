@@ -83,6 +83,19 @@ final class ArquivosTest extends TestCase
         return "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF";
     }
 
+    /** Um .zip de verdade (para o `finfo` e para o `str_starts_with(..., "PK")`) com uma única entrada dentro. */
+    private function zipComEntrada(string $nomeDaEntrada, string $conteudoDaEntrada): string
+    {
+        $caminho = (string) tempnam(sys_get_temp_dir(), 'pbl4zip');
+        unlink($caminho); // ZipArchive::open com CREATE não aceita um arquivo vazio já existente em alguns ambientes
+        $zip = new \ZipArchive();
+        $zip->open($caminho, \ZipArchive::CREATE);
+        $zip->addFromString($nomeDaEntrada, $conteudoDaEntrada);
+        $zip->close();
+
+        return $caminho;
+    }
+
     /** @return array{nome: string, tipo: string, tipos?: list<string>, tamanho_max_mb?: int} */
     private function propriedadeImagem(): array
     {
@@ -233,6 +246,74 @@ final class ArquivosTest extends TestCase
         self::assertSame('application/pdf', $arquivo->mime);
     }
 
+    // ---------------------------------------------------------------- pacotes ZIP (Office/OpenDocument): precisa olhar dentro
+
+    public function testXlsxEhIdentificadoPeloConteudoDoPacoteNaoPeloPrimeiroCandidato(): void
+    {
+        if (!extension_loaded('zip')) {
+            self::markTestSkipped('sem a extensão zip');
+        }
+        $servico = $this->s->uploads();
+        $caminho = $this->zipComEntrada('xl/workbook.xml', '<workbook/>');
+        $arquivo = $servico->enviar(new UploadedFile($caminho, 'planilha.xlsx', 'application/octet-stream', null, true), $this->propriedadeArquivo(), 1, 1, null);
+        self::assertSame('xlsx', $arquivo->extensao);
+    }
+
+    public function testPptxEhIdentificadoPeloConteudoDoPacote(): void
+    {
+        if (!extension_loaded('zip')) {
+            self::markTestSkipped('sem a extensão zip');
+        }
+        $servico = $this->s->uploads();
+        $caminho = $this->zipComEntrada('ppt/presentation.xml', '<presentation/>');
+        $arquivo = $servico->enviar(new UploadedFile($caminho, 'slides.pptx', 'application/zip', null, true), $this->propriedadeArquivo(), 1, 1, null);
+        self::assertSame('pptx', $arquivo->extensao);
+    }
+
+    public function testOdtEhIdentificadoPeloArquivoMimetype(): void
+    {
+        if (!extension_loaded('zip')) {
+            self::markTestSkipped('sem a extensão zip');
+        }
+        $servico = $this->s->uploads();
+        $caminho = $this->zipComEntrada('mimetype', 'application/vnd.oasis.opendocument.text');
+        $arquivo = $servico->enviar(new UploadedFile($caminho, 'texto.odt', 'application/octet-stream', null, true), $this->propriedadeArquivo(), 1, 1, null);
+        self::assertSame('odt', $arquivo->extensao);
+    }
+
+    public function testZipGenericoSemFormatoConhecidoDentroERecusadoComoAmbiguo(): void
+    {
+        if (!extension_loaded('zip')) {
+            self::markTestSkipped('sem a extensão zip');
+        }
+        $servico = $this->s->uploads();
+        // Um .zip de verdade, mas nada dentro que identifique docx/xlsx/pptx/odt/ods/odp: não dá para saber o que é.
+        $caminho = $this->zipComEntrada('qualquer-coisa.bin', 'dados quaisquer');
+        try {
+            $servico->enviar(new UploadedFile($caminho, 'misterioso.docx', 'application/zip', null, true), $this->propriedadeArquivo(), 1, 1, null);
+            self::fail('deveria recusar como ambíguo');
+        } catch (ErroDeUpload $e) {
+            self::assertStringContainsString('não permitido', $e->getMessage());
+        }
+    }
+
+    public function testXlsxDisfarcadoDeDocxEhRecusadoQuandoSoDocxEhAceito(): void
+    {
+        if (!extension_loaded('zip')) {
+            self::markTestSkipped('sem a extensão zip');
+        }
+        $servico = $this->s->uploads();
+        // O pacote é de verdade um xlsx, mas a propriedade só aceita docx: mesmo identificando certo, não é o tipo aceito aqui.
+        $caminho = $this->zipComEntrada('xl/workbook.xml', '<workbook/>');
+        $propriedade = ['nome' => 'anexo', 'tipo' => 'arquivo', 'tipos' => ['docx']];
+        try {
+            $servico->enviar(new UploadedFile($caminho, 'planilha.xlsx', 'application/zip', null, true), $propriedade, 1, 1, null);
+            self::fail('deveria recusar');
+        } catch (ErroDeUpload $e) {
+            self::assertStringContainsString('não permitido', $e->getMessage());
+        }
+    }
+
     // ---------------------------------------------------------------- tamanho
 
     public function testTamanhoAcimaDoLimiteDaPropriedadeERecusadoComMensagemClara(): void
@@ -367,5 +448,34 @@ final class ArquivosTest extends TestCase
         // "antiga" ainda está na versão histórica do objeto (restaurar traria ela de volta): não é apagada.
         self::assertNotNull($this->s->arquivos->porId($antiga->id));
         self::assertNotNull($this->s->arquivos->porId($nova->id));
+    }
+
+    public function testLimpadorNuncaApagaOArquivoFisicoDeUmaChaveAindaUsadaPorOutraLinha(): void
+    {
+        // Dois uploads com o mesmo conteúdo compartilham a mesma chave em disco (dedup). Um fica órfão (e já passou da
+        // carência), o outro continua referenciado: apagar o órfão não pode levar o arquivo físico do vivo com ele.
+        $classe = $this->s->classes->criar('album3', [
+            ['nome' => 'capa', 'tipo' => 'imagem', 'indexavel' => false],
+        ]);
+        $site = $this->s->sites->porHost('www.exemplo.org') ?? self::fail();
+        $raiz = $this->s->objetos->porId((int) $site->objetoRaizId) ?? self::fail();
+        $servico = $this->s->uploads();
+        $conteudo = $this->pngValido();
+        $vivo = $servico->enviar(new UploadedFile($this->arquivoTemporario($conteudo), 'vivo.png', 'image/png', null, true), $classe->propriedades[0], $site->id, $raiz->id, null);
+        $orfao = $servico->enviar(new UploadedFile($this->arquivoTemporario($conteudo), 'orfao.png', 'image/png', null, true), $classe->propriedades[0], $site->id, $raiz->id, null);
+        self::assertSame($vivo->chave, $orfao->chave, 'os dois uploads precisam compartilhar a chave para o teste valer algo');
+
+        $this->s->objetos->criarDentro($site->id, $classe, $raiz->id, 'Álbum 3', 'album-3', ['capa' => $vivo->id]);
+        $this->s->conexao()->executeStatement('UPDATE arquivo SET criado_em = ? WHERE id = ?', [gmdate('c', time() - 7200), $orfao->id]);
+
+        $armazenamento = new ArmazenamentoDeArquivos($this->caminhos);
+        $limpador = new LimpadorDeUploads($this->s->conexao(), $this->s->classes, $this->s->arquivos, $armazenamento);
+        $resultado = $limpador->executar(false);
+
+        self::assertSame(1, $resultado['apagados']);
+        self::assertNull($this->s->arquivos->porId($orfao->id));
+        self::assertNotNull($this->s->arquivos->porId($vivo->id));
+        // O arquivo físico (a chave compartilhada) continua existindo: o vivo ainda precisa dele.
+        self::assertTrue($armazenamento->existe($vivo->chave, $vivo->extensao));
     }
 }

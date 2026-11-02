@@ -49,7 +49,7 @@ final class ServicoDeUpload
         if ($aceitas === []) {
             throw new ErroDeUpload('Este campo não aceita arquivos.');
         }
-        $extensao = $this->detectarExtensao($conteudo, $aceitas);
+        $extensao = $this->detectarExtensao($conteudo, $arquivo->getPathname(), $aceitas);
         if ($extensao === null) {
             throw new ErroDeUpload('Tipo de arquivo não permitido. Os tipos aceitos aqui são: ' . implode(', ', $aceitas) . '.');
         }
@@ -98,28 +98,76 @@ final class ServicoDeUpload
         });
     }
 
-    /** @param list<string> $aceitas */
-    private function detectarExtensao(string $conteudo, array $aceitas): ?string
+    /**
+     * `$caminho` é o arquivo temporário de verdade (não só o conteúdo em memória): precisa dele para abrir com
+     * `ZipArchive` quando o `finfo` só diz "é um ZIP" e é preciso olhar dentro para saber qual formato de verdade é.
+     *
+     * @param list<string> $aceitas
+     */
+    private function detectarExtensao(string $conteudo, string $caminho, array $aceitas): ?string
     {
         $finfo = new \finfo(\FILEINFO_MIME_TYPE);
         $detectado = $finfo->buffer($conteudo) ?: 'application/octet-stream';
-        foreach ($aceitas as $extensao) {
-            $tipo = TiposDeArquivo::da($extensao);
-            if ($tipo === null || !in_array($detectado, $tipo['detectados'], true)) {
-                continue;
-            }
-            // Para os formatos que são contêineres ZIP (docx, xlsx...), o finfo às vezes só diz "application/zip": confirma
-            // os bytes mágicos do ZIP para não aceitar qualquer coisa só porque a lista de MIME inclui o genérico.
-            if (str_contains($detectado, 'zip') || $detectado === 'application/octet-stream') {
-                if (!str_starts_with($conteudo, "PK\x03\x04")) {
-                    continue;
+        $generico = in_array($detectado, TiposDeArquivo::MIME_GENERICO_DE_CONTEINER, true);
+        // 1) MIME específico e inequívoco: aceita direto. Nunca por um MIME genérico (ZIP é a mesma coisa para
+        // docx/xlsx/pptx/odt/ods/odp — aceitar pelo primeiro da lista trocaria um pelo outro).
+        if (!$generico) {
+            foreach ($aceitas as $extensao) {
+                $tipo = TiposDeArquivo::da($extensao);
+                if ($tipo !== null && in_array($detectado, $tipo['detectados'], true)) {
+                    return $extensao;
                 }
             }
 
-            return $extensao;
+            return null;
+        }
+        // 2) MIME genérico de contêiner: só pode ser um dos formatos baseados em ZIP, e só depois de confirmar os
+        // bytes mágicos do ZIP e olhar dentro do pacote. Sem isso (ou se o pacote não disser claramente o que é),
+        // o envio é recusado como ambíguo — nunca aceito "no chute" pelo primeiro candidato da lista.
+        $candidatosZip = array_values(array_intersect($aceitas, TiposDeArquivo::BASEADOS_EM_ZIP));
+        if ($candidatosZip === [] || !str_starts_with($conteudo, "PK\x03\x04")) {
+            return null;
         }
 
-        return null;
+        return $this->identificarPacoteZip($caminho, $candidatosZip);
+    }
+
+    /**
+     * Olha dentro do ZIP para saber se é `docx`/`xlsx`/`pptx` (OOXML, pela pasta/arquivo que só aquele formato tem) ou
+     * `odt`/`ods`/`odp` (ODF, pelo arquivo `mimetype`, sempre o primeiro e sem compressão). Sem a extensão `zip` do PHP,
+     * ou se o pacote não bater com nenhum formato conhecido, é ambíguo: `null` (o chamador recusa o envio).
+     *
+     * @param list<string> $candidatos
+     */
+    private function identificarPacoteZip(string $caminho, array $candidatos): ?string
+    {
+        if (!extension_loaded('zip')) {
+            return null;
+        }
+        $zip = new \ZipArchive();
+        if ($zip->open($caminho) !== true) {
+            return null;
+        }
+        try {
+            $extensao = match (true) {
+                $zip->statName('word/document.xml') !== false => 'docx',
+                $zip->statName('xl/workbook.xml') !== false => 'xlsx',
+                $zip->statName('ppt/presentation.xml') !== false => 'pptx',
+                default => $this->extensaoOdfDoMimetype($zip),
+            };
+        } finally {
+            $zip->close();
+        }
+
+        return $extensao !== null && in_array($extensao, $candidatos, true) ? $extensao : null;
+    }
+
+    /** O arquivo `mimetype` de um pacote ODF diz o tipo exato (`application/vnd.oasis.opendocument.text`...). */
+    private function extensaoOdfDoMimetype(\ZipArchive $zip): ?string
+    {
+        $conteudo = $zip->getFromName('mimetype');
+
+        return is_string($conteudo) ? TiposDeArquivo::extensaoDoMime(trim($conteudo)) : null;
     }
 
     /** @return array{0: string, 1: int|null, 2: int|null, 3: bool} [conteúdo final, largura, altura, sanitizada] */

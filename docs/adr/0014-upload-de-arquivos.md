@@ -28,13 +28,16 @@ demais telas da administração: sem JavaScript, permissão em toda rota, CSRF e
 - `TiposDeArquivo::TODOS`: cada extensão aceita tem o `mime` que o servidor sempre entrega, se é `imagem` e os `mime`s que o
   `finfo` pode devolver ao ler o conteúdo. **Nunca** há `php`, `phtml`, `html`, `svg`, `js` ou qualquer formato que um
   navegador execute.
-- Imagem: `jpg`, `png`, `gif`, `webp`. Documento: `pdf`, `txt`, `csv` (detecção confiável pelo `finfo`) e, com a ressalva
-  abaixo, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`.
-- **Limitação conhecida**: os formatos acima que são contêineres ZIP (Office/OpenDocument) às vezes são detectados pelo
-  `finfo` só como `application/zip`/`octet-stream`; nesse caso o `ServicoDeUpload` confere também a assinatura
-  `PK\x03\x04` do ZIP, mas não valida a estrutura interna do documento. Mais fraco que a verificação de PDF/imagem/texto;
-  aceito nesta fatia porque o arquivo nunca é interpretado (serve só como download, com `nosniff`), não porque a
-  verificação seja perfeita.
+- Imagem: `jpg`, `png`, `gif`, `webp`. Documento: `pdf`, `txt`, `csv` (detecção direta pelo `finfo`) e `docx`, `xlsx`,
+  `pptx`, `odt`, `ods`, `odp`.
+- **Office e OpenDocument são contêineres ZIP**: o `finfo` às vezes só diz `application/zip`/`octet-stream` para eles (o
+  MIME não distingue um `docx` de um `xlsx`). Quando isso acontece, `ServicoDeUpload::identificarPacoteZip` confere a
+  assinatura `PK\x03\x04` e **olha dentro do pacote** com `ZipArchive` antes de aceitar: `word/document.xml` → `docx`,
+  `xl/workbook.xml` → `xlsx`, `ppt/presentation.xml` → `pptx`; para ODF, o arquivo `mimetype` (sempre o primeiro do ZIP,
+  sem compressão) diz o tipo exato. Pacote que não bate com nenhum desses é **ambíguo e recusado** (nunca aceito pelo
+  primeiro candidato da whitelist, que trocaria um formato pelo outro). Sem a extensão `zip` do PHP (opcional, como no
+  atualizador) não há como olhar dentro do pacote, então esses seis formatos são sempre recusados — a tela de
+  requisitos do instalador avisa.
 
 ### 3. Pipeline do envio (`ServicoDeUpload::enviar`)
 Ordem: erro do PHP (`upload_max_filesize`/`post_max_size`, mensagem clara) → tamanho configurado da propriedade → tipo real
@@ -90,13 +93,13 @@ arquivo de outro site ou da categoria errada.
 - `fileinfo` passa a ser **obrigatório** (`Requisitos`): é o que identifica o tipo real do conteúdo enviado.
 - `gd` é **opcional**, como `zip` já era: sem ele, upload de imagem funciona com uma verificação mais fraca (sem
   recodificar, `sanitizada = false`) e não há miniaturas. A tela do instalador explica a diferença.
+- `zip` (opcional) agora também é usado para identificar `docx`/`xlsx`/`pptx`/`odt`/`ods`/`odp` (§2); sem ela, upload
+  desses seis formatos é sempre recusado como ambíguo, e a tela do instalador avisa.
 
 ## Consequências
 
 - Nenhum arquivo enviado pode ser executado pelo servidor: a whitelist nunca inclui `php`/`html`/`svg`/`js`, o `Content-Type`
   nunca vem do que o cliente mandou, e `dados/uploads/` fica fora do `docroot` (como o resto de `dados/`).
-- A limitação da detecção de contêiner ZIP (§2) é uma dívida conhecida: quando houver tempo, vale olhar a estrutura interna
-  (por exemplo, `[Content_Types].xml` do OOXML) antes de aceitar `docx`/`xlsx`/`pptx`.
 - Fora desta fatia: upload na criação do conteúdo, comando de molde para montar o link (hoje é só `#propriedade` → id →
   `/_pbl/arquivo/<id>`, montado por quem lê o id), editor de `tipos`/`tamanho_max_mb` por propriedade na tela de tipos de
   conteúdo, anexos de formulário público (fluxo 6, feito à parte quando vier), armazenamento em object storage (S3/B2 —

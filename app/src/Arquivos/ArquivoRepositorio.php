@@ -69,6 +69,16 @@ final class ArquivoRepositorio
     }
 
     /**
+     * Quantas linhas (de qualquer id) ainda usam este arquivo em disco. Como o upload deduplica por conteúdo
+     * (`chaveExistente`), mais de um envio pode compartilhar a mesma `chave`/`extensao`; o arquivo físico só pode ser
+     * removido quando esta contagem chegar a zero, nunca só porque uma das linhas que o usam é órfã.
+     */
+    public function contarPorChave(string $chave, string $extensao): int
+    {
+        return (int) $this->conexao->fetchOne('SELECT COUNT(*) FROM arquivo WHERE chave = ? AND extensao = ?', [$chave, $extensao]);
+    }
+
+    /**
      * Um lote de linhas (por id, crescente) para o `bin/pbl limpar-uploads` varrer sem carregar tudo em memória.
      *
      * @return list<Arquivo>
