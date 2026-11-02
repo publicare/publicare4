@@ -169,12 +169,14 @@ Domínios seguem o mesmo caminho com `podeAdministrarSite` (ação `Administrar`
 12. **Trocar a senha derruba as sessões** da conta; a senha nunca volta à página nem vai para a auditoria.
 13. **O site sempre tem um domínio principal**; os outros são alias (mesmo conteúdo) ou redirecionador (301 para o principal).
 
-### Atualização (fase 4c)
+### Atualização e voltar atrás (fases 4c e 4d)
 
 Mesmo desenho das contas: `TelasDeAtualizacao` confere origem e CSRF (403), depois `podeAdministrarContas` (403 + auditoria `atualizacao.negado`), e só então age. O desenho completo, com o processo em segundo plano, está no [fluxo 11](11-atualizacao.md#pelo-painel-fase-4c).
 
-14. **Atualizar exige a senha de novo** e a caixa de confirmação; senha errada conta no limite de tentativas do login e nada é iniciado.
-15. **Só uma atualização por vez**, e ela nunca roda no processo da requisição.
+14. **Atualizar e voltar atrás exigem a senha de novo** e a caixa de confirmação; senha errada conta no limite de tentativas do login e nada é iniciado.
+15. **Só uma operação por vez** (atualizar OU voltar atrás), e nenhuma delas roda no processo da requisição.
+16. **Voltar atrás só aparece quando o `Reversor` diz que é seguro**: confere a versão instalada contra o registro da última atualização, o código guardado em `dados/atualizacao/anterior/`, a cópia do banco (SHA-256 e versão do esquema) e a permissão de escrita; sem isso, a tela mostra o motivo em vez do botão. A confirmação deixa explícito que o que foi criado no site depois da atualização se perde (o banco também volta para a cópia de antes).
+17. **Aviso de versão nova na página inicial** (`TelasDeAtualizacao::avisoHomePage`, só administrador geral): lê só o cache de 24 h (nunca consulta a rede ao renderizar); cache vencido mostra "Verificar" com link para a tela.
 
 ### Editar um molde de pele (fase 5e)
 

@@ -47,9 +47,13 @@ make pbl ARGS="redirecionamento remover 3"
 - As mesmas regras também se gerenciam pelo navegador (`/_pbl/site/{id}/redirecionamentos`, só administrador), com aviso de laço e de encadeamento.
 - Regras de redirecionamento: origem é um caminho (`/antigo`), destino é um caminho do site ou `https://…`; a regra exata vence a de prefixo, e entre prefixos vence o mais longo. Só valem para endereços que **não** são uma página publicada nem o endereço antigo de um conteúdo. A consulta (`?a=1`) do pedido é mantida.
 
-## `atualizar`, `migrar`, `empacotar`, `chaves:gerar`
+## `atualizar`, `reverter`, `verificar-atualizacao`, `migrar`, `empacotar`, `chaves:gerar`
 
-`atualizar [--verificar] [--manifesto=ARQ] [--canal=…]` verifica e aplica uma atualização assinada; `migrar` aplica as migrações pendentes; `empacotar` e `chaves:gerar` são do mantenedor. Tudo em [atualização](atualizacao.md). O botão do painel (`/_pbl/atualizacao`) executa este mesmo `atualizar` em segundo plano.
+`atualizar [--verificar] [--manifesto=ARQ] [--canal=…]` verifica e aplica uma atualização assinada; `reverter [--confirmar]` desfaz uma atualização **já concluída** (sem `--confirmar`, só mostra para qual versão voltaria e o que se perde, sem alterar nada); `verificar-atualizacao` atualiza o cache de 24 h da verificação de versão nova, pensado para o cron (idempotente e silencioso quando não há nada de novo); `migrar` aplica as migrações pendentes; `empacotar` e `chaves:gerar` são do mantenedor. Tudo em [atualização](atualizacao.md). O botão "Atualizar agora" do painel (`/_pbl/atualizacao`) executa este mesmo `atualizar`, e o botão "Voltar atrás" executa `reverter --confirmar`, os dois em segundo plano.
+
+```
+*/5 * * * * cd /caminho/do/projeto && php bin/pbl verificar-atualizacao >/dev/null 2>&1
+```
 
 ## `converter-moldes`
 

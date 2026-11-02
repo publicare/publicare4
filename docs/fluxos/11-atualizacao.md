@@ -26,7 +26,7 @@ flowchart TD
     R --> S[Sai da manutenção e mostra o motivo]
 ```
 
-> **Estado:** o caminho pela linha de comando (verificar, baixar, conferir, extrair, backup, manutenção, troca, migrar, conferir, volta atrás) está implementado; veja [atualização](../tecnica/atualizacao.md). Na troca real usamos `rename` de cada pasta (`app/`, `vendor/`, …) com o código antigo guardado em `dados/atualizacao/anterior/`, em vez de `releases/` com links; o botão no painel existe (fase 4c, [ADR 0012](../adr/0012-administracao-web.md) §12): ele só inicia o mesmo comando em segundo plano. Falta a chave de assinatura de produção e a verificação sem abrir o painel (por cron).
+> **Estado:** o caminho pela linha de comando (verificar, baixar, conferir, extrair, backup, manutenção, troca, migrar, conferir, volta atrás automática) está implementado; veja [atualização](../tecnica/atualizacao.md). Na troca real usamos `rename` de cada pasta (`app/`, `vendor/`, …) com o código antigo guardado em `dados/atualizacao/anterior/`, em vez de `releases/` com links; os botões no painel existem (fases 4c e 4d, [ADR 0012](../adr/0012-administracao-web.md) §12): eles só iniciam o mesmo comando em segundo plano. **Voltar atrás de uma atualização já concluída** (`bin/pbl reverter`) e a **verificação por cron** (`bin/pbl verificar-atualizacao`) também estão implementados (fase 4d). Falta a chave de assinatura de produção.
 
 ### Pelo painel (fase 4c)
 
@@ -52,6 +52,33 @@ sequenceDiagram
 - A requisição web nunca troca código: ela consulta, valida a senha e **dispara** `bin/pbl atualizar`. O processo grava `saida.txt` e, só ao terminar, `codigo` (0 = sem erro); a tela lê os dois a cada recarga. Sem `codigo` depois de 1 hora, a trava é considerada solta ("sem resposta").
 - Durante a troca o site inteiro responde 503 (manutenção), inclusive a própria tela; basta recarregar depois.
 - O estado fica em `dados/atualizacao-painel/` e não em `dados/atualizacao/`, que o atualizador apaga a cada execução.
+
+### Voltar atrás pelo painel e aviso na página inicial (fase 4d)
+
+```mermaid
+sequenceDiagram
+    participant V as Navegador (administrador)
+    participant T as TelasDeAtualizacao
+    participant Rv as Reversor
+    participant E as EstadoDoPainel (dados/atualizacao-painel)
+    participant P as Processo em segundo plano
+    V->>T: GET /_pbl/atualizacao
+    T->>Rv: avaliar() - só lê dados/atualizacao/aplicada.json, anterior/ e backups/
+    Rv-->>T: possível (versão de destino, o que se perde) ou não (motivo)
+    T-->>V: formulário de voltar atrás (se possível) ou o motivo
+    V->>T: POST /_pbl/atualizacao/reverter (senha, confirmar, CSRF, origem)
+    T->>T: senha confere (limite de tentativas)? Rv.avaliar() de novo?
+    T->>E: trava (flock): já há uma operação em andamento? 409
+    T->>P: sh -c "php bin/pbl reverter --confirmar" em segundo plano
+    T-->>V: 303 de volta à tela (andamento)
+    P->>P: o MESMO Reversor da CLI (cópia de segurança, troca, substitui o banco, confere)
+    P->>E: saida.txt e codigo (quando acabou)
+    V->>T: recarrega: concluída, falhou (motivo) ou sem resposta
+```
+
+- `Reversor::avaliar` **nunca altera nada**: só confere se o registro da última atualização, o código guardado e a cópia do banco ainda correspondem à instalação de hoje. A trava e o processo em segundo plano são os mesmos do "aplicar" (`EstadoDoPainel`, com um campo `tipo` para a tela diferenciar a mensagem): atualizar e reverter nunca correm juntos.
+- **Aviso de versão nova na página inicial** (`TelasDeConteudo::inicio`, só administrador geral): lê só o cache de 24 h que a tela "Atualização" (ou o cron) já gravou — a página inicial **nunca** consulta a rede. Cache vencido ou inexistente: um link "Verificar" para a tela, que aí sim pode consultar.
+- **`bin/pbl verificar-atualizacao`**, pelo cron, atualiza esse cache fora de qualquer requisição web; idempotente e silencioso quando não há nada de novo.
 
 ### Layout de pastas
 
@@ -86,6 +113,6 @@ raiz/
 
 ### Pontos a decidir
 - Tamanho típico do pacote e se vale oferecer pacote diferencial (patch) além do completo.
-- Política de rollback de migrações (reversíveis vs. só compatíveis).
-- Frequência e modo de checagem para sites sem cron (checagem no acesso do admin).
+- Política de rollback quando existir migração **destrutiva** de verdade (hoje nenhuma existe, por política — [ADR 0006](../adr/0006-atualizador-automatico.md) §8 —, então `bin/pbl reverter` sempre é seguro quando o registro da atualização confere).
+- Frequência e modo de checagem para sites sem cron: hoje é a consulta com cache de 24 h ao abrir a tela (ou o aviso na página inicial, que só lê o cache); `bin/pbl verificar-atualizacao` cobre quem tem cron.
 - Canal para atualizar módulos e peles de galeria.
