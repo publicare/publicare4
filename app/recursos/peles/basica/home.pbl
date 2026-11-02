@@ -1,0 +1,48 @@
+<@-- Modelo "home": página inicial do site (ou da subárvore que usa esta pele). Destaque principal, faixa de destaques, links rápidos e últimas notícias. Cada bloco só aparece se houver conteúdo. --@>
+<!doctype html>
+<html lang="<@eco %SITE.config.idioma@>">
+<head>
+<@incluir arquivo="cabeca"@>
+<@incluir arquivo="estilo"@>
+</head>
+<body data-pbl-objeto="<@eco #id@>">
+<@incluir arquivo="topo"@>
+<main>
+<h1><@eco #titulo@></h1>
+<@se #resumo@><p><em><@eco #resumo@></em></p><@/se@>
+<@localizar classes="destaque" ordem="peso, titulo" limite=1 expandir="destino_interno"@>
+<section class="destaque-principal" aria-label="Destaque principal">
+<@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=800@>" alt=""><@/se@>
+<h2><@eco #titulo@></h2>
+<@se #texto != ""@><p><@eco #texto@></p><@/se@>
+<@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
+<@se $dest != ""@><p><a href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span style="position:absolute;left:-9999px"> sobre <@eco #titulo@></span></a></p><@/se@>
+</section>
+<@/localizar@>
+<@localizar classes="destaque" ordem="peso, titulo" inicio=1 limite=3 expandir="destino_interno"@>
+<@se %INDICE == 1@><section class="destaques" aria-label="Destaques">
+<@/se@><article class="destaque">
+<@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=400@>" alt=""><@/se@>
+<h2><@eco #titulo@></h2>
+<@se #texto != ""@><p><@eco #texto@></p><@/se@>
+<@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
+<@se $dest != ""@><a href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span style="position:absolute;left:-9999px"> sobre <@eco #titulo@></span></a><@/se@>
+</article>
+<@se %INDICE == %QUANTIDADE@></section>
+<@/se@><@/localizar@>
+<div><@ecocru #corpo@></div>
+<@localizar classes="link" ordem="peso, titulo" limite=8@>
+<@se %INDICE == 1@><section class="links-rapidos" aria-label="Links rápidos"><h2>Links rápidos</h2><ul>
+<@/se@><li><@incluir arquivo="link_a"@></li>
+<@se %INDICE == %QUANTIDADE@></ul></section>
+<@/se@><@/localizar@>
+<@localizar classes="noticia" ordem="-data_publicacao, titulo" limite=5@>
+<@se %INDICE == 1@><section class="ultimas" aria-label="Últimas notícias"><h2>Últimas notícias</h2>
+<@/se@><@incluir arquivo="item"@>
+<@se %INDICE == %QUANTIDADE@></section>
+<@/se@><@/localizar@>
+</main>
+<@se %SITE.config.rodape != ""@><footer><@ecocru %SITE.config.rodape@></footer>
+<@/se@><@incluir arquivo="bloco_rodape"@>
+</body>
+</html>
