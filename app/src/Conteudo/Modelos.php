@@ -151,6 +151,7 @@ final class Modelos
         $criadas = [];
         $this->conexao->transactional(function () use ($definicoes, $modelo, $site, $exemplos, &$criadas, &$avisos): void {
             $classes = new ClasseRepositorio($this->conexao);
+            ClassesPadrao::garantirFixas($classes);
             // Filhas primeiro: a classe-contêiner (agenda, perguntas) lista a filha, que precisa já existir.
             foreach (array_reverse($definicoes) as $d) {
                 if ($classes->porNome($d['nome']) === null) {

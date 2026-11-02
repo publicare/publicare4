@@ -136,4 +136,23 @@ final class ClassesPadrao
 
         return $criadas;
     }
+
+    /**
+     * Só as classes fixas que faltam (instalações anteriores ao pacote mínimo): nunca recria `noticia`, que o administrador pode ter apagado.
+     *
+     * @return list<string> nomes das classes criadas
+     */
+    public static function garantirFixas(ClasseRepositorio $classes): array
+    {
+        $criadas = [];
+        foreach (self::definicoes() as $d) {
+            if (!in_array($d['nome'], self::FIXAS, true) || $classes->porNome($d['nome']) !== null) {
+                continue;
+            }
+            $classes->criar($d['nome'], $d['propriedades'], $d['meta']);
+            $criadas[] = $d['nome'];
+        }
+
+        return $criadas;
+    }
 }

@@ -77,6 +77,15 @@ final class ModelosTest extends TestCase
         self::assertCount($quantos, $this->s->classes->todas());
     }
 
+    public function testAtivarRecriaTiposFixosQueFaltamEmInstalacaoAntiga(): void
+    {
+        $this->s->conexao()->executeStatement("DELETE FROM classe WHERE nome IN ('arquivo', 'imagem')");
+        self::assertNull($this->s->classes->porNome('arquivo'));
+        $this->modelos()->ativar('evento', $this->siteId);
+        self::assertNotNull($this->s->classes->porNome('arquivo'));
+        self::assertNotNull($this->s->classes->porNome('imagem'));
+    }
+
     public function testModeloDesconhecidoEhRecusado(): void
     {
         $this->expectException(\InvalidArgumentException::class);
