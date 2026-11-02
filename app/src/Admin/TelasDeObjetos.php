@@ -310,7 +310,7 @@ final class TelasDeObjetos
         }
         $codigo = mb_strlen($texto) > 20000 ? mb_substr($texto, 0, 20000) . '…' : $texto;
 
-        return '<div class="pbl-corpo">' . $limpo . '</div>'
+        return '<div class="pbl-corpo" ' . Pagina::MARCA_PREVIA . '1">' . $limpo . '</div>'
             . '<details class="pbl-ver-html"><summary>Ver HTML</summary><pre class="pbl-realce mb-0"><code class="text-break">' . Pagina::h($codigo) . '</code></pre></details>';
     }
 
