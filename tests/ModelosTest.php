@@ -32,6 +32,32 @@ final class ModelosTest extends TestCase
         return (string) file_get_contents($arquivo);
     }
 
+    /** @return list<array{string}> */
+    public static function esquemasPerigosos(): array
+    {
+        return [['javascript:alert(1)'], ['JAVASCRIPT:alert(1)'], [' javascript:alert(1)'], ["java\tscript:alert(1)"], ['data:text/html,x'], ['vbscript:x'], ["\tjavascript:x"], ['//evil.com\\x']];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('esquemasPerigosos')]
+    public function testEnderecosDosModelosRecusamEsquemasPerigososNaGravacao(string $perigoso): void
+    {
+        $this->modelos()->ativar('evento', $this->siteId);
+        $this->modelos()->ativar('destaque', $this->siteId);
+        $site = $this->s->sites->porId($this->siteId) ?? self::fail();
+        $agenda = (new \Pbl\Conteudo\ObjetoRepositorio($this->s->conexao()))->porUrl($this->siteId, 'agenda') ?? self::fail();
+        $casos = [['evento', 'link_inscricao', $agenda->id, ['inicio' => '2026-12-01 10:00:00']], ['destaque', 'destino_externo', $site->objetoRaizId, []]];
+        foreach ($casos as [$classe, $campo, $pai, $base]) {
+            try {
+                $this->modelos()->garantirObjeto($site, $classe, $pai, 'Ruim ' . $classe, 'ruim-' . $classe, $base + [$campo => $perigoso]);
+                self::fail("{$classe}.{$campo} aceitou o endereço perigoso");
+            } catch (\Pbl\Conteudo\ViolacaoDeRegra $e) {
+                self::assertSame($campo, $e->campo);
+            }
+        }
+        $ok = $this->modelos()->garantirObjeto($site, 'evento', $agenda->id, 'Bom', 'bom', ['inicio' => '2026-12-01 10:00:00', 'link_inscricao' => 'https://exemplo.com/i']);
+        self::assertGreaterThan(0, $ok->id);
+    }
+
     public function testInstalacaoNaoTemModelosPorPadrao(): void
     {
         self::assertSame([], $this->modelos()->ativos());

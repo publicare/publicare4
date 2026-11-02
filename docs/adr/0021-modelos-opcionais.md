@@ -25,3 +25,5 @@ O pacote mínimo (pasta, página, arquivo, imagem, link, notícia, formulário) 
 - A pele básica fica maior (mais arquivos), mas sem custo de execução quando o modelo não está ativo.
 - Imagens do demo usam a fonte embutida do GD (sem FreeType), então o texto delas não tem acento.
 - Fora de escopo: editor visual dos moldes novos, importação de eventos (iCal), inscrições em eventos e ordenação por categoria definida pela pessoa.
+
+- **Endereços em `href` (revisão de segurança):** `<@ecourl@>` aceita só `http(s)://` ou `/caminho`; `destaque.destino_externo` e `evento.link_inscricao` recusam outros esquemas na gravação. O tipo `link` mantém a regra própria (inclui mailto/tel) aplicada na gravação.

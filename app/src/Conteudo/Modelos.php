@@ -105,7 +105,7 @@ final class Modelos
                     ['nome' => 'imagem', 'tipo' => 'imagem', 'indexavel' => false, 'rotulo' => 'Imagem'],
                     $texto('texto', 'Texto curto'),
                     ['nome' => 'destino_interno', 'tipo' => 'ref', 'indexavel' => true, 'rotulo' => 'Conteúdo deste site (destino interno)'],
-                    $texto('destino_externo', 'Endereço externo (http, https, mailto ou tel)'),
+                    $texto('destino_externo', 'Endereço externo (http://, https:// ou /caminho)'),
                     ['nome' => 'nova_aba', 'tipo' => 'booleano', 'indexavel' => false, 'rotulo' => 'Abrir em nova aba'],
                 ], 'meta' => ['descricao' => 'Banner da página inicial: imagem, título, texto curto e link interno ou externo (só um dos dois).', 'aceita_filhos' => false, 'filhas' => [], 'fixa' => false]],
             ],

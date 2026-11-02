@@ -6,7 +6,7 @@
 <h2><@eco #titulo@></h2>
 <@se #texto != ""@><p><@eco #texto@></p><@/se@>
 <@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
-<@se $dest != ""@><a href="<@eco $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span style="position:absolute;left:-9999px"> sobre <@eco #titulo@></span></a><@/se@>
+<@se $dest != ""@><a href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span style="position:absolute;left:-9999px"> sobre <@eco #titulo@></span></a><@/se@>
 </article>
 <@se %INDICE == %QUANTIDADE@></section>
 <@/se@><@/localizar@>

@@ -14,7 +14,7 @@
 <@se #imagem != ""@><p><img src="<@miniatura valor=#imagem tamanho=800@>" alt="" style="max-width:100%;height:auto"></p><@/se@>
 <@se #resumo != ""@><p><em><@eco #resumo@></em></p><@/se@>
 <div><@ecocru #corpo@></div>
-<@se #link_inscricao != ""@><p><a href="<@eco #link_inscricao@>" rel="noopener noreferrer">Inscreva-se</a></p><@/se@>
+<@se #link_inscricao != ""@><p><a href="<@ecourl #link_inscricao@>" rel="noopener noreferrer">Inscreva-se</a></p><@/se@>
 </article>
 </main>
 <@incluir arquivo="bloco_rodape"@>

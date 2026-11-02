@@ -17,7 +17,7 @@ Referência da linguagem de moldes. O PBL4 mantém o espírito do PBL3 (tags `<@
 molde      = { texto | tag } ;
 tag        = "<@" , comando , "@>" ;         (* termina no primeiro "@>" fora de aspas *)
 comando    = "=" , expr
-           | "eco" , expr | "ecocru" , expr
+           | "eco" , expr | "ecocru" , expr | "ecourl" , expr
            | "eco_limite" , params | "formatadata" , params
            | "var" , variavel , "=" , expr
            | "se" , condicao | "senao" | "/se"
@@ -61,6 +61,7 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 |---|---|
 | `<@eco expr@>` / `<@= expr@>` | imprime com escape HTML |
 | `<@ecocru expr@>` | imprime sem escape (só HTML confiável) |
+| `<@ecourl expr@>` | imprime um endereço para `href`: só `http(s)://…` ou caminho iniciado em `/`; qualquer outro esquema (`javascript:`, `data:`, `vbscript:`, com maiúsculas, espaço ou tab) vira vazio |
 | `<@eco_limite texto=… [limite=…] [inicio=…]@>` | recorta o texto (caracteres) e escapa |
 | `<@formatadata valor=… formato="d/m/Y"@>` | formata data (`aaaa-mm-dd[ hh:mm:ss]` ou `dd/mm/aaaa[ hh:mm:ss]`); inválida dá vazio |
 | `<@var $x = expr@>` | define variável |

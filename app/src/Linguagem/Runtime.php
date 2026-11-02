@@ -100,6 +100,12 @@ final class Runtime
         return htmlspecialchars($this->texto($valor), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
+    /** Endereço para `href`/`src`: só http(s):// ou caminho iniciado em `/`; qualquer outro esquema (javascript:, data:…) vira vazio. */
+    public function urlSegura(mixed $valor): string
+    {
+        return \Pbl\Conteudo\RegrasDeLink::urlWebOuVazio($this->texto($valor));
+    }
+
     /** Saída sem escape: só para HTML confiável, escolhido de forma explícita no molde. */
     public function cru(mixed $valor): string
     {

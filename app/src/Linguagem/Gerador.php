@@ -111,6 +111,7 @@ final class Gerador
         $valor = $this->expr($no->expr, $nivel);
         $valor = match ($no->funcao) {
             'cortar' => '$r->cortar(' . $valor . ', ' . $this->expr($no->extras[0], $nivel) . ', ' . $this->expr($no->extras[1], $nivel) . ')',
+            'url' => '$r->urlSegura(' . $valor . ')',
             'data' => '$r->data(' . $valor . ', ' . $this->expr($no->extras[0], $nivel) . ')',
             default => $valor,
         };
