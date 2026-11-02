@@ -8,7 +8,7 @@ use Pbl\Versao;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Páginas HTML da administração e do instalador: sem JavaScript, tudo escapado, com os cabeçalhos de segurança. O visual vem do
+ * Páginas HTML da administração e do instalador: JavaScript só de arquivos próprios (sem inline), tudo escapado, com os cabeçalhos de segurança. O visual vem do
  * Bootstrap 5 servido do próprio site (`public/_pbl/assets/`, sem CDN) mais `pbl.css`; nenhum estilo ou script inline, então a
  * CSP só libera `'self'` (ADR 0012).
  */
@@ -18,6 +18,9 @@ final class Pagina
     public const ASSETS = '/_pbl/assets';
     public const BOOTSTRAP = self::ASSETS . '/bootstrap-5.3.8/bootstrap.min.css';
     public const CSS = self::ASSETS . '/pbl.css';
+    /** Scripts da administração: só arquivos do próprio site (Bootstrap local + `pbl-admin.js`), nunca inline (CSP `script-src 'self'`). */
+    public const BOOTSTRAP_JS = self::ASSETS . '/bootstrap-5.3.8/bootstrap.bundle.min.js';
+    public const JS = self::ASSETS . '/pbl-admin.js';
 
     public static function h(string $texto): string
     {
@@ -60,14 +63,51 @@ final class Pagina
         $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
             . '<meta name="robots" content="noindex"><title>' . self::h($titulo) . ' — PBL4</title>'
             . '<link rel="stylesheet" href="' . self::urlVersionada(self::BOOTSTRAP) . '"><link rel="stylesheet" href="' . self::urlVersionada(self::CSS) . '">'
+            . '<script src="' . self::urlVersionada(self::BOOTSTRAP_JS) . '" defer></script><script src="' . self::urlVersionada(self::JS) . '" defer></script>'
             . '</head><body><a class="visually-hidden-focusable" href="#conteudo">Pular para o conteúdo</a>'
             . ($navegacao === '' ? '' : '<header>' . $navegacao . '</header>')
             . '<main id="conteudo" class="container py-3 py-md-4">' . self::migalhas($migalhas)
             . '<h1 class="h3 mb-2">' . self::h($titulo) . '</h1>'
             . ($descricao === '' ? '<div class="mb-4"></div>' : '<p class="text-body-secondary mb-4">' . $descricao . '</p>')
-            . $corpo . '</main></body></html>';
+            . self::tabelasEmCartoes($corpo) . '</main></body></html>';
 
         return self::protegida(new Response($html, $status, ['Content-Type' => 'text/html; charset=utf-8']), $seguro);
+    }
+
+    /**
+     * Toda tabela com `<thead>` ganha a classe `pbl-cartoes` e, em cada célula do corpo, `data-label` com o texto do cabeçalho da
+     * coluna: em telas estreitas o CSS vira cada linha num cartão empilhado (rótulo + valor), sem cabeçalho quebrado letra a letra.
+     * Linhas com `colspan` ficam como estão. O HTML aqui é sempre o que as próprias telas geraram (já escapado).
+     */
+    public static function tabelasEmCartoes(string $html): string
+    {
+        if (!str_contains($html, '</thead>')) {
+            return $html;
+        }
+
+        return preg_replace_callback('#<table class="([^"]*)"([^>]*)>(.*?)</table>#s', static function (array $m): string {
+            $partes = explode('</thead>', $m[3], 2);
+            if (count($partes) !== 2) {
+                return $m[0];
+            }
+            preg_match_all('#<th\b[^>]*>(.*?)</th>#s', $partes[0], $ths);
+            $rotulos = array_map(static fn (string $t): string => trim(html_entity_decode(strip_tags(preg_replace('#<span class="visually-hidden">.*?</span>#s', '', $t) ?? $t), ENT_QUOTES, 'UTF-8')), $ths[1]);
+            $corpo = preg_replace_callback('#<tr>(.*?)</tr>#s', static function (array $l) use ($rotulos): string {
+                if (str_contains($l[1], 'colspan=')) {
+                    return $l[0];
+                }
+                $i = 0;
+                $celulas = preg_replace_callback('#<(td|th)\b([^>]*)>#', static function (array $c) use ($rotulos, &$i): string {
+                    $rotulo = $rotulos[$i++] ?? '';
+
+                    return $rotulo === '' ? $c[0] : '<' . $c[1] . $c[2] . ' data-label="' . self::h($rotulo) . '">';
+                }, $l[1]);
+
+                return '<tr>' . ($celulas ?? $l[1]) . '</tr>';
+            }, $partes[1]);
+
+            return '<table class="' . $m[1] . ' pbl-cartoes"' . $m[2] . '>' . $partes[0] . '</thead>' . ($corpo ?? $partes[1]) . '</table>';
+        }, $html) ?? $html;
     }
 
     /** @param list<array{0: string, 1: string|null}> $migalhas */
@@ -88,8 +128,8 @@ final class Pagina
     }
 
     /**
-     * Barra de quem entrou, sem JavaScript: na primeira linha a marca, o nome e o botão Sair; na segunda os links das seções, que
-     * quebram de linha em vez de estourar a largura. A seção atual leva `aria-current="page"`. `$nome` e `$tokenCsrf` chegam sem escape.
+     * Barra de quem entrou: na primeira linha a marca, o nome, o botão Sair e (no celular) o botão do menu; os links das seções ficam
+     * num `collapse` do Bootstrap, abaixo no celular e em linha a partir de 768 px. A seção atual leva `aria-current="page"`. `$nome` e `$tokenCsrf` chegam sem escape.
      */
     public static function barra(string $nome, string $tokenCsrf, bool $administrador = false): string
     {
@@ -110,12 +150,26 @@ final class Pagina
             $links .= '<li class="nav-item"><a class="nav-link' . ($chave === $secao ? ' active' : '') . '" href="' . $href . '"' . ($chave === $secao ? ' aria-current="page"' : '') . '>' . $rotulo . '</a></li>';
         }
 
-        return '<nav class="navbar navbar-expand bg-dark pbl-barra" data-bs-theme="dark" aria-label="Administração"><div class="container">'
+        return '<nav class="navbar navbar-expand-md bg-dark pbl-barra" data-bs-theme="dark" aria-label="Administração"><div class="container">'
             . '<a class="navbar-brand" href="/_pbl/">PBL4</a>'
             . '<div class="pbl-usuario d-flex align-items-center gap-2 ms-auto"><span class="navbar-text pbl-nome">' . self::h($nome) . '</span>'
             . '<form method="post" action="/_pbl/sair"><input type="hidden" name="_csrf" value="' . self::h($tokenCsrf) . '">'
             . '<button type="submit" class="btn btn-sm btn-outline-light">Sair</button></form></div>'
-            . '<ul class="navbar-nav pbl-links">' . $links . '</ul></div></nav>';
+            . '<button class="navbar-toggler ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#menu-principal" aria-controls="menu-principal" aria-expanded="false" aria-label="Abrir o menu">'
+            . '<span class="navbar-toggler-icon"></span></button>'
+            . '<div class="collapse navbar-collapse" id="menu-principal"><ul class="navbar-nav pbl-links">' . $links . '</ul></div></div></nav>';
+    }
+
+    /**
+     * Painel recolhível do Bootstrap (`accordion` + `collapse`, sem `data-bs-parent`: abrir um não fecha os outros). `$resumo` e `$corpo`
+     * chegam como HTML já escapado; `$id` precisa ser único na página. Agrupe vários dentro de `<div class="accordion">`.
+     */
+    public static function recolhivel(string $id, string $resumo, string $corpo, bool $aberto = false): string
+    {
+        $alvo = self::h('painel-' . $id);
+
+        return '<div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button pbl-resumo' . ($aberto ? '' : ' collapsed') . '" type="button" data-bs-toggle="collapse" data-bs-target="#' . $alvo . '" aria-expanded="' . ($aberto ? 'true' : 'false') . '" aria-controls="' . $alvo . '">'
+            . $resumo . '</button></h3><div id="' . $alvo . '" class="accordion-collapse collapse' . ($aberto ? ' show' : '') . '"><div class="accordion-body">' . $corpo . '</div></div></div>';
     }
 
     // ---------------------------------------------------------------- componentes de formulário (HTML sempre escapado)
@@ -214,7 +268,7 @@ final class Pagina
         $r->headers->set('X-Content-Type-Options', 'nosniff');
         $r->headers->set('Referrer-Policy', 'same-origin');
         // img-src data: só porque o CSS do Bootstrap desenha alguns ícones de formulário como SVG embutido.
-        $r->headers->set('Content-Security-Policy', "default-src 'none'; style-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+        $r->headers->set('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
         if ($seguro) {
             $r->headers->set('Strict-Transport-Security', 'max-age=31536000');
         }

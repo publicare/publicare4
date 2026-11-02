@@ -10,17 +10,21 @@ main pre, main textarea { max-width: 100%; }
 /* Instalador: formulário em coluna única, rótulo acima do campo, requisitos numa tabela que rola dentro do quadro. */
 .pbl-requisitos td:first-child { width: 2.5rem; text-align: center; }
 
-/* Barra de navegação: sem JavaScript não há menu recolhível. Linha 1 = marca, nome e Sair; linha 2 = seções (quebram de linha). */
+/* Barra de navegação (Bootstrap navbar-expand-md): no celular a marca, o nome, o Sair e o botão do menu ficam na primeira linha e os links
+   descem num collapse; a partir de 768 px tudo numa linha. Nada quebra nem vaza. */
 .navbar form { margin: 0; }
-.pbl-barra > .container { flex-wrap: wrap; row-gap: 0; }
-.pbl-barra .navbar-brand { margin-right: auto; }
-.pbl-barra .pbl-nome { max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pbl-barra .pbl-links { order: 3; width: 100%; flex-direction: row; flex-wrap: wrap; column-gap: .25rem; margin-bottom: .25rem; }
-.pbl-barra .nav-link { min-height: 44px; display: flex; align-items: center; padding-left: .75rem; padding-right: .75rem; }
-.pbl-barra .nav-link.active { color: #fff; font-weight: 600; box-shadow: inset 0 -3px 0 #6ea8fe; }
+.pbl-barra > .container { row-gap: .25rem; }
+.pbl-barra .pbl-nome { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pbl-barra .navbar-collapse { order: 5; }
+.pbl-barra .pbl-links { padding: .25rem 0 .5rem; }
+.pbl-barra .nav-link { white-space: nowrap; min-height: 44px; display: flex; align-items: center; padding-left: .75rem; padding-right: .75rem; }
+.pbl-barra .nav-link.active { color: #fff; font-weight: 600; box-shadow: inset 3px 0 0 #6ea8fe; }
 @media (min-width: 768px) {
-  .pbl-barra .pbl-links { order: 0; width: auto; margin: 0 0 0 1rem; }
-  .pbl-barra .navbar-brand { margin-right: 0; }
+  .pbl-barra .navbar-collapse { order: 1; margin-left: 1rem; }
+  .pbl-barra .pbl-usuario { order: 2; }
+  .pbl-barra .pbl-links { padding: 0; column-gap: .25rem; }
+  .pbl-barra .nav-link.active { box-shadow: inset 0 -3px 0 #6ea8fe; }
+  .pbl-barra .pbl-nome { max-width: 14rem; }
 }
 
 /* Alvos de toque de pelo menos 44px no celular. */
@@ -81,3 +85,40 @@ main pre, main textarea { max-width: 100%; }
 /* Diferença entre versões: cada linha ganha a cor de fundo do que ela é (Bootstrap já cuida do contraste). */
 .pbl-diff-add { background: var(--bs-success-bg-subtle, #d1e7dd); display: inline-block; width: 100%; }
 .pbl-diff-rem { background: var(--bs-danger-bg-subtle, #f8d7da); display: inline-block; width: 100%; }
+
+/* Campos de formulário bem visíveis: borda escura, fundo distinto do cartão, foco forte, rótulo em peso médio e ajuda menor em cinza. */
+main .form-control, main .form-select { border: 1px solid #6c757d; background-color: #f4f6f8; color: #212529; }
+main .form-control:hover, main .form-select:hover { border-color: #343a40; }
+main .form-control:focus, main .form-select:focus { background-color: #fff; border-color: #0a58ca; box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .45); outline: 0; }
+main .form-control:disabled, main .form-select:disabled { background-color: #e9ecef; }
+main .form-label, main .pbl-card legend { font-weight: 600; margin-bottom: .3rem; }
+main .form-text { font-size: .85rem; color: #5c636a; }
+main .form-check-input { border: 2px solid #495057; background-color: #fff; }
+main .form-check-input:checked { background-color: #0d6efd; border-color: #0d6efd; }
+main .form-check-input:focus { box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .45); }
+main .form-check-label { font-weight: 500; }
+main .pbl-card { background: #fff; border-color: #adb5bd; }
+
+/* Caixa de marcar com ajuda: marcador e rótulo lado a lado na primeira linha, ajuda abaixo ocupando a largura toda (nada de rótulo espremido). */
+main .form-check { display: flex; flex-wrap: wrap; align-items: center; column-gap: .5rem; padding-left: 0; margin-bottom: .5rem; }
+main .form-check .form-check-input { float: none; margin: 0; flex: none; }
+main .form-check .form-check-label { flex: 0 1 auto; min-width: 0; }
+main .form-check .form-text { flex: 0 0 100%; margin-top: .15rem; }
+
+/* Painéis recolhíveis (accordion do Bootstrap) do editor de tipos de conteúdo: resumo com nome, rótulo, tipo e selos, quebrando linha sem cortar. */
+.accordion .pbl-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 0; min-height: 44px; text-align: left; }
+.accordion .pbl-resumo-meta { color: #5c636a; font-size: .85rem; }
+.accordion-item { border-color: #adb5bd; }
+.accordion-button:not(.collapsed) { background-color: var(--bs-tertiary-bg, #f8f9fa); color: inherit; }
+.accordion-button:focus { box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .45); }
+
+/* Tabelas viram lista de cartões empilhados em telas estreitas: cada linha um cartão, cada célula "rótulo: valor" (data-label). */
+@media (max-width: 767.98px) {
+  table.pbl-cartoes, table.pbl-cartoes tbody, table.pbl-cartoes tr, table.pbl-cartoes td, table.pbl-cartoes th { display: block; width: 100%; }
+  table.pbl-cartoes thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  table.pbl-cartoes tr { border: 1px solid #adb5bd; border-radius: var(--bs-border-radius); background: #fff; margin-bottom: .75rem; padding: .35rem .75rem; }
+  table.pbl-cartoes td, table.pbl-cartoes th { border: 0; padding: .3rem 0; text-align: left !important; background: transparent; box-shadow: none; }
+  table.pbl-cartoes [data-label]::before { content: attr(data-label); display: block; font-size: .8rem; font-weight: 600; color: #5c636a; }
+  table.pbl-cartoes td.text-end form, table.pbl-cartoes td.text-end .btn { margin-top: .25rem; }
+  table.pbl-cartoes .text-nowrap { white-space: normal !important; }
+}

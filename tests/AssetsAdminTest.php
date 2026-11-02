@@ -26,7 +26,7 @@ final class AssetsAdminTest extends TestCase
     public function testArquivosExistemEBatemComAProcedencia(): void
     {
         $procedencia = (string) file_get_contents($this->publico(Pagina::ASSETS . '/PROVENIENCIA.md'));
-        foreach (['bootstrap-5.3.8/bootstrap.min.css', 'bootstrap-5.3.8/LICENSE'] as $arquivo) {
+        foreach (['bootstrap-5.3.8/bootstrap.min.css', 'bootstrap-5.3.8/bootstrap.bundle.min.js', 'bootstrap-5.3.8/LICENSE'] as $arquivo) {
             $caminho = $this->publico(Pagina::ASSETS . '/' . $arquivo);
             self::assertFileExists($caminho);
             $sha = hash_file('sha256', $caminho);
@@ -36,7 +36,9 @@ final class AssetsAdminTest extends TestCase
         }
         self::assertStringContainsString('Bootstrap  v5.3.8', (string) file_get_contents($this->publico(Pagina::BOOTSTRAP)));
         self::assertStringContainsString('MIT License', (string) file_get_contents($this->publico(Pagina::ASSETS . '/bootstrap-5.3.8/LICENSE')));
+        self::assertStringContainsString('Bootstrap v5.3.8', (string) file_get_contents($this->publico(Pagina::BOOTSTRAP_JS)));
         self::assertFileExists($this->publico(Pagina::CSS));
+        self::assertFileExists($this->publico(Pagina::JS));
     }
 
     public function testUrlVersionadaMudaComOConteudoDoArquivo(): void
@@ -67,12 +69,15 @@ final class AssetsAdminTest extends TestCase
         self::assertStringContainsString('href="' . Pagina::CSS . '?v=', $html);
         self::assertStringNotContainsString('<style', $html);
         self::assertStringNotContainsString('style=', $html);
-        self::assertStringNotContainsString('<script', $html);
+        self::assertStringContainsString('<script src="' . Pagina::BOOTSTRAP_JS . '?v=', $html);
+        self::assertStringContainsString('<script src="' . Pagina::JS . '?v=', $html);
+        self::assertSame(0, preg_match('/<script(?![^>]*\ssrc=)/', $html), 'nenhum script inline');
+        self::assertStringNotContainsString('onclick=', $html);
         self::assertStringNotContainsString('//cdn', $html);
         self::assertStringContainsString("style-src 'self'", $csp);
         self::assertStringContainsString("default-src 'none'", $csp);
         self::assertStringNotContainsString('unsafe-inline', $csp);
-        self::assertStringNotContainsString('script-src', $csp, 'sem JavaScript, nada de script liberado');
+        self::assertStringContainsString("script-src 'self'", $csp, 'só scripts do próprio site');
         self::assertStringContainsString('<main id="conteudo"', $html);
         self::assertStringContainsString('href="#conteudo"', $html, 'atalho para pular a navegação');
     }
@@ -90,7 +95,7 @@ final class AssetsAdminTest extends TestCase
         $publico = (string) file_get_contents($this->raiz() . '/public/.htaccess');
         self::assertStringContainsString('RewriteCond %{REQUEST_FILENAME} !-f', $publico, 'arquivo existente não vai para o index.php');
         $negados = preg_match('/<FilesMatch "([^"]+)">/', $publico, $m) === 1 ? $m[1] : self::fail('FilesMatch não encontrado');
-        foreach (['bootstrap.min.css', 'pbl.css'] as $nome) {
+        foreach (['bootstrap.min.css', 'bootstrap.bundle.min.js', 'pbl.css', 'pbl-admin.js'] as $nome) {
             self::assertSame(0, preg_match('/' . str_replace('/', '\/', $negados) . '/', $nome), "{$nome} não pode cair na lista negada");
         }
 
@@ -126,7 +131,7 @@ final class AssetsAdminTest extends TestCase
         preg_match_all('/location ~ (\S+) \{ return 404; \}/', $conf, $bloqueios);
         self::assertNotEmpty($bloqueios[1]);
         foreach ($bloqueios[1] as $regra) {
-            foreach ([Pagina::BOOTSTRAP, Pagina::CSS] as $url) {
+            foreach ([Pagina::BOOTSTRAP, Pagina::BOOTSTRAP_JS, Pagina::CSS, Pagina::JS] as $url) {
                 self::assertSame(0, preg_match('#' . $regra . '#', $url), "location {$regra} bloquearia {$url}");
             }
         }
