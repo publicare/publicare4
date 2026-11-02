@@ -63,6 +63,9 @@ final class TelasDeConteudo
             if ($u->administrador) {
                 $corpo .= '<p><a href="' . Painel::PREFIXO . '/site/' . $site->id . '/redirecionamentos">Redirecionamentos</a> · <a href="' . Painel::PREFIXO . '/site/' . $site->id . '/peles">Peles</a></p>';
             }
+            if ($this->servicos->permissoes->podeAdministrarSite($u, $raiz)) {
+                $corpo .= '<p><a href="' . Painel::PREFIXO . '/site/' . $site->id . '/configuracoes">Configurações do site</a></p>';
+            }
             if ($lista === []) {
                 $corpo .= '<p class="text-body-secondary">Este site ainda não tem conteúdo inicial.</p></section>';
                 continue;

@@ -21,6 +21,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Link para outra página do site (acompanha o endereço dela) ou para um endereço externo, com a opção de abrir em nova aba | ✅ |
 | Título, descrição e imagem para buscadores e redes sociais (opcionais) em páginas, pastas e notícias | ✅ (o endereço completo e o `sitemap.xml` ainda não) |
 | Menu principal do site (escolher quais páginas entram, o nome no menu e a ordem), com submenus, sem JavaScript | ✅ (avisos de corte e "republicar em segundo plano" no painel ainda não) |
+| Configurações do site pelo navegador (nome, idioma, textos de SEO, imagem e ícone, contato, redes sociais, rodapé, busca ligada ou não, itens por página, profundidade do menu, permitir ou não buscadores), que as páginas usam ao serem republicadas | ✅ (a pele básica ainda não mostra contato, redes sociais nem analytics) |
 | Busca no site, listas de notícias com páginas e página de "não encontrado" com o visual do site | ✅ |
 | Linguagem de moldes para montar páginas (listas, menus, herança de layout) | ✅ |
 | Publicar as páginas e entregá-las prontas, com cache | ✅ |

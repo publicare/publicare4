@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pbl\Linguagem;
 
+use Pbl\Conteudo\ConfigDoSite;
+
 /**
  * Gramática de expressões (EBNF em docs/linguagem-pbl4.md):
  *   expr  = termo { ("." | "+" | "-" | "*" | "/") termo }   (precedência: * / > + - > .)
@@ -172,6 +174,14 @@ final class ExpressaoParser
 
     private function macro(string $nome): ExprMacro
     {
+        if (str_starts_with($nome, ExprMacro::CONFIG)) {
+            $chave = substr($nome, strlen(ExprMacro::CONFIG));
+            if (!ConfigDoSite::existe($chave)) {
+                throw new ErroSintaxe("Configuração de site desconhecida: %SITE.config.{$chave}", $this->linha);
+            }
+
+            return new ExprMacro($nome);
+        }
         if (!in_array($nome, Runtime::MACROS, true)) {
             throw new ErroSintaxe("Macro desconhecida: %{$nome}", $this->linha);
         }

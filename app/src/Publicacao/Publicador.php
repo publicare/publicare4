@@ -62,6 +62,24 @@ final class Publicador
         return $this->menu?->pendente($site) ?? false;
     }
 
+    /**
+     * Mudou uma configuração do site (ADR 0017): todas as páginas dependem dela. Site pequeno é republicado na hora; grande
+     * fica marcado como pendente (o mesmo marcador do menu) para `bin/pbl publicar`/`agendados`.
+     *
+     * @return bool true se republicou agora; false se ficou pendente
+     */
+    public function republicarPorConfiguracao(Site $site): bool
+    {
+        if ($this->objetos->contarDoSite($site->id) <= self::LIMITE_SINCRONO) {
+            $this->publicarSite($site);
+
+            return true;
+        }
+        $this->menu?->marcarPendente($site->id);
+
+        return false;
+    }
+
     private function republicarPorMenu(Site $site): void
     {
         if ($this->objetos->contarDoSite($site->id) <= self::LIMITE_SINCRONO) {

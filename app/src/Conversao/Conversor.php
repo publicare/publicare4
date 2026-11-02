@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pbl\Conversao;
 
+use Pbl\Conteudo\ConfigDoSite;
 use Pbl\Linguagem\ErroSintaxe;
 use Pbl\Linguagem\ExpressaoLexer;
 use Pbl\Linguagem\ExpressaoParser;
@@ -28,7 +29,6 @@ final class Conversor
         'incluimenu' => 'menu do admin: fase 3/5',
         'protegido' => 'área protegida: depende da autenticação (fase 3)',
         'executar' => 'executava script PHP; vira módulo com interface estável (ADR 0005)',
-        'config' => 'depende de configuração de site',
         'iconeblob' => 'ícone por tipo de arquivo: não existe no PBL4',
         'iconeclasse' => 'ícone da classe: não existe no PBL4',
     ];
@@ -195,8 +195,39 @@ final class Conversor
             'usarblob' => $this->usarBlob($resto, $original),
             'srcblob', 'linkblob', 'downloadblob', 'tamanhoblob', 'tipoblob' => $this->blobInfo($nome, $original),
             'srcthumb' => $this->srcThumb($original),
+            'config' => $this->config($resto, $original),
             default => $this->revisar($original, "comando desconhecido: {$nome}"),
         };
+    }
+
+    // --- configuração do site (fase 5m, ADR 0017) -------------------------------------------------
+
+    /**
+     * `config` (valor da configuração do site): com o nome da chave fixo (`nome="x"`, `chave="x"`, `["x"]` ou `"x"`) e uma chave
+     * que existe no catálogo do PBL4, vira `<@eco %SITE.config.x@>`; qualquer outra forma (nome calculado, chave fora do catálogo,
+     * `config` de outro grupo como `portal`) vai para revisão, com o motivo.
+     */
+    private function config(string $resto, string $original): string
+    {
+        $literal = null;
+        if (preg_match('/^(["\'])(.*)\1$/s', trim($resto), $m) === 1) {
+            $literal = $m[0];
+        } elseif (preg_match('/^\[\s*(["\'][^"\']*["\'])\s*\]$/', trim($resto), $m) === 1) {
+            $literal = $m[1];
+        } else {
+            $params = $this->parametros($resto);
+            $literal = $params === null ? null : ($params['nome'] ?? $params['chave'] ?? null);
+        }
+        $chave = $literal === null ? null : $this->propriedadeLiteral($literal);
+        if ($chave === null) {
+            return $this->revisar($original, 'config: o nome da configuração não é um texto fixo; use %SITE.config.chave (chaves em docs/linguagem-pbl4.md)');
+        }
+        if (!ConfigDoSite::existe($chave)) {
+            return $this->revisar($original, "config \"{$chave}\": não existe no catálogo de configurações do PBL4; veja as chaves em docs/linguagem-pbl4.md");
+        }
+        $this->avisos[] = new Aviso(Aviso::INFO, $this->linha, "config \"{$chave}\" virou %SITE.config.{$chave} (configuração do site; confira o valor em /_pbl/site/{id}/configuracoes)");
+
+        return "<@eco %SITE.config.{$chave}@>";
     }
 
     // --- blob (fase 7b) ----------------------------------------------------------------------------

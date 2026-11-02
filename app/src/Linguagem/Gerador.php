@@ -130,6 +130,10 @@ final class Gerador
             return '$r->variavel(' . var_export($e->nome, true) . ')';
         }
         if ($e instanceof ExprMacro) {
+            if (str_starts_with($e->nome, ExprMacro::CONFIG)) {
+                return '$r->configDoSite($o' . $nivel . ', ' . var_export(substr($e->nome, strlen(ExprMacro::CONFIG)), true) . ')';
+            }
+
             return '$r->macro(' . var_export($e->nome, true) . ')';
         }
         if ($e instanceof ExprBin) {

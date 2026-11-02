@@ -62,6 +62,10 @@ flowchart LR
 - `/busca` e `?pagina=N` são páginas dinâmicas (`PaginasDinamicas`), não cacheadas; o resto continua estático. Para tráfego alto, ponha uma CDN na frente.
 - Detalhes e decisões: [ADR 0016](../adr/0016-menu-busca-e-paginas-dinamicas.md).
 
+## Configurações do site (fase 5m)
+
+`ConfigDoSite` é o catálogo fechado de chaves (tipo, padrão, validação); `ConfigDoSiteRepositorio` lê e grava a tabela `site_config` (uma linha por site e chave, valor em JSON), valida tudo antes de gravar qualquer coisa e calcula a `versao` (hash das linhas) para a edição otimista. O molde lê `%SITE.config.chave` (`Runtime::configDoSite` → `FonteDeDados`); chave fora do catálogo é recusada no parser. `MenuDoSite::profundidadeDe` usa `menu_profundidade` limitado pelo teto global. Salvar pela tela (`TelasDeConfiguracoes`) audita só os nomes das chaves e chama `Publicador::republicarPorConfiguracao`: até 300 objetos republica na hora; acima disso marca o site como pendente, o mesmo marcador do menu. Decisões: [ADR 0017](../adr/0017-configuracoes-do-site.md).
+
 ## Administração pelo navegador
 
 ```mermaid

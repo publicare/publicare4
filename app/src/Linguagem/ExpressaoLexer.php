@@ -54,6 +54,12 @@ final class ExpressaoLexer
                         $j++;
                     }
                 }
+                // `%SITE.config.chave`: a configuração do site (ADR 0017); a chave é validada contra o catálogo no parser.
+                if ($c === '%' && strtoupper(substr($texto, $i + 1, $j - $i - 1)) === 'SITE' && preg_match('/\G\.config\.([A-Za-z_][A-Za-z0-9_]*)/i', $texto, $mc, 0, $j) === 1) {
+                    $tokens[] = new Token(Token::MACRO, ExprMacro::CONFIG . strtolower($mc[1]));
+                    $i = $j + strlen($mc[0]);
+                    continue;
+                }
                 $nome = substr($texto, $i + 1, $j - $i - 1);
                 if ($nome === '') {
                     throw new ErroSintaxe("Esperava um nome depois de {$c}", $linha);

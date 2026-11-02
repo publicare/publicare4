@@ -12,6 +12,7 @@ use Pbl\Consulta\Consulta;
 use Pbl\Consulta\Filtro;
 use Pbl\Consulta\MotorDeConsulta;
 use Pbl\Conteudo\ClasseRepositorio;
+use Pbl\Conteudo\ConfigDoSiteRepositorio;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
@@ -40,6 +41,7 @@ final class FonteRepositorio implements FonteDeDados
         private readonly ?SiteRepositorio $sites = null,
         private readonly ?ArquivoRepositorio $arquivos = null,
         private readonly ?MenuDoSite $menus = null,
+        private readonly ?ConfigDoSiteRepositorio $configs = null,
     ) {
     }
 
@@ -118,12 +120,19 @@ final class FonteRepositorio implements FonteDeDados
 
         return MenuHtml::gerar(
             $this->menus->arvore($site),
-            min($profundidade, $this->menus->profundidade()),
+            min($profundidade, $this->menus->profundidadeDe($site)),
             $inicio,
             is_int($objeto['id'] ?? null) ? $objeto['id'] : 0,
             is_string($objeto['caminho'] ?? null) ? $objeto['caminho'] : '',
             $site->objetoRaizId,
         );
+    }
+
+    public function configDoSite(array $objeto, string $chave): string|int
+    {
+        $site = $objeto['site'] ?? null;
+
+        return is_int($site) && $this->configs !== null ? $this->configs->paraMolde($site, $chave) : '';
     }
 
     public function temFilhos(array $objeto, ?int $id): bool
@@ -269,7 +278,8 @@ final class FonteRepositorio implements FonteDeDados
             $contexto = ContextoDeObjeto::de($o, $this->nomeDaClasse($o->classeId), isset($comFilhos[$o->id]));
             // Dados do site para o molde montar menu e título: `#raiz` (id da página inicial) e `#site_nome`.
             $contexto['raiz'] = $config->objetoRaizId ?? '';
-            $contexto['site_nome'] = $config === null ? '' : $config->nome;
+            $nomeConfigurado = $this->configs?->valor($site, 'nome');
+            $contexto['site_nome'] = is_string($nomeConfigurado) && $nomeConfigurado !== '' ? $nomeConfigurado : ($config === null ? '' : $config->nome);
             foreach ($referenciados as $propriedade => $alvos) {
                 $alvo = $alvos[(int) ($o->dados[$propriedade] ?? 0)] ?? null;
                 if ($alvo !== null) {

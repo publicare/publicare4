@@ -56,7 +56,7 @@ final class TelasDeSite
      */
     public static function rota(string $prefixo, string $caminho, string $metodo): ?array
     {
-        $p = '#^' . preg_quote($prefixo, '#') . '/site/([1-9][0-9]{0,9})/(redirecionamentos|peles|busca)(?:/([a-z0-9_-]{1,50}|[1-9][0-9]{0,9}))?(?:/([a-z]{1,20}))?(?:/([a-z]{1,20}))?$#D';
+        $p = '#^' . preg_quote($prefixo, '#') . '/site/([1-9][0-9]{0,9})/(redirecionamentos|peles|busca|configuracoes)(?:/([a-z0-9_-]{1,50}|[1-9][0-9]{0,9}))?(?:/([a-z]{1,20}))?(?:/([a-z]{1,20}))?$#D';
         if (preg_match($p, $caminho, $m) !== 1) {
             return null;
         }
@@ -78,6 +78,7 @@ final class TelasDeSite
                 ctype_digit($a) && $b === 'remover' => $metodo === 'POST' ? 'redirRemover' : null,
                 default => null,
             },
+            'configuracoes' => $a !== '' || $b !== '' ? null : match ($metodo) { 'GET' => 'cfgExibir', 'POST' => 'cfgSalvar', default => null },
             'busca' => $a !== '' || $b !== '' ? null : match ($metodo) { 'GET' => 'buscaExibir', 'POST' => 'buscaSalvar', default => null },
             default => match (true) {
                 $a === '' && $b === '' => $metodo === 'GET' ? 'peleLista' : null,
@@ -126,6 +127,9 @@ final class TelasDeSite
         }
         if (str_starts_with($tela, 'redir')) {
             return $this->redirecionamentos($sessao, $site, $tela, $regraId, $requisicao);
+        }
+        if (str_starts_with($tela, 'cfg')) {
+            return (new TelasDeConfiguracoes($this->servicos, $this->rede, $this->csrf))->tratar($sessao, $site, $requisicao);
         }
         if (str_starts_with($tela, 'busca')) {
             return $this->buscaTelas($sessao, $site, $tela, $requisicao);

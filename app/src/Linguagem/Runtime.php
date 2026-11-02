@@ -67,6 +67,16 @@ final class Runtime
         $this->variaveis[$nome] = $valor;
     }
 
+    /**
+     * `%SITE.config.chave` (ADR 0017): só chaves do catálogo (o parser já recusa as outras); sem fonte, vazio.
+     *
+     * @param array<string, mixed> $objeto
+     */
+    public function configDoSite(array $objeto, string $chave): mixed
+    {
+        return $this->fonte?->configDoSite($objeto, $chave) ?? '';
+    }
+
     public function macro(string $nome): mixed
     {
         $agora = $this->agora ?? new \DateTimeImmutable();

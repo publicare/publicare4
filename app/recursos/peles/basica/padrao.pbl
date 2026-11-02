@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="<@eco %SITE.config.idioma@>">
 <head>
 <@incluir arquivo="cabeca"@>
 <@incluir arquivo="estilo"@>
@@ -14,5 +14,6 @@
 <@filhos@><@se #classe == "link"@><@incluir arquivo="link_a"@><@senao@><a href="<@eco #url@>"><@eco #titulo@></a><@/se@> <@/filhos@>
 </nav>
 </main>
-</body>
+<@se %SITE.config.rodape != ""@><footer><@ecocru %SITE.config.rodape@></footer>
+<@/se@></body>
 </html>

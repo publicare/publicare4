@@ -59,6 +59,14 @@ interface FonteDeDados
     public function menu(array $objeto, int $profundidade, string $inicio): string;
 
     /**
+     * `%SITE.config.chave` (ADR 0017): o valor da configuração do site do objeto corrente, como texto ou número (booleano
+     * vira 1/0, lista vira linhas). Chave fora do catálogo ou sem site: vazio.
+     *
+     * @param array<string, mixed> $objeto
+     */
+    public function configDoSite(array $objeto, string $chave): string|int;
+
+    /**
      * @param array<string, mixed> $objeto
      */
     public function temFilhos(array $objeto, ?int $id): bool;
