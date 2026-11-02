@@ -254,6 +254,57 @@ final class Runtime
     }
 
     /**
+     * `arquivo`: um dado (nome, tamanho legível, tipo ou a URL de entrega) de uma propriedade `arquivo`/`imagem`, sempre
+     * escapado e só se o arquivo existe e seu objeto dono está publicado e vigente (`FonteDeDados::arquivo`); fora disso,
+     * ou com `info` desconhecido, vazio.
+     *
+     * @param array<string, mixed> $objeto
+     * @param array<string, mixed> $p
+     */
+    public function arquivoInfo(array $objeto, array $p): string
+    {
+        $arquivo = $this->arquivoAlvo($objeto, $p['valor'] ?? null);
+        if ($arquivo === null) {
+            return '';
+        }
+
+        return match ($this->texto($p['info'] ?? '')) {
+            'url' => $arquivo['url'],
+            'nome' => $arquivo['nome'],
+            'tamanho' => $arquivo['tamanho'],
+            'tipo' => $arquivo['extensao'],
+            default => '',
+        };
+    }
+
+    /**
+     * `miniatura`: a URL da miniatura de uma propriedade `imagem`, só com `tamanho` de `ServicoDeMiniaturas::TAMANHOS`;
+     * fora disso (não é imagem, tamanho fora da lista, arquivo não visível) é vazio — nunca um link que não funciona.
+     *
+     * @param array<string, mixed> $objeto
+     * @param array<string, mixed> $p
+     */
+    public function miniaturaUrl(array $objeto, array $p): string
+    {
+        $arquivo = $this->arquivoAlvo($objeto, $p['valor'] ?? null);
+        $tamanho = $p['tamanho'] ?? null;
+        $t = is_numeric($tamanho) ? (int) $tamanho : 0;
+
+        return $arquivo['miniaturas'][$t] ?? '';
+    }
+
+    /**
+     * @param array<string, mixed> $objeto
+     * @return array{nome: string, tamanho: string, extensao: string, url: string, imagem: bool, miniaturas: array<int, string>}|null
+     */
+    private function arquivoAlvo(array $objeto, mixed $valor): ?array
+    {
+        $id = is_numeric($valor) ? (int) $valor : 0;
+
+        return $id > 0 ? ($this->fonte?->arquivo($objeto, $id) ?? null) : null;
+    }
+
+    /**
      * Sorteia a ordem e só então aplica a janela, para `limite=1` escolher um item qualquer e não o primeiro.
      *
      * @param list<array<string, mixed>> $lista

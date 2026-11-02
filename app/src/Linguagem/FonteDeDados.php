@@ -56,6 +56,17 @@ interface FonteDeDados
     public function temFilhos(array $objeto, ?int $id): bool;
 
     /**
+     * O arquivo de uma propriedade `arquivo`/`imagem` (pelo id guardado nela), só se existe **neste site** e o objeto dono
+     * (fixado no upload, [ADR 0014](../../../docs/adr/0014-upload-de-arquivos.md)) está publicado e vigente agora — a mesma
+     * regra do `ArquivoController`; qualquer outro caso é null (o comando de molde não imprime nada). `miniaturas` só tem
+     * chaves para imagem, uma por tamanho de `ServicoDeMiniaturas::TAMANHOS`.
+     *
+     * @param array<string, mixed> $objeto contexto do objeto corrente (o site, para a mesma regra de "só deste site")
+     * @return array{nome: string, tamanho: string, extensao: string, url: string, imagem: bool, miniaturas: array<int, string>}|null
+     */
+    public function arquivo(array $objeto, int $id): ?array;
+
+    /**
      * Sugestão de grafia parecida ("você quis dizer…", nível C do ADR 0010) para a última busca sem resultado. Só
      * calcula algo se `$filtros` tem `busca` e o site do objeto tem a opção ligada; null nos outros casos, inclusive
      * sem candidato confiável. Nunca inclui termo de conteúdo privado, não publicado ou na lixeira.
