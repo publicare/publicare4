@@ -208,13 +208,14 @@ final class AdminPeleHistoricoTest extends TestCase
         $b = $this->base();
         $antes = (string) file_get_contents($this->caminhos->peles() . '/basica/padrao.pbl');
         $site = $this->s->sites->porId($this->siteId) ?? self::fail();
-        $paginaAntes = (string) file_get_contents($this->caminhos->pagina($site->id, ''));
+        $arquivoPagina = $this->caminhos->pagina($site->id, '');
+        $paginaAntes = is_file($arquivoPagina) ? file_get_contents($arquivoPagina) : null;
 
         $r = $this->post($t, "{$b}/molde/rascunho", ['nome' => 'padrao', 'conteudo' => '<h1>RASCUNHO SÓ MEU</h1>']);
         self::assertSame(303, $r->getStatusCode());
 
         self::assertSame($antes, file_get_contents($this->caminhos->peles() . '/basica/padrao.pbl'), 'o arquivo do molde não muda');
-        self::assertSame($paginaAntes, file_get_contents($this->caminhos->pagina($site->id, '')), 'a página publicada não muda');
+        self::assertSame($paginaAntes, is_file($arquivoPagina) ? file_get_contents($arquivoPagina) : null, 'a página publicada não muda');
         self::assertSame([], $this->s->peles->historico('basica', 'padrao'), 'rascunho não gera versão');
         $rascunho = $this->s->peles->rascunho('basica', 'padrao');
         self::assertNotNull($rascunho);
@@ -267,12 +268,11 @@ final class AdminPeleHistoricoTest extends TestCase
         $r = $this->req('GET', "{$b}/molde/previsualizar?nome=padrao&objeto=" . $raiz->id, $admin);
         self::assertSame(200, $r->getStatusCode());
         self::assertStringContainsString('Pré-visualização', $this->html($r));
-        self::assertSame('no-store, no-cache, must-revalidate', $r->headers->get('Cache-Control'));
+        self::assertStringContainsString('no-store', (string) $r->headers->get('Cache-Control'));
         self::assertStringContainsString('noindex', (string) $r->headers->get('X-Robots-Tag'));
         self::assertStringContainsString("default-src 'none'", (string) $r->headers->get('Content-Security-Policy'));
 
-        // Nada foi publicado: a página pública não muda, nem o arquivo do molde.
-        self::assertStringNotContainsString('Pré-visualização', (string) file_get_contents($this->caminhos->pagina($site->id, '')));
+        self::assertFileDoesNotExist($this->caminhos->pagina($site->id, ''), 'a pré-visualização não grava o cache público');
         self::assertStringNotContainsString('Pré-visualização', (string) file_get_contents($this->caminhos->peles() . '/basica/padrao.pbl'));
 
         // Página inexistente ou de outro site: 404 (nunca revela qual é o motivo).

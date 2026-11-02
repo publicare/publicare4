@@ -56,13 +56,21 @@ final class TelasDeSite
      */
     public static function rota(string $prefixo, string $caminho, string $metodo): ?array
     {
-        $p = '#^' . preg_quote($prefixo, '#') . '/site/([1-9][0-9]{0,9})/(redirecionamentos|peles|busca)(?:/([a-z0-9_-]{1,50}|[1-9][0-9]{0,9}))?(?:/([a-z]{1,20}))?$#D';
+        $p = '#^' . preg_quote($prefixo, '#') . '/site/([1-9][0-9]{0,9})/(redirecionamentos|peles|busca)(?:/([a-z0-9_-]{1,50}|[1-9][0-9]{0,9}))?(?:/([a-z]{1,20}))?(?:/([a-z]{1,20}))?$#D';
         if (preg_match($p, $caminho, $m) !== 1) {
             return null;
         }
         $site = (int) $m[1];
         $a = $m[3] ?? '';
         $b = $m[4] ?? '';
+        $c = $m[5] ?? '';
+        if ($c !== '') {
+            // Terceiro segmento só existe em peles/<pele>/molde/<ação> (histórico, rascunho, pré-visualização...).
+            if ($m[2] !== 'peles' || $b !== 'molde' || !in_array($c, ['historico', 'diferenca', 'voltar', 'rascunho', 'publicar', 'previsualizar'], true)) {
+                return null;
+            }
+            $b = $c;
+        }
         $tela = match ($m[2]) {
             'redirecionamentos' => match (true) {
                 $a === '' && $b === '' => match ($metodo) { 'GET' => 'redirLista', 'POST' => 'redirCriar', default => null },
@@ -664,6 +672,13 @@ final class TelasDeSite
     }
 
     /** Data ISO 8601 (UTC) num formato legível, sem depender de extensão de calendário além do PHP padrão. */
+    private function nomeDeUsuario(int $id): string
+    {
+        $u = $this->servicos->usuarios->porId($id);
+
+        return $u === null ? 'pessoa nº ' . $id : $u->nome;
+    }
+
     private function dataLegivel(string $iso): string
     {
         $t = strtotime($iso);
@@ -715,7 +730,7 @@ final class TelasDeSite
         foreach ($historico as $v) {
             $quem = 'sistema';
             if ($v['usuario_id'] !== null) {
-                $quem = $nomes[$v['usuario_id']] ??= ($this->servicos->usuarios->porId($v['usuario_id'])?->nome ?? ('pessoa nº ' . $v['usuario_id']));
+                $quem = $nomes[$v['usuario_id']] ??= $this->nomeDeUsuario($v['usuario_id']);
             }
             $eAVersaoAtual = $atual !== null && hash_equals(hash('sha256', $atual), $v['hash']);
             $acoes = '<a class="btn btn-sm btn-outline-secondary" href="' . $base . '/molde/historico?nome=' . rawurlencode($nome) . '&ver=' . $v['versao'] . '">Ver</a> ';

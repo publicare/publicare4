@@ -40,6 +40,7 @@ final class Lexer
             throw new ErroSintaxe('PHP cru não é permitido no molde', $this->linha($fonte, $m[0][1]));
         }
 
+        /** @var list<array{tipo: 'texto', valor: string}|array{tipo: 'tag', fecha: bool, nome: string, resto: string, linha: int}|array{tipo: 'comentario', valor: string, linha: int}> $tokens */
         $tokens = [];
         $pos = 0;
         $n = strlen($fonte);
