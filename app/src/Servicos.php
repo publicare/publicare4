@@ -56,6 +56,7 @@ final class Servicos
     public readonly MenuDoSite $menu;
     public readonly EnderecoDoSite $enderecos;
     public readonly GerenciadorDePeles $peles;
+    public readonly Aparencia $aparencia;
     public readonly FormularioRepositorio $formularios;
     public readonly ArquivoRepositorio $arquivos;
 
@@ -78,7 +79,7 @@ final class Servicos
         $this->menu = new MenuDoSite($conexao, $caminhos, $this->auditoria, (int) (getenv('PBL_MENU_PROFUNDIDADE') ?: MenuDoSite::PROFUNDIDADE_PADRAO), $this->configs);
         $this->enderecos = new EnderecoDoSite($this->dominios, EnderecoDoSite::esquemaDoAmbiente());
         $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos, $this->menu, $this->configs, $this->enderecos);
-        $this->renderizador = $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()), new Aparencia($caminhos, $conexao));
+        $this->renderizador = $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()), $this->aparencia = new Aparencia($caminhos, $conexao));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador, $this->menu);
         $this->peles = new GerenciadorDePeles($caminhos, $conexao);
     }
