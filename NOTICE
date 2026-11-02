@@ -1,0 +1,46 @@
+Publicare 4 (PBL4)
+Copyright 2026 Diogo Corazolla e colaboradores do Publicare 4
+
+Este produto e licenciado sob a Apache License, Versao 2.0 (arquivo LICENSE).
+
+A marca "Publicare" e seus logotipos nao sao licenciados por este arquivo nem pela Apache-2.0
+(secao 6 da licenca): o uso do nome para identificar versoes modificadas ou servicos de terceiros
+depende de autorizacao (ver docs/adr/0018-licenciamento-apache-2.md).
+
+== Creditos ao Publicare 3 ==
+
+O PBL4 descende do Publicare 3 (https://github.com/publicare/publicare), criado e mantido por
+Diogo Corazolla, com contribuicoes historicas de:
+
+  - Manuel Poppe
+  - Thiago Borges
+
+O codigo do Publicare 3 e o codigo do PBL4 que dele deriva permanecem sob a licenca MIT original,
+reproduzida integralmente abaixo e que deve acompanhar toda redistribuicao desse codigo. As
+contribuicoes novas ao PBL4 sao licenciadas sob a Apache-2.0 (a MIT e compativel com ela).
+
+------------------------------------------------------------------------------------------------
+Licenca MIT do Publicare 3 (texto original, preservado)
+------------------------------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2020 Diogo Corazolla
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -87,7 +87,7 @@ final class TelasDeAtualizacao
         }
         $c = Configuracao::ler($servicos->caminhos);
         $chaves ??= Chaves::PUBLICAS;
-        if ($c->url === '' || !$c->verificar || $chaves === []) {
+        if ($c->url === '' || !$c->verificar || Chaves::semConfianca($chaves, $c->canal)) {
             return '';
         }
         $link = Painel::PREFIXO . '/atualizacao';
@@ -156,7 +156,7 @@ final class TelasDeAtualizacao
         if (!$c->verificar) {
             return ['situacao' => 'desligada'] + $base;
         }
-        if ($this->chaves === []) {
+        if (Chaves::semConfianca($this->chaves, $c->canal)) {
             return ['situacao' => 'sem_chave'] + $base;
         }
         $cache = $forcar ? null : $this->estado->verificacaoRecente($c->url, $c->canal, $this->versaoInstalada);
@@ -237,7 +237,7 @@ final class TelasDeAtualizacao
             return $this->pagina($sessao, '', 'Marque a confirmação para atualizar.', Response::HTTP_UNPROCESSABLE_ENTITY, true);
         }
         $c = Configuracao::ler($this->servicos->caminhos);
-        if ($c->url === '' || !$c->verificar || $this->chaves === []) {
+        if ($c->url === '' || !$c->verificar || Chaves::semConfianca($this->chaves, $c->canal)) {
             return $this->pagina($sessao, '', 'Atualizar pelo painel não está disponível: veja o que falta na parte de cima da página.', Response::HTTP_CONFLICT, false);
         }
         if ($this->estado->situacao()['estado'] === 'andamento') {

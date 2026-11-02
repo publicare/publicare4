@@ -26,7 +26,10 @@ final class Atualizador
     private readonly \Closure $conferirNovo;
 
     /**
-     * @param list<string> $chaves chaves públicas de confiança (hex)
+     * @param list<string> $chaves chaves públicas de produção em que se confia (hex): a de uso e, se estiver aqui, a de recuperação
+     * @param list<string> $recuperacao quais chaves são de recuperação (as únicas que assinam troca de chave de uso e revogação); inclui-se na confiança
+     * @param list<string> $revogadas chaves recusadas desde o nascimento do produto (soma-se às revogadas por manifesto, em `dados/config/`)
+     * @param list<string> $chavesDeTeste chaves do canal `teste`, que só valem nesse canal
      * @param \Closure(string): void|null $conferirNovo recebe a raiz já trocada e lança se o código novo não funcionar (padrão: processo PHP à parte)
      */
     public function __construct(
@@ -36,24 +39,32 @@ final class Atualizador
         private readonly string $versaoAtual = Versao::ATUAL,
         ?\Closure $conferirNovo = null,
         private readonly string $phpAtual = PHP_VERSION,
+        private readonly array $recuperacao = Chaves::RECUPERACAO,
+        private readonly array $revogadas = Chaves::REVOGADAS,
+        private readonly array $chavesDeTeste = Chaves::TESTE,
     ) {
         $this->conferirNovo = $conferirNovo ?? self::conferirComProcesso(...);
     }
 
     public function verificar(string $urlDoManifesto, string $canal = 'estavel'): Verificacao
     {
-        if ($this->chaves === []) {
+        $teste = $canal === 'teste';
+        $local = $teste ? new ChavesLocais() : ChavesLocais::ler($this->caminhos);
+        $confiaveis = $teste ? $this->chavesDeTeste : $this->confiaveisDeProducao($local);
+        if ($confiaveis === []) {
             throw new ErroDeAtualizacao('Esta instalação não tem chave de assinatura embutida: não é possível confiar em nenhuma atualização.');
         }
         $texto = $this->baixador->obter($urlDoManifesto, 65536);
         $assinatura = $this->baixador->obter($urlDoManifesto . '.sig', 4096);
-        if (!Assinatura::verificar($texto, $assinatura, $this->chaves)) {
+        $assinou = Assinatura::quemAssinou($texto, $assinatura, $confiaveis);
+        if ($assinou === null) {
             throw new ErroDeAtualizacao('A assinatura do manifesto não confere: a atualização foi recusada.');
         }
         $m = Manifesto::analisar($texto);
         if ($m->canal !== $canal) {
             throw new ErroDeAtualizacao("O manifesto é do canal {$m->canal}, e o configurado é {$canal}.");
         }
+        $this->aplicarMudancaDeChaves($m, $assinou, $teste, $local);
         if (Semver::comparar($m->versao, $this->versaoAtual) <= 0) {
             return new Verificacao(false, $m, "Já está na versão mais recente ({$this->versaoAtual}).");
         }
@@ -65,6 +76,62 @@ final class Atualizador
         }
 
         return new Verificacao(true, $m, "Disponível: {$m->versao}.");
+    }
+
+    /**
+     * Troca da chave de uso e revogação só valem se o manifesto foi assinado pela chave de **recuperação**; vinda da chave de uso
+     * (ou do canal de teste), é recusada em vez de ignorada: quem tem só a chave de uso comprometida não pode se perpetuar.
+     */
+    private function aplicarMudancaDeChaves(Manifesto $m, string $assinou, bool $teste, ChavesLocais $local): void
+    {
+        if ($m->novaChaveDeUso === null && $m->chavesRevogadas === []) {
+            return;
+        }
+        if ($teste || !in_array($assinou, $this->recuperacao, true)) {
+            throw new ErroDeAtualizacao('Troca ou revogação de chave só vale com assinatura da chave de recuperação: a atualização foi recusada.');
+        }
+        foreach ($m->chavesRevogadas as $r) {
+            if (in_array($r, $this->recuperacao, true)) {
+                throw new ErroDeAtualizacao('Um manifesto não pode revogar a chave de recuperação.');
+            }
+        }
+        if ($m->novaChaveDeUso !== null && in_array($m->novaChaveDeUso, array_merge($this->revogadas, $local->revogadas, $m->chavesRevogadas), true)) {
+            throw new ErroDeAtualizacao('O manifesto escolhe como chave de uso uma chave revogada.');
+        }
+        $revogadas = array_merge($local->revogadas, $m->chavesRevogadas);
+        $uso = $local->uso;
+        if ($m->novaChaveDeUso !== null) {
+            // a de uso que vale até aqui sai de cena: quem a tiver (vazada, por exemplo) não assina mais nada
+            foreach ($this->usoEfetivo($local) as $antiga) {
+                if ($antiga !== $m->novaChaveDeUso) {
+                    $revogadas[] = $antiga;
+                }
+            }
+            $uso = $m->novaChaveDeUso;
+        }
+        (new ChavesLocais($uso, array_values(array_unique($revogadas))))->gravar($this->caminhos);
+    }
+
+    /** @return list<string> chaves de uso em vigor: a trocada por manifesto, ou as embutidas */
+    private function usoEfetivo(ChavesLocais $local): array
+    {
+        if ($local->uso !== null) {
+            return [$local->uso];
+        }
+
+        return array_values(array_filter($this->chaves, fn (string $c): bool => !in_array($c, $this->recuperacao, true)));
+    }
+
+    /** @return list<string> uso (em vigor) + recuperação, sem as revogadas (a recuperação nunca é revogada) */
+    private function confiaveisDeProducao(ChavesLocais $local): array
+    {
+        $revogadas = array_merge($this->revogadas, $local->revogadas);
+        $todas = array_merge($this->usoEfetivo($local), $this->recuperacao);
+
+        return array_values(array_unique(array_filter(
+            $todas,
+            fn (string $c): bool => in_array($c, $this->recuperacao, true) || !in_array($c, $revogadas, true),
+        )));
     }
 
     public function aplicar(Verificacao $v, string $urlDoManifesto): Aplicada

@@ -36,14 +36,14 @@ Primeiro critério de validação: um site real hoje em PBL3 rodando no PBL4 (vi
 4. **Branch mais recente do p3**: `master` (2021-03), `psr4`, `3.6.0`, `v3.x`; confirmar de qual partir.
 5. **Peles por FTP**: política de sincronização com `pele_arquivo`.
 6. **Busca**: driver padrão (fluxo 8).
-7. **Licença/governança**: p3 é MIT; manter. Coautores históricos (Manuel Poppe, Thiago Borges) preservados nos créditos.
+7. **Licença/governança**: **decidido (2026-11-02): Apache-2.0** ([ADR 0018](adr/0018-licenciamento-apache-2.md)). p3 e o código antigo seguem MIT (texto preservado no `NOTICE`); coautores históricos (Manuel Poppe, Thiago Borges) nos créditos; a marca "Publicare" não é licenciada.
 8. **Nome público**: "PBL4" vs. "Publicare 4" nos instaladores e na documentação.
 9. **Fronteira do low-code**: validar com 2 ou 3 sistemas reais (consulta pública, evento pago, biblioteca) o que cabe em configuração e o que vira módulo.
 10. **Pagamentos**: quais conectores entram primeiro (PIX/cartão/boleto); fiscal e recorrência ficam fora.
 11. **LGPD**: política padrão de retenção e anonimização de participantes.
 14. **Marketplace (ADR 0008)**: só com tração; definir licenciamento, loja, termos e divisão de receita antes de abrir a autores.
 13. **Peles**: formato final do `pele.json`, custódia da chave do catálogo, política para peles de comunidade.
-12. **Atualizador**: custódia da chave de assinatura, pacote diferencial (fluxo 11). A volta atrás de uma atualização concluída existe (`bin/pbl reverter`, fase 4d): como hoje nenhuma migração é destrutiva (ADR 0006 §8), basta devolver código e banco; falta decidir o que fazer quando existir migração destrutiva de verdade (negar sempre, ou marcar a migração como "não reversível" e checar isso também).
+12. **Atualizador**: custódia da chave de assinatura **decidida (2026-11-02)**: chave de produção offline com a de recuperação em mídia fria, duas chaves públicas embutidas, canal de teste com chave própria e endpoint `atualizacoes.publicare.org` ([ADR 0019](adr/0019-custodia-da-chave-de-assinatura.md)); o dono ainda precisa gerar as chaves e embutir as públicas antes da 0.1.0. Pendente: pacote diferencial (fluxo 11). A volta atrás de uma atualização concluída existe (`bin/pbl reverter`, fase 4d): como hoje nenhuma migração é destrutiva (ADR 0006 §8), basta devolver código e banco; falta decidir o que fazer quando existir migração destrutiva de verdade (negar sempre, ou marcar a migração como "não reversível" e checar isso também).
 
 ## Corpus de regressão (nota)
 

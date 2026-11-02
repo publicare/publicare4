@@ -6,6 +6,7 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use Pbl\Caminhos;
+use Pbl\Console\AssinarComando;
 use Pbl\Console\AtualizarComando;
 use Pbl\Console\ChavesComando;
 use Pbl\Console\ConverterMoldesComando;
@@ -42,4 +43,5 @@ $aplicacao->add(new ReverterComando($caminhos));
 $aplicacao->add(new VerificarAtualizacaoComando($caminhos));
 $aplicacao->add(new EmpacotarComando());
 $aplicacao->add(new ChavesComando());
+$aplicacao->add(new AssinarComando());
 $aplicacao->run();

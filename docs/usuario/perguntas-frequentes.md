@@ -2,7 +2,7 @@
 
 ## É grátis?
 
-Sim. O Publicare é software livre, com licença MIT: pode usar, estudar, modificar e distribuir sem pagar. Você só paga o que for seu: hospedagem e domínio. (Peles ou serviços opcionais de terceiros, se existirem no futuro, podem ser pagos; o programa em si e o que ele precisa para funcionar continuam livres.)
+Sim. O Publicare é software livre, com licença Apache-2.0 (o Publicare 3 é MIT): pode usar, estudar, modificar e distribuir sem pagar. Você só paga o que for seu: hospedagem e domínio. (Peles ou serviços opcionais de terceiros, se existirem no futuro, podem ser pagos; o programa em si e o que ele precisa para funcionar continuam livres.)
 
 ## Preciso saber programar?
 

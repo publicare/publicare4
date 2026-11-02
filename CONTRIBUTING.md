@@ -98,7 +98,7 @@ Seguimos [Versionamento Semântico](https://semver.org/lang/pt-BR/) e mantemos u
 
 ## Licença e autoria
 
-Ao contribuir, você concorda que sua contribuição seja licenciada sob a [licença MIT](LICENSE) do projeto e declara ter o direito de fazê-lo. Os créditos históricos do Publicare são preservados.
+Ao contribuir, você concorda que sua contribuição seja licenciada sob a [licença Apache-2.0](LICENSE) do projeto (seção 5 da licença; o código herdado do Publicare 3 segue MIT, ver [NOTICE](NOTICE)) e declara ter o direito de fazê-lo. Os créditos históricos do Publicare são preservados.
 
 ## Conduta
 

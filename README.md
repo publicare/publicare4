@@ -46,4 +46,4 @@ docs/      documentação (usuário, técnica, ADRs, fluxos)
 
 ## Licença
 
-[MIT](LICENSE). Os créditos históricos do Publicare são preservados.
+[Apache-2.0](LICENSE) ([ADR 0018](docs/adr/0018-licenciamento-apache-2.md)). O código do Publicare 3 e o anterior continuam MIT; os créditos históricos (Manuel Poppe, Thiago Borges) e o texto da MIT estão no [NOTICE](NOTICE). A marca "Publicare" não é licenciada.

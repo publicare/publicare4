@@ -49,7 +49,7 @@ final class VerificarAtualizacaoComando extends Command
     {
         $c = Configuracao::ler($this->caminhos);
         $chaves = $this->chaves ?? Chaves::PUBLICAS;
-        if ($c->url === '' || !$c->verificar || $chaves === []) {
+        if ($c->url === '' || !$c->verificar || Chaves::semConfianca($chaves, $c->canal)) {
             return Command::SUCCESS;
         }
         $estado = new EstadoDoPainel($this->caminhos, $this->relogio);
