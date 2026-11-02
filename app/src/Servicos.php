@@ -29,6 +29,7 @@ use Pbl\Conteudo\SiteRepositorio;
 use Pbl\Formularios\FormularioParaMolde;
 use Pbl\Formularios\FormularioRepositorio;
 use Pbl\Linguagem\Compilador;
+use Pbl\Publicacao\EnderecoDoSite;
 use Pbl\Publicacao\FonteRepositorio;
 use Pbl\Publicacao\MenuDoSite;
 use Pbl\Publicacao\GerenciadorDePeles;
@@ -52,6 +53,7 @@ final class Servicos
     /** Renderiza um objeto sem publicar (fase 5j): a pré-visualização isolada de rascunho e as páginas dinâmicas (fase 5l) o usam diretamente. */
     public readonly Renderizador $renderizador;
     public readonly MenuDoSite $menu;
+    public readonly EnderecoDoSite $enderecos;
     public readonly GerenciadorDePeles $peles;
     public readonly FormularioRepositorio $formularios;
     public readonly ArquivoRepositorio $arquivos;
@@ -73,7 +75,8 @@ final class Servicos
         $this->formularios = new FormularioRepositorio($this->objetos, $this->classes);
         $this->configs = new ConfigDoSiteRepositorio($conexao, $this->arquivos);
         $this->menu = new MenuDoSite($conexao, $caminhos, $this->auditoria, (int) (getenv('PBL_MENU_PROFUNDIDADE') ?: MenuDoSite::PROFUNDIDADE_PADRAO), $this->configs);
-        $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos, $this->menu, $this->configs);
+        $this->enderecos = new EnderecoDoSite($this->dominios, EnderecoDoSite::esquemaDoAmbiente());
+        $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos, $this->menu, $this->configs, $this->enderecos);
         $this->renderizador = $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador, $this->menu);
         $this->peles = new GerenciadorDePeles($caminhos, $conexao);

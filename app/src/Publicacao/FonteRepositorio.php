@@ -42,6 +42,7 @@ final class FonteRepositorio implements FonteDeDados
         private readonly ?ArquivoRepositorio $arquivos = null,
         private readonly ?MenuDoSite $menus = null,
         private readonly ?ConfigDoSiteRepositorio $configs = null,
+        private readonly ?EnderecoDoSite $enderecos = null,
     ) {
     }
 
@@ -280,6 +281,8 @@ final class FonteRepositorio implements FonteDeDados
             $contexto['raiz'] = $config->objetoRaizId ?? '';
             $nomeConfigurado = $this->configs?->valor($site, 'nome');
             $contexto['site_nome'] = is_string($nomeConfigurado) && $nomeConfigurado !== '' ? $nomeConfigurado : ($config === null ? '' : $config->nome);
+            // `#base_url`: `https://dominio-principal` (vazio sem domínio principal), para endereços absolutos em canonical e og:*.
+            $contexto['base_url'] = $this->enderecos?->base($o->siteId) ?? '';
             foreach ($referenciados as $propriedade => $alvos) {
                 $alvo = $alvos[(int) ($o->dados[$propriedade] ?? 0)] ?? null;
                 if ($alvo !== null) {

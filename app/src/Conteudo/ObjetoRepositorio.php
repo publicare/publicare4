@@ -20,6 +20,9 @@ use Pbl\Busca\Texto;
  */
 final class ObjetoRepositorio
 {
+    /** Chave reservada no JSON de uma versão com o menu do objeto (`no_menu`, `rotulo_menu`). */
+    private const CHAVE_MENU = '_menu';
+
     /** Estados de um objeto (fluxo 5). Só `publicado` aparece ao público. */
     public const STATUS = ['privado', 'submetido', 'rejeitado', 'publicado', 'apagado'];
 
@@ -171,6 +174,44 @@ final class ObjetoRepositorio
         );
 
         return array_map($this->hidratar(...), $linhas);
+    }
+
+    /**
+     * Um lote da subárvore, em ordem de id, a partir do primeiro id maior que `$depoisDoId` (republicação em lotes).
+     *
+     * @return list<Objeto>
+     */
+    public function loteDaSubarvore(int $siteId, string $caminhoRaiz, int $depoisDoId, int $limite): array
+    {
+        $linhas = $this->conexao->fetchAllAssociative(
+            "SELECT * FROM objeto WHERE site_id = ? AND caminho LIKE ? ESCAPE '!' AND id > ? ORDER BY id LIMIT " . max(1, $limite),
+            [$siteId, $this->escaparLike($caminhoRaiz) . '%', $depoisDoId],
+        );
+
+        return array_map($this->hidratar(...), $linhas);
+    }
+
+    /**
+     * Endereços (`url_amigavel`) e classe dos objetos publicados e vigentes da subárvore, sem hidratar nada: o que o sitemap
+     * lista e o que a limpeza de páginas órfãs preserva.
+     *
+     * @return list<array{url: string, atualizado_em: string, classe: string, dados: string}>
+     */
+    public function indicePublicadoDaSubarvore(int $siteId, string $caminhoRaiz): array
+    {
+        $agora = gmdate('c');
+        $linhas = $this->conexao->fetchAllAssociative(
+            "SELECT o.url_amigavel, o.atualizado_em, o.dados, c.nome AS classe
+               FROM objeto o JOIN classe c ON c.id = o.classe_id
+              WHERE o.site_id = ? AND o.caminho LIKE ? ESCAPE '!' AND o.status = 'publicado'
+                AND (o.data_publicacao IS NULL OR o.data_publicacao <= ?) AND (o.data_validade IS NULL OR o.data_validade >= ?)
+              ORDER BY o.caminho, o.id",
+            [$siteId, $this->escaparLike($caminhoRaiz) . '%', $agora, $agora],
+        );
+
+        return array_map(static fn (array $l): array => [
+            'url' => (string) $l['url_amigavel'], 'atualizado_em' => (string) $l['atualizado_em'], 'classe' => (string) $l['classe'], 'dados' => (string) $l['dados'],
+        ], $linhas);
     }
 
     /** Quantos objetos o site tem (fora da lixeira definitiva). */
@@ -398,8 +439,11 @@ final class ObjetoRepositorio
         if ($v === false || $atual === null) {
             throw new \InvalidArgumentException("Versão {$versao} do objeto {$id} não existe");
         }
-        /** @var array<string, string|int|float|null> $dados */
+        /** @var array<string, mixed> $dados */
         $dados = json_decode((string) $v['dados'], true, 512, JSON_THROW_ON_ERROR);
+        // Menu (fase 5l2): guardado na própria versão sob `_menu`, fora das propriedades da classe. Versões antigas não o têm.
+        $menu = is_array($dados[self::CHAVE_MENU] ?? null) ? $dados[self::CHAVE_MENU] : null;
+        unset($dados[self::CHAVE_MENU]);
         foreach (array_keys($atual->dados) as $chave) {
             $dados[$chave] ??= null;
         }
@@ -411,6 +455,10 @@ final class ObjetoRepositorio
             'peso' => (int) $v['peso'],
             'descricao' => $v['descricao'] === null ? '' : (string) $v['descricao'],
         ];
+        if ($menu !== null) {
+            $mudancas['no_menu'] = !empty($menu['no_menu']);
+            $mudancas['rotulo_menu'] = is_string($menu['rotulo_menu'] ?? null) ? $menu['rotulo_menu'] : '';
+        }
         if (!$manterEstado) {
             $mudancas['status'] = (string) $v['status'];
             $mudancas['data_publicacao'] = $v['data_publicacao'] === null ? null : (string) $v['data_publicacao'];
@@ -652,6 +700,21 @@ final class ObjetoRepositorio
         $this->auditoria?->registrar($acao, $usuarioId === null ? 'sistema' : 'usuario:' . $usuarioId, $usuarioId, $objetoId, $detalhe);
     }
 
+    /**
+     * Os dados da versão: as propriedades da classe mais `_menu` (`no_menu` e `rotulo_menu`, colunas que não são versionadas
+     * à parte). Sem migração: o histórico lê só as chaves que conhece, então a chave extra é inofensiva para o código antigo.
+     *
+     * @param array<string, mixed> $o linha de `objeto`
+     */
+    private function dadosComMenu(array $o): string
+    {
+        $dados = json_decode((string) $o['dados'], true);
+        $dados = is_array($dados) ? $dados : [];
+        $dados[self::CHAVE_MENU] = ['no_menu' => (int) ($o['no_menu'] ?? 0), 'rotulo_menu' => (string) ($o['rotulo_menu'] ?? '')];
+
+        return json_encode($dados, JSON_THROW_ON_ERROR);
+    }
+
     /** Grava o estado atual do objeto como uma linha de `objeto_versao`. */
     private function registrarVersao(int $id, string $motivo, ?int $usuarioId = null): void
     {
@@ -661,7 +724,7 @@ final class ObjetoRepositorio
         }
         $this->conexao->insert('objeto_versao', [
             'objeto_id' => $id, 'versao' => $o['versao'], 'titulo' => $o['titulo'], 'url_amigavel' => $o['url_amigavel'],
-            'status' => $o['status'], 'dados' => $o['dados'], 'peso' => $o['peso'], 'descricao' => $o['descricao'],
+            'status' => $o['status'], 'dados' => $this->dadosComMenu($o), 'peso' => $o['peso'], 'descricao' => $o['descricao'],
             'data_publicacao' => $o['data_publicacao'], 'data_validade' => $o['data_validade'], 'pai_id' => $o['pai_id'],
             'motivo' => $motivo === '' ? null : mb_substr($motivo, 0, 300), 'usuario_id' => $usuarioId, 'criado_em' => gmdate('c'),
         ]);
