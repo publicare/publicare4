@@ -222,9 +222,38 @@ final class AdminPeleHistoricoTest extends TestCase
         self::assertSame('<h1>RASCUNHO SÓ MEU</h1>', $rascunho['conteudo']);
 
         // Descartar o rascunho também não toca em nada.
-        $this->post($t, "{$b}/molde/rascunho", ['nome' => 'padrao', 'conteudo' => '', 'descartar' => '1']);
+        $this->post($t, "{$b}/molde/rascunho", ['nome' => 'padrao', 'conteudo' => '', 'descartar' => '1', 'rascunho_base' => hash('sha256', '<h1>RASCUNHO SÓ MEU</h1>')]);
         self::assertNull($this->s->peles->rascunho('basica', 'padrao'));
         self::assertSame($antes, file_get_contents($this->caminhos->peles() . '/basica/padrao.pbl'));
+    }
+
+    public function testRascunhoMaisNovoDeOutraPessoaNaoESobrescritoEmSilencio(): void
+    {
+        $t = $this->token('admin');
+        $b = $this->base();
+
+        // A e B abrem o editor sem rascunho (base vazia). A salva primeiro.
+        $a = $this->post($t, "{$b}/molde/rascunho", ['nome' => 'padrao', 'conteudo' => '<p>da pessoa A</p>', 'rascunho_base' => '']);
+        self::assertSame(303, $a->getStatusCode());
+
+        // B ainda tem a base antiga: conflito, sem sobrescrever, e o texto de B volta na caixa.
+        $r = $this->post($t, "{$b}/molde/rascunho", ['nome' => 'padrao', 'conteudo' => '<p>da pessoa B</p>', 'rascunho_base' => '']);
+        self::assertSame(409, $r->getStatusCode());
+        self::assertStringContainsString('Outra pessoa alterou o rascunho', $this->html($r));
+        self::assertStringContainsString('da pessoa B', $this->html($r));
+        $guardado = $this->s->peles->rascunho('basica', 'padrao') ?? self::fail();
+        self::assertSame('<p>da pessoa A</p>', $guardado['conteudo']);
+
+        // Descartar com base velha também é conflito; o rascunho de A continua.
+        $d = $this->post($t, "{$b}/molde/rascunho", ['nome' => 'padrao', 'conteudo' => '', 'descartar' => '1', 'rascunho_base' => '']);
+        self::assertSame(409, $d->getStatusCode());
+        self::assertNotNull($this->s->peles->rascunho('basica', 'padrao'));
+
+        // Com a base certa (o hash do rascunho de A), B consegue salvar.
+        $ok = $this->post($t, "{$b}/molde/rascunho", ['nome' => 'padrao', 'conteudo' => '<p>da pessoa B</p>', 'rascunho_base' => hash('sha256', '<p>da pessoa A</p>')]);
+        self::assertSame(303, $ok->getStatusCode());
+        $guardado = $this->s->peles->rascunho('basica', 'padrao') ?? self::fail();
+        self::assertSame('<p>da pessoa B</p>', $guardado['conteudo']);
     }
 
     public function testPublicarRascunhoValidaGravaERepublica(): void

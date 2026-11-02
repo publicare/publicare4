@@ -640,7 +640,7 @@ final class TelasDeSite
             . '<form method="post" action="' . $url . ($novo ? '/novo' : '/molde') . '">' . $this->campoCsrf($sessao)
             . ($novo
                 ? '<div class="mb-3"><label for="m-nome" class="form-label">Nome do molde (sem <code>.pbl</code>; <code>/</code> só para pastas)</label><input id="m-nome" class="form-control" name="nome" maxlength="100" required value="' . Pagina::h($nome) . '"></div>'
-                : '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '"><input type="hidden" name="base" value="' . Pagina::h((string) $base) . '"><p>Molde <code>' . Pagina::h($nome) . '.pbl</code></p>')
+                : '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '"><input type="hidden" name="base" value="' . Pagina::h((string) $base) . '"><input type="hidden" name="rascunho_base" value="' . Pagina::h($this->hashDoRascunho($rascunho)) . '"><p>Molde <code>' . Pagina::h($nome) . '.pbl</code></p>')
             . '<div class="mb-3"><label for="m-conteudo" class="form-label">Conteúdo</label>'
             . '<textarea id="m-conteudo" class="form-control font-monospace" name="conteudo" rows="26" spellcheck="false" wrap="off"' . ($erro === null ? '' : ' aria-invalid="true" aria-describedby="erro-molde"') . '>' . Pagina::h($conteudo) . '</textarea></div>'
             . $this->campoSenha($sessao, 'm-senha')
@@ -667,11 +667,22 @@ final class TelasDeSite
             . $this->campoSenha($sessao, 'm-senha-publicar') . '<button type="submit" class="btn btn-sm btn-success">Publicar rascunho</button></form>'
             . '<form method="post" action="' . $url . '/molde/rascunho">' . $this->campoCsrf($sessao) . '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '">'
             . '<input type="hidden" name="conteudo" value=""><input type="hidden" name="descartar" value="1">'
+            . '<input type="hidden" name="rascunho_base" value="' . Pagina::h($this->hashDoRascunho($rascunho)) . '">'
             . '<button type="submit" class="btn btn-sm btn-outline-secondary">Descartar rascunho</button></form>'
             . '</div>';
     }
 
     /** Data ISO 8601 (UTC) num formato legível, sem depender de extensão de calendário além do PHP padrão. */
+    /**
+     * Controle otimista do rascunho (linha compartilhada por quem edita o molde): hash do conteúdo, ou vazio se não há.
+     *
+     * @param array{conteudo: string, usuario_id: int|null, atualizado_em: string}|null $rascunho
+     */
+    private function hashDoRascunho(?array $rascunho): string
+    {
+        return $rascunho === null ? '' : hash('sha256', $rascunho['conteudo']);
+    }
+
     private function nomeDeUsuario(int $id): string
     {
         $u = $this->servicos->usuarios->porId($id);
@@ -941,6 +952,12 @@ final class TelasDeSite
         $atual = $this->peles->ler($pele, $nome);
         if ($atual === null) {
             return $this->naoEncontrado($sessao, 'Este molde não existe.', $this->linkPeles($site) . '/' . $pele);
+        }
+        $baseDoRascunho = $req->request->all()['rascunho_base'] ?? '';
+        if (!is_string($baseDoRascunho) || !hash_equals($this->hashDoRascunho($this->peles->rascunho($pele, $nome)), $baseDoRascunho)) {
+            $conteudoDaPessoa = ($req->request->all()['descartar'] ?? null) === '1' ? $atual : $this->normalizar($c['conteudo']);
+
+            return $this->formularioDeMolde($sessao, $site, $pele, $nome, $conteudoDaPessoa, ['mensagem' => 'Outra pessoa alterou o rascunho deste molde enquanto você editava. Nada foi salvo nem descartado; o texto abaixo é o seu. Copie o que precisar e abra o molde de novo para ver o rascunho mais novo.', 'linha' => null], hash('sha256', $atual), false, Response::HTTP_CONFLICT);
         }
         if (($req->request->all()['descartar'] ?? null) === '1') {
             $this->peles->apagarRascunho($pele, $nome);
