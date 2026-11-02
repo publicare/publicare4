@@ -110,9 +110,9 @@ final class TelasDeConfiguracoes
                 . '<div id="' . $desc . '" class="form-text">' . Pagina::h($def['ajuda']) . '</div>'
                 . ($erro !== null ? '<div id="' . $id . '-erro" class="text-danger" role="alert">' . Pagina::h($erro) . '</div>' : '') . '</div>';
         }
-        $corpo .= '<button type="submit" class="btn btn-primary">Salvar e republicar</button></form>';
+        $corpo .= '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar e republicar</button></div></form>';
 
-        return Pagina::resposta('Configurações de ' . $site->nome, $corpo, $status, false, $this->barra($sessao));
+        return Pagina::resposta('Configurações de ' . $site->nome, $corpo, $status, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Configurações', null]]);
     }
 
     private function link(Site $site): string
