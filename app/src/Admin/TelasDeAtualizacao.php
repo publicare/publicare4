@@ -7,6 +7,7 @@ namespace Pbl\Admin;
 use Pbl\Acesso\Csrf;
 use Pbl\Acesso\Rede;
 use Pbl\Acesso\SessaoAtiva;
+use Pbl\Acesso\Usuario;
 use Pbl\Atualizacao\Atualizador;
 use Pbl\Atualizacao\Baixador;
 use Pbl\Atualizacao\BaixadorHttps;
@@ -16,6 +17,7 @@ use Pbl\Atualizacao\ErroDeAtualizacao;
 use Pbl\Atualizacao\EstadoDoPainel;
 use Pbl\Atualizacao\Lancador;
 use Pbl\Atualizacao\LancadorDeProcesso;
+use Pbl\Atualizacao\Reversor;
 use Pbl\Servicos;
 use Pbl\Versao;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -27,11 +29,13 @@ use Symfony\Component\HttpFoundation\Response;
  * "verificar agora") e "Atualizar agora". Só o administrador geral (`podeAdministrarContas`), conferido em toda rota, também no POST;
  * todo POST confere origem e CSRF antes de qualquer outra coisa.
  *
- * Quem atualiza é o MESMO `Atualizador` da linha de comando: o botão só inicia `bin/pbl atualizar` em outro processo (`Lancador`),
- * porque a atualização demora e troca o código em execução. A requisição web grava apenas em `dados/atualizacao-painel/`
- * (`EstadoDoPainel`: cache, trava e resultado); quem troca o código é o processo de segundo plano. Aplicar exige a senha de novo
- * (com o limite de tentativas do login) e a confirmação marcada. A auditoria guarda só as versões (validadas como SemVer pelo
- * manifesto assinado) e o id de quem fez, nunca a senha nem o texto das mudanças.
+ * Quem atualiza é o MESMO `Atualizador` da linha de comando, e quem reverte é o MESMO `Reversor`: os botões só iniciam
+ * `bin/pbl atualizar` ou `bin/pbl reverter --confirmar` em outro processo (`Lancador`), porque a troca demora e muda o código em
+ * execução. A requisição web grava apenas em `dados/atualizacao-painel/` (`EstadoDoPainel`: cache, trava e resultado — uma
+ * operação de cada vez, atualizar ou reverter); quem troca o código é o processo de segundo plano. Aplicar e reverter exigem a
+ * senha de novo (com o limite de tentativas do login) e a confirmação marcada; reverter só aparece quando o `Reversor` confirma
+ * que é seguro (versão instalada, código guardado e cópia do banco conferem com o registro da última atualização). A auditoria
+ * guarda só as versões (validadas como SemVer) e o id de quem fez, nunca a senha nem o texto das mudanças.
  */
 final class TelasDeAtualizacao
 {
@@ -67,13 +71,48 @@ final class TelasDeAtualizacao
         $this->lancador = $lancador ?? new LancadorDeProcesso($servicos->caminhos, LancadorDeProcesso::descobrirPhp(Configuracao::ler($servicos->caminhos)->php));
     }
 
-    /** @return string|null `ver`, `verificar` ou `aplicar`; null = o `Painel` responde 404 */
+    /**
+     * Aviso de versão nova na página inicial do painel (`TelasDeConteudo::inicio`), só para o administrador geral. **Nunca
+     * consulta a rede aqui**: só lê o cache de 24 h que a tela "Atualização" (ou `bin/pbl verificar-atualizacao`, pelo cron) já
+     * gravou. Cache vencido ou inexistente: mostra "verificar" com link para a tela, que aí sim pode consultar. Sem endereço
+     * configurado, verificação desligada ou sem chave de assinatura embutida: nada aparece (não há o que avisar).
+     *
+     * @param list<string>|null $chaves só para os testes; em produção vale `Chaves::PUBLICAS`
+     * @param (\Closure(): int)|null $relogio só para os testes
+     */
+    public static function avisoHomePage(Servicos $servicos, Usuario $usuario, string $versaoInstalada = Versao::ATUAL, ?array $chaves = null, ?\Closure $relogio = null): string
+    {
+        if (!$servicos->permissoes->podeAdministrarContas($usuario)) {
+            return '';
+        }
+        $c = Configuracao::ler($servicos->caminhos);
+        $chaves ??= Chaves::PUBLICAS;
+        if ($c->url === '' || !$c->verificar || $chaves === []) {
+            return '';
+        }
+        $link = Painel::PREFIXO . '/atualizacao';
+        $cache = (new EstadoDoPainel($servicos->caminhos, $relogio))->verificacaoRecente($c->url, $c->canal, $versaoInstalada);
+        if ($cache === null || !$cache['ok']) {
+            return '<div class="alert alert-secondary" role="status">Verificação de novidades vencida. <a href="' . $link . '">Verificar</a>.</div>';
+        }
+        if (!$cache['disponivel'] || $cache['manifesto'] === null) {
+            return '';
+        }
+        $m = $cache['manifesto'];
+        $seguranca = $m['seguranca'] ? ' <span class="badge text-bg-danger">Correção de segurança</span>' : '';
+
+        return '<div class="alert alert-info" role="status">Nova versão disponível: <strong>' . Pagina::h($m['versao']) . '</strong>' . $seguranca
+            . ' <a href="' . $link . '">Ver mudanças e atualizar</a>.</div>';
+    }
+
+    /** @return string|null `ver`, `verificar`, `aplicar` ou `reverter`; null = o `Painel` responde 404 */
     public static function rota(string $prefixo, string $caminho, string $metodo): ?string
     {
         return match (true) {
             $caminho === $prefixo . '/atualizacao' && $metodo === 'GET' => 'ver',
             $caminho === $prefixo . '/atualizacao/verificar' && $metodo === 'POST' => 'verificar',
             $caminho === $prefixo . '/atualizacao/aplicar' && $metodo === 'POST' => 'aplicar',
+            $caminho === $prefixo . '/atualizacao/reverter' && $metodo === 'POST' => 'reverter',
             default => null,
         };
     }
@@ -96,6 +135,7 @@ final class TelasDeAtualizacao
         return match ($tela) {
             'ver' => $this->pagina($sessao, $this->aviso($requisicao), null, Response::HTTP_OK, false),
             'verificar' => $this->verificarAgora($sessao),
+            'reverter' => $this->reverter($sessao, $requisicao),
             default => $this->aplicar($sessao, $requisicao),
         };
     }
@@ -248,6 +288,73 @@ final class TelasDeAtualizacao
         return new RedirectResponse(Painel::PREFIXO . '/atualizacao?ok=iniciada', Response::HTTP_SEE_OTHER);
     }
 
+    // ---------------------------------------------------------------- reverter
+
+    private function reversor(): Reversor
+    {
+        return new Reversor($this->servicos->caminhos, $this->versaoInstalada);
+    }
+
+    /**
+     * Voltar atrás depois de uma atualização concluída (ADR 0006): a mesma reautenticação (senha de novo, limite de tentativas)
+     * e a mesma confirmação marcada de `aplicar`; dispara `bin/pbl reverter --confirmar` em segundo plano, pela mesma `Lancador` e
+     * sob o mesmo `EstadoDoPainel` (uma operação de cada vez, atualizar ou reverter). Quem decide se é seguro é o `Reversor`
+     * (registro da atualização, código guardado, cópia do banco, versão do esquema); aqui só se confirma a pessoa e a intenção.
+     */
+    private function reverter(SessaoAtiva $sessao, Request $requisicao): Response
+    {
+        $senha = $this->texto($requisicao, 'senha');
+        if ($senha === null) {
+            return $this->incompleto($sessao);
+        }
+        $u = $sessao->usuario;
+        if ($this->texto($requisicao, 'confirmar') !== '1') {
+            return $this->pagina($sessao, '', 'Marque a confirmação para voltar atrás.', Response::HTTP_UNPROCESSABLE_ENTITY, true);
+        }
+        if ($this->estado->situacao()['estado'] === 'andamento') {
+            return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
+        }
+        $a = $this->reversor()->avaliar();
+        if (!$a->possivel) {
+            return $this->pagina($sessao, '', $a->motivo, Response::HTTP_CONFLICT, false);
+        }
+
+        // Reautenticação: a mesma senha e o mesmo limite de tentativas do login (e de "aplicar").
+        $ip = $this->rede->ip($requisicao);
+        $limite = $this->servicos->limiteDeTentativas();
+        $espera = $limite->bloqueadoPor($u->login, $ip);
+        if ($espera !== null) {
+            $this->servicos->auditoria->registrar('atualizacao.bloqueado', 'usuario:' . $u->id, $u->id, null, [], $limite->hashDoIp($ip));
+            $r = $this->pagina($sessao, '', 'Muitas tentativas de senha. Aguarde alguns minutos e tente de novo.', Response::HTTP_TOO_MANY_REQUESTS, false);
+            $r->headers->set('Retry-After', (string) $espera);
+
+            return $r;
+        }
+        $confere = $this->servicos->usuarios->autenticar($u->login, mb_substr($senha, 0, 1024));
+        if ($confere === null || $confere->id !== $u->id) {
+            $limite->registrarFalha($u->login, $ip);
+            $this->servicos->auditoria->registrar('atualizacao.senha_errada', 'usuario:' . $u->id, $u->id, null, [], $limite->hashDoIp($ip));
+
+            return $this->pagina($sessao, '', 'Senha incorreta.', Response::HTTP_UNAUTHORIZED, true);
+        }
+        $limite->limparLogin($u->login);
+
+        if (!is_writable($this->servicos->caminhos->raiz)) {
+            return $this->pagina($sessao, '', 'Este servidor não deixa o PHP trocar o código da instalação (falta permissão de escrita na pasta do PBL4). Reverta pelo terminal: php bin/pbl reverter --confirmar.', Response::HTTP_CONFLICT, false);
+        }
+        try {
+            $iniciou = $this->estado->iniciar($a->para, $a->de, $this->lancador, 'reverter');
+        } catch (ErroDeAtualizacao $e) {
+            return $this->pagina($sessao, '', $e->getMessage(), Response::HTTP_SERVICE_UNAVAILABLE, false);
+        }
+        if (!$iniciou) {
+            return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
+        }
+        $this->servicos->auditoria->registrar('atualizacao.reverter_iniciar', 'usuario:' . $u->id, $u->id, null, ['de' => $a->para, 'para' => $a->de], $limite->hashDoIp($ip));
+
+        return new RedirectResponse(Painel::PREFIXO . '/atualizacao?ok=reversao_iniciada', Response::HTTP_SEE_OTHER);
+    }
+
     // ---------------------------------------------------------------- tela
 
     private function aviso(Request $requisicao): string
@@ -255,6 +362,7 @@ final class TelasDeAtualizacao
         $texto = match ($requisicao->query->all()['ok'] ?? null) {
             'verificado' => 'Consulta feita agora.',
             'iniciada' => 'Atualização iniciada em segundo plano. Recarregue esta página para acompanhar; durante a troca o site responde "em manutenção" por alguns instantes.',
+            'reversao_iniciada' => 'Volta atrás iniciada em segundo plano. Recarregue esta página para acompanhar; durante a troca o site responde "em manutenção" por alguns instantes.',
             default => null,
         };
 
@@ -278,21 +386,24 @@ final class TelasDeAtualizacao
         if ($k['situacao'] === 'ok' && $k['disponivel'] && $k['manifesto'] !== null && $andamento['estado'] !== 'andamento') {
             $corpo .= $this->formularioDeAplicar($k['manifesto'], $base, $csrf, $lembrarConfirmacao);
         }
-        $corpo .= $this->voltarAtras() . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
+        $corpo .= $this->voltarAtras($andamento, $base, $csrf, $lembrarConfirmacao) . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
 
         return Pagina::resposta('Atualização', $corpo, $status, false, $this->barra($sessao));
     }
 
     /**
-     * A situação da atualização em segundo plano; a primeira vez que a tela vê o fim dela, registra na auditoria (uma vez só).
+     * A situação da atualização (ou da volta atrás) em segundo plano; a primeira vez que a tela vê o fim, registra na
+     * auditoria (uma vez só). `atualizacao.concluida`/`.falhou`/`.sem_resposta` para uma atualização, com o prefixo
+     * `atualizacao.reverter_` para uma volta atrás (não muda o nome das ações já existentes).
      *
-     * @return array{estado: string, de: string, para: string, iniciado: int, saida: string, codigo: int|null, auditado: bool}
+     * @return array{estado: string, tipo: string, de: string, para: string, iniciado: int, saida: string, codigo: int|null, auditado: bool}
      */
     private function situacaoAuditada(SessaoAtiva $sessao): array
     {
         $s = $this->estado->situacao();
         if (in_array($s['estado'], ['concluida', 'falhou', 'sem_resposta'], true) && !$s['auditado']) {
-            $this->servicos->auditoria->registrar('atualizacao.' . $s['estado'], 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['de' => $s['de'], 'para' => $s['para']]);
+            $acao = ($s['tipo'] === 'reverter' ? 'atualizacao.reverter_' : 'atualizacao.') . $s['estado'];
+            $this->servicos->auditoria->registrar($acao, 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['de' => $s['de'], 'para' => $s['para']]);
             try {
                 $this->estado->marcarAuditado();
             } catch (ErroDeAtualizacao) {
@@ -302,23 +413,26 @@ final class TelasDeAtualizacao
         return $s;
     }
 
-    /** @param array{estado: string, de: string, para: string, iniciado: int, saida: string, codigo: int|null, auditado: bool} $s */
+    /** @param array{estado: string, tipo: string, de: string, para: string, iniciado: int, saida: string, codigo: int|null, auditado: bool} $s */
     private function execucao(array $s): string
     {
         if ($s['estado'] === 'ociosa') {
             return '';
         }
+        $reverter = $s['tipo'] === 'reverter';
+        $titulo = $reverter ? 'Última volta atrás iniciada pelo painel' : 'Última atualização iniciada pelo painel';
+        $acao = $reverter ? 'a volta atrás' : 'a atualização';
         $quando = gmdate('d/m/Y H:i', $s['iniciado']) . ' UTC';
         $saida = $s['saida'] === '' ? '' : '<pre class="mb-0 mt-2 small">' . Pagina::h($s['saida']) . '</pre>';
         $de = Pagina::h($s['de']);
         $para = Pagina::h($s['para']);
 
-        return '<section class="mb-4" aria-labelledby="titulo-execucao"><h2 class="h5" id="titulo-execucao">Última atualização iniciada pelo painel</h2>' . match ($s['estado']) {
+        return '<section class="mb-4" aria-labelledby="titulo-execucao"><h2 class="h5" id="titulo-execucao">' . Pagina::h($titulo) . '</h2>' . match ($s['estado']) {
             'andamento' => '<div class="alert alert-info" role="status">Em andamento desde ' . $quando . ': de ' . $de . ' para ' . $para . '. Pode levar alguns minutos e o site fica em manutenção durante a troca. '
                 . '<a href="' . Painel::PREFIXO . '/atualizacao">Recarregar</a>.' . $saida . '</div>',
             'concluida' => '<div class="alert alert-success" role="status">Terminou sem erro (iniciada em ' . $quando . ', de ' . $de . ' para ' . $para . ').' . $saida . '</div>',
-            'falhou' => '<div class="alert alert-danger" role="alert">A atualização falhou (iniciada em ' . $quando . ', de ' . $de . ' para ' . $para . '). Se a falha foi depois da troca do código, o PBL4 já devolveu o código anterior. O motivo:' . $saida . '</div>',
-            default => '<div class="alert alert-warning" role="alert">A atualização iniciada em ' . $quando . ' não deu sinal de término há mais de uma hora. O processo pode ter sido interrompido; confira o site e tente de novo, se for o caso.' . $saida . '</div>',
+            'falhou' => '<div class="alert alert-danger" role="alert">' . ucfirst($acao) . ' falhou (iniciada em ' . $quando . ', de ' . $de . ' para ' . $para . '). Se a falha foi depois da troca do código, o PBL4 já devolveu o estado anterior. O motivo:' . $saida . '</div>',
+            default => '<div class="alert alert-warning" role="alert">' . ucfirst($acao) . ' iniciada em ' . $quando . ' não deu sinal de término há mais de uma hora. O processo pode ter sido interrompido; confira o site e tente de novo, se for o caso.' . $saida . '</div>',
         } . '</section>';
     }
 
@@ -372,12 +486,35 @@ final class TelasDeAtualizacao
             . '<div class="col-12"><button type="submit" class="btn btn-warning">Atualizar agora</button></div></form></section>';
     }
 
-    private function voltarAtras(): string
+    /**
+     * "Se algo der errado": a falha automática (sempre existe) e, quando o `Reversor` diz que dá, o botão para voltar atrás
+     * de uma atualização já concluída. Só aparece com uma avaliação positiva: o `Reversor` já confere versão instalada,
+     * código guardado, cópia do banco (SHA-256 e versão de esquema) e permissão de escrita antes de dizer que sim.
+     *
+     * @param array{estado: string, tipo: string, de: string, para: string, iniciado: int, saida: string, codigo: int|null, auditado: bool} $andamento
+     */
+    private function voltarAtras(array $andamento, string $base, string $csrf, bool $lembrar): string
     {
-        return '<section class="mb-4" aria-labelledby="titulo-voltar"><h2 class="h5" id="titulo-voltar">Se algo der errado</h2>'
-            . '<ul><li>Falha durante a atualização: o PBL4 devolve sozinho o código anterior e mostra o motivo acima.</li>'
-            . '<li>Depois de uma atualização que terminou, mas que você quer desfazer: o código anterior fica em <code>dados/atualizacao/anterior/</code> e a cópia do banco em <code>dados/backups/</code>. '
-            . 'Ainda não há botão nem comando para voltar; é manual, pelo servidor: com o site parado, devolva cada pasta de <code>anterior/</code> ao lugar dela (<code>app/</code>, <code>vendor/</code>…). '
-            . 'As migrações só acrescentam, então o código anterior funciona com o banco já migrado; use a cópia do banco só se for preciso. O passo a passo está em <code>docs/usuario/atualizar.md</code>.</li></ul></section>';
+        $corpo = '<section class="mb-4" aria-labelledby="titulo-voltar"><h2 class="h5" id="titulo-voltar">Se algo der errado</h2>'
+            . '<ul><li>Falha durante a atualização (ou a volta atrás): o PBL4 devolve sozinho o estado anterior e mostra o motivo acima.</li>';
+        if ($andamento['estado'] === 'andamento') {
+            return $corpo . '</ul></section>';
+        }
+        $a = $this->reversor()->avaliar();
+        if (!$a->possivel) {
+            return $corpo . '<li>Voltar atrás de uma atualização já concluída: ' . Pagina::h($a->motivo) . '</li></ul></section>';
+        }
+        $quando = gmdate('d/m/Y H:i', $a->em) . ' UTC';
+        $perda = $a->restauraBanco
+            ? 'o banco também volta para a cópia de antes da atualização: qualquer conteúdo, conta ou mudança criada depois de ' . $quando . ' se perde.'
+            : 'não havia banco para copiar na atualização; só o código volta.';
+
+        return $corpo . '<li>Dá para voltar para a versão <code>' . Pagina::h($a->de) . '</code> (estava instalada antes de ' . Pagina::h($a->para) . ', atualizada em ' . $quando . ').</li></ul>'
+            . '<form method="post" action="' . $base . '/reverter" class="row g-3">' . $csrf
+            . '<p class="col-12">Isso troca o código de volta e restaura o banco de antes da atualização: ' . $perda . '</p>'
+            . '<div class="col-12 col-md-6"><label for="campo-senha-reverter" class="form-label">Sua senha, para confirmar</label><input id="campo-senha-reverter" class="form-control" name="senha" type="password" autocomplete="current-password" maxlength="1024" required></div>'
+            . '<div class="col-12"><div class="form-check"><input id="campo-confirmar-reverter" class="form-check-input" type="checkbox" name="confirmar" value="1" required' . ($lembrar ? ' checked' : '') . '>'
+            . '<label for="campo-confirmar-reverter" class="form-check-label">Entendo que isso perde o que foi criado depois de ' . $quando . ' e quero voltar para a versão ' . Pagina::h($a->de) . '.</label></div></div>'
+            . '<div class="col-12"><button type="submit" class="btn btn-outline-danger">Voltar para a ' . Pagina::h($a->de) . '</button></div></form></section>';
     }
 }
