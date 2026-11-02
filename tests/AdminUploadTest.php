@@ -11,6 +11,9 @@ use Pbl\Conteudo\Classe;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\Site;
 use Pbl\Instalacao\Instalador;
+use Pbl\Linguagem\Compilador;
+use Pbl\Linguagem\Runtime;
+use Pbl\Publicacao\FonteRepositorio;
 use Pbl\Servicos;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -107,6 +110,19 @@ final class AdminUploadTest extends TestCase
         return $this->s->objetos->criarDentro($this->site->id, $this->album, $this->sobre->id, $titulo, 'album-' . bin2hex(random_bytes(3)), []);
     }
 
+    /**
+     * @param array<string, mixed> $campos
+     * @param array<string, mixed> $arquivos
+     */
+    private function postCriar(int $paiId, array $campos, array $arquivos = []): Response
+    {
+        $token = $this->token();
+        $campos += ['_csrf' => $this->csrf($token)];
+        $r = Request::create('https://www.exemplo.org/_pbl/objeto/' . $paiId . '/novo', 'POST', $campos, ['__Host-pbl4' => $token], $arquivos, self::ORIGEM + ['REMOTE_ADDR' => '198.51.100.7']);
+
+        return (new Aplicacao($this->caminhos))->tratar($r);
+    }
+
     /** @param array<string, string> $cabecalhos */
     private function getPublico(string $caminho, array $cabecalhos = []): Response
     {
@@ -178,6 +194,59 @@ final class AdminUploadTest extends TestCase
         self::assertSame(303, $r->getStatusCode());
         $depois = $this->s->objetos->porId($o->id) ?? self::fail();
         self::assertSame($idAntigo, $depois->dados['capa']);
+    }
+
+    // ---------------------------------------------------------------- envio na criação (fase 7b, ADR 0014 §4)
+
+    public function testCriarComArquivoGravaOObjetoEOArquivoNaMesmaSubmissao(): void
+    {
+        $arquivo = new UploadedFile($this->arquivoTemporario($this->pngValido()), 'capa.png', 'image/png', null, true);
+        $r = $this->postCriar($this->sobre->id, [
+            'classe' => (string) $this->album->id, 'titulo' => 'Álbum novo', 'descricao' => '', 'peso' => '0', 'url' => 'album-novo',
+        ], ['dados' => ['capa' => $arquivo]]);
+        self::assertSame(303, $r->getStatusCode(), (string) $r->getContent());
+
+        $novo = $this->s->objetos->porUrl($this->site->id, 'album-novo') ?? self::fail();
+        self::assertArrayHasKey('capa', $novo->dados);
+        $blob = $this->s->arquivos->porId((int) $novo->dados['capa']);
+        self::assertNotNull($blob);
+        self::assertSame('capa.png', $blob->nome);
+        self::assertSame($novo->id, $blob->objetoId, 'o dono do arquivo é o objeto recém-criado');
+    }
+
+    public function testCriarComArquivoInvalidoNaoCriaNadaAtomicamente(): void
+    {
+        $arquivo = new UploadedFile($this->arquivoTemporario('não é imagem de verdade'), 'capa.png', 'image/png', null, true);
+        $r = $this->postCriar($this->sobre->id, [
+            'classe' => (string) $this->album->id, 'titulo' => 'Álbum quebrado', 'descricao' => '', 'peso' => '0', 'url' => 'album-quebrado',
+        ], ['dados' => ['capa' => $arquivo]]);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertStringContainsString('não permitido', (string) $r->getContent());
+        // Nada ficou pela metade: nem o objeto, nem a linha de arquivo (o upload falhou antes de qualquer insert).
+        self::assertNull($this->s->objetos->porUrl($this->site->id, 'album-quebrado'));
+    }
+
+    public function testCriarSemArquivoNumCampoObrigatorioDa422ENaoCriaNada(): void
+    {
+        $classe = $this->s->classes->criar('album_obrigatorio', [
+            ['nome' => 'capa', 'tipo' => 'imagem', 'obrigatorio' => true],
+        ]);
+        $r = $this->postCriar($this->sobre->id, [
+            'classe' => (string) $classe->id, 'titulo' => 'Sem capa', 'descricao' => '', 'peso' => '0', 'url' => 'sem-capa',
+        ]);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertStringContainsString('obrigatório', (string) $r->getContent());
+        self::assertNull($this->s->objetos->porUrl($this->site->id, 'sem-capa'));
+    }
+
+    public function testCriarSemArquivoEmCampoOpcionalFuncionaNormalmente(): void
+    {
+        $r = $this->postCriar($this->sobre->id, [
+            'classe' => (string) $this->album->id, 'titulo' => 'Álbum sem capa', 'descricao' => '', 'peso' => '0', 'url' => 'album-sem-capa',
+        ]);
+        self::assertSame(303, $r->getStatusCode(), (string) $r->getContent());
+        $novo = $this->s->objetos->porUrl($this->site->id, 'album-sem-capa') ?? self::fail();
+        self::assertArrayNotHasKey('capa', $novo->dados);
     }
 
     public function testDocumentoNaPropriedadeImagemERecusadoPeloRepositorio(): void
@@ -283,5 +352,66 @@ final class AdminUploadTest extends TestCase
         $doc = $this->s->uploads()->enviar(new UploadedFile($this->arquivoTemporario($this->pdfValido()), 'x.pdf', 'application/pdf', null, true), $this->album->propriedades[1], $this->site->id, $o->id, null);
 
         self::assertSame(404, $this->getPublico('/_pbl/arquivo/' . $doc->id . '/miniatura/64')->getStatusCode());
+    }
+
+    // ---------------------------------------------------------------- comandos de molde (fase 7b, ADR 0014 §4.2)
+
+    /** `FonteRepositorio` de verdade, ligada ao `ArquivoRepositorio` dos Servicos, como o `Renderizador` usa de fato. */
+    private function fonteDeDados(): FonteRepositorio
+    {
+        return new FonteRepositorio($this->s->objetos, $this->s->classes, $this->s->motor, null, null, $this->s->arquivos);
+    }
+
+    private function renderMolde(string $molde, Objeto $contexto): string
+    {
+        $fonte = $this->fonteDeDados();
+        $compilador = new Compilador($this->caminhos->cachePbl());
+
+        return ($compilador->carregar($molde))($fonte->contextoDe($contexto), new Runtime($fonte));
+    }
+
+    public function testComandoArquivoNaoExpoeUrlDeObjetoPrivado(): void
+    {
+        $o = $this->criarAlbum(); // nasce privado
+        $arquivo = $this->s->uploads()->enviar(new UploadedFile($this->arquivoTemporario($this->pngValido()), 'capa.png', 'image/png', null, true), $this->album->propriedades[0], $this->site->id, $o->id, null);
+
+        self::assertSame('', $this->renderMolde('<@arquivo valor=' . $arquivo->id . ' info="url"@>', $o));
+        self::assertSame('', $this->renderMolde('<@arquivo valor=' . $arquivo->id . ' info="nome"@>', $o));
+        self::assertSame('', $this->renderMolde('<@miniatura valor=' . $arquivo->id . ' tamanho=150@>', $o), 'sem visibilidade, nem a miniatura aparece');
+    }
+
+    public function testComandoArquivoEMiniaturaParaObjetoPublicado(): void
+    {
+        $o = $this->criarAlbum();
+        $this->s->objetos->atualizar($o->id, ['status' => 'publicado']);
+        $arquivo = $this->s->uploads()->enviar(new UploadedFile($this->arquivoTemporario($this->pngValido()), 'capa.png', 'image/png', null, true), $this->album->propriedades[0], $this->site->id, $o->id, null);
+
+        self::assertSame('/_pbl/arquivo/' . $arquivo->id, $this->renderMolde('<@arquivo valor=' . $arquivo->id . ' info="url"@>', $o));
+        self::assertSame('capa.png', $this->renderMolde('<@arquivo valor=' . $arquivo->id . ' info="nome"@>', $o));
+        self::assertSame('png', $this->renderMolde('<@arquivo valor=' . $arquivo->id . ' info="tipo"@>', $o));
+        self::assertSame('/_pbl/arquivo/' . $arquivo->id . '/miniatura/150', $this->renderMolde('<@miniatura valor=' . $arquivo->id . ' tamanho=150@>', $o));
+    }
+
+    public function testComandoMiniaturaComTamanhoForaDaWhitelistEDocumentoDaoVazio(): void
+    {
+        $o = $this->criarAlbum();
+        $this->s->objetos->atualizar($o->id, ['status' => 'publicado']);
+        $imagem = $this->s->uploads()->enviar(new UploadedFile($this->arquivoTemporario($this->pngValido()), 'capa.png', 'image/png', null, true), $this->album->propriedades[0], $this->site->id, $o->id, null);
+        $doc = $this->s->uploads()->enviar(new UploadedFile($this->arquivoTemporario($this->pdfValido()), 'x.pdf', 'application/pdf', null, true), $this->album->propriedades[1], $this->site->id, $o->id, null);
+
+        self::assertSame('', $this->renderMolde('<@miniatura valor=' . $imagem->id . ' tamanho=999@>', $o), 'tamanho fora da whitelist');
+        self::assertSame('', $this->renderMolde('<@miniatura valor=' . $doc->id . ' tamanho=150@>', $o), 'documento não é imagem, não tem miniatura');
+    }
+
+    public function testComandoArquivoDeOutroSiteNaoAparece(): void
+    {
+        $o = $this->criarAlbum();
+        $this->s->objetos->atualizar($o->id, ['status' => 'publicado']);
+        $outroSite = $this->s->sites->criar('Outro', 'outro.exemplo.org', 'basica');
+        $raizOutro = $this->s->objetos->criar($outroSite->id, $this->album, null, 'Início', '', [], 'publicado');
+        $this->s->sites->definirRaiz($outroSite->id, $raizOutro->id);
+        $arquivoDeOutroSite = $this->s->uploads()->enviar(new UploadedFile($this->arquivoTemporario($this->pngValido()), 'x.png', 'image/png', null, true), $this->album->propriedades[0], $outroSite->id, $raizOutro->id, null);
+
+        self::assertSame('', $this->renderMolde('<@arquivo valor=' . $arquivoDeOutroSite->id . ' info="url"@>', $o));
     }
 }

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Pbl\Publicacao;
 
+use Pbl\Arquivos\ArquivoController;
+use Pbl\Arquivos\ArquivoRepositorio;
+use Pbl\Arquivos\ServicoDeMiniaturas;
+use Pbl\Arquivos\TamanhoLegivel;
 use Pbl\Consulta\Consulta;
 use Pbl\Consulta\Filtro;
 use Pbl\Consulta\MotorDeConsulta;
@@ -31,6 +35,7 @@ final class FonteRepositorio implements FonteDeDados
         private readonly MotorDeConsulta $motor,
         private readonly ?FormularioParaMolde $formularios = null,
         private readonly ?SiteRepositorio $sites = null,
+        private readonly ?ArquivoRepositorio $arquivos = null,
     ) {
     }
 
@@ -132,6 +137,41 @@ final class FonteRepositorio implements FonteDeDados
         $site = $objeto['site'] ?? null;
 
         return $this->formularios !== null && is_int($alvo) && is_int($site) ? $this->formularios->html($site, $alvo) : '';
+    }
+
+    /**
+     * @param array<string, mixed> $objeto
+     * @return array{nome: string, tamanho: string, extensao: string, url: string, imagem: bool, miniaturas: array<int, string>}|null
+     */
+    public function arquivo(array $objeto, int $id): ?array
+    {
+        $site = $objeto['site'] ?? null;
+        if (!is_int($site) || $this->arquivos === null) {
+            return null;
+        }
+        $arquivo = $this->arquivos->porId($id);
+        if ($arquivo === null || $arquivo->siteId !== $site) {
+            return null;
+        }
+        $dono = $this->objetos->porId($arquivo->objetoId);
+        if ($dono === null || $dono->siteId !== $site || !$dono->visivel(gmdate('c'))) {
+            return null;
+        }
+        $miniaturas = [];
+        if ($arquivo->ehImagem()) {
+            foreach (ServicoDeMiniaturas::TAMANHOS as $tamanho) {
+                $miniaturas[$tamanho] = ArquivoController::PREFIXO . '/' . $arquivo->id . '/miniatura/' . $tamanho;
+            }
+        }
+
+        return [
+            'nome' => $arquivo->nome,
+            'tamanho' => TamanhoLegivel::formatar($arquivo->tamanho),
+            'extensao' => $arquivo->extensao,
+            'url' => ArquivoController::PREFIXO . '/' . $arquivo->id,
+            'imagem' => $arquivo->ehImagem(),
+            'miniaturas' => $miniaturas,
+        ];
     }
 
     public function referencia(array $objeto, string $propriedade): ?array

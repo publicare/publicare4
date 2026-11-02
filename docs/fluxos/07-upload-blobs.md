@@ -9,7 +9,7 @@
 - Nome do arquivo entra em SQL sem escape em um ramo (`Administracao.php` ~605).
 - Entrega via `/blob/ver|baixar|verinterno` (`Pagina::executar`).
 
-## PBL4 (fase 7a, feita; ADR 0014)
+## PBL4 (fase 7a + 7b, feitas; ADR 0014)
 
 Propriedades de classe dos tipos **`arquivo`** (documentos: pdf, txt, csv e, com a ressalva abaixo, docx/xlsx/pptx/odt/ods/odp)
 e **`imagem`** (jpg, png, gif, webp). O valor guardado no JSON do objeto é o **id de uma linha de `arquivo`** (como uma `ref`,
@@ -17,7 +17,7 @@ mas apontando para `arquivo`, não para `objeto`): `Pbl\Arquivos`.
 
 ```mermaid
 flowchart TD
-    UP[Upload multipart na tela de editar objeto] --> ERR{Erro do PHP? upload_max_filesize/post_max_size}
+    UP[Upload multipart na tela de editar ou criar objeto] --> ERR{Erro do PHP? upload_max_filesize/post_max_size}
     ERR -- sim --> RJ1[Mensagem clara, nada é gravado]
     ERR -- não --> TAM{Tamanho até o limite da propriedade}
     TAM -- não --> RJ1
@@ -39,9 +39,14 @@ flowchart TD
     VIS -- sim --> HD[Content-Type fixo da whitelist, nosniff, Content-Disposition seguro, ETag/Last-Modified, Range]
 ```
 
-- **Upload só na tela de editar** um objeto que já existe (`TelasDeObjetos`, `multipart/form-data`): o arquivo precisa de um
-  dono (`objeto_id`) desde a criação, então criar um conteúdo com arquivo é salvar primeiro (sem arquivo) e depois editar. Essa
-  restrição é documentada no próprio formulário.
+- **Upload na edição e na criação** (`TelasDeObjetos`, `multipart/form-data`): o arquivo precisa de um dono (`objeto_id`)
+  desde o começo, mas na criação o objeto só ganha id depois do `INSERT`. A fase 7b resolve isso com um gancho
+  (`ObjetoRepositorio::criar`/`criarDentro` recebem um `$aposInserir` opcional) que roda **dentro da mesma transação**,
+  logo depois do insert: os arquivos pendentes são enviados só então, com o id do objeto novo como dono, e o resultado é
+  mesclado nos `dados` antes da transação terminar. Se um upload falhar, a transação inteira desfaz (nada fica pela
+  metade: nem o objeto, nem o arquivo) — ver [ADR 0014 §4.1](../adr/0014-upload-de-arquivos.md#41-upload-na-criação-é-atômico-fase-7b)
+  para a ordem exata e o único ponto não transacional (o arquivo físico em disco, que fica órfão de fábrica, nunca
+  referenciado, se a transação desfizer depois dele já estar gravado).
 - **Nunca o nome do cliente como caminho**: o arquivo em disco leva uma **chave aleatória** (16 bytes); a extensão vem sempre
   da whitelist, nunca do nome enviado. O nome original só é guardado como metadado saneado, para mostrar na tela e no
   `Content-Disposition`.
@@ -74,10 +79,14 @@ flowchart TD
   arquivo antigo (o arquivo e a linha continuam existindo, para não arriscar apagar algo que uma corrida ainda está
   gravando). `bin/pbl limpar-uploads [--simular]` varre `objeto` e `objeto_versao` (todas as versões) à procura de ids ainda
   referenciados e apaga o resto, com uma carência de 1 hora (nunca apaga algo enviado há menos tempo que isso).
-- **Fora desta fatia**: anexar arquivo já na criação do conteúdo (fica para depois de salvar); comando de molde para montar o
-  link num template (`#propriedade` dá o id; o link é `/_pbl/arquivo/<id>`, montado por quem lê o id); editor de `tipos`/
-  `tamanho_max_mb` por propriedade na tela de tipos de conteúdo; anexos de formulário público (fluxo 6); S3/B2 (armazenamento
-  é só `dados/uploads/` em disco local por agora, mas já isolado em `ArmazenamentoDeArquivos`); remoção opcional de EXIF
-  quando o GD não está disponível (sem GD, o conteúdo original é mantido como veio, só com o cabeçalho conferido).
+- **Comando de molde** (fase 7b): `<@arquivo valor=… info="url|nome|tamanho|tipo"@>` e `<@miniatura valor=… tamanho=n@>`,
+  sempre escapados e só para um arquivo cujo objeto dono está publicado e vigente no mesmo site (detalhes e exemplos em
+  [linguagem-pbl4.md](../linguagem-pbl4.md#arquivos-arquivominiatura)).
+- **Configuração por propriedade na tela de tipos de conteúdo** (fase 7b): `tipos` (subconjunto da whitelist, por checkbox)
+  e `tamanho_max_mb` (campo numérico, até `TiposDeArquivo::TETO_MB`) ficam editáveis em `TelasDeClasses`, por propriedade
+  `arquivo`/`imagem`; a validação de verdade continua no `ClasseRepositorio` (ADR 0014 §1).
+- **Fora desta fatia**: anexos de formulário público (fluxo 6); S3/B2 (armazenamento é só `dados/uploads/` em disco local
+  por agora, mas já isolado em `ArmazenamentoDeArquivos`); remoção opcional de EXIF quando o GD não está disponível (sem
+  GD, o conteúdo original é mantido como veio, só com o cabeçalho conferido).
 - Limites de `upload_max_filesize`/`post_max_size` do PHP não são verificados pelo instalador nesta fatia (ficam só na
   mensagem de erro do upload); confira-os no `php.ini` do servidor para o maior arquivo que a instalação vai aceitar.

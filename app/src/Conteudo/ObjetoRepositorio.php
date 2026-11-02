@@ -34,8 +34,13 @@ final class ObjetoRepositorio
      * @param array<string, string|int|float|bool> $dados
      * @param array{peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null, criado_por?: int|null} $meta `criado_por` = id do usuário (o autor só edita o que criou)
      * @param bool $liberarUrl true = tomar de propósito um endereço que hoje redireciona para outro objeto
+     * @param (\Closure(int): array<string, string|int|float|bool>)|null $aposInserir chamado **dentro da mesma transação**, já com
+     *     o id do objeto novo; devolve dados adicionais para mesclar (upload de arquivo, que precisa do id do dono antes de
+     *     poder gravar, ADR 0014 §4). Se lançar, a transação inteira é desfeita e o objeto não chega a existir — "criar e
+     *     anexar" é atômico: ou os dois acontecem, ou nenhum. Propriedades `arquivo`/`imagem` obrigatórias não entram na
+     *     conferência inicial (`$dados`): são conferidas de novo depois de mescladas, já com o retorno de `$aposInserir`.
      */
-    public function criar(int $siteId, Classe $classe, ?int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'publicado', array $meta = [], bool $liberarUrl = false): Objeto
+    public function criar(int $siteId, Classe $classe, ?int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'publicado', array $meta = [], bool $liberarUrl = false, ?\Closure $aposInserir = null): Objeto
     {
         if (!\Pbl\Caminhos::urlValida($urlAmigavel)) {
             throw new \InvalidArgumentException("URL amigável inválida: {$urlAmigavel}");
@@ -44,11 +49,11 @@ final class ObjetoRepositorio
             throw new \InvalidArgumentException("Estado inválido: {$status}");
         }
         $dados = $this->validar($siteId, $classe, $dados);
-        $this->exigirObrigatorios($classe, $dados);
+        $this->exigirObrigatorios($classe, $dados, $aposInserir !== null);
         $meta['data_publicacao'] = $this->dataDaVigencia('data_publicacao', $meta['data_publicacao'] ?? null);
         $meta['data_validade'] = $this->dataDaVigencia('data_validade', $meta['data_validade'] ?? null);
 
-        return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta, $liberarUrl): Objeto {
+        return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta, $liberarUrl, $aposInserir): Objeto {
             // Um endereço que redireciona para outro conteúdo não pode ser tomado por acidente: o cache da página nova passaria
             // na frente do histórico e o link antigo deixaria de levar ao conteúdo original.
             if ($this->conexao->fetchOne('SELECT objeto_id FROM url_historico WHERE site_id = ? AND url_amigavel = ?', [$siteId, $urlAmigavel]) !== false) {
@@ -88,6 +93,16 @@ final class ObjetoRepositorio
             $id = (int) $this->conexao->lastInsertId();
             $caminho = $caminhoPai . $id . '/';
             $this->conexao->update('objeto', ['caminho' => $caminho], ['id' => $id]);
+            if ($aposInserir !== null) {
+                // O id do objeto já existe (acima) mas a transação só termina no fim desta função: um upload que falhe aqui
+                // desfaz o insert por completo (nada fica pela metade). O arquivo físico já gravado em disco não é
+                // desfeito (não é transacional com o banco), mas fica sem nenhuma linha em `arquivo` apontando para ele —
+                // órfão de fábrica, nunca referenciado, então nunca listado por `bin/pbl limpar-uploads`.
+                $extra = $this->validar($siteId, $classe, $aposInserir($id));
+                $dados = [...$dados, ...$extra];
+                $this->exigirObrigatorios($classe, $dados);
+                $this->conexao->update('objeto', ['dados' => json_encode($dados, JSON_THROW_ON_ERROR)], ['id' => $id]);
+            }
             $this->indexar($id, $classe, $dados);
             $this->buscador->indexar($id, $classe->id, $titulo, (string) ($meta['descricao'] ?? ''), $dados);
             $this->registrarVersao($id, 'criação', $meta['criado_por'] ?? null);
@@ -395,20 +410,21 @@ final class ObjetoRepositorio
      *
      * @param array<string, string|int|float|bool> $dados
      * @param array{peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null, criado_por?: int|null} $meta
+     * @param (\Closure(int): array<string, string|int|float|bool>)|null $aposInserir ver `criar()`
      * @throws ConflitoDeArvore se o pai está na lixeira (ou não existe)
      * @throws \InvalidArgumentException endereço, estado ou dados inválidos
      * @throws \Doctrine\DBAL\Exception\UniqueConstraintViolationException endereço tomado por outro no mesmo instante
      */
-    public function criarDentro(int $siteId, Classe $classe, int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'privado', array $meta = []): Objeto
+    public function criarDentro(int $siteId, Classe $classe, int $paiId, string $titulo, string $urlAmigavel, array $dados, string $status = 'privado', array $meta = [], ?\Closure $aposInserir = null): Objeto
     {
-        return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta): Objeto {
+        return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta, $aposInserir): Objeto {
             $this->travar($paiId);
             $statusDoPai = $this->conexao->fetchOne('SELECT status FROM objeto WHERE id = ? AND site_id = ?', [$paiId, $siteId]);
             if ($statusDoPai === false || $statusDoPai === 'apagado') {
                 throw new ConflitoDeArvore('O conteúdo onde ele ficaria está na lixeira');
             }
 
-            return $this->criar($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta);
+            return $this->criar($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta, false, $aposInserir);
         });
     }
 
@@ -479,14 +495,16 @@ final class ObjetoRepositorio
     }
 
     /**
-     * Ao criar, todo campo obrigatório (e não arquivado) precisa ter valor.
+     * Ao criar, todo campo obrigatório (e não arquivado) precisa ter valor. `$pularArquivo` adia a conferência das
+     * propriedades `arquivo`/`imagem` (upload de arquivo na criação, ADR 0014 §4: o arquivo só existe depois do insert,
+     * então a chamada inicial pula essas propriedades e uma segunda chamada, já com os dados mesclados, confere todas).
      *
      * @param array<string, string|int|float> $dados
      * @throws ViolacaoDeRegra
      */
-    private function exigirObrigatorios(Classe $classe, array $dados): void
+    private function exigirObrigatorios(Classe $classe, array $dados, bool $pularArquivo = false): void
     {
-        $this->exigirObrigatoriosTocados($classe, $dados, null);
+        $this->exigirObrigatoriosTocados($classe, $dados, null, $pularArquivo);
     }
 
     /**
@@ -498,10 +516,13 @@ final class ObjetoRepositorio
      * @param list<string|int>|null $tocados
      * @throws ViolacaoDeRegra
      */
-    private function exigirObrigatoriosTocados(Classe $classe, array $dados, ?array $tocados): void
+    private function exigirObrigatoriosTocados(Classe $classe, array $dados, ?array $tocados, bool $pularArquivo = false): void
     {
         foreach ($classe->propriedades as $p) {
             if (!($p['obrigatorio'] ?? false) || ($p['arquivada'] ?? false)) {
+                continue;
+            }
+            if ($pularArquivo && in_array($p['tipo'], ['arquivo', 'imagem'], true)) {
                 continue;
             }
             if ($tocados !== null && !in_array($p['nome'], array_map('strval', $tocados), true)) {
