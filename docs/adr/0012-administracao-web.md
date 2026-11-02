@@ -233,3 +233,10 @@ stateDiagram-v2
 ### Editor de texto rico (2026-11)
 
 Os campos `html` ganharam um editor (TinyMCE 6.8.6, MIT, hospedado, carregado só nas telas com esse campo), com `HtmlSeguro` ampliado (tabelas e `style` limitado) e CSP um pouco mais larga **só nessas telas** (`style-src 'unsafe-inline'`, `img-src https:`; `script-src` segue `'self'`). Ver o [ADR 0020](0020-editor-de-texto-rico.md).
+
+### Telas longas em abas (2026-11)
+
+- **Conta em abas**: a tela de uma conta tem cabeçalho fixo e quatro abas (Dados, Senha, Situação, Papéis por seção). Padrão: o servidor renderiza todos os painéis e a aba ativa (`?aba=<chave>`, validada contra a lista; padrão "dados") com `active show`; nenhuma decisão depende de JavaScript. A barra de abas nasce `hidden` e cada painel traz o seu `<h2>`; sem JS tudo aparece empilhado. O `pbl-admin.js` (`data-pbl-abas`) mostra a barra, esconde os títulos e acrescenta `tab-content`/`tab-pane`, e guarda a aba no `?aba=` (`history.replaceState`). Semântica WAI-ARIA (`tablist`, `tab` com `aria-controls`/`aria-selected`, `tabpanel` com `aria-labelledby`); o teclado (setas, Home/End) é do Bootstrap. Todo POST responde no mesmo painel (erro com `Pagina::alerta`, 422) ou redireciona com `?ok=...&aba=...`.
+- **Papéis efetivos**: administrador global mostra "acesso total" e o formulário de conceder fica recolhido; conta comum lista conteúdo, site, papel e alcance (subárvore pelo caminho materializado) com Revogar. A seção é escolhida num seletor (`ObjetoRepositorio::conteineresDoSite`: início do site e tudo que tem filhos), com o número como alternativa.
+- **Lista de contas**: lista compacta (`list-group`), linha inteira clicável, filtro numa linha; migalha "Início" nas telas de contas.
+- **Outras telas longas**: as configurações do site (`/_pbl/site/{id}/configuracoes`) são um formulário único com o catálogo inteiro e sem categoria no catálogo; abas por categoria pedem antes agrupar o catálogo (um formulário só, um único Salvar), por isso ficam como sugestão. O editor de tipo de conteúdo já usa accordion.

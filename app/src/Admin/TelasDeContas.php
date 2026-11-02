@@ -101,7 +101,7 @@ final class TelasDeContas
         }
 
         return match ($tela) {
-            'ver' => $this->pagina($sessao, $alvo, null, Response::HTTP_OK, [], $this->avisoDe($requisicao)),
+            'ver' => $this->pagina($sessao, $alvo, null, Response::HTTP_OK, [], $this->avisoDe($requisicao), self::abaDe($requisicao)),
             'editar' => $this->editar($sessao, $alvo, $requisicao),
             'senha' => $this->senha($sessao, $alvo, $requisicao),
             'desativar', 'reativar' => $this->situacao($sessao, $alvo, $tela === 'reativar', $requisicao),
@@ -129,21 +129,21 @@ final class TelasDeContas
             . '<p>Contas da equipe desta instalação. Cada conta pode ser administradora (vê e faz tudo) ou receber um papel — leitor, autor ou editor — em cada seção.</p>'
             . '<p><a class="btn btn-primary" href="' . Painel::PREFIXO . '/contas/nova">Nova conta</a></p>'
             . $this->formularioDeBusca($busca, $situacao)
-            . '<div class="table-responsive"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Contas</caption><thead><tr>'
-            . '<th scope="col">Login</th><th scope="col">Nome</th><th scope="col">E-mail</th><th scope="col">Tipo</th><th scope="col">Situação</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
+            . '<div class="list-group mb-3" role="list" aria-label="Contas">';
         foreach ($r['itens'] as $c) {
-            $corpo .= '<tr><th scope="row"><code>' . Pagina::h($c->login) . '</code>' . ($c->id === $sessao->usuario->id ? ' <span class="badge text-bg-info">você</span>' : '') . '</th>'
-                . '<td>' . Pagina::h($c->nome) . '</td><td>' . Pagina::h($c->email) . '</td>'
-                . '<td>' . ($c->administrador ? 'Administrador' : 'Equipe') . '</td>'
-                . '<td>' . ($c->ativo ? 'Ativa' : '<span class="badge text-bg-secondary">Desativada</span>') . '</td>'
-                . '<td class="text-end"><a class="btn btn-sm btn-outline-primary" href="' . $this->link($c->id) . '">Abrir<span class="visually-hidden"> ' . Pagina::h($c->login) . '</span></a></td></tr>';
+            $corpo .= '<a role="listitem" class="list-group-item list-group-item-action" href="' . $this->link($c->id) . '">'
+                . '<span class="d-flex flex-wrap align-items-center gap-2"><code class="fs-6 fw-semibold">' . Pagina::h($c->login) . '</code>'
+                . ($c->id === $sessao->usuario->id ? '<span class="badge text-bg-info">você</span>' : '')
+                . ($c->ativo ? '' : '<span class="badge text-bg-secondary">Desativada</span>')
+                . '<span class="badge text-bg-light border ms-auto">' . ($c->administrador ? 'Administrador' : 'Equipe') . '</span></span>'
+                . '<span class="d-block small text-body-secondary text-break">' . Pagina::h($c->nome) . ' · ' . Pagina::h($c->email) . '</span></a>';
         }
         if ($r['itens'] === []) {
-            $corpo .= '<tr><td colspan="6" class="text-body-secondary">Nenhuma conta encontrada.</td></tr>';
+            $corpo .= '<div class="list-group-item text-body-secondary">Nenhuma conta encontrada.</div>';
         }
-        $corpo .= '</tbody></table></div>' . $this->paginacao($pagina, $totalPaginas, $busca, $situacao);
+        $corpo .= '</div>' . $this->paginacao($pagina, $totalPaginas, $busca, $situacao);
 
-        return Pagina::resposta('Contas', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Contas', null]]);
+        return Pagina::resposta('Contas', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Contas', null]]);
     }
 
     /** Busca e filtro (GET, sem CSRF: não altera nada) em cima da lista de contas. */
@@ -154,11 +154,11 @@ final class TelasDeContas
             $opcoes .= '<option value="' . $chave . '"' . ($situacao === $chave ? ' selected' : '') . '>' . ucfirst($chave) . '</option>';
         }
 
-        return '<form method="get" action="' . $this->linkLista() . '" class="row g-2 align-items-end mb-3">'
-            . '<div class="col-sm-6"><label for="campo-busca" class="form-label">Buscar por login, nome ou e-mail</label>'
-            . '<input id="campo-busca" class="form-control" type="search" name="q" maxlength="200" value="' . Pagina::h($busca) . '"></div>'
-            . '<div class="col-sm-3"><label for="campo-situacao" class="form-label">Situação</label><select id="campo-situacao" class="form-select" name="situacao">' . $opcoes . '</select></div>'
-            . '<div class="col-sm-3"><button type="submit" class="btn btn-outline-primary">Filtrar</button></div></form>';
+        return '<form method="get" action="' . $this->linkLista() . '" class="d-flex gap-2 align-items-center mb-3" role="search">'
+            . '<label for="campo-busca" class="visually-hidden">Buscar por login, nome ou e-mail</label>'
+            . '<input id="campo-busca" class="form-control flex-grow-1 w-auto" type="search" name="q" maxlength="200" placeholder="Login, nome ou e-mail" value="' . Pagina::h($busca) . '">'
+            . '<label for="campo-situacao" class="visually-hidden">Situação</label><select id="campo-situacao" class="form-select w-auto flex-shrink-0" name="situacao">' . $opcoes . '</select>'
+            . '<button type="submit" class="btn btn-outline-primary flex-shrink-0">Filtrar</button></form>';
     }
 
     private function paginacao(int $pagina, int $totalPaginas, string $busca, string $situacao): string
@@ -192,7 +192,7 @@ final class TelasDeContas
             . $this->campoSenha($sessao, 'campo-senha-confirmar', 'senha_atual')
             . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Criar conta</button><a class="btn btn-outline-secondary" href="' . $this->linkLista() . '">Cancelar</a></div></form>';
 
-        return Pagina::resposta('Nova conta', $corpo, $status, false, $this->barra($sessao), [['Contas', $this->linkLista()], ['Nova conta', null]]);
+        return Pagina::resposta('Nova conta', $corpo, $status, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Contas', $this->linkLista()], ['Nova conta', null]]);
     }
 
     private function criar(SessaoAtiva $sessao, Request $requisicao): Response
@@ -232,7 +232,7 @@ final class TelasDeContas
     /**
      * @param array<string, string> $v valores digitados nos dados da conta (vazio = os da conta)
      */
-    private function pagina(SessaoAtiva $sessao, Usuario $c, ?string $erro, int $status, array $v, string $aviso = ''): Response
+    private function pagina(SessaoAtiva $sessao, Usuario $c, ?string $erro, int $status, array $v, string $aviso = '', string $aba = 'dados'): Response
     {
         $eu = $c->id === $sessao->usuario->id;
         $nome = Pagina::h($v['nome'] ?? $c->nome);
@@ -240,9 +240,8 @@ final class TelasDeContas
         $admin = array_key_exists('administrador', $v) ? $v['administrador'] === '1' : $c->administrador;
         $base = $this->link($c->id);
         $csrf = $this->campoCsrf($sessao);
-        $corpo = $aviso . $this->erro($erro)
-            . '<p>Login: <code>' . Pagina::h($c->login) . '</code> · ' . ($c->ativo ? 'conta ativa' : '<span class="badge text-bg-secondary">desativada</span>') . ($eu ? ' · <strong>esta é a sua conta</strong>' : '') . '</p>'
-            . '<section class="mb-4"><h2 class="h5">Dados</h2><form method="post" action="' . $base . '/editar">' . $csrf
+        $avisos = $aviso . $this->erro($erro);
+        $dados = '<form method="post" action="' . $base . '/editar">' . $csrf
             . '<div class="mb-3"><label for="campo-nome" class="form-label">Nome</label><input id="campo-nome" class="form-control" name="nome" maxlength="' . self::MAX_NOME . '" required value="' . $nome . '"></div>'
             . '<div class="mb-3"><label for="campo-email" class="form-label">E-mail</label><input id="campo-email" class="form-control" name="email" type="email" maxlength="' . self::MAX_EMAIL . '" required value="' . $email . '"></div>'
             . ($eu
@@ -250,16 +249,52 @@ final class TelasDeContas
                 : '<div class="form-check mb-3"><input id="campo-admin" class="form-check-input" type="checkbox" name="administrador" value="1"' . ($admin ? ' checked' : '') . '>'
                     . '<label for="campo-admin" class="form-check-label">Administrador (vê e altera tudo, em todos os sites)</label></div>')
             . $this->campoSenha($sessao, 'campo-senha-editar')
-            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar dados</button></div></form></section>'
-            . '<section class="mb-4"><h2 class="h5">Redefinir senha</h2>' . ($eu ? '<p class="form-text">Ao trocar a sua senha você sai e precisa entrar de novo.</p>' : '<p class="form-text">A conta sai de todas as sessões abertas e entra com a senha nova.</p>')
+            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar dados</button></div></form>';
+        $senha = ($eu ? '<p class="form-text">Ao trocar a sua senha você sai e precisa entrar de novo.</p>' : '<p class="form-text">A conta sai de todas as sessões abertas e entra com a senha nova.</p>')
             . '<form method="post" action="' . $base . '/senha">' . $csrf . $this->camposDeSenha('nova senha')
             . $this->campoSenha($sessao, 'campo-senha-atual-redefinir', 'senha_atual')
-            . '<div class="pbl-acoes"><button type="submit" class="btn btn-warning">Trocar senha</button></div></form></section>'
-            . '<section class="mb-4"><h2 class="h5">Situação</h2>' . $this->blocoDeSituacao($sessao, $csrf, $c, $eu, $base) . '</section>'
-            . '<section class="mb-4"><h2 class="h5">Papéis por seção</h2>' . $this->blocoDeAcessos($sessao, $csrf, $c, $base) . '</section>'
+            . '<div class="pbl-acoes"><button type="submit" class="btn btn-warning">Trocar senha</button></div></form>';
+        $abas = [
+            'dados' => ['Dados', $dados],
+            'senha' => ['Senha', $senha],
+            'situacao' => ['Situação', $this->blocoDeSituacao($sessao, $csrf, $c, $eu, $base)],
+            'papeis' => ['Papéis por seção', $this->blocoDeAcessos($sessao, $csrf, $c, $base)],
+        ];
+        $aba = array_key_exists($aba, $abas) ? $aba : 'dados';
+        $corpo = '<p>Login: <code>' . Pagina::h($c->login) . '</code> · ' . ($c->ativo ? 'conta ativa' : '<span class="badge text-bg-secondary">desativada</span>') . ($eu ? ' · <strong>esta é a sua conta</strong>' : '') . '</p>'
+            . $this->abas($abas, $aba, $avisos)
             . '<p><a href="' . $this->linkLista() . '">Voltar às contas</a></p>';
 
-        return Pagina::resposta('Conta: ' . $c->login, $corpo, $status, false, $this->barra($sessao), [['Contas', $this->linkLista()], [$c->login, null]]);
+        return Pagina::resposta('Conta: ' . $c->login, $corpo, $status, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Contas', $this->linkLista()], [$c->login, null]]);
+    }
+
+    /**
+     * Abas do Bootstrap (`nav-tabs`, WAI-ARIA tablist). O servidor já entrega a aba escolhida com `active show` e todos os painéis no
+     * HTML; sem JavaScript os painéis ficam empilhados, cada um com o seu título (a barra de abas nasce `hidden`). O `pbl-admin.js`
+     * (`data-pbl-abas`) mostra a barra, esconde os títulos e põe `tab-content`/`tab-pane`, que é o que faz o Bootstrap esconder
+     * os painéis inativos. Avisos e erros entram dentro do painel ativo.
+     *
+     * @param array<string, array{0: string, 1: string}> $abas chave => [rótulo, HTML do painel]
+     */
+    private function abas(array $abas, string $ativa, string $avisos): string
+    {
+        $nav = '<ul class="nav nav-tabs flex-nowrap overflow-x-auto mb-3" role="tablist" aria-label="Seções da conta" hidden data-pbl-abas-nav>';
+        $paineis = '';
+        foreach ($abas as $chave => [$rotulo, $html]) {
+            $on = $chave === $ativa;
+            $nav .= '<li class="nav-item" role="presentation"><button type="button" id="aba-' . $chave . '" class="nav-link text-nowrap' . ($on ? ' active' : '') . '" role="tab" data-bs-toggle="tab" data-bs-target="#painel-' . $chave . '" data-pbl-aba="' . $chave . '" aria-controls="painel-' . $chave . '" aria-selected="' . ($on ? 'true' : 'false') . '"' . ($on ? '' : ' tabindex="-1"') . '>' . Pagina::h($rotulo) . '</button></li>';
+            $paineis .= '<div id="painel-' . $chave . '" class="pbl-aba-painel mb-4' . ($on ? ' active show' : '') . '" role="tabpanel" aria-labelledby="aba-' . $chave . '" tabindex="0">'
+                . '<h2 class="h5 pbl-aba-titulo">' . Pagina::h($rotulo) . '</h2>' . ($on ? $avisos : '') . $html . '</div>';
+        }
+
+        return '<div data-pbl-abas>' . $nav . '</ul><div data-pbl-abas-paineis>' . $paineis . '</div></div>';
+    }
+
+    private static function abaDe(Request $requisicao): string
+    {
+        $aba = $requisicao->query->all()['aba'] ?? null;
+
+        return is_string($aba) ? $aba : 'dados';
     }
 
     private function blocoDeSituacao(SessaoAtiva $sessao, string $csrf, Usuario $c, bool $eu, string $base): string
@@ -279,33 +314,80 @@ final class TelasDeContas
 
     private function blocoDeAcessos(SessaoAtiva $sessao, string $csrf, Usuario $c, string $base): string
     {
-        $corpo = $c->administrador ? '<p class="form-text">Administradores já podem tudo; os papéis abaixo só valem se a marca de administrador sair.</p>' : '';
         $acessos = $this->servicos->usuarios->acessosDe($c->id);
+        $corpo = '';
+        if ($c->administrador) {
+            $corpo .= Pagina::alerta('success', 'Administrador: acesso total a todos os sites e conteúdos. Nenhum papel por seção é necessário.');
+        }
         if ($acessos === []) {
-            $corpo .= '<p>Nenhum papel concedido.</p>';
+            $corpo .= $c->administrador ? '' : '<p>Nenhum papel concedido: esta conta não vê nem altera conteúdo até receber um papel.</p>';
         } else {
-            $corpo .= '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Papéis</caption><thead><tr><th scope="col">Seção</th><th scope="col">Site</th><th scope="col">Papel</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
+            $corpo .= ($c->administrador ? '<p class="form-text">Papéis guardados (só valem se a marca de administrador sair):</p>' : '')
+                . '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Papéis</caption><thead><tr><th scope="col">Conteúdo</th><th scope="col">Site</th><th scope="col">Papel</th><th scope="col">Vale para</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
+            $melhorPorSite = [];
             foreach ($acessos as $a) {
                 $o = $this->servicos->objetos->porId($a['objeto_id']);
                 $site = $o === null ? null : $this->servicos->sites->porId($o->siteId);
-                $corpo .= '<tr><td>' . ($o === null ? '<span class="text-body-secondary">(removida)</span>' : '<a href="' . Painel::PREFIXO . '/objeto/' . $o->id . '">' . Pagina::h($o->titulo) . '</a>') . ' <span class="text-body-secondary">#' . $a['objeto_id'] . '</span></td>'
+                if ($o !== null && $site !== null && (!isset($melhorPorSite[$site->id]) || $a['perfil']->forca() > $melhorPorSite[$site->id][1]->forca())) {
+                    $melhorPorSite[$site->id] = [$site->nome, $a['perfil'], $o->titulo];
+                }
+                $corpo .= '<tr><td>' . ($o === null ? '<span class="text-body-secondary">(removido)</span>' : '<a href="' . Painel::PREFIXO . '/objeto/' . $o->id . '">' . Pagina::h($o->titulo) . '</a>') . ' <span class="text-body-secondary">#' . $a['objeto_id'] . '</span></td>'
                     . '<td>' . ($site === null ? '—' : Pagina::h($site->nome)) . '</td><td>' . Pagina::h($a['perfil']->value) . '</td>'
+                    . '<td>Este conteúdo e tudo abaixo dele</td>'
                     . '<td class="text-end"><form method="post" action="' . $base . '/revogar" class="d-flex gap-1 align-items-end justify-content-end">' . $csrf . '<input type="hidden" name="objeto" value="' . $a['objeto_id'] . '">'
                     . $this->campoSenha($sessao, 'campo-senha-revogar-' . $a['objeto_id'])
-                    . '<button type="submit" class="btn btn-sm btn-outline-danger">Revogar<span class="visually-hidden"> o papel na seção ' . $a['objeto_id'] . '</span></button></form></td></tr>';
+                    . '<button type="submit" class="btn btn-sm btn-outline-danger">Revogar<span class="visually-hidden"> o papel em ' . ($o === null ? 'conteúdo ' . $a['objeto_id'] : Pagina::h($o->titulo)) . '</span></button></form></td></tr>';
             }
             $corpo .= '</tbody></table></div>';
+            if (!$c->administrador && $melhorPorSite !== []) {
+                $corpo .= '<h3 class="h6">Acesso efetivo por site</h3><ul>';
+                foreach ($melhorPorSite as [$nomeSite, $perfil, $titulo]) {
+                    $corpo .= '<li>' . Pagina::h($nomeSite) . ': <strong>' . Pagina::h($perfil->value) . '</strong> via “' . Pagina::h($titulo) . '”</li>';
+                }
+                $corpo .= '</ul>';
+            }
         }
         $opcoes = '';
         foreach (Perfil::cases() as $p) {
             $opcoes .= '<option value="' . $p->value . '">' . ucfirst($p->value) . '</option>';
         }
-
-        return $corpo . '<form method="post" action="' . $base . '/conceder" class="row g-2 align-items-end">' . $csrf
-            . '<div class="col-sm-4"><label for="campo-objeto" class="form-label">Número da seção</label><input id="campo-objeto" class="form-control" name="objeto" inputmode="numeric" maxlength="10" required aria-describedby="ajuda-objeto"></div>'
+        $formulario = '<form method="post" action="' . $base . '/conceder" class="row g-2 align-items-end">' . $csrf
+            . '<div class="col-12"><label for="campo-objeto" class="form-label">Conteúdo (pasta, página ou início do site)</label><select id="campo-objeto" class="form-select" name="objeto" aria-describedby="ajuda-objeto">' . $this->opcoesDeConteudo() . '</select></div>'
+            . '<div class="col-sm-4"><label for="campo-objeto-numero" class="form-label">Ou o número</label><input id="campo-objeto-numero" class="form-control" name="objeto_numero" inputmode="numeric" maxlength="10"></div>'
             . '<div class="col-sm-4"><label for="campo-perfil" class="form-label">Papel</label><select id="campo-perfil" class="form-select" name="perfil">' . $opcoes . '</select></div>'
             . '<div class="col-sm-4">' . $this->campoSenha($sessao, 'campo-senha-conceder') . '<button type="submit" class="btn btn-primary">Conceder</button></div>'
-            . '<div id="ajuda-objeto" class="form-text">O número aparece na página da seção na administração. Vale para ela e tudo abaixo; substitui o papel que a conta já tinha nela. Leitor vê; autor cria e edita o que criou; editor também publica e apaga.</div></form>';
+            . '<div id="ajuda-objeto" class="form-text">Vale para o conteúdo escolhido e tudo abaixo dele; substitui o papel que a conta já tinha nele. Se preferir, digite o número do conteúdo (aparece na página dele na administração) no segundo campo, que vale no lugar da lista. Leitor vê; autor cria e edita o que criou; editor também publica e apaga.</div></form>';
+        if ($c->administrador) {
+            return $corpo . '<details class="mb-3"><summary>Conceder papel por conteúdo (só vale se a marca de administrador sair)</summary><div class="pt-3">' . $formulario . '</div></details>';
+        }
+
+        return $corpo . '<h3 class="h6">Conceder papel</h3>' . $formulario;
+    }
+
+    /** As opções do seletor de conteúdo: site, caminho de títulos (pelo caminho materializado) e número, agrupadas por site. */
+    private function opcoesDeConteudo(): string
+    {
+        $html = '<option value="">Escolha um conteúdo…</option>';
+        foreach ($this->servicos->sites->todos() as $site) {
+            $conteineres = $this->servicos->objetos->conteineresDoSite($site->id);
+            $titulos = [];
+            foreach ($conteineres as $o) {
+                $titulos[$o->id] = $o->titulo;
+            }
+            $grupo = '';
+            foreach ($conteineres as $o) {
+                $partes = [];
+                foreach (explode('/', trim($o->caminho, '/')) as $idAncestral) {
+                    $partes[] = $titulos[(int) $idAncestral] ?? '…';
+                }
+                $grupo .= '<option value="' . $o->id . '">' . Pagina::h(implode(' › ', $partes)) . ' (#' . $o->id . ')</option>';
+            }
+            if ($grupo !== '') {
+                $html .= '<optgroup label="' . Pagina::h($site->nome) . '">' . $grupo . '</optgroup>';
+            }
+        }
+
+        return $html;
     }
 
     private function camposDeSenha(string $rotulo): string
@@ -327,7 +409,7 @@ final class TelasDeContas
         $v = ['nome' => $nome, 'email' => $email, 'administrador' => $admin ? '1' : ''];
         $falha = $this->exigirReautenticacao($sessao, $requisicao, 'conta');
         if ($falha !== null) {
-            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, $v), $falha);
+            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, $v, '', 'dados'), $falha);
         }
         $erro = $this->erroDeTexto($nome, self::MAX_NOME, 'O nome') ?? $this->erroDeTexto($email, self::MAX_EMAIL, 'O e-mail');
         if ($erro === null && $c->administrador && !$admin && $this->servicos->usuarios->ehUltimoAdministradorAtivo($c->id)) {
@@ -342,10 +424,10 @@ final class TelasDeContas
             }
         }
         if ($erro !== null) {
-            return $this->pagina($sessao, $c, $erro, Response::HTTP_UNPROCESSABLE_ENTITY, $v);
+            return $this->pagina($sessao, $c, $erro, Response::HTTP_UNPROCESSABLE_ENTITY, $v, '', 'dados');
         }
 
-        return new RedirectResponse($this->link($c->id) . '?ok=salva', Response::HTTP_SEE_OTHER);
+        return new RedirectResponse($this->link($c->id) . '?ok=salva&aba=dados', Response::HTTP_SEE_OTHER);
     }
 
     private function senha(SessaoAtiva $sessao, Usuario $c, Request $requisicao): Response
@@ -357,7 +439,7 @@ final class TelasDeContas
         }
         $falha = $this->exigirReautenticacao($sessao, $requisicao, 'conta', false, 'senha_atual');
         if ($falha !== null) {
-            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, []), $falha);
+            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, [], '', 'senha'), $falha);
         }
         $erro = $senha !== $repita ? 'As duas senhas não são iguais.' : null;
         if ($erro === null) {
@@ -368,18 +450,18 @@ final class TelasDeContas
             }
         }
         if ($erro !== null) {
-            return $this->pagina($sessao, $c, $erro, Response::HTTP_UNPROCESSABLE_ENTITY, []);
+            return $this->pagina($sessao, $c, $erro, Response::HTTP_UNPROCESSABLE_ENTITY, [], '', 'senha');
         }
 
         // Trocar a senha encerra as sessões da conta (inclusive esta, se for a própria): sem sessão, o login é o próximo passo.
-        return new RedirectResponse($c->id === $sessao->usuario->id ? Painel::PREFIXO . '/entrar' : $this->link($c->id) . '?ok=senha', Response::HTTP_SEE_OTHER);
+        return new RedirectResponse($c->id === $sessao->usuario->id ? Painel::PREFIXO . '/entrar' : $this->link($c->id) . '?ok=senha&aba=senha', Response::HTTP_SEE_OTHER);
     }
 
     private function situacao(SessaoAtiva $sessao, Usuario $c, bool $ativar, Request $requisicao): Response
     {
         $falha = $this->exigirReautenticacao($sessao, $requisicao, 'conta');
         if ($falha !== null) {
-            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, []), $falha);
+            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, [], '', 'situacao'), $falha);
         }
         if (!$ativar) {
             $erro = match (true) {
@@ -388,37 +470,37 @@ final class TelasDeContas
                 default => null,
             };
             if ($erro !== null) {
-                return $this->pagina($sessao, $c, $erro, Response::HTTP_UNPROCESSABLE_ENTITY, []);
+                return $this->pagina($sessao, $c, $erro, Response::HTTP_UNPROCESSABLE_ENTITY, [], '', 'situacao');
             }
         }
         if ($c->ativo !== $ativar) {
             $this->servicos->usuarios->definirAtivo($c->id, $ativar, 'usuario:' . $sessao->usuario->id);
         }
 
-        return new RedirectResponse($this->link($c->id) . '?ok=' . ($ativar ? 'reativada' : 'desativada'), Response::HTTP_SEE_OTHER);
+        return new RedirectResponse($this->link($c->id) . '?ok=' . ($ativar ? 'reativada' : 'desativada') . '&aba=situacao', Response::HTTP_SEE_OTHER);
     }
 
     private function conceder(SessaoAtiva $sessao, Usuario $c, Request $requisicao): Response
     {
-        $objeto = $this->numero($this->texto($requisicao, 'objeto'));
+        $objeto = $this->numero($this->texto($requisicao, 'objeto_numero')) ?? $this->numero($this->texto($requisicao, 'objeto'));
         $perfil = Perfil::tryFrom($this->texto($requisicao, 'perfil') ?? '');
         if ($objeto === null) {
-            return $this->pagina($sessao, $c, 'Informe o número da seção (só dígitos).', Response::HTTP_UNPROCESSABLE_ENTITY, []);
+            return $this->pagina($sessao, $c, 'Escolha o conteúdo na lista ou informe o número (só dígitos).', Response::HTTP_UNPROCESSABLE_ENTITY, [], '', 'papeis');
         }
         if ($perfil === null) {
-            return $this->pagina($sessao, $c, 'Escolha um papel: leitor, autor ou editor.', Response::HTTP_UNPROCESSABLE_ENTITY, []);
+            return $this->pagina($sessao, $c, 'Escolha um papel: leitor, autor ou editor.', Response::HTTP_UNPROCESSABLE_ENTITY, [], '', 'papeis');
         }
         $falha = $this->exigirReautenticacao($sessao, $requisicao, 'conta');
         if ($falha !== null) {
-            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, []), $falha);
+            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, [], '', 'papeis'), $falha);
         }
         try {
             $this->servicos->usuarios->conceder($c->id, $objeto, $perfil, 'usuario:' . $sessao->usuario->id);
         } catch (\InvalidArgumentException) {
-            return $this->pagina($sessao, $c, 'Essa seção não existe.', Response::HTTP_UNPROCESSABLE_ENTITY, []);
+            return $this->pagina($sessao, $c, 'Esse conteúdo não existe.', Response::HTTP_UNPROCESSABLE_ENTITY, [], '', 'papeis');
         }
 
-        return new RedirectResponse($this->link($c->id) . '?ok=concedido', Response::HTTP_SEE_OTHER);
+        return new RedirectResponse($this->link($c->id) . '?ok=concedido&aba=papeis', Response::HTTP_SEE_OTHER);
     }
 
     private function revogar(SessaoAtiva $sessao, Usuario $c, Request $requisicao): Response
@@ -429,15 +511,15 @@ final class TelasDeContas
         }
         $falha = $this->exigirReautenticacao($sessao, $requisicao, 'conta');
         if ($falha !== null) {
-            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, []), $falha);
+            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, [], '', 'papeis'), $falha);
         }
         try {
             $this->servicos->usuarios->revogar($c->id, $objeto, 'usuario:' . $sessao->usuario->id);
         } catch (\InvalidArgumentException) {
-            return $this->pagina($sessao, $c, 'Essa conta não tem papel nessa seção (talvez já tenha sido revogado).', Response::HTTP_UNPROCESSABLE_ENTITY, []);
+            return $this->pagina($sessao, $c, 'Essa conta não tem papel nesse conteúdo (talvez já tenha sido revogado).', Response::HTTP_UNPROCESSABLE_ENTITY, [], '', 'papeis');
         }
 
-        return new RedirectResponse($this->link($c->id) . '?ok=revogado', Response::HTTP_SEE_OTHER);
+        return new RedirectResponse($this->link($c->id) . '?ok=revogado&aba=papeis', Response::HTTP_SEE_OTHER);
     }
 
     // ---------------------------------------------------------------- utilidades
