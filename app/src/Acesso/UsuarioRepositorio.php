@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Pbl\Acesso;
 
 use Doctrine\DBAL\Connection;
+use Pbl\Busca\Texto;
 
 /** Contas da equipe, perfis por subárvore e senhas (argon2id). */
 final class UsuarioRepositorio implements Autenticador
 {
+    /** Tamanho fixo da página da lista de contas (fase 5h). */
+    public const CONTAS_POR_PAGINA = 50;
     /**
      * Hashes de mentira, prontos, para login inexistente pagar o MESMO custo de um login que existe (gerá-los na hora custaria um
      * hash a mais e revelaria pelo tempo quais logins existem). Têm os mesmos parâmetros dos hashes reais; um teste confere isso.
@@ -79,6 +82,35 @@ final class UsuarioRepositorio implements Autenticador
     public function todos(): array
     {
         return array_map($this->hidratar(...), $this->conexao->fetchAllAssociative('SELECT * FROM usuario ORDER BY login'));
+    }
+
+    /**
+     * Lista paginada de contas (fase 5h), com busca por login, nome ou e-mail (sem acento e maiúsculas, a mesma
+     * normalização da busca de conteúdo, {@see Texto::normalizar}) e filtro por situação. Não há tantas contas numa
+     * instalação típica para justificar índice ou SQL específico: filtra e pagina em PHP, sobre `todos()`.
+     *
+     * @param int<1, max> $pagina 1 é a primeira
+     * @return array{total: int, itens: list<Usuario>}
+     */
+    public function listar(string $busca = '', ?bool $ativo = null, int $pagina = 1, int $porPagina = self::CONTAS_POR_PAGINA): array
+    {
+        $todos = $this->todos();
+        if ($ativo !== null) {
+            $todos = array_values(array_filter($todos, static fn (Usuario $u): bool => $u->ativo === $ativo));
+        }
+        $busca = Texto::normalizar(trim($busca));
+        if ($busca !== '') {
+            $todos = array_values(array_filter(
+                $todos,
+                static fn (Usuario $u): bool => str_contains(Texto::normalizar($u->login), $busca)
+                    || str_contains(Texto::normalizar($u->nome), $busca)
+                    || str_contains(Texto::normalizar($u->email), $busca),
+            ));
+        }
+        $porPagina = max(1, $porPagina);
+        $pagina = max(1, $pagina);
+
+        return ['total' => count($todos), 'itens' => array_slice($todos, ($pagina - 1) * $porPagina, $porPagina)];
     }
 
     public function autenticar(string $login, string $senha): ?Usuario

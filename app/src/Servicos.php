@@ -9,6 +9,7 @@ use Pbl\Acesso\Auditoria;
 use Pbl\Acesso\Csrf;
 use Pbl\Acesso\LimiteDeEnvios;
 use Pbl\Acesso\LimiteDeTentativas;
+use Pbl\Acesso\ModoElevado;
 use Pbl\Acesso\Segredo;
 use Pbl\Acesso\SessaoRepositorio;
 use Pbl\Acesso\Permissoes;
@@ -88,6 +89,12 @@ final class Servicos
     public function limiteDeEnvios(?\Closure $relogio = null): LimiteDeEnvios
     {
         return new LimiteDeEnvios($this->conexao, $this->segredo(), $relogio);
+    }
+
+    /** "Modo elevado" do painel (ADR 0011/0012, fase 5h): confirmação de senha para ações sensíveis. */
+    public function modoElevado(?\Closure $relogio = null): ModoElevado
+    {
+        return new ModoElevado($this->conexao, $this->usuarios, $this->limiteDeTentativas($relogio), $this->auditoria, $relogio);
     }
 
     public static function doBancoInstalado(Caminhos $caminhos): self

@@ -9,6 +9,7 @@ use Pbl\Acesso\Perfil;
 use Pbl\Acesso\Rede;
 use Pbl\Acesso\SessaoAtiva;
 use Pbl\Acesso\Usuario;
+use Pbl\Acesso\UsuarioRepositorio;
 use Pbl\Servicos;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -103,7 +104,7 @@ final class TelasDeContas
             'ver' => $this->pagina($sessao, $alvo, null, Response::HTTP_OK, [], $this->avisoDe($requisicao)),
             'editar' => $this->editar($sessao, $alvo, $requisicao),
             'senha' => $this->senha($sessao, $alvo, $requisicao),
-            'desativar', 'reativar' => $this->situacao($sessao, $alvo, $tela === 'reativar'),
+            'desativar', 'reativar' => $this->situacao($sessao, $alvo, $tela === 'reativar', $requisicao),
             'conceder' => $this->conceder($sessao, $alvo, $requisicao),
             default => $this->revogar($sessao, $alvo, $requisicao),
         };
@@ -111,22 +112,68 @@ final class TelasDeContas
 
     // ---------------------------------------------------------------- lista e criação
 
+    private const SITUACOES_DA_LISTA = ['ativas' => true, 'desativadas' => false];
+
     private function lista(SessaoAtiva $sessao, Request $requisicao): Response
     {
+        $q = $requisicao->query->all();
+        $busca = is_string($q['q'] ?? null) ? mb_substr(trim($q['q']), 0, 200) : '';
+        $situacao = is_string($q['situacao'] ?? null) ? $q['situacao'] : '';
+        $ativo = self::SITUACOES_DA_LISTA[$situacao] ?? null;
+        $pagina = max(1, $this->numero($q['pagina'] ?? null) ?? 1);
+        $r = $this->servicos->usuarios->listar($busca, $ativo, $pagina, UsuarioRepositorio::CONTAS_POR_PAGINA);
+        $totalPaginas = max(1, (int) ceil($r['total'] / UsuarioRepositorio::CONTAS_POR_PAGINA));
+        $pagina = min($pagina, $totalPaginas);
+
         $corpo = $this->avisoDe($requisicao)
             . '<p>Contas da equipe desta instalação. Cada conta pode ser administradora (vê e faz tudo) ou receber um papel — leitor, autor ou editor — em cada seção.</p>'
             . '<p><a class="btn btn-primary" href="' . Painel::PREFIXO . '/contas/nova">Nova conta</a></p>'
+            . $this->formularioDeBusca($busca, $situacao)
             . '<div class="table-responsive"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Contas</caption><thead><tr>'
             . '<th scope="col">Login</th><th scope="col">Nome</th><th scope="col">E-mail</th><th scope="col">Tipo</th><th scope="col">Situação</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
-        foreach ($this->servicos->usuarios->todos() as $c) {
+        foreach ($r['itens'] as $c) {
             $corpo .= '<tr><th scope="row"><code>' . Pagina::h($c->login) . '</code>' . ($c->id === $sessao->usuario->id ? ' <span class="badge text-bg-info">você</span>' : '') . '</th>'
                 . '<td>' . Pagina::h($c->nome) . '</td><td>' . Pagina::h($c->email) . '</td>'
                 . '<td>' . ($c->administrador ? 'Administrador' : 'Equipe') . '</td>'
                 . '<td>' . ($c->ativo ? 'Ativa' : '<span class="badge text-bg-secondary">Desativada</span>') . '</td>'
                 . '<td class="text-end"><a class="btn btn-sm btn-outline-primary" href="' . $this->link($c->id) . '">Abrir<span class="visually-hidden"> ' . Pagina::h($c->login) . '</span></a></td></tr>';
         }
+        if ($r['itens'] === []) {
+            $corpo .= '<tr><td colspan="6" class="text-body-secondary">Nenhuma conta encontrada.</td></tr>';
+        }
+        $corpo .= '</tbody></table></div>' . $this->paginacao($pagina, $totalPaginas, $busca, $situacao);
 
-        return Pagina::resposta('Contas', $corpo . '</tbody></table></div>', Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Contas', $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+    }
+
+    /** Busca e filtro (GET, sem CSRF: não altera nada) em cima da lista de contas. */
+    private function formularioDeBusca(string $busca, string $situacao): string
+    {
+        $opcoes = '<option value=""' . ($situacao === '' ? ' selected' : '') . '>Todas</option>';
+        foreach (array_keys(self::SITUACOES_DA_LISTA) as $chave) {
+            $opcoes .= '<option value="' . $chave . '"' . ($situacao === $chave ? ' selected' : '') . '>' . ucfirst($chave) . '</option>';
+        }
+
+        return '<form method="get" action="' . $this->linkLista() . '" class="row g-2 align-items-end mb-3">'
+            . '<div class="col-sm-6"><label for="campo-busca" class="form-label">Buscar por login, nome ou e-mail</label>'
+            . '<input id="campo-busca" class="form-control" type="search" name="q" maxlength="200" value="' . Pagina::h($busca) . '"></div>'
+            . '<div class="col-sm-3"><label for="campo-situacao" class="form-label">Situação</label><select id="campo-situacao" class="form-select" name="situacao">' . $opcoes . '</select></div>'
+            . '<div class="col-sm-3"><button type="submit" class="btn btn-outline-primary">Filtrar</button></div></form>';
+    }
+
+    private function paginacao(int $pagina, int $totalPaginas, string $busca, string $situacao): string
+    {
+        if ($totalPaginas <= 1) {
+            return '';
+        }
+        $link = static fn (int $p): string => Painel::PREFIXO . '/contas?pagina=' . $p
+            . ($busca === '' ? '' : '&q=' . rawurlencode($busca)) . ($situacao === '' ? '' : '&situacao=' . rawurlencode($situacao));
+        $html = '<nav aria-label="Páginas de contas"><ul class="pagination">'
+            . '<li class="page-item' . ($pagina <= 1 ? ' disabled' : '') . '"><a class="page-link" href="' . Pagina::h($link(max(1, $pagina - 1))) . '">Anterior</a></li>'
+            . '<li class="page-item disabled"><span class="page-link">Página ' . $pagina . ' de ' . $totalPaginas . '</span></li>'
+            . '<li class="page-item' . ($pagina >= $totalPaginas ? ' disabled' : '') . '"><a class="page-link" href="' . Pagina::h($link(min($totalPaginas, $pagina + 1))) . '">Próxima</a></li></ul></nav>';
+
+        return $html;
     }
 
     /** @param array<string, string> $v valores digitados (a senha nunca volta para o formulário) */
@@ -142,6 +189,7 @@ final class TelasDeContas
             . $this->camposDeSenha('senha inicial')
             . '<div class="form-check mb-3"><input id="campo-admin" class="form-check-input" type="checkbox" name="administrador" value="1"' . (($v['administrador'] ?? '') === '1' ? ' checked' : '') . '>'
             . '<label for="campo-admin" class="form-check-label">Administrador (vê e altera tudo, em todos os sites)</label></div>'
+            . $this->campoSenha($sessao, 'campo-senha-confirmar', 'senha_atual')
             . '<button type="submit" class="btn btn-primary">Criar conta</button> <a class="btn btn-outline-secondary" href="' . $this->linkLista() . '">Cancelar</a></form>';
 
         return Pagina::resposta('Nova conta', $corpo, $status, false, $this->barra($sessao));
@@ -159,6 +207,10 @@ final class TelasDeContas
         }
         $admin = $this->texto($requisicao, 'administrador') === '1';
         $v = ['login' => $login, 'nome' => $nome, 'email' => $email, 'administrador' => $admin ? '1' : ''];
+        $falha = $this->exigirReautenticacao($sessao, $requisicao, 'conta', false, 'senha_atual');
+        if ($falha !== null) {
+            return $this->aplicarFalhaDeReautenticacao($this->formularioNovo($sessao, $v, $falha['mensagem']), $falha);
+        }
         $erro = $this->erroDeTexto($login, self::MAX_LOGIN, 'O login') ?? $this->erroDeTexto($nome, self::MAX_NOME, 'O nome') ?? $this->erroDeTexto($email, self::MAX_EMAIL, 'O e-mail')
             ?? ($senha !== $repita ? 'As duas senhas não são iguais.' : null);
         $u = $sessao->usuario;
@@ -197,31 +249,35 @@ final class TelasDeContas
                 ? '<p class="form-text">Você é administrador e não pode tirar a própria marca de administrador (peça a outro administrador).</p>'
                 : '<div class="form-check mb-3"><input id="campo-admin" class="form-check-input" type="checkbox" name="administrador" value="1"' . ($admin ? ' checked' : '') . '>'
                     . '<label for="campo-admin" class="form-check-label">Administrador (vê e altera tudo, em todos os sites)</label></div>')
+            . $this->campoSenha($sessao, 'campo-senha-editar')
             . '<button type="submit" class="btn btn-primary">Salvar dados</button></form></section>'
             . '<section class="mb-4"><h2 class="h5">Redefinir senha</h2>' . ($eu ? '<p class="form-text">Ao trocar a sua senha você sai e precisa entrar de novo.</p>' : '<p class="form-text">A conta sai de todas as sessões abertas e entra com a senha nova.</p>')
             . '<form method="post" action="' . $base . '/senha">' . $csrf . $this->camposDeSenha('nova senha')
+            . $this->campoSenha($sessao, 'campo-senha-atual-redefinir', 'senha_atual')
             . '<button type="submit" class="btn btn-warning">Trocar senha</button></form></section>'
-            . '<section class="mb-4"><h2 class="h5">Situação</h2>' . $this->blocoDeSituacao($csrf, $c, $eu, $base) . '</section>'
-            . '<section class="mb-4"><h2 class="h5">Papéis por seção</h2>' . $this->blocoDeAcessos($csrf, $c, $base) . '</section>'
+            . '<section class="mb-4"><h2 class="h5">Situação</h2>' . $this->blocoDeSituacao($sessao, $csrf, $c, $eu, $base) . '</section>'
+            . '<section class="mb-4"><h2 class="h5">Papéis por seção</h2>' . $this->blocoDeAcessos($sessao, $csrf, $c, $base) . '</section>'
             . '<p><a href="' . $this->linkLista() . '">Voltar às contas</a></p>';
 
         return Pagina::resposta('Conta: ' . $c->login, $corpo, $status, false, $this->barra($sessao));
     }
 
-    private function blocoDeSituacao(string $csrf, Usuario $c, bool $eu, string $base): string
+    private function blocoDeSituacao(SessaoAtiva $sessao, string $csrf, Usuario $c, bool $eu, string $base): string
     {
         if (!$c->ativo) {
-            return '<p>Esta conta está desativada: não consegue entrar.</p><form method="post" action="' . $base . '/reativar">' . $csrf . '<button type="submit" class="btn btn-outline-success">Reativar conta</button></form>';
+            return '<p>Esta conta está desativada: não consegue entrar.</p><form method="post" action="' . $base . '/reativar">' . $csrf
+                . $this->campoSenha($sessao, 'campo-senha-reativar') . '<button type="submit" class="btn btn-outline-success">Reativar conta</button></form>';
         }
         if ($eu) {
             return '<p class="form-text">Você não pode desativar a própria conta.</p>';
         }
 
         return '<p>Desativar impede de entrar e derruba as sessões abertas; os papéis e o histórico ficam guardados.</p>'
-            . '<form method="post" action="' . $base . '/desativar">' . $csrf . '<button type="submit" class="btn btn-outline-danger">Desativar conta</button></form>';
+            . '<form method="post" action="' . $base . '/desativar">' . $csrf . $this->campoSenha($sessao, 'campo-senha-desativar')
+            . '<button type="submit" class="btn btn-outline-danger">Desativar conta</button></form>';
     }
 
-    private function blocoDeAcessos(string $csrf, Usuario $c, string $base): string
+    private function blocoDeAcessos(SessaoAtiva $sessao, string $csrf, Usuario $c, string $base): string
     {
         $corpo = $c->administrador ? '<p class="form-text">Administradores já podem tudo; os papéis abaixo só valem se a marca de administrador sair.</p>' : '';
         $acessos = $this->servicos->usuarios->acessosDe($c->id);
@@ -234,7 +290,8 @@ final class TelasDeContas
                 $site = $o === null ? null : $this->servicos->sites->porId($o->siteId);
                 $corpo .= '<tr><td>' . ($o === null ? '<span class="text-body-secondary">(removida)</span>' : '<a href="' . Painel::PREFIXO . '/objeto/' . $o->id . '">' . Pagina::h($o->titulo) . '</a>') . ' <span class="text-body-secondary">#' . $a['objeto_id'] . '</span></td>'
                     . '<td>' . ($site === null ? '—' : Pagina::h($site->nome)) . '</td><td>' . Pagina::h($a['perfil']->value) . '</td>'
-                    . '<td class="text-end"><form method="post" action="' . $base . '/revogar">' . $csrf . '<input type="hidden" name="objeto" value="' . $a['objeto_id'] . '">'
+                    . '<td class="text-end"><form method="post" action="' . $base . '/revogar" class="d-flex gap-1 align-items-end justify-content-end">' . $csrf . '<input type="hidden" name="objeto" value="' . $a['objeto_id'] . '">'
+                    . $this->campoSenha($sessao, 'campo-senha-revogar-' . $a['objeto_id'])
                     . '<button type="submit" class="btn btn-sm btn-outline-danger">Revogar<span class="visually-hidden"> o papel na seção ' . $a['objeto_id'] . '</span></button></form></td></tr>';
             }
             $corpo .= '</tbody></table></div>';
@@ -247,7 +304,7 @@ final class TelasDeContas
         return $corpo . '<form method="post" action="' . $base . '/conceder" class="row g-2 align-items-end">' . $csrf
             . '<div class="col-sm-4"><label for="campo-objeto" class="form-label">Número da seção</label><input id="campo-objeto" class="form-control" name="objeto" inputmode="numeric" maxlength="10" required aria-describedby="ajuda-objeto"></div>'
             . '<div class="col-sm-4"><label for="campo-perfil" class="form-label">Papel</label><select id="campo-perfil" class="form-select" name="perfil">' . $opcoes . '</select></div>'
-            . '<div class="col-sm-4"><button type="submit" class="btn btn-primary">Conceder</button></div>'
+            . '<div class="col-sm-4">' . $this->campoSenha($sessao, 'campo-senha-conceder') . '<button type="submit" class="btn btn-primary">Conceder</button></div>'
             . '<div id="ajuda-objeto" class="form-text">O número aparece na página da seção na administração. Vale para ela e tudo abaixo; substitui o papel que a conta já tinha nela. Leitor vê; autor cria e edita o que criou; editor também publica e apaga.</div></form>';
     }
 
@@ -268,6 +325,10 @@ final class TelasDeContas
         $eu = $c->id === $sessao->usuario->id;
         $admin = $eu ? $c->administrador : $this->texto($requisicao, 'administrador') === '1';
         $v = ['nome' => $nome, 'email' => $email, 'administrador' => $admin ? '1' : ''];
+        $falha = $this->exigirReautenticacao($sessao, $requisicao, 'conta');
+        if ($falha !== null) {
+            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, $v), $falha);
+        }
         $erro = $this->erroDeTexto($nome, self::MAX_NOME, 'O nome') ?? $this->erroDeTexto($email, self::MAX_EMAIL, 'O e-mail');
         if ($erro === null && $c->administrador && !$admin && $this->servicos->usuarios->ehUltimoAdministradorAtivo($c->id)) {
             $erro = 'Esta é a última conta de administrador ativa; ela não pode deixar de ser administradora.';
@@ -294,6 +355,10 @@ final class TelasDeContas
         if ($senha === null || $repita === null) {
             return $this->incompleto($sessao);
         }
+        $falha = $this->exigirReautenticacao($sessao, $requisicao, 'conta', false, 'senha_atual');
+        if ($falha !== null) {
+            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, []), $falha);
+        }
         $erro = $senha !== $repita ? 'As duas senhas não são iguais.' : null;
         if ($erro === null) {
             try {
@@ -310,8 +375,12 @@ final class TelasDeContas
         return new RedirectResponse($c->id === $sessao->usuario->id ? Painel::PREFIXO . '/entrar' : $this->link($c->id) . '?ok=senha', Response::HTTP_SEE_OTHER);
     }
 
-    private function situacao(SessaoAtiva $sessao, Usuario $c, bool $ativar): Response
+    private function situacao(SessaoAtiva $sessao, Usuario $c, bool $ativar, Request $requisicao): Response
     {
+        $falha = $this->exigirReautenticacao($sessao, $requisicao, 'conta');
+        if ($falha !== null) {
+            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, []), $falha);
+        }
         if (!$ativar) {
             $erro = match (true) {
                 $c->id === $sessao->usuario->id => 'Você não pode desativar a própria conta.',
@@ -339,6 +408,10 @@ final class TelasDeContas
         if ($perfil === null) {
             return $this->pagina($sessao, $c, 'Escolha um papel: leitor, autor ou editor.', Response::HTTP_UNPROCESSABLE_ENTITY, []);
         }
+        $falha = $this->exigirReautenticacao($sessao, $requisicao, 'conta');
+        if ($falha !== null) {
+            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, []), $falha);
+        }
         try {
             $this->servicos->usuarios->conceder($c->id, $objeto, $perfil, 'usuario:' . $sessao->usuario->id);
         } catch (\InvalidArgumentException) {
@@ -353,6 +426,10 @@ final class TelasDeContas
         $objeto = $this->numero($this->texto($requisicao, 'objeto'));
         if ($objeto === null) {
             return $this->incompleto($sessao);
+        }
+        $falha = $this->exigirReautenticacao($sessao, $requisicao, 'conta');
+        if ($falha !== null) {
+            return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $c, $falha['mensagem'], Response::HTTP_OK, []), $falha);
         }
         try {
             $this->servicos->usuarios->revogar($c->id, $objeto, 'usuario:' . $sessao->usuario->id);

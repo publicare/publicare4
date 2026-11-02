@@ -45,7 +45,20 @@ final class AdminSiteTest extends TestCase
         Ajuda::apagar($this->raiz);
     }
 
+    /** Sessão já no modo elevado (fase 5h), sem conferir senha nem tocar no limite de tentativas (ver AdminAuxiliar). */
     private function token(string $login): string
+    {
+        $token = $this->tokenSemElevar($login);
+        $sessao = $this->s->sessoes()->validar($token);
+        if ($sessao !== null) {
+            $this->s->modoElevado()->abrirParaTestes($sessao);
+        }
+
+        return $token;
+    }
+
+    /** Sessão nova, sem o modo elevado — para testar a própria reautenticação das peles/moldes. */
+    private function tokenSemElevar(string $login): string
     {
         return $this->s->sessoes()->criar($this->ids[$login]);
     }
@@ -390,5 +403,60 @@ final class AdminSiteTest extends TestCase
         self::assertStringContainsString('PHP cru', $this->html($r));
         self::assertSame($original, file_get_contents($this->caminhos->peles() . '/basica/padrao.pbl'));
         self::assertFileDoesNotExist('/tmp/pwn-pbl4');
+    }
+
+    // ---------------------------------------------------------------- modo elevado (fase 5h)
+
+    public function testCriarEditarApagarMoldeEAtivarPeleExigemSenhaDeNovo(): void
+    {
+        // Um molde descartável, criado com uma sessão já elevada, só para testar apagar sem a senha (o padrao nunca
+        // se apaga, reauth ou não, então não serve para esse caso).
+        $b = $this->base() . '/peles/basica';
+        $this->post($this->token('admin'), "{$b}/novo", ['nome' => 'descartavel', 'conteudo' => '<p>x</p>']);
+        self::assertFileExists($this->caminhos->peles() . '/basica/descartavel.pbl');
+
+        $t = $this->tokenSemElevar('admin');
+        $original = (string) file_get_contents($this->caminhos->peles() . '/basica/padrao.pbl');
+
+        $r = $this->post($t, "{$b}/novo", ['nome' => 'semsenha', 'conteudo' => '<p>x</p>']);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertStringContainsString('Confirme sua senha', $this->html($r));
+        self::assertFileDoesNotExist($this->caminhos->peles() . '/basica/semsenha.pbl');
+
+        $r2 = $this->post($t, "{$b}/molde", ['nome' => 'padrao', 'conteudo' => '<p>mudou</p>', 'base' => hash('sha256', $original)]);
+        self::assertSame(422, $r2->getStatusCode());
+        self::assertSame($original, file_get_contents($this->caminhos->peles() . '/basica/padrao.pbl'));
+
+        $r3 = $this->post($t, "{$b}/apagar", ['nome' => 'descartavel']);
+        self::assertSame(422, $r3->getStatusCode());
+        self::assertFileExists($this->caminhos->peles() . '/basica/descartavel.pbl', 'nada apagado sem a senha');
+
+        $r4 = $this->post($t, $this->base() . '/peles/ativar', ['pele' => 'escura']);
+        self::assertSame(422, $r4->getStatusCode());
+        self::assertSame('basica', $this->s->sites->porId($this->siteId)?->pele);
+    }
+
+    public function testCriarMoldeComSenhaCertaFuncionaEAbreOModoElevadoParaApagar(): void
+    {
+        $t = $this->tokenSemElevar('admin');
+        $b = $this->base() . '/peles/basica';
+        $r = $this->post($t, "{$b}/novo", ['nome' => 'comsenha', 'conteudo' => '<p>x</p>', 'senha' => self::SENHA]);
+        self::assertSame(303, $r->getStatusCode());
+        self::assertFileExists($this->caminhos->peles() . '/basica/comsenha.pbl');
+
+        // Já elevado: apagar não pede a senha de novo.
+        $r2 = $this->post($t, "{$b}/apagar", ['nome' => 'comsenha']);
+        self::assertSame(303, $r2->getStatusCode());
+        self::assertFileDoesNotExist($this->caminhos->peles() . '/basica/comsenha.pbl');
+    }
+
+    public function testSenhaErradaAoCriarMoldeNaoGravaNemVaiParaAAuditoria(): void
+    {
+        $t = $this->tokenSemElevar('admin');
+        $b = $this->base() . '/peles/basica';
+        $r = $this->post($t, "{$b}/novo", ['nome' => 'falhou', 'conteudo' => '<p>x</p>', 'senha' => 'senha-errada']);
+        self::assertSame(401, $r->getStatusCode());
+        self::assertFileDoesNotExist($this->caminhos->peles() . '/basica/falhou.pbl');
+        self::assertStringNotContainsString('senha-errada', (string) json_encode($this->s->auditoria->recentes(500)));
     }
 }

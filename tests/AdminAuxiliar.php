@@ -50,7 +50,25 @@ trait AdminAuxiliar
         Ajuda::apagar($this->raiz);
     }
 
+    /**
+     * Sessão **já no modo elevado** (fase 5h): a maioria dos testes exercita o que a ação faz, não a reautenticação,
+     * então abre a janela de 10 minutos direto (`ModoElevado::abrirParaTestes`, sem conferir senha nem tocar no
+     * `LimiteDeTentativas` — isso teria o efeito colateral de limpar tentativas de outro teste, como o de bloqueio).
+     * Quem testa a reautenticação em si usa {@see tokenSemElevar}.
+     */
     private function token(string $login): string
+    {
+        $token = $this->tokenSemElevar($login);
+        $sessao = $this->s->sessoes()->validar($token);
+        if ($sessao !== null) {
+            $this->s->modoElevado()->abrirParaTestes($sessao);
+        }
+
+        return $token;
+    }
+
+    /** Sessão nova, sem o modo elevado — para testar a própria reautenticação. */
+    private function tokenSemElevar(string $login): string
     {
         return $this->s->sessoes()->criar($this->ids[$login]);
     }

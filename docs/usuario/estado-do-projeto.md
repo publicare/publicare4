@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Última atualização: **novembro de 2026** (voltar atrás de uma atualização concluída e aviso de versão nova na página inicial; tela de atualização no painel; contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, publicação agendada, mover pela árvore e formulários públicos simples). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
+Última atualização: **novembro de 2026** (voltar atrás de uma atualização concluída e aviso de versão nova na página inicial; tela de atualização no painel; contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, publicação agendada, mover pela árvore e formulários públicos simples; modo elevado nas ações sensíveis do painel e lista de contas paginada/com busca). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
 
 ## Legenda
 
@@ -27,7 +27,8 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Redirecionar endereços antigos que não são páginas atuais (de sistemas que acabaram, com `.php` ou maiúsculas) | ✅ (pelo navegador e por linha de comando) |
 | Mudar o endereço de uma página sem quebrar o antigo (o antigo passa a levar ao novo) | ✅ |
 | Mover uma página (com tudo que está dentro dela) na árvore | ✅ |
-| Contas da equipe com senha segura e papéis por seção do site (leitor, autor, editor) e administrador geral, com registro de quem fez o quê (por linha de comando e, para o administrador, pelo navegador: criar conta, editar, desativar, redefinir senha e conceder papéis) | ✅ |
+| Contas da equipe com senha segura e papéis por seção do site (leitor, autor, editor) e administrador geral, com registro de quem fez o quê (por linha de comando e, para o administrador, pelo navegador: criar conta, editar, desativar, redefinir senha e conceder papéis; lista com busca e paginada) | ✅ |
+| Ações sensíveis do painel (contas, domínios, apagar tipo de conteúdo, moldes, pele ativa, atualizar/reverter) pedem a senha de novo, com uma janela de alguns minutos em que as próximas não pedem outra vez | ✅ |
 | Instalar pelo navegador (assistente com requisitos, conta de administrador e site de exemplo), com proteção para ninguém instalar no seu lugar | ✅ |
 | Instalar em hospedagem com painel Hestia/VestaCP (`open_basedir`), com guia e avisos claros no assistente (falta de SQLite, pasta fora do alcance do PHP) | ✅ |
 | Entrar e sair pelo navegador, com sessão segura e proteção contra tentativas em massa e contra pedidos forjados | ✅ |
