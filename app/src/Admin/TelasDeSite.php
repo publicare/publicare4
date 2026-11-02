@@ -17,7 +17,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Telas por site (ADR 0012, fase 5e): redirecionamentos manuais e peles (moldes). Tudo exige administrar o site
+ * Telas por site (ADR 0012, fase 5e): redirecionamentos manuais, peles (moldes) e a opção de busca (nível C do ADR 0010,
+ * sugestão de grafia parecida). Tudo exige administrar o site
  * (`Acao::Administrar` na seção raiz, que só o administrador global tem), conferido em toda rota, também no POST. Todo POST
  * confere origem e CSRF antes de qualquer outra coisa. Os redirecionamentos usam as validações do `RedirecionamentoRepositorio`;
  * os moldes passam pelo parser da linguagem e pelo `GerenciadorDePeles`, a única porta de escrita em disco. A auditoria guarda
@@ -50,21 +51,22 @@ final class TelasDeSite
      */
     public static function rota(string $prefixo, string $caminho, string $metodo): ?array
     {
-        $p = '#^' . preg_quote($prefixo, '#') . '/site/([1-9][0-9]{0,9})/(redirecionamentos|peles)(?:/([a-z0-9_-]{1,50}|[1-9][0-9]{0,9}))?(?:/([a-z]{1,20}))?$#D';
+        $p = '#^' . preg_quote($prefixo, '#') . '/site/([1-9][0-9]{0,9})/(redirecionamentos|peles|busca)(?:/([a-z0-9_-]{1,50}|[1-9][0-9]{0,9}))?(?:/([a-z]{1,20}))?$#D';
         if (preg_match($p, $caminho, $m) !== 1) {
             return null;
         }
         $site = (int) $m[1];
         $a = $m[3] ?? '';
         $b = $m[4] ?? '';
-        $tela = $m[2] === 'redirecionamentos'
-            ? match (true) {
+        $tela = match ($m[2]) {
+            'redirecionamentos' => match (true) {
                 $a === '' && $b === '' => match ($metodo) { 'GET' => 'redirLista', 'POST' => 'redirCriar', default => null },
                 ctype_digit($a) && $b === 'editar' => match ($metodo) { 'GET' => 'redirEditar', 'POST' => 'redirSalvar', default => null },
                 ctype_digit($a) && $b === 'remover' => $metodo === 'POST' ? 'redirRemover' : null,
                 default => null,
-            }
-            : match (true) {
+            },
+            'busca' => $a !== '' || $b !== '' ? null : match ($metodo) { 'GET' => 'buscaExibir', 'POST' => 'buscaSalvar', default => null },
+            default => match (true) {
                 $a === '' && $b === '' => $metodo === 'GET' ? 'peleLista' : null,
                 $a === 'ativar' && $b === '' => $metodo === 'POST' ? 'peleAtivar' : null,
                 $a !== '' && $b === '' => $metodo === 'GET' ? 'peleArquivos' : null,
@@ -72,7 +74,8 @@ final class TelasDeSite
                 $b === 'novo' => match ($metodo) { 'GET' => 'moldeNovo', 'POST' => 'moldeCriar', default => null },
                 $b === 'apagar' => match ($metodo) { 'GET' => 'moldeApagar', 'POST' => 'moldeConfirmarApagar', default => null },
                 default => null,
-            };
+            },
+        };
         if ($tela === null) {
             return null;
         }
@@ -104,6 +107,9 @@ final class TelasDeSite
         }
         if (str_starts_with($tela, 'redir')) {
             return $this->redirecionamentos($sessao, $site, $tela, $regraId, $requisicao);
+        }
+        if (str_starts_with($tela, 'busca')) {
+            return $this->buscaTelas($sessao, $site, $tela, $requisicao);
         }
 
         return $this->peleTelas($sessao, $site, $tela, $pele, $requisicao);
@@ -330,6 +336,46 @@ final class TelasDeSite
         }
 
         return $html;
+    }
+
+    // ---------------------------------------------------------------- busca (nível C, ADR 0010)
+
+    private function buscaTelas(SessaoAtiva $sessao, Site $site, string $tela, Request $req): Response
+    {
+        return $tela === 'buscaSalvar' ? $this->salvarBusca($sessao, $site, $req) : $this->exibirBusca($sessao, $site, $this->avisoDeBusca($req));
+    }
+
+    private function exibirBusca(SessaoAtiva $sessao, Site $site, string $aviso): Response
+    {
+        $ligado = $site->buscaTolerancia;
+        $corpo = $aviso
+            . '<p>Quando uma busca de texto não acha nada, o site pode sugerir "você quis dizer…" com uma palavra parecida do '
+            . 'vocabulário já indexado (nível C da busca). Desligada por padrão: analisa mais candidatos a cada busca sem resultado.</p>'
+            . '<form method="post" action="' . $this->linkBusca($site) . '">' . $this->campoCsrf($sessao)
+            . '<div class="form-check mb-3"><input id="b-ligado" class="form-check-input" type="checkbox" name="ligado" value="1"' . ($ligado ? ' checked' : '') . '>'
+            . '<label for="b-ligado" class="form-check-label">Sugerir grafia parecida quando a busca não encontra nada</label></div>'
+            . '<button type="submit" class="btn btn-primary">Salvar</button></form>';
+
+        return Pagina::resposta('Busca de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+    }
+
+    private function salvarBusca(SessaoAtiva $sessao, Site $site, Request $req): Response
+    {
+        $ligado = ($req->request->all()['ligado'] ?? null) === '1';
+        $this->servicos->sites->definirBuscaTolerancia($site->id, $ligado);
+        $this->servicos->auditoria->registrar('busca.tolerancia', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['site_id' => $site->id, 'ligado' => $ligado]);
+
+        return new RedirectResponse($this->linkBusca($site) . '?ok=salvo', Response::HTTP_SEE_OTHER);
+    }
+
+    private function avisoDeBusca(Request $req): string
+    {
+        return ($req->query->all()['ok'] ?? null) === 'salvo' ? '<div class="alert alert-success" role="status">Configuração salva.</div>' : '';
+    }
+
+    private function linkBusca(Site $site): string
+    {
+        return Painel::PREFIXO . '/site/' . $site->id . '/busca';
     }
 
     // ---------------------------------------------------------------- peles
