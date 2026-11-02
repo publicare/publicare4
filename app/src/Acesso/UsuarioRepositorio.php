@@ -98,6 +98,51 @@ final class UsuarioRepositorio implements Autenticador
         return $this->hidratar($l);
     }
 
+    /** Altera nome e e-mail (login não muda). Audita só os nomes dos campos que mudaram. */
+    public function atualizar(int $id, string $nome, string $email, string $ator = 'sistema'): void
+    {
+        $u = $this->porId($id) ?? throw new \InvalidArgumentException("Usuário {$id} não existe");
+        $nome = trim($nome);
+        $email = trim($email);
+        if ($nome === '' || mb_strlen($nome) > 200) {
+            throw new \InvalidArgumentException('Nome inválido');
+        }
+        if (strlen($email) > 255 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            throw new \InvalidArgumentException('E-mail inválido');
+        }
+        $mudou = array_keys(array_filter(['nome' => $nome !== $u->nome, 'email' => $email !== $u->email]));
+        if ($mudou === []) {
+            return;
+        }
+        $this->conexao->update('usuario', ['nome' => $nome, 'email' => $email], ['id' => $id]);
+        $this->auditoria?->registrar('usuario.atualizar', $ator, $id, null, ['campos' => implode(',', $mudou)]);
+    }
+
+    /** Liga ou desliga a marca de administrador global. Não deixa a instalação sem nenhum administrador ativo. */
+    public function definirAdministrador(int $id, bool $administrador, string $ator = 'sistema'): void
+    {
+        $u = $this->porId($id) ?? throw new \InvalidArgumentException("Usuário {$id} não existe");
+        if ($u->administrador === $administrador) {
+            return;
+        }
+        if (!$administrador && $this->ehUltimoAdministradorAtivo($id)) {
+            throw new \InvalidArgumentException('Esta é a última conta de administrador ativa; ela não pode deixar de ser administradora');
+        }
+        $this->conexao->update('usuario', ['administrador' => $administrador ? 1 : 0], ['id' => $id]);
+        $this->auditoria?->registrar($administrador ? 'usuario.admin.dar' : 'usuario.admin.tirar', $ator, $id);
+    }
+
+    /** O usuário é um administrador ativo e o único que existe? (desativá-lo ou rebaixá-lo deixaria a instalação sem administração) */
+    public function ehUltimoAdministradorAtivo(int $id): bool
+    {
+        $u = $this->porId($id);
+        if ($u === null || !$u->administrador || !$u->ativo) {
+            return false;
+        }
+
+        return (int) $this->conexao->fetchOne('SELECT COUNT(*) FROM usuario WHERE administrador = 1 AND ativo = 1') <= 1;
+    }
+
     public function definirSenha(int $id, string $senha, string $ator = 'sistema'): void
     {
         $u = $this->porId($id) ?? throw new \InvalidArgumentException("Usuário {$id} não existe");

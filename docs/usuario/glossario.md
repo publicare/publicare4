@@ -33,6 +33,7 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Administração** | A área do site, em `/_pbl/`, onde a equipe entra com login e senha para cuidar do conteúdo. Cada pessoa só vê e só muda o que o seu papel permite. |
 | **Edição simultânea** | Quando duas pessoas abrem a mesma página para editar. Quem salvar depois recebe um aviso, vê o que a outra pessoa salvou e decide se substitui; nada se perde sem aviso. |
 | **Domínio principal** | O endereço oficial do site. Os outros domínios do mesmo site mostram o mesmo conteúdo (avisando qual é o oficial) ou levam direto ao principal. |
+| **Alias e redirecionador** | Os dois tipos de domínio que não são o principal: o **alias** mostra o mesmo conteúdo do site; o **redirecionador** leva o visitante ao principal (redirecionamento permanente). Muda-se pela administração, em **Domínios**. |
 | **Regra de redirecionamento** | Uma instrução que você cadastra: "quem pedir `/antigo` vai para `/novo`". Serve para endereços antigos que já não são uma página do site. |
 | **Redirecionamento** | Fazer um endereço antigo levar ao endereço novo, para não quebrar links já divulgados. |
 | **Migração (de banco)** | Ajuste interno nos dados guardados, feito ao instalar ou atualizar. |

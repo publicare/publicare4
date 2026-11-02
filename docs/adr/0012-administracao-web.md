@@ -1,6 +1,6 @@
 # ADR 0012 — Administração pelo navegador
 
-Status: aceito e implementado em parte (2026-11-01, fase 5a: painel com os sites, navegação na árvore e edição de título e descrição; fase 5c: tipos de conteúdo, §6; fase 5b: criar, editar todas as propriedades, estado e datas, mover, lixeira, histórico com restaurar e lista com ordem e filtros, §7). Ficam para as próximas fatias: contas, domínios e peles. Complementa o [ADR 0011](0011-autenticacao-sessao-permissoes.md) (sessão, CSRF e permissões) e detalha a parte de administração do [fluxo 5](../fluxos/05-conteudo-workflow.md).
+Status: aceito e implementado em parte (2026-11-01, fase 5a: painel com os sites, navegação na árvore e edição de título e descrição; fase 5c: tipos de conteúdo, §6; fase 5b: criar, editar todas as propriedades, estado e datas, mover, lixeira, histórico com restaurar e lista com ordem e filtros, §7). fase 5d: contas e domínios, §8). Ficam para as próximas fatias: redirecionamentos e peles. Complementa o [ADR 0011](0011-autenticacao-sessao-permissoes.md) (sessão, CSRF e permissões) e detalha a parte de administração do [fluxo 5](../fluxos/05-conteudo-workflow.md).
 
 ## Contexto
 
@@ -101,6 +101,29 @@ stateDiagram-v2
 ```
 
 (Qualquer estado da lista vai para qualquer outro pela tela de estado; o diagrama mostra os caminhos usuais.)
+
+### 8. Contas e domínios (fase 5d)
+- **Rotas** (arquivos `TelasDeContas` e `TelasDeDominios`; o `Painel` só as registra; peças comuns no trait `AuxiliaresDeTela`):
+
+| Método e rota | O que faz | Quem |
+|---|---|---|
+| `GET /_pbl/contas` | lista de contas | `Permissoes::podeAdministrarContas` |
+| `GET`/`POST /_pbl/contas/nova` | criar conta (login, nome, e-mail, senha duas vezes, marca de administrador) | idem |
+| `GET /_pbl/conta/{id}` | a conta: dados, senha, situação e papéis | idem |
+| `POST /_pbl/conta/{id}/editar` | nome, e-mail e marca de administrador | idem |
+| `POST /_pbl/conta/{id}/senha` | redefinir senha | idem |
+| `POST /_pbl/conta/{id}/desativar` e `/reativar` | situação | idem |
+| `POST /_pbl/conta/{id}/conceder` e `/revogar` | papel (leitor, autor, editor) numa seção, pelo número | idem |
+| `GET /_pbl/site/{id}/dominios` | domínios do site | `Permissoes::podeAdministrarSite` |
+| `POST /_pbl/site/{id}/dominios/adicionar`, `/principal`, `/modo`, `/remover` | alias ou redirecionador novo; trocar o principal; alias ⇄ redirecionador; remover | idem |
+
+- **Permissão**: contas valem para a instalação inteira, então só o administrador global (`podeAdministrarContas`, novo). Domínios exigem `Acao::Administrar` na página inicial do site (`podeAdministrarSite`, novo; nenhum perfil por seção a inclui, então hoje é o administrador global; site sem página inicial: idem). Sem permissão e inexistente dão a mesma 403; o POST tem origem + CSRF antes de tudo e registra `conta.negado` ou `dominio.negado` só com ids.
+- **Sem lógica duplicada**: tudo passa pelos repositórios que a linha de comando usa. Novos nesta fatia: `UsuarioRepositorio::atualizar` (nome e e-mail, audita só os nomes dos campos), `definirAdministrador`, `ehUltimoAdministradorAtivo` e `DominioRepositorio::definirModo`.
+- **Regras**: ninguém desativa nem tira a marca de administrador de si mesmo (na própria conta a caixa nem aparece e o servidor ignora o campo); a última conta de administrador ativa não é desativada nem rebaixada (repetido no `UsuarioRepositorio::definirAdministrador`; `definirAtivo` continua sem a trava para não mudar o comportamento da linha de comando, a tela confere antes). Redefinir a senha usa `definirSenha` (política de 10 a 1024, custo fixo do hash) e encerra as sessões da conta; na própria conta, a pessoa vai ao login. A senha é digitada duas vezes, não volta ao formulário e não entra na auditoria.
+- **Papéis**: a seção é escolhida pelo número do conteúdo (como em mover); conceder substitui o papel que a conta já tinha naquela seção; seção inexistente é 422. Administradores já podem tudo, e a tela avisa que os papéis deles só valem se a marca sair.
+- **Domínios**: o site sempre tem um principal. Adicionar só como alias (`servir`) ou redirecionador (`redirecionar`); trocar o principal escolhe o que o anterior passa a ser; o principal não se remove nem muda de modo; domínio de outro site não se mexe por esta tela; o endereço pelo qual a pessoa está acessando agora não se remove (um domínio `redirecionar` nunca abre a administração, pois a `Aplicacao` redireciona antes). DNS e certificado do domínio são feitos fora do PBL4.
+- **Auditoria**: `usuario.criar`, `usuario.atualizar` (nomes dos campos), `usuario.admin.dar`/`tirar`, `usuario.ativar`/`desativar`, `senha.trocar`, `acesso.conceder`/`revogar` (pelo repositório, com o ator `usuario:ID`) e `dominio.adicionar`/`principal`/`modo`/`remover` (site, host e modo; host é configuração pública, não dado pessoal).
+- **Fora desta fatia**: apagar conta (só desativar), lista paginada e busca de contas, alterar o login, pedir a senha de novo antes de ações sensíveis, atribuir papel escolhendo a seção numa árvore (hoje pelo número) e verificar se o DNS do domínio aponta para cá.
 
 ## Consequências
 

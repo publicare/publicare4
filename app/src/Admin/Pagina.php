@@ -37,11 +37,13 @@ final class Pagina
     }
 
     /** Barra de navegação de quem entrou (sem JavaScript: sem menu recolhível). `$nome` e `$tokenCsrf` chegam sem escape. */
-    public static function barra(string $nome, string $tokenCsrf): string
+    public static function barra(string $nome, string $tokenCsrf, bool $administrador = false): string
     {
         return '<nav class="navbar navbar-expand bg-dark" data-bs-theme="dark" aria-label="Administração"><div class="container">'
             . '<a class="navbar-brand" href="/_pbl/">PBL4</a>'
-            . '<ul class="navbar-nav"><li class="nav-item"><a class="nav-link" href="/_pbl/classes">Tipos de conteúdo</a></li></ul>'
+            . '<ul class="navbar-nav"><li class="nav-item"><a class="nav-link" href="/_pbl/classes">Tipos de conteúdo</a></li>'
+            . ($administrador ? '<li class="nav-item"><a class="nav-link" href="/_pbl/contas">Contas</a></li>' : '')
+            . '</ul>'
             . '<div class="d-flex align-items-center gap-2 ms-auto"><span class="navbar-text text-truncate">' . self::h($nome) . '</span>'
             . '<form method="post" action="/_pbl/sair"><input type="hidden" name="_csrf" value="' . self::h($tokenCsrf) . '">'
             . '<button type="submit" class="btn btn-sm btn-outline-light">Sair</button></form></div></div></nav>';

@@ -62,6 +62,24 @@ final class Permissoes
     }
 
     /**
+     * Ver e alterar contas (criar, editar, senha, ativar, papéis). Contas e papéis valem para a instalação inteira, então só o
+     * administrador global; nenhum perfil por subárvore dá esse poder.
+     */
+    public function podeAdministrarContas(Usuario $usuario): bool
+    {
+        return $usuario->ativo && $usuario->administrador;
+    }
+
+    /**
+     * Administrar um site (domínios): a ação `Acao::Administrar` na página inicial do site, que hoje só o administrador global
+     * tem (nenhum perfil a inclui). Site sem página inicial: só o administrador global.
+     */
+    public function podeAdministrarSite(Usuario $usuario, ?Objeto $raiz): bool
+    {
+        return $raiz === null ? ($usuario->ativo && $usuario->administrador) : $this->pode($usuario, Acao::Administrar, $raiz);
+    }
+
+    /**
      * O perfil mais forte que o usuário tem sobre o objeto (nele ou em algum ancestral), ou null. A ancestralidade é conferida
      * em PHP pelo prefixo do `caminho` (o mesmo resultado em qualquer banco, sem concatenação de SQL).
      */

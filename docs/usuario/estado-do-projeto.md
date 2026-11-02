@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Última atualização: **novembro de 2026** (telas de conteúdo da administração). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
+Última atualização: **novembro de 2026** (contas e domínios pela administração). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
 
 ## Legenda
 
@@ -23,11 +23,11 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Conversor de moldes do Publicare antigo (PBL3) para o novo, com relatório | ✅ |
 | Proteções de segurança básicas nos moldes e nas URLs | ✅ |
 | Histórico de versões de cada conteúdo, com restaurar e proteção contra edição simultânea | ✅ |
-| Vários domínios para o mesmo site (um principal e os outros mostrando o mesmo conteúdo ou levando ao principal) | ✅ |
+| Vários domínios para o mesmo site (um principal e os outros mostrando o mesmo conteúdo ou levando ao principal), também pelo navegador: adicionar, trocar o principal, virar alias ou redirecionador e remover | ✅ |
 | Redirecionar endereços antigos que não são páginas atuais (de sistemas que acabaram, com `.php` ou maiúsculas) | ✅ (por linha de comando) |
 | Mudar o endereço de uma página sem quebrar o antigo (o antigo passa a levar ao novo) | ✅ |
 | Mover uma página (com tudo que está dentro dela) na árvore | ✅ |
-| Contas da equipe com senha segura e papéis por seção do site (leitor, autor, editor) e administrador geral, com registro de quem fez o quê (por linha de comando) | ✅ |
+| Contas da equipe com senha segura e papéis por seção do site (leitor, autor, editor) e administrador geral, com registro de quem fez o quê (por linha de comando e, para o administrador, pelo navegador: criar conta, editar, desativar, redefinir senha e conceder papéis) | ✅ |
 | Instalar pelo navegador (assistente com requisitos, conta de administrador e site de exemplo), com proteção para ninguém instalar no seu lugar | ✅ |
 | Entrar e sair pelo navegador, com sessão segura e proteção contra tentativas em massa e contra pedidos forjados | ✅ |
 | Administração pelo navegador: ver os sites que você pode acessar e andar pelas páginas de cada um (inclusive as que ainda não estão no ar) | ✅ |
@@ -43,7 +43,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 |---|---|
 | Busca com várias palavras, relevância e correção de erros de digitação ("você quis dizer…") | 🗓️ |
 | Atualização automática com cópia de segurança | 🔨 (já funciona por linha de comando, com assinatura, cópia do banco e volta atrás; falta o botão no painel e a primeira versão publicada) |
-| Restante da administração: contas, domínios, redirecionamentos e peles | 🔨 |
+| Restante da administração: redirecionamentos e peles | 🔨 |
 | Editor de peles | 🗓️ |
 | Galeria de peles prontas para instalar | 🗓️ |
 | Formulários, inscrições e consultas públicas por configuração | 🗓️ |
