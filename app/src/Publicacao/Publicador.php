@@ -167,7 +167,12 @@ final class Publicador
     private function gravar(string $arquivo, string $conteudo): void
     {
         $temporario = $arquivo . '.' . bin2hex(random_bytes(4)) . '.tmp';
-        file_put_contents($temporario, $conteudo);
-        rename($temporario, $arquivo);
+        if (@file_put_contents($temporario, $conteudo) === false) {
+            throw new \RuntimeException("Não foi possível gravar {$arquivo}");
+        }
+        if (!@rename($temporario, $arquivo)) {
+            @unlink($temporario);
+            throw new \RuntimeException("Não foi possível gravar {$arquivo}");
+        }
     }
 }

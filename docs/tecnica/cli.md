@@ -8,6 +8,7 @@ No ambiente de desenvolvimento: `make pbl ARGS="<comando> …"`. Em um servidor:
 | `instalar [--nome=…] [--host=…]` | cria `dados/`, o banco SQLite, copia a pele básica e cria um site de exemplo. Recusa rodar duas vezes (trava `dados/config/instalado.lock`) |
 | `publicar` | renderiza todas as páginas visíveis de todos os sites para o cache e **remove do cache** o que deixou de estar visível (despublicado, vencido, rascunho) ou ficou órfão (a página de um endereço que mudou) |
 | `agendados [--simular]` | aplica a passagem do tempo no cache: põe no ar o que teve a `data_publicacao` liberada e tira o que passou da `data_validade`, republicando o site só se houve mudança. **Idempotente e silencioso** quando não há nada a fazer, feito para o cron (veja abaixo). `--simular` só mostra quantos entrariam e sairiam |
+| `sanitizar-html [--simular] [--site=ID] [--limite=N]` | varre e limpa (`HtmlSeguro`) o HTML gravado antes da fase 5g, de qualquer site e qualquer estado (inclusive a lixeira). **Idempotente**; `--simular` só mostra um resumo do que mudaria, sem gravar |
 | `converter-moldes <origem> <destino> [--seguro]` | converte moldes do PBL3 em moldes PBL4 e escreve `RELATORIO.md` |
 | `limpar-uploads [--simular]` | apaga arquivos de propriedade `arquivo`/`imagem` que nenhum objeto, nem versão antiga, referencia mais (carência de 1 hora). `--simular` só mostra o que seria apagado. Pensado para o cron, de vez em quando ([fluxo 7](../fluxos/07-upload-blobs.md), [ADR 0014](../adr/0014-upload-de-arquivos.md)) |
 
@@ -83,3 +84,23 @@ Datas de publicação e de validade são sempre gravadas em UTC (ISO 8601). A co
 ```
 
 Quando o comando age, escreve uma linha por site (`Meu Site: 1 entrou(aram) no ar, 0 saiu(saíram) do ar; site republicado`); `--simular` mostra o que mudaria sem publicar. Código de saída diferente de zero se algo falhar.
+
+## `sanitizar-html` (varredura do HTML gravado antes da fase 5g)
+
+A limpeza de `html` por lista de permissões (`HtmlSeguro`) só passou a rodar na gravação a partir da fase 5g: conteúdo gravado antes disso, ou trazido de fora sem passar pela gravação normal, podia continuar guardando marcação perigosa (`script`, `on*`, `javascript:`…). Este comando varre tudo isso de uma vez:
+
+```bash
+make pbl ARGS="sanitizar-html --simular"             # só mostra o que mudaria
+make pbl ARGS="sanitizar-html"                        # limpa e grava
+make pbl ARGS="sanitizar-html --site=2"               # só um site
+make pbl ARGS="sanitizar-html --limite=500"           # tamanho do lote lido do banco por vez (padrão 200)
+```
+
+- Alcança **todo objeto, de qualquer site e qualquer estado** — publicado, privado, rejeitado, submetido ou na lixeira: o valor html continua gravado mesmo fora do ar, e um dia pode voltar a aparecer (restaurar uma versão, publicar, tirar da lixeira).
+- Lê o banco **em lotes**, sem carregar todos os objetos na memória de uma vez; `--limite` ajusta o tamanho de cada lote (não muda o resultado, só o uso de memória).
+- Quando a limpeza muda o campo, grava uma **nova versão** pelo caminho normal do repositório (autoria "sistema", auditoria só com o nome do campo e o id do objeto — nunca o conteúdo). Nada é sobrescrito sem versão: o histórico continua inteiro.
+- `--simular` não grava nada; mostra, por objeto e campo, um resumo do que seria retirado (tags e atributos, por nome, e o tamanho antes/depois em bytes) — nunca o HTML inteiro.
+- Ao fim, cada site com objeto alterado tem o cache inteiro refeito (uma vez por site, como `bin/pbl publicar`), já que o conteúdo pode aparecer em qualquer página. Se isso falhar, o comando conta erro e sai com código diferente de zero; rode `bin/pbl publicar` ou repita o comando.
+- **Idempotente**: como a própria limpeza é idempotente, rodar de novo depois não encontra mais nada para mudar.
+- Usa a mesma trava de `atualizar`/`reverter` (`dados/atualizacao.lock`): não roda ao mesmo tempo que uma atualização do PBL4.
+- Código de saída diferente de zero se algum objeto falhar (por exemplo, um campo obrigatório que ficaria vazio depois da limpeza); o resumo final mostra quantos foram varridos, alterados e com erro.
