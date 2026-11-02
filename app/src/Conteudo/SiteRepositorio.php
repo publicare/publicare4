@@ -38,6 +38,14 @@ final class SiteRepositorio
         }
     }
 
+    /** Liga ou desliga a sugestão de grafia parecida na busca sem resultado (nível C, ADR 0010; desligada por padrão). */
+    public function definirBuscaTolerancia(int $siteId, bool $ligado): void
+    {
+        if ($this->conexao->update('site', ['busca_tolerancia' => $ligado ? 1 : 0], ['id' => $siteId]) === 0 && $this->porId($siteId) === null) {
+            throw new \InvalidArgumentException("Site {$siteId} não existe");
+        }
+    }
+
     public function porId(int $id): ?Site
     {
         $linha = $this->conexao->fetchAssociative('SELECT * FROM site WHERE id = ?', [$id]);
@@ -64,6 +72,12 @@ final class SiteRepositorio
     /** @param array<string, mixed> $l */
     private function hidratar(array $l): Site
     {
-        return new Site((int) $l['id'], (string) $l['nome'], $l['objeto_raiz_id'] === null ? null : (int) $l['objeto_raiz_id'], (string) $l['pele']);
+        return new Site(
+            (int) $l['id'],
+            (string) $l['nome'],
+            $l['objeto_raiz_id'] === null ? null : (int) $l['objeto_raiz_id'],
+            (string) $l['pele'],
+            ((int) ($l['busca_tolerancia'] ?? 0)) === 1,
+        );
     }
 }

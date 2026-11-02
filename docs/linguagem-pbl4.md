@@ -48,7 +48,7 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `#ref.campo` | campo do objeto **apontado** por uma propriedade `ref` (`#autor.titulo`, `#autor.cargo`). Um só nível. Só enxerga objetos do mesmo site, publicados e vigentes; sem autor, vem vazio. O ponto precisa estar colado ao nome: `#a . "x"` e `#a."x"` continuam sendo concatenação. |
 | `#campo` | campo do objeto corrente: `#id`, `#titulo`, `#url` (`/` + URL amigável), `#url_amigavel`, `#classe`, `#classe_id`, `#site`, `#pai`, `#peso`, `#descricao`, `#data_publicacao`, `#data_validade`, `#status`, `#apagado`, `#temfilhos` (1 se tem filhos visíveis, senão 0) e os campos da classe (esses nomes são reservados). Dentro de `filhos`, o objeto corrente é o filho. Campo inexistente é vazio. |
 | `$variavel` | variável do molde, criada por `var` ou `repetir`; compartilhada com os moldes incluídos; vazia se não definida. Não toca em variáveis do PHP. |
-| `%MACRO` | `DIA`, `MES`, `ANO`, `DATA` (dd/mm/aaaa); em laço de coleção: `INDICE` (1..n) e `FIM`/`QUANTIDADE` (total). Macro desconhecida é erro de sintaxe. |
+| `%MACRO` | `DIA`, `MES`, `ANO`, `DATA` (dd/mm/aaaa); em laço de coleção: `INDICE` (1..n) e `FIM`/`QUANTIDADE` (total); `SUGESTAO` (ver [Busca](#busca-busca)). Macro desconhecida é erro de sintaxe. |
 | `.` | concatenação (texto). `+ - * /` aritmética; texto não numérico vale 0; divisão por zero dá vazio. |
 | data | `formatadata` aceita `aaaa-mm-dd[ hh:mm:ss]` e `dd/mm/aaaa[ hh:mm:ss]`; data impossível (`2026-02-31`) dá vazio |
 | comparação | se os dois lados são numéricos compara como número, senão como texto (diferencia maiúsculas). |
@@ -104,7 +104,13 @@ Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`
 - Limites: até 8 palavras (as demais são ignoradas), 200 caracteres no total, 40 por palavra.
 - Combina com `classes`, `pai`, `niveis`, `campo`/`op`/`valor`, `inicio` e `limite`.
 - **Relevância**: sem `ordem`, os melhores resultados vêm primeiro (título 3, descrição 2, texto 1; palavra inteira e início do título pesam mais). Em `ordem`, escreva `relevancia` (sozinha ou com outros critérios, como `relevancia, -data_publicacao`); sem `busca` ela é ignorada. Uma propriedade chamada `relevancia` fica inacessível em `ordem`.
-- Não corrige erros de digitação (`Fernandha` não acha `Fernanda`): isso é o nível C do [ADR 0010](adr/0010-busca.md), ainda não feito.
+- **Sugestão de grafia parecida** (`%SUGESTAO`, nível C do [ADR 0010](adr/0010-busca.md)): quando `busca=` não acha nada, `%SUGESTAO` (dentro de `<@naolocalizado@>`, igual a como `semfilhos` lê o resultado do laço) traz um "você quis dizer…" calculado em cima do vocabulário já indexado — nada de serviço externo nem tabela nova. Cada palavra digitada que não é começo de nenhum termo visível (publicado e vigente; nunca de conteúdo privado, fora do ar ou na lixeira) vira o candidato mais parecido por distância de edição (uma letra de diferença em palavras curtas, duas nas longas); se alguma palavra não tem candidato confiável, `%SUGESTAO` fica vazia — nenhuma sugestão é melhor que uma errada. **Opcional por site, desligada por padrão**: liga em `/_pbl/site/{id}/busca`, no painel. Fora de `naolocalizado`/depois de um `localizar busca=…` sem resultado, `%SUGESTAO` também é vazia. Exemplo:
+  ```
+  <@localizar busca=$q@>…<@/localizar@>
+  <@naolocalizado@>
+    <@se %SUGESTAO != ""@>Nada encontrado. Você quis dizer <a href="?q=<@eco %SUGESTAO@>"><@eco %SUGESTAO@></a>?<@/se@>
+  <@/naolocalizado@>
+  ```
 
 ### Tipos de propriedade
 

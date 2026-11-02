@@ -13,11 +13,11 @@ use Pbl\Banco\Migracao;
  * Só adiciona uma tabela: a versão anterior do código a ignora (ADR 0006). O valor de uma propriedade `arquivo`/`imagem` no
  * objeto é o id desta tabela (como uma `ref`, mas para `arquivo`, não para `objeto`).
  */
-final class M012Arquivos implements Migracao
+final class M013Arquivos implements Migracao
 {
     public function versao(): int
     {
-        return 12;
+        return 13;
     }
 
     public function aplicar(Connection $conexao): void

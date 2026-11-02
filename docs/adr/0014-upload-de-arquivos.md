@@ -17,7 +17,7 @@ demais telas da administração: sem JavaScript, permissão em toda rota, CSRF e
   gravação atômica), `ServicoDeUpload` (valida e grava um envio), `ServicoDeMiniaturas` (miniaturas sob demanda),
   `ArquivoRepositorio` (metadados), `Arquivo` (o valor), `ArquivoController` (entrega pública), `LimpadorDeUploads`
   (`bin/pbl limpar-uploads`).
-- Nova tabela `arquivo` (migração M012, só acrescenta: a versão anterior do código a ignora, ADR 0006). Uma propriedade de
+- Nova tabela `arquivo` (migração M013, só acrescenta: a versão anterior do código a ignora, ADR 0006). Uma propriedade de
   classe do tipo `arquivo` ou `imagem` guarda, no JSON do objeto, o **id de uma linha de `arquivo`** — o mesmo desenho de
   `ref`, mas apontando para `arquivo` em vez de `objeto`.
 - `ClasseRepositorio::TIPOS` ganha `arquivo` e `imagem`; a propriedade pode configurar `tipos` (subconjunto das extensões
