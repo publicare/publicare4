@@ -15,6 +15,7 @@ final class ViolacaoDeRegra extends \InvalidArgumentException
     public const CAMPO_OBRIGATORIO = 'campo_obrigatorio';
     public const DATA_INVALIDA = 'data_invalida';
     public const HTML_INVALIDO = 'html_invalido';
+    public const DESTINO_DE_LINK = 'destino_de_link';
 
     /**
      * @param string $codigo uma das constantes desta classe

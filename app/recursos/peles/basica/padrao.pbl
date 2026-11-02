@@ -1,9 +1,7 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title><@eco #titulo@></title>
+<@incluir arquivo="cabeca"@>
 <style>
 body{font-family:system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#222}
 nav a{margin-right:1rem}
@@ -14,7 +12,7 @@ nav a{margin-right:1rem}
 <@se #resumo@><p><em><@eco #resumo@></em></p><@/se@>
 <div><@ecocru #corpo@></div>
 <nav>
-<@filhos@><a href="<@eco #url@>"><@eco #titulo@></a><@/filhos@>
+<@filhos@><@se #classe == "link"@><@incluir arquivo="link_a"@><@senao@><a href="<@eco #url@>"><@eco #titulo@></a><@/se@><@/filhos@>
 </nav>
 </body>
 </html>

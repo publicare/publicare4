@@ -1,9 +1,7 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title><@eco #titulo@></title>
+<@incluir arquivo="cabeca"@>
 <style>
 body{font-family:system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#222}
 .pbl-campo{margin:.75rem 0}label{display:block}input[type=text],input[type=date],textarea{width:100%;box-sizing:border-box}

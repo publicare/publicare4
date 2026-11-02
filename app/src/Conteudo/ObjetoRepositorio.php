@@ -50,6 +50,7 @@ final class ObjetoRepositorio
         }
         $dados = $this->validar($siteId, $classe, $dados);
         $this->exigirObrigatorios($classe, $dados, $aposInserir !== null);
+        $this->exigirRegrasDoTipo($classe, $dados);
         $meta['data_publicacao'] = $this->dataDaVigencia('data_publicacao', $meta['data_publicacao'] ?? null);
         $meta['data_validade'] = $this->dataDaVigencia('data_validade', $meta['data_validade'] ?? null);
 
@@ -280,6 +281,7 @@ final class ObjetoRepositorio
                 }
                 $novos = $this->validar($atual->siteId, $classe, $novos);
                 $this->exigirObrigatoriosTocados($classe, $novos, array_keys($mudancas['dados']));
+                $this->exigirRegrasDoTipo($classe, $novos);
                 $linha['dados'] = json_encode($novos, JSON_THROW_ON_ERROR);
                 $this->conexao->delete('objeto_indice', ['objeto_id' => $id]);
                 $this->indexar($id, $classe, $novos);
@@ -505,6 +507,20 @@ final class ObjetoRepositorio
     private function exigirObrigatorios(Classe $classe, array $dados, bool $pularArquivo = false): void
     {
         $this->exigirObrigatoriosTocados($classe, $dados, null, $pularArquivo);
+    }
+
+    /**
+     * Regras que dependem do tipo, além das propriedades obrigatórias: hoje só o `link` (um destino, interno ou externo).
+     *
+     * @param array<string, mixed> $dados valores já validados
+     * @throws ViolacaoDeRegra
+     */
+    private function exigirRegrasDoTipo(Classe $classe, array $dados): void
+    {
+        // Só no `link` do pacote padrão (tem `destino_interno`): um tipo homônimo criado à mão em outra instalação fica como está.
+        if ($classe->nome === RegrasDeLink::CLASSE && in_array('destino_interno', array_column($classe->propriedades, 'nome'), true)) {
+            RegrasDeLink::exigir($dados);
+        }
     }
 
     /**

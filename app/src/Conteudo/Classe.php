@@ -21,6 +21,8 @@ final class Classe
      *
      * @param list<Propriedade> $propriedades
      * @param list<string> $filhas nomes das classes aceitas como filhas; vazia (com `$aceitaFilhos`) = qualquer classe
+     * @param bool $fixa classe essencial (ADR 0015): não se apaga, não se renomeia e não perde as propriedades da base
+     *                   (`ClassesPadrao::nomesDaBase`); acrescentar propriedades continua permitido
      */
     public function __construct(
         public readonly int $id,
@@ -30,6 +32,7 @@ final class Classe
         public readonly bool $aceitaFilhos = true,
         public readonly array $filhas = [],
         public readonly int $versao = 1,
+        public readonly bool $fixa = false,
     ) {
     }
 
