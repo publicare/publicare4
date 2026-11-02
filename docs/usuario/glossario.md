@@ -52,4 +52,9 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Cópia de segurança (backup)** | Cópia dos arquivos e dados para voltar atrás em caso de problema. |
 | **Voltar atrás (de uma atualização)** | Desfazer uma atualização que já terminou: o código e o banco voltam a como eram antes dela. Diferente da volta atrás **automática** (quando a própria atualização falha no meio), esta é pedida pela pessoa (`bin/pbl reverter` ou o botão na tela Atualização) e perde o que foi criado no site depois da atualização, por isso pede confirmação explícita. |
 | **Software livre / MIT** | Licença que permite usar, estudar, modificar e distribuir o programa gratuitamente. |
+| **Tipo fixo** | Tipo de conteúdo de que o sistema depende (pasta, página, formulário, arquivo, imagem e link). Não se apaga nem se renomeia, e os campos básicos não saem; dá para acrescentar campos e mudar rótulos. Aparece com o selo "fixa". |
+| **Link (tipo de conteúdo)** | Atalho para outro conteúdo do site (acompanha o endereço dele se mudar) ou para um endereço externo. Só um dos dois destinos por vez. |
+| **Menu / nome no menu** | O menu principal mostra as páginas marcadas "no menu", na ordem do peso. O nome no menu é opcional; vazio, vale o título. |
+| **SEO** | Título, descrição e imagem pensados para buscadores e redes sociais; opcionais, e sem eles o site usa o título, o resumo e a imagem de destaque. |
+| **Busca (do site)** | A caixa de busca do visitante e a página de resultados, que usam o mesmo motor de busca do sistema. |
 | **PBL3** | A versão anterior do Publicare. |

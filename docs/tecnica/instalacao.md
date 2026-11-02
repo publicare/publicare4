@@ -130,6 +130,10 @@ docker compose --profile nginx up -d --build nginx
 
 Desligue com `docker compose --profile apache --profile nginx down`. Esses ambientes gravam em `dados/`: use uma cópia do projeto, não o seu trabalho.
 
+## O que a instalação cria
+
+Na mesma transação: as classes `pasta`, `pagina`, `formulario`, `arquivo`, `imagem`, `link` (fixas), `noticia` e `mensagem_contato`; a página inicial; **Sobre**, **Notícias** (com uma notícia de exemplo) e **Contato** (formulário), os três no menu; e a pasta privada **Mensagens recebidas**. Ou o site nasce inteiro ou não nasce. Instalações anteriores à fase 5l ganham as colunas novas pela migração 16, mas não as classes novas. Ver [ADR 0015](../adr/0015-classes-fixas-e-pacote-minimo.md).
+
 ## Depois de instalar
 
 HTTPS na administração; cópia de segurança de `dados/`; conferir que `/dados/` não abre; guardar a senha. O assistente repete esses lembretes.

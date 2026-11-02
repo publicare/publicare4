@@ -58,7 +58,7 @@ final class TracerBulletTest extends TestCase
         foreach ($servicos->sites->todos() as $site) {
             $total += $servicos->publicador->publicarSite($site);
         }
-        self::assertSame(2, $total);
+        self::assertSame(5, $total, 'início, Sobre, Notícias, a notícia de exemplo e Contato (a pasta de mensagens é privada)');
 
         $inicio = $this->pegar('/');
         self::assertSame(200, $inicio->getStatusCode());
@@ -233,7 +233,7 @@ final class TracerBulletTest extends TestCase
 
         $publicadas = $servicos->publicador->publicarSite($site);
 
-        self::assertSame(2, $publicadas, 'só as duas páginas válidas; a inválida foi pulada');
+        self::assertSame(5, $publicadas, 'só as cinco páginas válidas do pacote; a inválida foi pulada');
         self::assertSame(200, $this->pegar('/')->getStatusCode(), 'a página inicial não foi sobrescrita pelo objeto "index"');
     }
 }

@@ -54,7 +54,11 @@ final class AdminIntegridadeTest extends TestCase
             ['nome' => 'corpo', 'tipo' => 'html'],
         ]);
         $this->s->classes->criar('agenda', [], ['filhas' => ['evento']]);
-        $this->s->classes->criar('noticia', [['nome' => 'resumo', 'tipo' => 'texto', 'obrigatorio' => true]]);
+        $n = $this->s->classes->porNome('noticia') ?? self::fail();
+        $this->s->classes->atualizar($n->id, $n->versao, array_map(
+            static fn (array $p): array => $p['nome'] === 'resumo' ? $p + ['obrigatorio' => true] : $p,
+            $n->propriedades,
+        ), ['filhas' => $n->filhas]);
         $u = $this->s->usuarios;
         $this->ids['admin'] = $u->criar('admin', 'admin@exemplo.org', 'Admin', self::SENHA, true)->id;
         $this->ids['leitor'] = $u->criar('leitor', 'leitor@exemplo.org', 'Leitor', self::SENHA)->id;
@@ -348,7 +352,7 @@ final class AdminIntegridadeTest extends TestCase
         } catch (\Pbl\Conteudo\ViolacaoDeRegra $e) {
             $viaCli = $e->getMessage();
         }
-        self::assertSame('O campo resumo é obrigatório.', $viaCli);
+        self::assertSame('O campo Resumo é obrigatório.', $viaCli);
         self::assertSame(200, $this->req('GET', '/_pbl/objeto/' . $n->id . '/editar', $token)->getStatusCode());
         self::assertSame('x', $this->obj($n->id)->dados['resumo']);
     }

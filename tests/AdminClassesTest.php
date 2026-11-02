@@ -28,6 +28,7 @@ final class AdminClassesTest extends TestCase
     private int $inicioId;
     /** @var array<string, int> login => id */
     private array $ids = [];
+    private int $quantasClasses = 0;
 
     protected function setUp(): void
     {
@@ -39,7 +40,14 @@ final class AdminClassesTest extends TestCase
         self::assertNotNull($site);
         $this->siteId = $site->id;
         $this->inicioId = (int) $site->objetoRaizId;
+        // Estes testes exercitam a edição de tipos sobre um `pagina` "cru" (resumo e corpo, sem descrição, apagável);
+        // as regras das classes fixas e do pacote mínimo ficam em ClassesPadraoTest.
+        \Pbl\Banco\Conexao::sqlite($this->caminhos->banco())->executeStatement(
+            "UPDATE classe SET propriedades = ?, descricao = '', fixa = 0, filhas = NULL WHERE nome = 'pagina'",
+            [json_encode([['nome' => 'resumo', 'tipo' => 'texto', 'indexavel' => true], ['nome' => 'corpo', 'tipo' => 'html', 'indexavel' => false]], JSON_THROW_ON_ERROR)],
+        );
         $this->pagina = $this->s->classes->porNome('pagina') ?? self::fail();
+        $this->quantasClasses = count($this->s->classes->todas());
         $u = $this->s->usuarios;
         $this->ids['admin'] = $u->criar('admin', 'admin@exemplo.org', 'Admin', self::SENHA, true)->id;
         $this->ids['editor'] = $u->criar('editor', 'editor@exemplo.org', 'Editor', self::SENHA)->id;
@@ -237,19 +245,19 @@ final class AdminClassesTest extends TestCase
         $token = $this->token('admin');
         self::assertSame(200, $this->req('GET', '/_pbl/classes/nova', $token)->getStatusCode());
 
-        $r = $this->post($token, '/_pbl/classes/nova', ['nome' => ' noticia ', 'descricao' => "Notícias do site\r\nsegredo XYZ", 'aceita_filhos' => '1', 'filhas' => ['pagina', 'noticia']]);
+        $r = $this->post($token, '/_pbl/classes/nova', ['nome' => ' revista ', 'descricao' => "Notícias do site\r\nsegredo XYZ", 'aceita_filhos' => '1', 'filhas' => ['pagina', 'revista']]);
 
-        $c = $this->classe('noticia');
+        $c = $this->classe('revista');
         self::assertSame(303, $r->getStatusCode());
         self::assertSame('/_pbl/classe/' . $c->id . '/editar?ok=criada', $r->headers->get('Location'));
         self::assertSame("Notícias do site\nsegredo XYZ", $c->descricao);
         self::assertTrue($c->aceitaFilhos);
-        self::assertSame(['noticia', 'pagina'], $c->filhas);
+        self::assertSame(['pagina', 'revista'], $c->filhas);
         self::assertSame([], $c->propriedades);
         self::assertStringContainsString('Tipo de conteúdo criado', (string) $this->req('GET', (string) $r->headers->get('Location'), $token)->getContent());
         $log = $this->auditoria('classe.criar');
         self::assertCount(1, $log);
-        self::assertStringContainsString('noticia', (string) $log[0]['detalhe']);
+        self::assertStringContainsString('revista', (string) $log[0]['detalhe']);
         self::assertStringNotContainsString('segredo', (string) $log[0]['detalhe']);
 
         $this->post($token, '/_pbl/classes/nova', ['nome' => 'folha']);
@@ -268,7 +276,7 @@ final class AdminClassesTest extends TestCase
         self::assertSame(422, $this->post($token, '/_pbl/classes/nova', ['nome' => 'ok4', 'aceita_filhos' => '1', 'filhas' => ['nao_existe']])->getStatusCode());
         self::assertSame(400, $this->post($token, '/_pbl/classes/nova', ['nome' => ['x']])->getStatusCode());
         self::assertSame(400, $this->post($token, '/_pbl/classes/nova', ['nome' => 'ok5', 'filhas' => 'pagina'])->getStatusCode());
-        self::assertSame(2, count($this->s->classes->todas()), 'nada foi criado (só `pagina` e `formulario`)');
+        self::assertSame($this->quantasClasses, count($this->s->classes->todas()), 'nada foi criado');
     }
 
     public function testTextoHostilEhSempreEscapado(): void
@@ -454,9 +462,9 @@ final class AdminClassesTest extends TestCase
         $c = $this->classe('pagina');
         self::assertTrue($c->propriedades[1]['arquivada'] ?? false);
         $sobre = $this->s->objetos->porUrl($this->siteId, 'sobre') ?? self::fail();
-        self::assertSame('<p>Página de exemplo.</p>', $sobre->dados['corpo'], 'valor continua guardado');
+        self::assertSame('<p>Página de exemplo. Conte aqui quem você é e o que o site oferece.</p>', $sobre->dados['corpo'], 'valor continua guardado');
         $this->s->objetos->atualizar($sobre->id, ['dados' => ['resumo' => 'Novo resumo']]);
-        self::assertSame('<p>Página de exemplo.</p>', $this->s->objetos->porId($sobre->id)?->dados['corpo'], 'e o conteúdo continua editável');
+        self::assertSame('<p>Página de exemplo. Conte aqui quem você é e o que o site oferece.</p>', $this->s->objetos->porId($sobre->id)?->dados['corpo'], 'e o conteúdo continua editável');
         self::assertStringContainsString('propriedade.corpo.arquivada', (string) $this->auditoria('classe.atualizar')[0]['detalhe']);
 
         $volta = $this->formulario($c);

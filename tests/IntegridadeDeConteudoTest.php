@@ -124,21 +124,21 @@ final class IntegridadeDeConteudoTest extends TestCase
 
     public function testCriarExigeCamposObrigatoriosNaoArquivados(): void
     {
-        $c = $this->s->classes->criar('noticia', [
-            ['nome' => 'resumo', 'tipo' => 'texto', 'obrigatorio' => true, 'rotulo' => 'Resumo da notícia'],
+        $n = $this->s->classes->porNome('noticia') ?? self::fail();
+        $extras = [
             ['nome' => 'peso_extra', 'tipo' => 'numero', 'obrigatorio' => true],
             ['nome' => 'aberto', 'tipo' => 'booleano', 'obrigatorio' => true],
             ['nome' => 'velho', 'tipo' => 'texto', 'obrigatorio' => true],
             ['nome' => 'livre', 'tipo' => 'texto'],
-        ]);
+        ];
+        $base = array_map(
+            static fn (array $p): array => $p['nome'] === 'resumo' ? ['obrigatorio' => true, 'rotulo' => 'Resumo da notícia'] + $p : $p,
+            $n->propriedades,
+        );
+        $c = $this->s->classes->atualizar($n->id, $n->versao, [...$base, ...$extras], ['filhas' => $n->filhas]);
         // Arquiva o `velho`: some dos formulários, então deixa de ser exigido.
-        $c = $this->s->classes->atualizar($c->id, $c->versao, [
-            ['nome' => 'resumo', 'tipo' => 'texto', 'obrigatorio' => true, 'rotulo' => 'Resumo da notícia'],
-            ['nome' => 'peso_extra', 'tipo' => 'numero', 'obrigatorio' => true],
-            ['nome' => 'aberto', 'tipo' => 'booleano', 'obrigatorio' => true],
-            ['nome' => 'velho', 'tipo' => 'texto', 'obrigatorio' => true, 'arquivada' => true],
-            ['nome' => 'livre', 'tipo' => 'texto'],
-        ], []);
+        $extras[2]['arquivada'] = true;
+        $c = $this->s->classes->atualizar($c->id, $c->versao, [...$base, ...$extras], ['filhas' => $n->filhas]);
 
         $e = $this->violacao(fn () => $this->s->objetos->criar($this->site->id, $c, $this->inicio->id, 'N', 'n', ['peso_extra' => 1, 'aberto' => 0]));
         self::assertSame(ViolacaoDeRegra::CAMPO_OBRIGATORIO, $e->codigo);
