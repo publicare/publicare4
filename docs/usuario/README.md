@@ -12,6 +12,7 @@ Esta parte é para quem **quer criar e cuidar de um site** (ou de um pequeno sis
 | O que já funciona e o que ainda não | [Estado do projeto](estado-do-projeto.md) |
 | O significado das palavras que o projeto usa | [Glossário](glossario.md) |
 | Como instalar numa hospedagem | [Como instalar](instalar.md) |
+| Modelos opcionais (agenda, perguntas, destaques) e o site de demonstração | [Modelos e demo](modelos-e-demo.md) |
 | Dúvidas comuns (é grátis? preciso programar?) | [Perguntas frequentes](perguntas-frequentes.md) |
 | Como acompanhar e ajudar | [Como participar](como-participar.md) |
 
