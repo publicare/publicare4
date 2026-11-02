@@ -26,6 +26,9 @@ final class PaginasDinamicas
     /** `/busca`: renderiza o molde `busca` da pele sobre a página inicial do site. Null se a pele não tem o molde. */
     public function busca(Site $site, Request $req): ?Response
     {
+        if ($this->servicos->configs->valor($site->id, 'busca_ligada') === false) {
+            return null; // busca desligada nas configurações do site (ADR 0017): responde como "não encontrado"
+        }
         if (!$this->servicos->renderizador->temMolde($site, 'busca')) {
             return null;
         }

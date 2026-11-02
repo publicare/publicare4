@@ -11,6 +11,7 @@ use Pbl\Banco\Conexao;
 use Pbl\Banco\Migrador;
 use Pbl\Caminhos;
 use Pbl\Conteudo\ClasseRepositorio;
+use Pbl\Conteudo\ConfigDoSiteRepositorio;
 use Pbl\Conteudo\ClassesPadrao;
 use Pbl\Conteudo\Dominio;
 use Pbl\Conteudo\ObjetoRepositorio;
@@ -82,6 +83,7 @@ final class Instalador
                 );
             }
             $sites->definirRaiz($site->id, $inicio->id);
+            (new ConfigDoSiteRepositorio($conexao))->definir($site->id, ['nome' => $nomeDoSite, 'idioma' => 'pt-BR']);
 
             // Conteúdo de exemplo: serve de modelo e se edita ou apaga pelo painel.
             $objetos->criar($site->id, $pagina, $inicio->id, 'Sobre', 'sobre', [

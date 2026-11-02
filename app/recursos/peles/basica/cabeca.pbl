@@ -3,18 +3,24 @@
 <@-- Metatags de SEO (fase 5l). Título: o de SEO, senão o do conteúdo. `#base_url` é o endereço do domínio principal do site (vazio se não houver), fixado ao publicar. --@>
 <@var $titulo_seo = #seo_titulo@>
 <@se $titulo_seo == ""@><@var $titulo_seo = #titulo@><@/se@>
+<@se $titulo_seo == ""@><@var $titulo_seo = %SITE.config.titulo_padrao@><@/se@>
 <@var $descricao_seo = #seo_descricao@>
 <@se $descricao_seo == ""@><@var $descricao_seo = #resumo@><@/se@>
 <@se $descricao_seo == ""@><@var $descricao_seo = #descricao@><@/se@>
+<@se $descricao_seo == ""@><@var $descricao_seo = %SITE.config.descricao@><@/se@>
 <@var $imagem_seo = #seo_imagem@>
 <@se $imagem_seo == ""@><@var $imagem_seo = #imagem_destaque@><@/se@>
-<title><@eco $titulo_seo@></title>
+<@se $imagem_seo == ""@><@var $imagem_seo = %SITE.config.imagem_padrao@><@/se@>
+<@var $icone_site = %SITE.config.icone@>
+<title><@eco $titulo_seo@><@se %SITE.config.titulo_sufixo != ""@> <@eco %SITE.config.titulo_sufixo@><@/se@></title>
 <@se $descricao_seo != ""@><meta name="description" content="<@eco $descricao_seo@>">
 <@/se@><link rel="canonical" href="<@eco #base_url@><@eco #url@>">
 <@se #seo_nao_indexar@><meta name="robots" content="noindex">
-<@/se@><meta property="og:title" content="<@eco $titulo_seo@>">
+<@senao@><@se %SITE.config.robots_indexar == 0@><meta name="robots" content="noindex">
+<@/se@><@/se@><meta property="og:title" content="<@eco $titulo_seo@>">
 <@se $descricao_seo != ""@><meta property="og:description" content="<@eco $descricao_seo@>">
 <@/se@><meta property="og:type" content="<@se #classe == "noticia"@>article<@senao@>website<@/se@>">
 <meta property="og:url" content="<@eco #base_url@><@eco #url@>">
 <@se $imagem_seo != ""@><meta property="og:image" content="<@eco #base_url@><@arquivo valor=$imagem_seo info="url"@>">
+<@/se@><@se $icone_site != ""@><link rel="icon" href="<@arquivo valor=$icone_site info="url"@>">
 <@/se@>

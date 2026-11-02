@@ -21,6 +21,7 @@ use Pbl\Acesso\UsuarioRepositorio;
 use Pbl\Banco\Conexao;
 use Pbl\Consulta\MotorDeConsulta;
 use Pbl\Conteudo\ClasseRepositorio;
+use Pbl\Conteudo\ConfigDoSiteRepositorio;
 use Pbl\Conteudo\DominioRepositorio;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\RedirecionamentoRepositorio;
@@ -41,6 +42,7 @@ final class Servicos
     public readonly ClasseRepositorio $classes;
     public readonly ObjetoRepositorio $objetos;
     public readonly SiteRepositorio $sites;
+    public readonly ConfigDoSiteRepositorio $configs;
     public readonly MotorDeConsulta $motor;
     public readonly DominioRepositorio $dominios;
     public readonly RedirecionamentoRepositorio $redirecionamentos;
@@ -71,9 +73,10 @@ final class Servicos
         $this->usuarios = new UsuarioRepositorio($conexao, $this->auditoria);
         $this->permissoes = new Permissoes($conexao);
         $this->formularios = new FormularioRepositorio($this->objetos, $this->classes);
-        $this->menu = new MenuDoSite($conexao, $caminhos, $this->auditoria, (int) (getenv('PBL_MENU_PROFUNDIDADE') ?: MenuDoSite::PROFUNDIDADE_PADRAO));
+        $this->configs = new ConfigDoSiteRepositorio($conexao, $this->arquivos);
+        $this->menu = new MenuDoSite($conexao, $caminhos, $this->auditoria, (int) (getenv('PBL_MENU_PROFUNDIDADE') ?: MenuDoSite::PROFUNDIDADE_PADRAO), $this->configs);
         $this->enderecos = new EnderecoDoSite($this->dominios, EnderecoDoSite::esquemaDoAmbiente());
-        $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos, $this->menu, $this->enderecos);
+        $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos, $this->menu, $this->configs, $this->enderecos);
         $this->renderizador = $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador, $this->menu);
         $this->peles = new GerenciadorDePeles($caminhos, $conexao);
