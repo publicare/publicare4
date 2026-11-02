@@ -531,7 +531,7 @@ final class AdminObjetosTest extends TestCase
         $e = $this->evento('Com corpo', null, ['corpo' => '<p>Olá <strong>mundo</strong></p>']);
         $html = $this->html($this->req('GET', '/_pbl/objeto/' . $e->id, $this->token('editor')));
 
-        self::assertStringContainsString('<div class="pbl-corpo"><p>Olá <strong>mundo</strong></p></div>', $html);
+        self::assertStringContainsString('<div class="pbl-corpo" data-pbl-previa="1"><p>Olá <strong>mundo</strong></p></div>', $html);
         self::assertStringContainsString('<details class="pbl-ver-html"><summary>Ver HTML</summary>', $html);
         self::assertStringContainsString('&lt;p&gt;Olá &lt;strong&gt;mundo', $html, 'o código aparece escapado, recolhido');
     }
