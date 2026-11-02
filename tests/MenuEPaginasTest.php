@@ -253,6 +253,29 @@ final class MenuEPaginasTest extends TestCase
         self::assertGreaterThan(0, $snap['cortes']);
     }
 
+    public function testLinkInternoParaDestinoForaDaJanelaDePublicacaoFicaForaDoMenu(): void
+    {
+        $link = $this->s->classes->porNome('link') ?? self::fail();
+        $pagina = $this->s->classes->porNome('pagina') ?? self::fail();
+        $raiz = (int) $this->site->objetoRaizId;
+        $futuro = $this->s->objetos->criar($this->site->id, $pagina, $raiz, 'Futuro', 'futuro', []);
+        $vencido = $this->s->objetos->criar($this->site->id, $pagina, $raiz, 'Vencido', 'vencido', []);
+        $ok = $this->s->objetos->criar($this->site->id, $pagina, $raiz, 'Vigente', 'vigente', []);
+        foreach ([[$futuro, 'LinkFuturo'], [$vencido, 'LinkVencido'], [$ok, 'LinkVigente']] as [$alvo, $rotulo]) {
+            $this->s->objetos->criar($this->site->id, $link, $raiz, $rotulo, strtolower($rotulo), ['destino_interno' => $alvo->id], 'publicado', ['no_menu' => true]);
+        }
+        $con = Conexao::sqlite($this->caminhos->banco());
+        $con->executeStatement('UPDATE objeto SET data_publicacao = ? WHERE id = ?', [gmdate('c', time() + 86400), $futuro->id]);
+        $con->executeStatement('UPDATE objeto SET data_validade = ? WHERE id = ?', [gmdate('c', time() - 86400), $vencido->id]);
+        $this->s->menu->reconstruir($this->site);
+
+        $html = $this->menuHtml();
+
+        self::assertStringContainsString('LinkVigente', $html);
+        self::assertStringNotContainsString('LinkFuturo', $html);
+        self::assertStringNotContainsString('LinkVencido', $html);
+    }
+
     public function testMenuRespeitaNoMenuOrdemEEstado(): void
     {
         $this->s->objetos->atualizar($this->obj('contato')->id, ['peso' => 1]);

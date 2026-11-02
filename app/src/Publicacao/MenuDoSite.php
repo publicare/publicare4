@@ -128,12 +128,14 @@ final class MenuDoSite
                FROM objeto o
                JOIN classe c ON c.id = o.classe_id
                LEFT JOIN objeto d ON c.nome = 'link' AND d.site_id = o.site_id AND d.status = 'publicado'
+                    AND (d.data_publicacao IS NULL OR d.data_publicacao <= ?)
+                    AND (d.data_validade IS NULL OR d.data_validade >= ?)
                     AND d.id = CAST(json_extract(o.dados, '\$.destino_interno') AS INTEGER)
               WHERE o.site_id = ? AND o.no_menu = 1 AND o.status = 'publicado'
                 AND (o.data_publicacao IS NULL OR o.data_publicacao <= ?)
                 AND (o.data_validade IS NULL OR o.data_validade >= ?)
               ORDER BY o.peso, o.titulo, o.id",
-            [$site->id, $agora, $agora],
+            [$agora, $agora, $site->id, $agora, $agora],
         );
         $porPai = [];
         foreach ($linhas as $l) {
