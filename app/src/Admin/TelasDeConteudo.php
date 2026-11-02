@@ -61,7 +61,8 @@ final class TelasDeConteudo
                 ? ' <a class="btn btn-sm btn-outline-secondary ms-2" href="' . Painel::PREFIXO . '/site/' . $site->id . '/dominios">Domínios<span class="visually-hidden"> de ' . Pagina::h($site->nome) . '</span></a>' : '';
             $corpo .= '<section class="mb-4"><h2 class="h5">' . Pagina::h($site->nome) . $dominios . '</h2>';
             if ($u->administrador) {
-                $corpo .= '<p><a href="' . Painel::PREFIXO . '/site/' . $site->id . '/redirecionamentos">Redirecionamentos</a> · <a href="' . Painel::PREFIXO . '/site/' . $site->id . '/peles">Peles</a></p>';
+                $corpo .= '<p><a href="' . Painel::PREFIXO . '/site/' . $site->id . '/redirecionamentos">Redirecionamentos</a> · <a href="' . Painel::PREFIXO . '/site/' . $site->id . '/peles">Peles</a> · <a href="' . Painel::PREFIXO . '/site/' . $site->id . '/publicacao">Menu e publicação</a></p>'
+                    . TelasDeSite::avisosDeMenu($this->servicos, $site, Painel::PREFIXO . '/site/' . $site->id . '/publicacao');
             }
             if ($lista === []) {
                 $corpo .= '<p class="text-body-secondary">Este site ainda não tem conteúdo inicial.</p></section>';

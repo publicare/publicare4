@@ -40,6 +40,7 @@ final class FonteRepositorio implements FonteDeDados
         private readonly ?SiteRepositorio $sites = null,
         private readonly ?ArquivoRepositorio $arquivos = null,
         private readonly ?MenuDoSite $menus = null,
+        private readonly ?EnderecoDoSite $enderecos = null,
     ) {
     }
 
@@ -270,6 +271,8 @@ final class FonteRepositorio implements FonteDeDados
             // Dados do site para o molde montar menu e título: `#raiz` (id da página inicial) e `#site_nome`.
             $contexto['raiz'] = $config->objetoRaizId ?? '';
             $contexto['site_nome'] = $config === null ? '' : $config->nome;
+            // `#base_url`: `https://dominio-principal` (vazio sem domínio principal), para endereços absolutos em canonical e og:*.
+            $contexto['base_url'] = $this->enderecos?->base($o->siteId) ?? '';
             foreach ($referenciados as $propriedade => $alvos) {
                 $alvo = $alvos[(int) ($o->dados[$propriedade] ?? 0)] ?? null;
                 if ($alvo !== null) {

@@ -69,6 +69,16 @@ final class Publicador
         }
     }
 
+    /**
+     * O domínio principal mudou: `canonical` e `og:*` das páginas publicadas trazem o host antigo. Marca o site como pendente
+     * e, se é pequeno, republica na hora; senão fica para `republicarEmLotes` (painel) ou `bin/pbl publicar`.
+     */
+    public function hostMudou(Site $site): void
+    {
+        $this->menu?->marcarPendente($site->id);
+        $this->republicarPorMenu($site);
+    }
+
     /** @return int quantidade de páginas publicadas */
     public function publicarSite(Site $site): int
     {
@@ -105,6 +115,61 @@ final class Publicador
         $this->menu?->limparPendente($site);
 
         return $total;
+    }
+
+    /**
+     * Republica o site em lotes, para um site grande não estourar o tempo de uma requisição (painel). Cada chamada trata até
+     * `$tamanho` objetos com id maior que `$depoisDoId`, ou para ao passar de `$segundos`. O primeiro lote (`$depoisDoId` = 0)
+     * refaz o snapshot do menu; o último remove as páginas órfãs e limpa o pendente. Idempotente: pode ser refeito do zero.
+     *
+     * @return array{processadas: int, ultimo: int, concluido: bool}
+     */
+    public function republicarLote(Site $site, int $depoisDoId = 0, int $tamanho = 100, float $segundos = 10.0): array
+    {
+        $raiz = $site->objetoRaizId === null ? null : $this->objetos->porId($site->objetoRaizId);
+        if ($raiz === null) {
+            return ['processadas' => 0, 'ultimo' => $depoisDoId, 'concluido' => true];
+        }
+        if ($depoisDoId === 0) {
+            $this->menu?->reconstruir($site);
+        }
+        $inicio = microtime(true);
+        $agora = gmdate('c');
+        $processadas = 0;
+        $ultimo = $depoisDoId;
+        $this->emLote = true;
+        try {
+            $lote = $this->objetos->loteDaSubarvore($site->id, $raiz->caminho, $depoisDoId, $tamanho);
+            foreach ($lote as $objeto) {
+                if (microtime(true) - $inicio > $segundos) {
+                    break;
+                }
+                try {
+                    if ($objeto->visivel($agora)) {
+                        $this->publicar($site, $objeto);
+                    } else {
+                        $this->remover($site, $objeto);
+                    }
+                } catch (\InvalidArgumentException) {
+                    // endereço inválido (dado antigo): não derruba a republicação
+                }
+                $ultimo = $objeto->id;
+                $processadas++;
+            }
+        } finally {
+            $this->emLote = false;
+        }
+        $concluido = $processadas === count($lote) && count($lote) < $tamanho;
+        if ($concluido) {
+            $publicadas = [];
+            foreach ($this->objetos->indicePublicadoDaSubarvore($site->id, $raiz->caminho) as $p) {
+                $publicadas[$p['url']] = true;
+            }
+            $this->limparOrfas($site, $publicadas);
+            $this->menu?->limparPendente($site);
+        }
+
+        return ['processadas' => $processadas, 'ultimo' => $ultimo, 'concluido' => $concluido];
     }
 
     /**

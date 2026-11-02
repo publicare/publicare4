@@ -125,6 +125,12 @@ final class TelasDeDominios
                     throw new \InvalidArgumentException('Escolha o que o principal atual passa a ser');
                 }
                 $d->definirPrincipal($site->id, $host, $antigo);
+                $this->servicos->enderecos->esquecer($site->id);
+                try {
+                    $this->servicos->publicador->hostMudou($site);
+                } catch (\Throwable) {
+                    // a troca já está salva; o site fica pendente de republicação (aviso no painel / bin/pbl publicar)
+                }
                 $this->servicos->auditoria->registrar('dominio.principal', $ator, $u->id, null, ['site_id' => $site->id, 'host' => $host, 'antigo' => $antigo]);
 
                 return $this->volta($site, 'principal');

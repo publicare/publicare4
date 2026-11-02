@@ -270,7 +270,7 @@ final class ClassesPadraoTest extends TestCase
         $html = $this->pagina('/sobre');
         self::assertStringContainsString('<title>Sobre</title>', $html);
         self::assertStringContainsString('<meta name="description" content="Sobre este site">', $html);
-        self::assertStringContainsString('<link rel="canonical" href="/sobre">', $html);
+        self::assertStringContainsString('<link rel="canonical" href="https://www.exemplo.org/sobre">', $html);
         self::assertStringContainsString('<meta property="og:title" content="Sobre">', $html);
         self::assertStringContainsString('<meta property="og:description" content="Sobre este site">', $html);
         self::assertStringContainsString('<meta property="og:type" content="website">', $html);
