@@ -8,9 +8,12 @@ use Pbl\Acesso\Acao;
 use Pbl\Acesso\Csrf;
 use Pbl\Acesso\Rede;
 use Pbl\Acesso\SessaoAtiva;
+use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\RedirecionamentoRepositorio;
 use Pbl\Conteudo\Site;
+use Pbl\Linguagem\Realce;
 use Pbl\Publicacao\GerenciadorDePeles;
+use Pbl\Publicacao\ResolvedorDePele;
 use Pbl\Servicos;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -75,6 +78,12 @@ final class TelasDeSite
                 $b === 'molde' => match ($metodo) { 'GET' => 'moldeEditar', 'POST' => 'moldeSalvar', default => null },
                 $b === 'novo' => match ($metodo) { 'GET' => 'moldeNovo', 'POST' => 'moldeCriar', default => null },
                 $b === 'apagar' => match ($metodo) { 'GET' => 'moldeApagar', 'POST' => 'moldeConfirmarApagar', default => null },
+                $b === 'historico' => $metodo === 'GET' ? 'moldeHistorico' : null,
+                $b === 'diferenca' => $metodo === 'GET' ? 'moldeDiferenca' : null,
+                $b === 'voltar' => $metodo === 'POST' ? 'moldeVoltar' : null,
+                $b === 'rascunho' => match ($metodo) { 'GET' => 'moldeRascunho', 'POST' => 'moldeRascunhoSalvar', default => null },
+                $b === 'publicar' => $metodo === 'POST' ? 'moldeRascunhoPublicar' : null,
+                $b === 'previsualizar' => $metodo === 'GET' ? 'moldePrevisualizar' : null,
                 default => null,
             },
         };
@@ -401,7 +410,14 @@ final class TelasDeSite
             'moldeEditar' => $this->abrirMolde($sessao, $site, $pele, $req),
             'moldeSalvar' => $this->salvarMolde($sessao, $site, $pele, $req),
             'moldeApagar' => $this->telaDeApagarMolde($sessao, $site, $pele, $req),
-            default => $this->apagarMolde($sessao, $site, $pele, $req),
+            'moldeConfirmarApagar' => $this->apagarMolde($sessao, $site, $pele, $req),
+            'moldeHistorico' => $this->historicoDoMolde($sessao, $site, $pele, $req),
+            'moldeDiferenca' => $this->diferencaDoMolde($sessao, $site, $pele, $req),
+            'moldeVoltar' => $this->voltarMolde($sessao, $site, $pele, $req),
+            'moldeRascunho' => $this->abrirRascunho($sessao, $site, $pele, $req),
+            'moldeRascunhoSalvar' => $this->salvarRascunho($sessao, $site, $pele, $req),
+            'moldeRascunhoPublicar' => $this->publicarRascunho($sessao, $site, $pele, $req),
+            default => $this->previsualizarMolde($sessao, $site, $pele, $req),
         };
     }
 
@@ -450,8 +466,9 @@ final class TelasDeSite
             . '<div class="table-responsive"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Moldes da pele ' . Pagina::h($pele) . '</caption><thead><tr>'
             . '<th scope="col">Molde</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
         foreach ($this->peles->moldes($pele) as $m) {
-            $corpo .= '<tr><td><code>' . Pagina::h($m) . '.pbl</code></td><td class="text-end">'
+            $corpo .= '<tr><td><code>' . Pagina::h($m) . '.pbl</code>' . ($this->peles->rascunho($pele, $m) !== null ? ' <span class="badge text-bg-info">rascunho</span>' : '') . '</td><td class="text-end">'
                 . '<a class="btn btn-sm btn-outline-secondary" href="' . $base . '/molde?nome=' . rawurlencode($m) . '">Editar</a> '
+                . '<a class="btn btn-sm btn-outline-secondary" href="' . $base . '/molde/historico?nome=' . rawurlencode($m) . '">Histórico</a> '
                 . '<a class="btn btn-sm btn-outline-danger" href="' . $base . '/apagar?nome=' . rawurlencode($m) . '">Apagar</a></td></tr>';
         }
         $corpo .= '</tbody></table></div><p><a href="' . $this->linkPeles($site) . '">Voltar às peles</a></p>';
@@ -467,7 +484,16 @@ final class TelasDeSite
             return $this->naoEncontrado($sessao, 'Este molde não existe.', $this->linkPeles($site) . '/' . $pele);
         }
 
-        return $this->formularioDeMolde($sessao, $site, $pele, $nome, $fonte, null, hash('sha256', $fonte), false);
+        return $this->formularioDeMolde($sessao, $site, $pele, $nome, $fonte, null, hash('sha256', $fonte), false, Response::HTTP_OK, true, $this->avisoDeMolde($req));
+    }
+
+    private function avisoDeMolde(Request $req): string
+    {
+        $ok = match ($req->query->all()['ok'] ?? null) {
+            'rascunho' => 'Rascunho salvo. O que está publicado não mudou.', 'descartado' => 'Rascunho descartado.', default => '',
+        };
+
+        return $ok === '' ? '' : '<div class="alert alert-success" role="status">' . $ok . '</div>';
     }
 
     private function salvarMolde(SessaoAtiva $sessao, Site $site, string $pele, Request $req): Response
@@ -521,10 +547,12 @@ final class TelasDeSite
             return $this->formularioDeMolde($sessao, $site, $pele, $nome, $conteudo, $erro, $base, $novo, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         try {
-            $this->peles->gravar($pele, $nome, $conteudo);
+            $this->peles->gravar($pele, $nome, $conteudo, $sessao->usuario->id, $novo ? 'criar' : 'salvar');
         } catch (\RuntimeException | \InvalidArgumentException) {
             return $this->formularioDeMolde($sessao, $site, $pele, $nome, $conteudo, ['mensagem' => 'Não foi possível gravar o molde no disco.', 'linha' => null], $base, $novo, Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+        // Gravar diretamente (ou publicar o rascunho) deixa qualquer rascunho anterior desse molde desatualizado.
+        $this->peles->apagarRascunho($pele, $nome);
         $this->servicos->auditoria->registrar($acao, 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['site_id' => $site->id, 'pele' => $pele, 'molde' => $nome]);
         $falha = $this->republicarPele($pele);
 
@@ -561,7 +589,8 @@ final class TelasDeSite
         if ($falhaReauth !== null) {
             return $this->aplicarFalhaDeReautenticacao(Pagina::resposta('Apagar molde', '<div class="alert alert-danger" role="alert">' . Pagina::h($falhaReauth['mensagem']) . '</div>', Response::HTTP_OK, false, $this->barra($sessao)), $falhaReauth);
         }
-        $this->peles->apagar($pele, $nome);
+        $this->peles->apagar($pele, $nome, $sessao->usuario->id);
+        $this->peles->apagarRascunho($pele, $nome);
         $this->servicos->auditoria->registrar('pele.molde.apagar', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['site_id' => $site->id, 'pele' => $pele, 'molde' => $nome]);
         $falha = $this->republicarPele($pele);
 
@@ -581,12 +610,16 @@ final class TelasDeSite
     /**
      * @param array{mensagem: string, linha: int|null}|null $erro
      */
-    private function formularioDeMolde(SessaoAtiva $sessao, Site $site, string $pele, string $nome, string $conteudo, ?array $erro, ?string $base, bool $novo, int $status = Response::HTTP_OK): Response
+    private function formularioDeMolde(SessaoAtiva $sessao, Site $site, string $pele, string $nome, string $conteudo, ?array $erro, ?string $base, bool $novo, int $status = Response::HTTP_OK, bool $usarRascunhoSeExistir = false, string $flash = ''): Response
     {
         $url = $this->linkPeles($site) . '/' . $pele;
-        $aviso = '';
+        $rascunho = $novo ? null : $this->peles->rascunho($pele, $nome);
+        if ($usarRascunhoSeExistir && $rascunho !== null) {
+            $conteudo = $rascunho['conteudo'];
+        }
+        $aviso = $flash . ($novo || $rascunho === null ? '' : $this->avisoDeRascunho($sessao, $url, $nome, $rascunho));
         if ($erro !== null) {
-            $aviso = '<div id="erro-molde" class="alert alert-danger" role="alert"><strong>O molde não foi salvo.</strong> ' . Pagina::h($erro['mensagem']);
+            $aviso .= '<div id="erro-molde" class="alert alert-danger" role="alert"><strong>O molde não foi salvo.</strong> ' . Pagina::h($erro['mensagem']);
             if ($erro['linha'] !== null) {
                 $linhas = explode("\n", $conteudo);
                 $trecho = $linhas[$erro['linha'] - 1] ?? '';
@@ -594,7 +627,8 @@ final class TelasDeSite
             }
             $aviso .= '</div>';
         }
-        $corpo = $aviso . '<p>Pele <code>' . Pagina::h($pele) . '</code>. O molde é validado pela linguagem do PBL4 antes de salvar; nada é executado como PHP.</p>'
+        $corpo = $aviso . '<p>Pele <code>' . Pagina::h($pele) . '</code>. O molde é validado pela linguagem do PBL4 antes de salvar (ou de publicar um rascunho); nada é executado como PHP. '
+            . 'A caixa abaixo é texto simples, sem realce de sintaxe (ADR 0012 §9).</p>'
             . '<form method="post" action="' . $url . ($novo ? '/novo' : '/molde') . '">' . $this->campoCsrf($sessao)
             . ($novo
                 ? '<div class="mb-3"><label for="m-nome" class="form-label">Nome do molde (sem <code>.pbl</code>; <code>/</code> só para pastas)</label><input id="m-nome" class="form-control" name="nome" maxlength="100" required value="' . Pagina::h($nome) . '"></div>'
@@ -602,9 +636,434 @@ final class TelasDeSite
             . '<div class="mb-3"><label for="m-conteudo" class="form-label">Conteúdo</label>'
             . '<textarea id="m-conteudo" class="form-control font-monospace" name="conteudo" rows="26" spellcheck="false" wrap="off"' . ($erro === null ? '' : ' aria-invalid="true" aria-describedby="erro-molde"') . '>' . Pagina::h($conteudo) . '</textarea></div>'
             . $this->campoSenha($sessao, 'm-senha')
-            . '<button type="submit" class="btn btn-primary">Validar e salvar</button> <a class="btn btn-link" href="' . $url . '">Cancelar</a></form>';
+            . '<button type="submit" class="btn btn-primary">Validar e salvar</button> '
+            . ($novo ? '' : '<button type="submit" formaction="' . $url . '/molde/rascunho" formnovalidate class="btn btn-outline-primary">Salvar rascunho</button> ')
+            . '<a class="btn btn-link" href="' . $url . '">Cancelar</a>'
+            . ($novo ? '' : ' <a class="btn btn-link" href="' . $url . '/molde/historico?nome=' . rawurlencode($nome) . '&ver=atual">Ver com realce</a>'
+                . ' <a class="btn btn-link" href="' . $url . '/molde/historico?nome=' . rawurlencode($nome) . '">Histórico</a>')
+            . '</form>';
 
         return Pagina::resposta($novo ? 'Novo molde' : 'Editar molde', $corpo, $status, false, $this->barra($sessao));
+    }
+
+    /**
+     * @param array{conteudo: string, usuario_id: int|null, atualizado_em: string} $rascunho
+     */
+    private function avisoDeRascunho(SessaoAtiva $sessao, string $url, string $nome, array $rascunho): string
+    {
+        return '<div class="alert alert-info" role="status"><strong>Há um rascunho não publicado deste molde</strong>, salvo em '
+            . Pagina::h($this->dataLegivel($rascunho['atualizado_em'])) . '. O texto na caixa abaixo é o do rascunho (o que está publicado continua como estava). '
+            . '<a href="' . $url . '/molde/previsualizar?nome=' . rawurlencode($nome) . '">Pré-visualizar o rascunho</a></div>'
+            . '<div class="d-flex gap-2 mb-3">'
+            . '<form method="post" action="' . $url . '/molde/publicar">' . $this->campoCsrf($sessao) . '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '">'
+            . $this->campoSenha($sessao, 'm-senha-publicar') . '<button type="submit" class="btn btn-sm btn-success">Publicar rascunho</button></form>'
+            . '<form method="post" action="' . $url . '/molde/rascunho">' . $this->campoCsrf($sessao) . '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '">'
+            . '<input type="hidden" name="conteudo" value=""><input type="hidden" name="descartar" value="1">'
+            . '<button type="submit" class="btn btn-sm btn-outline-secondary">Descartar rascunho</button></form>'
+            . '</div>';
+    }
+
+    /** Data ISO 8601 (UTC) num formato legível, sem depender de extensão de calendário além do PHP padrão. */
+    private function dataLegivel(string $iso): string
+    {
+        $t = strtotime($iso);
+
+        return $t === false ? $iso : date('d/m/Y H:i', $t) . ' UTC';
+    }
+
+    // ---------------------------------------------------------------- histórico, diferença e voltar (fase 5j)
+
+    private function historicoDoMolde(SessaoAtiva $sessao, Site $site, string $pele, Request $req): Response
+    {
+        $q = $req->query->all();
+        $nome = $q['nome'] ?? null;
+        if (!is_string($nome) || !GerenciadorDePeles::nomeDeMoldeValido($nome)) {
+            return $this->naoEncontrado($sessao, 'Este molde não existe.', $this->linkPeles($site) . '/' . $pele);
+        }
+        $historico = $this->peles->historico($pele, $nome);
+        $atual = $this->peles->ler($pele, $nome);
+        if ($historico === [] && $atual === null) {
+            return $this->naoEncontrado($sessao, 'Este molde não existe.', $this->linkPeles($site) . '/' . $pele);
+        }
+        $base = $this->linkPeles($site) . '/' . $pele;
+        $realce = new Realce();
+        $corpo = '';
+        $ver = $q['ver'] ?? null;
+        if ($ver === 'atual') {
+            $corpo .= $atual === null
+                ? '<div class="alert alert-warning" role="alert">Este molde está apagado; não há conteúdo atual.</div>'
+                : '<h2 class="h5">Conteúdo atual, com realce (somente leitura)</h2><pre class="pbl-realce"><code>' . $realce->html($atual) . '</code></pre>';
+        } elseif (($numeroVer = $this->numeroDeVersao($ver)) !== null) {
+            $v = $this->peles->versaoDoHistorico($pele, $nome, $numeroVer);
+            $corpo .= $v === null
+                ? '<div class="alert alert-warning" role="alert">Esta versão não existe (a retenção já apagou, ou nunca existiu).</div>'
+                : '<h2 class="h5">Versão ' . $v['versao'] . ', com realce (somente leitura)</h2><pre class="pbl-realce"><code>' . $realce->html($v['conteudo']) . '</code></pre>';
+        }
+        $corpo .= '<p>Cada vez que o molde <code>' . Pagina::h($nome) . '.pbl</code> é salvo, criado ou apagado, a versão anterior fica guardada '
+            . '(até ' . GerenciadorDePeles::MAX_VERSOES_POR_MOLDE . ' por molde; a mais antiga some quando passa disso). "Voltar a esta versão" grava o '
+            . 'conteúdo dela como uma versão nova, depois de passar pela mesma validação do parser e pelo mesmo modo elevado de uma edição comum.</p>';
+        if (count($historico) >= 2) {
+            $corpo .= '<form method="get" action="' . $base . '/molde/diferenca" class="row row-cols-auto g-2 align-items-end mb-4">'
+                . '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '">'
+                . '<div class="col"><label for="h-de" class="form-label">De</label><select id="h-de" class="form-select" name="de">' . $this->opcoesDeVersao($historico, $historico[1]['versao']) . '</select></div>'
+                . '<div class="col"><label for="h-para" class="form-label">Para</label><select id="h-para" class="form-select" name="para">' . $this->opcoesDeVersao($historico, $historico[0]['versao']) . '</select></div>'
+                . '<div class="col"><button type="submit" class="btn btn-outline-primary">Ver diferença</button></div></form>';
+        }
+        $nomes = [];
+        $corpo .= '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Versões guardadas de ' . Pagina::h($nome) . '</caption>'
+            . '<thead><tr><th scope="col">Versão</th><th scope="col">Quando</th><th scope="col">Quem</th><th scope="col">Ação</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
+        foreach ($historico as $v) {
+            $quem = 'sistema';
+            if ($v['usuario_id'] !== null) {
+                $quem = $nomes[$v['usuario_id']] ??= ($this->servicos->usuarios->porId($v['usuario_id'])?->nome ?? ('pessoa nº ' . $v['usuario_id']));
+            }
+            $eAVersaoAtual = $atual !== null && hash_equals(hash('sha256', $atual), $v['hash']);
+            $acoes = '<a class="btn btn-sm btn-outline-secondary" href="' . $base . '/molde/historico?nome=' . rawurlencode($nome) . '&ver=' . $v['versao'] . '">Ver</a> ';
+            $acoes .= $eAVersaoAtual ? '<span class="badge text-bg-secondary">atual</span>' : '<form class="d-inline-flex gap-1 align-items-end" method="post" action="' . $base . '/molde/voltar">' . $this->campoCsrf($sessao)
+                . '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '"><input type="hidden" name="versao" value="' . $v['versao'] . '">'
+                . '<input type="hidden" name="base" value="' . Pagina::h($atual === null ? '' : hash('sha256', $atual)) . '">'
+                . $this->campoSenha($sessao, 'h-senha-' . $v['versao'])
+                . '<button type="submit" class="btn btn-sm btn-outline-primary">Voltar a esta versão</button></form>';
+            $corpo .= '<tr><td>' . $v['versao'] . '</td><td>' . Pagina::h($this->dataLegivel($v['criado_em'])) . '</td><td>' . Pagina::h($quem) . '</td>'
+                . '<td>' . Pagina::h($v['acao']) . '</td><td class="text-end">' . $acoes . '</td></tr>';
+        }
+        $corpo .= '</tbody></table></div><p><a href="' . $base . '">Voltar aos arquivos da pele</a></p>';
+
+        return Pagina::resposta('Histórico: ' . $nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+    }
+
+    /** @param list<array{versao: int, hash: string, acao: string, usuario_id: int|null, criado_em: string}> $historico */
+    private function opcoesDeVersao(array $historico, int $selecionada): string
+    {
+        $html = '';
+        foreach ($historico as $v) {
+            $html .= '<option value="' . $v['versao'] . '"' . ($v['versao'] === $selecionada ? ' selected' : '') . '>Versão ' . $v['versao'] . ' (' . Pagina::h($this->dataLegivel($v['criado_em'])) . ')</option>';
+        }
+
+        return $html;
+    }
+
+    private function diferencaDoMolde(SessaoAtiva $sessao, Site $site, string $pele, Request $req): Response
+    {
+        $q = $req->query->all();
+        $nome = $q['nome'] ?? null;
+        if (!is_string($nome) || !GerenciadorDePeles::nomeDeMoldeValido($nome)) {
+            return $this->naoEncontrado($sessao, 'Este molde não existe.', $this->linkPeles($site) . '/' . $pele);
+        }
+        $historicoLink = $this->linkPeles($site) . '/' . $pele . '/molde/historico?nome=' . rawurlencode($nome);
+        $de = $this->numeroDeVersao($q['de'] ?? null);
+        $para = $this->numeroDeVersao($q['para'] ?? null);
+        $versaoDe = $de === null ? null : $this->peles->versaoDoHistorico($pele, $nome, $de);
+        $versaoPara = $para === null ? null : $this->peles->versaoDoHistorico($pele, $nome, $para);
+        if ($versaoDe === null || $versaoPara === null) {
+            return $this->naoEncontrado($sessao, 'Escolha duas versões existentes deste molde para comparar.', $historicoLink);
+        }
+        $realce = new Realce();
+        $corpo = '<p>Diferença do molde <code>' . Pagina::h($nome) . '.pbl</code> entre a versão ' . $versaoDe['versao'] . ' e a ' . $versaoPara['versao'] . '. Linhas escapadas, com o mesmo realce da leitura.</p>'
+            . '<pre class="pbl-realce pbl-diff"><code>';
+        foreach ($this->diffDeLinhas(explode("\n", $versaoDe['conteudo']), explode("\n", $versaoPara['conteudo'])) as $op) {
+            $classe = match ($op['tipo']) { 'add' => 'pbl-diff-add', 'rem' => 'pbl-diff-rem', default => 'pbl-diff-igual' };
+            $marca = match ($op['tipo']) { 'add' => '+ ', 'rem' => '- ', default => '  ' };
+            $corpo .= '<span class="' . $classe . '">' . $marca . $realce->html($op['linha']) . "</span>\n";
+        }
+        $corpo .= '</code></pre><p><a href="' . $historicoLink . '">Voltar ao histórico</a></p>';
+
+        return Pagina::resposta('Diferença: ' . $nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+    }
+
+    private function numeroDeVersao(mixed $v): ?int
+    {
+        return is_string($v) && preg_match('/^[1-9][0-9]{0,9}$/D', $v) === 1 ? (int) $v : null;
+    }
+
+    /** Limite de células da tabela de LCS (depois de cortar prefixo/sufixo iguais): acima disso, o meio vira "tudo removido, tudo adicionado" (correto, só não é o diff mínimo), para não travar com um molde grande trocado por completo. */
+    private const MAX_CELULAS_DIFF = 4_000_000;
+
+    /**
+     * Diferença linha a linha: corta cedo o que já é igual nas pontas (uma mudança pequena num arquivo grande fica barata) e
+     * roda o algoritmo da maior subsequência comum só no meio que ainda difere.
+     *
+     * @param list<string> $de
+     * @param list<string> $para
+     * @return list<array{tipo: 'igual'|'rem'|'add', linha: string}>
+     */
+    private function diffDeLinhas(array $de, array $para): array
+    {
+        $nDe = count($de);
+        $nPara = count($para);
+        $inicio = 0;
+        while ($inicio < $nDe && $inicio < $nPara && $de[$inicio] === $para[$inicio]) {
+            $inicio++;
+        }
+        $fimDe = $nDe;
+        $fimPara = $nPara;
+        while ($fimDe > $inicio && $fimPara > $inicio && $de[$fimDe - 1] === $para[$fimPara - 1]) {
+            $fimDe--;
+            $fimPara--;
+        }
+        $saida = [];
+        for ($i = 0; $i < $inicio; $i++) {
+            $saida[] = ['tipo' => 'igual', 'linha' => $de[$i]];
+        }
+        $meioDe = array_slice($de, $inicio, $fimDe - $inicio);
+        $meioPara = array_slice($para, $inicio, $fimPara - $inicio);
+        if (count($meioDe) * count($meioPara) > self::MAX_CELULAS_DIFF) {
+            foreach ($meioDe as $l) {
+                $saida[] = ['tipo' => 'rem', 'linha' => $l];
+            }
+            foreach ($meioPara as $l) {
+                $saida[] = ['tipo' => 'add', 'linha' => $l];
+            }
+        } else {
+            array_push($saida, ...$this->lcs($meioDe, $meioPara));
+        }
+        for ($i = $fimDe; $i < $nDe; $i++) {
+            $saida[] = ['tipo' => 'igual', 'linha' => $de[$i]];
+        }
+
+        return $saida;
+    }
+
+    /**
+     * @param list<string> $a
+     * @param list<string> $b
+     * @return list<array{tipo: 'igual'|'rem'|'add', linha: string}>
+     */
+    private function lcs(array $a, array $b): array
+    {
+        $n = count($a);
+        $m = count($b);
+        $tabela = array_fill(0, $n + 1, array_fill(0, $m + 1, 0));
+        for ($i = $n - 1; $i >= 0; $i--) {
+            for ($j = $m - 1; $j >= 0; $j--) {
+                $tabela[$i][$j] = $a[$i] === $b[$j] ? $tabela[$i + 1][$j + 1] + 1 : max($tabela[$i + 1][$j], $tabela[$i][$j + 1]);
+            }
+        }
+        $saida = [];
+        $i = 0;
+        $j = 0;
+        while ($i < $n && $j < $m) {
+            if ($a[$i] === $b[$j]) {
+                $saida[] = ['tipo' => 'igual', 'linha' => $a[$i]];
+                $i++;
+                $j++;
+            } elseif ($tabela[$i + 1][$j] >= $tabela[$i][$j + 1]) {
+                $saida[] = ['tipo' => 'rem', 'linha' => $a[$i]];
+                $i++;
+            } else {
+                $saida[] = ['tipo' => 'add', 'linha' => $b[$j]];
+                $j++;
+            }
+        }
+        while ($i < $n) {
+            $saida[] = ['tipo' => 'rem', 'linha' => $a[$i]];
+            $i++;
+        }
+        while ($j < $m) {
+            $saida[] = ['tipo' => 'add', 'linha' => $b[$j]];
+            $j++;
+        }
+
+        return $saida;
+    }
+
+    private function voltarMolde(SessaoAtiva $sessao, Site $site, string $pele, Request $req): Response
+    {
+        $c = $this->textos($req, ['nome', 'versao', 'base']);
+        $nome = $c['nome'] ?? '';
+        $versao = $this->numeroDeVersao($c['versao'] ?? null);
+        if ($c === null || $versao === null || !GerenciadorDePeles::nomeDeMoldeValido($nome)) {
+            return $this->naoEncontrado($sessao, 'Este molde não existe.', $this->linkPeles($site) . '/' . $pele);
+        }
+        $historicoLink = $this->linkPeles($site) . '/' . $pele . '/molde/historico?nome=' . rawurlencode($nome);
+        $alvo = $this->peles->versaoDoHistorico($pele, $nome, $versao);
+        if ($alvo === null) {
+            return $this->naoEncontrado($sessao, 'Esta versão não existe (a retenção já apagou, ou nunca existiu).', $historicoLink);
+        }
+        $atual = $this->peles->ler($pele, $nome);
+        if ($atual !== null && !hash_equals(hash('sha256', $atual), $c['base'])) {
+            return Pagina::resposta('Alterado por outra pessoa', '<div class="alert alert-warning" role="alert">Outra pessoa alterou este molde depois que você abriu o histórico. '
+                . 'Abra o histórico de novo e confira antes de voltar.</div><p><a href="' . $historicoLink . '">Voltar ao histórico</a></p>', Response::HTTP_CONFLICT, false, $this->barra($sessao));
+        }
+        $falhaReauth = $this->exigirReautenticacao($sessao, $req, 'pele');
+        if ($falhaReauth !== null) {
+            return $this->aplicarFalhaDeReautenticacao(Pagina::resposta('Voltar versão', '<div class="alert alert-danger" role="alert">' . Pagina::h($falhaReauth['mensagem']) . '</div>'
+                . '<p><a href="' . $historicoLink . '">Voltar ao histórico</a></p>', Response::HTTP_OK, false, $this->barra($sessao)), $falhaReauth);
+        }
+        $erro = $this->peles->validar($pele, $alvo['conteudo']);
+        if ($erro !== null) {
+            return Pagina::resposta('Não foi possível voltar', '<div class="alert alert-danger" role="alert">Esta versão não passa (mais) pela validação do molde: '
+                . Pagina::h($erro['mensagem']) . '</div><p><a href="' . $historicoLink . '">Voltar ao histórico</a></p>', Response::HTTP_UNPROCESSABLE_ENTITY, false, $this->barra($sessao));
+        }
+        try {
+            $this->peles->gravar($pele, $nome, $alvo['conteudo'], $sessao->usuario->id, 'voltar');
+        } catch (\RuntimeException | \InvalidArgumentException) {
+            return Pagina::resposta('Não foi possível voltar', '<div class="alert alert-danger" role="alert">Não foi possível gravar o molde no disco.</div>', Response::HTTP_INTERNAL_SERVER_ERROR, false, $this->barra($sessao));
+        }
+        $this->peles->apagarRascunho($pele, $nome);
+        $this->servicos->auditoria->registrar('pele.molde.voltar', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['site_id' => $site->id, 'pele' => $pele, 'molde' => $nome, 'versao' => $versao]);
+        $falha = $this->republicarPele($pele);
+
+        return new RedirectResponse($this->linkPeles($site) . '/' . $pele . '?ok=salvo' . ($falha ? '&rep=falhou' : ''), Response::HTTP_SEE_OTHER);
+    }
+
+    // ---------------------------------------------------------------- rascunho e pré-visualização (fase 5j)
+
+    private function abrirRascunho(SessaoAtiva $sessao, Site $site, string $pele, Request $req): Response
+    {
+        $nome = $req->query->all()['nome'] ?? '';
+
+        return new RedirectResponse($this->linkPeles($site) . '/' . $pele . '/molde?nome=' . rawurlencode(is_string($nome) ? $nome : ''), Response::HTTP_SEE_OTHER);
+    }
+
+    private function salvarRascunho(SessaoAtiva $sessao, Site $site, string $pele, Request $req): Response
+    {
+        $c = $this->textos($req, ['nome', 'conteudo']);
+        $nome = $c['nome'] ?? '';
+        if ($c === null || !GerenciadorDePeles::nomeDeMoldeValido($nome)) {
+            return $this->naoEncontrado($sessao, 'Este molde não existe.', $this->linkPeles($site) . '/' . $pele);
+        }
+        $atual = $this->peles->ler($pele, $nome);
+        if ($atual === null) {
+            return $this->naoEncontrado($sessao, 'Este molde não existe.', $this->linkPeles($site) . '/' . $pele);
+        }
+        if (($req->request->all()['descartar'] ?? null) === '1') {
+            $this->peles->apagarRascunho($pele, $nome);
+
+            return new RedirectResponse($this->linkPeles($site) . '/' . $pele . '/molde?nome=' . rawurlencode($nome) . '&ok=descartado', Response::HTTP_SEE_OTHER);
+        }
+        $conteudo = $this->normalizar($c['conteudo']);
+        $erro = $this->peles->validarBasico($conteudo);
+        if ($erro !== null) {
+            return $this->formularioDeMolde($sessao, $site, $pele, $nome, $conteudo, ['mensagem' => $erro, 'linha' => null], hash('sha256', $atual), false, Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        $this->peles->salvarRascunho($pele, $nome, $conteudo, $sessao->usuario->id);
+
+        return new RedirectResponse($this->linkPeles($site) . '/' . $pele . '/molde?nome=' . rawurlencode($nome) . '&ok=rascunho', Response::HTTP_SEE_OTHER);
+    }
+
+    private function publicarRascunho(SessaoAtiva $sessao, Site $site, string $pele, Request $req): Response
+    {
+        $nome = $this->textos($req, ['nome'])['nome'] ?? '';
+        if (!GerenciadorDePeles::nomeDeMoldeValido($nome)) {
+            return $this->naoEncontrado($sessao, 'Este molde não existe.', $this->linkPeles($site) . '/' . $pele);
+        }
+        $rascunho = $this->peles->rascunho($pele, $nome);
+        $atual = $this->peles->ler($pele, $nome);
+        if ($rascunho === null || $atual === null) {
+            return $this->naoEncontrado($sessao, 'Não há rascunho deste molde para publicar.', $this->linkPeles($site) . '/' . $pele . '/molde?nome=' . rawurlencode($nome));
+        }
+
+        return $this->validarEGravar($sessao, $site, $pele, $nome, $this->normalizar($rascunho['conteudo']), hash('sha256', $atual), false, 'pele.molde.publicar_rascunho', 'salvo', $req);
+    }
+
+    private function previsualizarMolde(SessaoAtiva $sessao, Site $site, string $pele, Request $req): Response
+    {
+        $q = $req->query->all();
+        $nome = $q['nome'] ?? null;
+        if (!is_string($nome) || !GerenciadorDePeles::nomeDeMoldeValido($nome)) {
+            return $this->naoEncontrado($sessao, 'Este molde não existe.', $this->linkPeles($site) . '/' . $pele);
+        }
+        $rascunho = $this->peles->rascunho($pele, $nome);
+        if ($rascunho === null) {
+            return $this->naoEncontrado($sessao, 'Não há rascunho deste molde: salve um rascunho primeiro para pré-visualizar.', $this->linkPeles($site) . '/' . $pele . '/molde?nome=' . rawurlencode($nome));
+        }
+        $paginas = $this->paginasCompativeis($site, $pele, $nome);
+        $objetoId = $this->numeroDeVersao($q['objeto'] ?? null);
+        if ($objetoId === null) {
+            return $this->escolherPaginaParaPreVisualizar($sessao, $site, $pele, $nome, $paginas);
+        }
+        $objeto = null;
+        foreach ($paginas as $p) {
+            if ($p->id === $objetoId) {
+                $objeto = $p;
+                break;
+            }
+        }
+        if ($objeto === null) {
+            return $this->naoEncontrado($sessao, 'Esta página não existe, não está publicada, ou não usa este molde.', $this->linkPeles($site) . '/' . $pele . '/molde/previsualizar?nome=' . rawurlencode($nome));
+        }
+        try {
+            $html = $this->servicos->renderizador->renderizar($site, $objeto, $pele, [$nome => $rascunho['conteudo']]);
+        } catch (\Throwable $e) {
+            return Pagina::resposta('Não foi possível pré-visualizar', '<div class="alert alert-danger" role="alert">O rascunho não pôde ser executado: ' . Pagina::h($e->getMessage()) . '</div>'
+                . '<p><a href="' . $this->linkPeles($site) . '/' . $pele . '/molde?nome=' . rawurlencode($nome) . '">Voltar ao editor</a></p>', Response::HTTP_UNPROCESSABLE_ENTITY, false, $this->barra($sessao));
+        }
+        $this->servicos->auditoria->registrar('pele.molde.previsualizar', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['site_id' => $site->id, 'pele' => $pele, 'molde' => $nome, 'objeto_id' => $objeto->id]);
+
+        // Resposta isolada (ADR 0012 §9): não é uma tela da administração (é a própria página renderizada), nunca entra no
+        // cache público, não aparece em buscador e ganha os cabeçalhos de segurança de uma prévia (nunca os da administração,
+        // que proibiriam o estilo inline comum nos moldes).
+        return new Response($html, Response::HTTP_OK, [
+            'Content-Type' => 'text/html; charset=utf-8',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            'X-Robots-Tag' => 'noindex, nofollow',
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Frame-Options' => 'DENY',
+            'Referrer-Policy' => 'same-origin',
+            'Content-Security-Policy' => "default-src 'none'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'",
+        ]);
+    }
+
+    /** @param list<Objeto> $paginas */
+    private function escolherPaginaParaPreVisualizar(SessaoAtiva $sessao, Site $site, string $pele, string $nome, array $paginas): Response
+    {
+        $editor = $this->linkPeles($site) . '/' . $pele . '/molde?nome=' . rawurlencode($nome);
+        if ($paginas === []) {
+            $corpo = '<div class="alert alert-warning" role="alert">Não há nenhuma página publicada deste site que use o molde <code>' . Pagina::h($nome) . '</code> para pré-visualizar.</div>';
+        } else {
+            $opcoes = '';
+            foreach ($paginas as $p) {
+                $opcoes .= '<option value="' . $p->id . '">' . Pagina::h($p->titulo) . ' (/' . Pagina::h($p->urlAmigavel) . ')</option>';
+            }
+            $corpo = '<p>Escolha uma página publicada deste site para ver como ela ficaria com o rascunho do molde <code>' . Pagina::h($nome) . '</code>. '
+                . 'A pré-visualização não publica nada, não entra no cache do site e só quem administra este site a vê.</p>'
+                . '<form method="get" action="' . $this->linkPeles($site) . '/' . $pele . '/molde/previsualizar">'
+                . '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '">'
+                . '<div class="mb-3"><label for="pv-objeto" class="form-label">Página</label><select id="pv-objeto" class="form-select" name="objeto">' . $opcoes . '</select></div>'
+                . '<button type="submit" class="btn btn-primary">Pré-visualizar</button></form>';
+        }
+
+        return Pagina::resposta('Pré-visualizar rascunho', $corpo . '<p class="mt-3"><a href="' . $editor . '">Voltar ao editor</a></p>', Response::HTTP_OK, false, $this->barra($sessao));
+    }
+
+    /**
+     * Páginas publicadas e vigentes do site cujo molde efetivo (a classe, ou `padrao` se a pele não tem um molde com o nome da
+     * classe) é `$nome`, segundo `$pele` (que pode não ser a pele ativa do site: o editor deixa editar qualquer pele que a
+     * pessoa possa administrar). Até 200, para a lista não crescer sem limite num site grande.
+     *
+     * @return list<Objeto>
+     */
+    private function paginasCompativeis(Site $site, string $pele, string $nome): array
+    {
+        if ($site->objetoRaizId === null) {
+            return [];
+        }
+        $raiz = $this->servicos->objetos->porId($site->objetoRaizId);
+        if ($raiz === null) {
+            return [];
+        }
+        $resolvedor = new ResolvedorDePele($this->servicos->caminhos, $pele);
+        $agora = gmdate('c');
+        $paginas = [];
+        foreach ($this->servicos->objetos->todosDaSubarvore($site->id, $raiz->caminho) as $objeto) {
+            if (!$objeto->visivel($agora)) {
+                continue;
+            }
+            $classe = $this->servicos->classes->porId($objeto->classeId);
+            if ($classe === null) {
+                continue;
+            }
+            $efetivo = $resolvedor->existe($classe->nome) ? $classe->nome : 'padrao';
+            if ($efetivo === $nome) {
+                $paginas[] = $objeto;
+                if (count($paginas) >= 200) {
+                    break;
+                }
+            }
+        }
+
+        return $paginas;
     }
 
     private function avisoDePele(Request $req): string

@@ -111,6 +111,14 @@ A edição de peles é a única superfície em que a administração **grava arq
 - O conteúdo só é salvo se o parser da linguagem o aceitar; PHP cru é recusado e o `Gerador` só emite literais e chamadas ao `Runtime`, então o molde não executa nada fora do sandbox da linguagem.
 - Auditoria com site, pele e nome do molde, nunca o conteúdo. Criar, editar e apagar molde, e trocar a pele ativa, pedem o modo elevado (fase 5h, acima). Testes em `tests/AdminSiteTest.php` (travessia, extensões, links simbólicos, PHP cru, XSS no editor).
 
+### Histórico, rascunho e pré-visualização (fase 5j)
+
+- **Histórico** (`pele_molde_versao`, migração 15): toda gravação ou remoção guarda o conteúdo inteiro, o hash e o autor; retenção de `GerenciadorDePeles::MAX_VERSOES_POR_MOLDE` (200) versões por molde. "Voltar a esta versão" passa pelas **mesmas** verificações de uma gravação comum: CSRF, origem, permissão, modo elevado, validação pelo parser (recusa 422 se a versão não compila mais, por exemplo depois que um layout citado foi apagado) e proteção contra edição simultânea (hash do arquivo aberto); nunca reescreve o histórico, só acrescenta uma versão nova.
+- **Rascunho** (`pele_molde_rascunho`, no máximo um por molde): não passa pelo parser (só tamanho e UTF-8), para dar para guardar um texto incompleto; não toca no arquivo da pele nem gera versão. Publicar o rascunho volta a exigir o parser e o modo elevado, como qualquer gravação.
+- **Pré-visualização isolada**: exige permissão de administrar o site (mesma checagem de toda a tela de peles, 403 para quem não tem) e um rascunho salvo (404 sem ele); a renderização usa `Renderizador` diretamente (nunca o `Publicador`), então **não grava** `dados/cache/paginas` nem muda a página publicada. A resposta é a página renderizada com `Cache-Control: no-store, no-cache, must-revalidate`, `X-Robots-Tag: noindex, nofollow` e uma CSP própria (`default-src 'none'; script-src 'none'; style-src 'self' 'unsafe-inline'; form-action 'none'; frame-ancestors 'none'` — diferente da CSP da administração, porque o molde pode ter `<style>` embutido, como qualquer página publicada).
+- **Realce de sintaxe** (`Pbl\Linguagem\Realce`): sempre HTML escapado (`htmlspecialchars` com `ENT_QUOTES | ENT_SUBSTITUTE`), nunca interpreta o molde; um molde que nem o `Lexer` consegue separar (sintaxe malformada) volta como texto simples escapado, em vez de expor um erro. Usado só em telas de leitura (histórico, diferença, visualização); a caixa de edição continua uma `<textarea>` simples.
+- Testes em `tests/AdminPeleHistoricoTest.php` (versão em criar/salvar/apagar, diferença escapada, voltar recusado pelo parser, voltar exige CSRF e modo elevado, rascunho isolado do cache e da página pública, pré-visualização sem permissão, retenção) e `tests/RealceTest.php` (escapando tokens maliciosos).
+
 ## O que ainda não existe (e quando entra)
 
 | Item | Previsto |
@@ -122,7 +130,7 @@ A edição de peles é a única superfície em que a administração **grava arq
 | Atualizar pelo painel sem que o PHP web precise gravar o código (hoje o processo de segundo plano roda com o mesmo usuário do PHP, então a pasta do PBL4 precisa ser gravável por ele; onde isso é indesejável, use a linha de comando com outro usuário) | a decidir ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | Política para quando existir migração **destrutiva** de verdade (hoje nenhuma existe — ADR 0006 §8 —, então `bin/pbl reverter` sempre é seguro quando o registro da atualização confere) | a decidir ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | HTTPS forçado na administração (hoje é recomendação) | a decidir |
-| Pele inteira (criar, importar, apagar), arquivos de pele que não sejam `.pbl`, histórico de moldes | com o editor e a galeria de peles ([fluxo 4](../fluxos/04-edicao-peles.md)) |
+| Pele inteira (criar, importar, apagar), arquivos de pele que não sejam `.pbl` (CSS, imagens), pele filha, galeria | [ADR 0007](../adr/0007-galeria-pacotes-peles.md) |
 | Limpar o HTML antigo já gravado antes da fase 5g (hoje ele é limpo na próxima gravação do campo; a leitura não altera nada) | a decidir (um comando de varredura) |
 
 ## Atrás de um proxy (Cloudflare, nginx)

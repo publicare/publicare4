@@ -47,7 +47,7 @@ Entre em `/_pbl/` com seu login. Você vê os sites e as seções que pode acess
 - **move** um conteúdo (escolhendo o novo lugar andando pela árvore) com tudo que está dentro dele, ou o manda para a **lixeira** (editor); da lixeira dá para tirar de volta;
 - vê o **histórico** e volta a uma versão antiga (isso cria uma versão nova; nada se perde).
 
-Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou o mesmo conteúdo enquanto você mexia, aparece um aviso e nada é sobrescrito sem você decidir. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). O administrador também cuida das **contas** e dos **domínios** (veja abaixo) e edita os **redirecionamentos** e as **peles** de cada site (o texto dos moldes, com a sintaxe conferida antes de salvar).
+Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou o mesmo conteúdo enquanto você mexia, aparece um aviso e nada é sobrescrito sem você decidir. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). O administrador também cuida das **contas** e dos **domínios** (veja abaixo) e edita os **redirecionamentos** e as **peles** de cada site (o texto dos moldes, com a sintaxe conferida antes de salvar, histórico com diferença entre versões e "voltar a esta versão", e rascunho com pré-visualização antes de publicar).
 
 ## Colei HTML num campo e ele mudou. Por quê?
 
