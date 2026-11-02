@@ -79,6 +79,8 @@ final class Gerador
                 $codigo .= "    if (\$r->semResultado()) {\n" . $this->nos($no->corpo, $nivel) . "    }\n";
             } elseif ($no instanceof NoBloco) {
                 $codigo .= $this->nos($no->corpo, $nivel);
+            } elseif ($no instanceof NoFormulario) {
+                $codigo .= "    echo \$r->formulario({$o}, " . $this->mapa($no->params, $nivel) . ");\n";
             } elseif ($no instanceof NoIncluir) {
                 $codigo .= '    echo $r->incluir(' . $this->expr($no->arquivo, $nivel) . ", {$o});\n";
             }

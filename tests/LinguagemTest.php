@@ -82,6 +82,11 @@ final class LinguagemTest extends TestCase
                 return null;
             }
 
+            public function formulario(array $objeto, ?int $id): string
+            {
+                return '<form data-id="' . ($id ?? $objeto['id'] ?? '') . '"></form>';
+            }
+
             public function temFilhos(array $objeto, ?int $id): bool
             {
                 return $this->filhos !== [] && ($id === null || $id > 0);
@@ -106,6 +111,14 @@ final class LinguagemTest extends TestCase
         $incluidor = fn (string $nome, array $o, Runtime $r): string => ($compilador->carregar($resolvedor->fonte($nome), $resolvedor))($o, $r);
 
         return ($compilador->carregar($molde, $resolvedor))($objeto, new Runtime($fonte, $incluidor, $agora));
+    }
+
+    public function testComandoFormularioChamaAFonteComIdOuOObjetoCorrente(): void
+    {
+        self::assertSame('<form data-id="7"></form>', $this->render('<@formulario id=7@>', ['id' => 3]));
+        self::assertSame('<form data-id="3"></form>', $this->render('<@formulario@>', ['id' => 3]));
+        $this->expectException(ErroSintaxe::class);
+        $this->render('<@formulario nome=1@>');
     }
 
     public function testEcoEscapaPorPadraoEEcocruNao(): void

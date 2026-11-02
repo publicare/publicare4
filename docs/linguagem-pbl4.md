@@ -26,6 +26,7 @@ comando    = "=" , expr
            | "semfilhos" | "/semfilhos" | "naolocalizado" | "/naolocalizado"
            | "usarobjeto" , params | "/usarobjeto"
            | "temfilho" , [ params ] | "/temfilho"
+           | "formulario" , [ params ]
            | "estende" , string
            | "bloco" , nome | "/bloco"
            | "incluir" , params ;
@@ -71,6 +72,7 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `<@semfilhos@>…<@/semfilhos@>` / `<@naolocalizado@>…<@/naolocalizado@>` | executa se o último laço de coleção não achou nada (são sinônimos) |
 | `<@usarobjeto id=n \| url="…" \| titulo="…"@>…<@/usarobjeto@>` | troca o objeto corrente dentro do bloco; objeto inexistente, de outro site ou não publicado: o bloco não roda |
 | `<@temfilho [id=n]@>…<@/temfilho@>` | executa se o objeto (corrente ou `id=`) tem filhos publicados e vigentes; o `id=` precisa ser do mesmo site |
+| `<@formulario [id=n]@>` | imprime o **formulário público** de envio do conteúdo `id` (padrão: o objeto corrente, que então precisa ser do tipo `formulario`). Sem corpo. O HTML sai escapado, com token e campo-armadilha, sem JavaScript; o envio vai para `/_pbl/enviar/{id}` ([ADR 0013](adr/0013-formularios-publicos.md)). Formulário de outro site, fora do ar, fechado ou mal configurado não imprime nada. O HTML é gerado ao publicar a página: se mudar o formulário, republique |
 | `<@estende "layout"@>` + `<@bloco nome@>…<@/bloco@>` | herança de layout |
 | `<@incluir arquivo="parte"@>` | inclui outro molde da mesma pele |
 | `<@-- texto --@>` | comentário: não gera saída e pode ter aspas e símbolos; vai até o primeiro `--@>` |

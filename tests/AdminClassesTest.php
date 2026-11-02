@@ -255,7 +255,7 @@ final class AdminClassesTest extends TestCase
         self::assertSame(422, $this->post($token, '/_pbl/classes/nova', ['nome' => 'ok4', 'aceita_filhos' => '1', 'filhas' => ['nao_existe']])->getStatusCode());
         self::assertSame(400, $this->post($token, '/_pbl/classes/nova', ['nome' => ['x']])->getStatusCode());
         self::assertSame(400, $this->post($token, '/_pbl/classes/nova', ['nome' => 'ok5', 'filhas' => 'pagina'])->getStatusCode());
-        self::assertSame(1, count($this->s->classes->todas()), 'nada foi criado');
+        self::assertSame(2, count($this->s->classes->todas()), 'nada foi criado (só `pagina` e `formulario`)');
     }
 
     public function testTextoHostilEhSempreEscapado(): void

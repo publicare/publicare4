@@ -14,6 +14,7 @@ final class Parser
         'localizar' => ['nome', 'classes', 'ordem', 'inicio', 'limite', 'pai', 'niveis', 'campo', 'op', 'valor', 'campo2', 'op2', 'valor2', 'campo3', 'op3', 'valor3', 'busca', 'expandir'],
         'usarobjeto' => ['id', 'url', 'titulo'],
         'temfilho' => ['id'],
+        'formulario' => ['id'],
     ];
 
     /** comando de abertura => [tipo da coleção, aleatório] */
@@ -153,6 +154,9 @@ final class Parser
                         throw new ErroSintaxe('bloco exige um nome (letras, números e _)', $linha);
                     }
                     $pilha[] = ['no' => new NoBloco($id, [], $linha), 'nome' => 'bloco', 'linha' => $linha, 'naSenao' => false];
+                    break;
+                case 'formulario':
+                    $adicionar(new NoFormulario($this->parametros($nome, $resto, $linha, [])));
                     break;
                 case 'incluir':
                     $p = $this->parametros($nome, $resto, $linha, ['arquivo']);

@@ -43,6 +43,14 @@ interface FonteDeDados
     public function referencia(array $objeto, string $propriedade): ?array;
 
     /**
+     * O formulário público (HTML pronto, com tudo escapado) do formulário `$id` ou, se null, do objeto corrente. Vazio se o
+     * formulário não existe neste site, não está no ar ou está mal configurado.
+     *
+     * @param array<string, mixed> $objeto
+     */
+    public function formulario(array $objeto, ?int $id): string;
+
+    /**
      * @param array<string, mixed> $objeto
      */
     public function temFilhos(array $objeto, ?int $id): bool;

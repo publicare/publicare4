@@ -33,6 +33,7 @@ Objetivos: amadurecer o núcleo e a linguagem de moldes; instalador web para que
 - [0010 — Busca: normalização, relevância e grafias parecidas](adr/0010-busca.md) (nível A implementado)
 - [0011 — Autenticação, sessão, permissões e auditoria](adr/0011-autenticacao-sessao-permissoes.md) (implementado)
 - [0012 — Administração pelo navegador](adr/0012-administracao-web.md) (em implementação)
+- [0013 — Formulários públicos declarativos](adr/0013-formularios-publicos.md) (fatia 6a implementada)
 - [0001 — Sem framework full-stack](adr/0001-base-p3-sem-framework.md) (parcialmente substituído)
 - [0002 — Schema: evolução aditiva](adr/0002-schema-evolucao-aditiva.md) (substituído)
 
