@@ -6,7 +6,7 @@
 - Exige Java e processo externo: inviável para o público do instalador (fluxo 3).
 - Postgres no schema usa a extensão `unaccent`, o que indica buscas sem acento.
 
-> **Atualização:** o desenho em três níveis (normalizar, relevância, grafias parecidas) está no [ADR 0010](../adr/0010-busca.md). O **nível A já está implementado**: a busca por título e por propriedades de texto ignora maiúsculas e acentos, igual em todos os bancos. A tabela de opções abaixo continua valendo para o driver de portais grandes.
+> **Atualização:** o desenho em três níveis (normalizar, relevância, grafias parecidas) está no [ADR 0010](../adr/0010-busca.md). Os **níveis A e B estão implementados**: a busca ignora maiúsculas e acentos e procura por várias palavras, começo de palavra e plural, com relevância, numa tabela do próprio banco (`objeto_termo`); a visibilidade (estado e datas) é aplicada na consulta, no mesmo motor de consulta do fluxo 9. A tabela de opções abaixo continua valendo para o driver de portais grandes.
 
 ## PBL4 (a decidir; não bloqueia as Fases 0–4)
 

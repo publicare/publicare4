@@ -101,9 +101,9 @@ final class ConsultaTest extends TestCase
     {
         self::assertSame(['100% Fundo_Teste'], $this->titulos(['busca' => '100%']));
         self::assertSame(['100% Fundo_Teste'], $this->titulos(['busca' => 'fundo_teste']));
-        self::assertSame(['100% Fundo_Teste'], $this->titulos(['busca' => '%']), '% é literal');
-        self::assertSame(['100% Fundo_Teste'], $this->titulos(['busca' => '_']), '_ é literal');
-        self::assertSame([], $this->titulos(['busca' => 'al_a']), 'se _ fosse curinga casaria com Alfa');
+        self::assertSame([], $this->titulos(['busca' => '%']), '% não é curinga: sem palavra, não acha nada (nível B)');
+        self::assertSame([], $this->titulos(['busca' => '_']), '_ não é curinga');
+        self::assertSame([], $this->titulos(['busca' => 'f%']), '% no meio da palavra não vira curinga');
     }
 
     public function testObjetoPorIdUrlTituloSoNoMesmoSiteEPublicado(): void

@@ -36,6 +36,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Pelo navegador: criar páginas e outros conteúdos, editar todos os campos, publicar ou tirar do ar (com datas), mover, mandar para a lixeira e tirar de lá, ver o histórico e voltar a uma versão antiga; ordenar e filtrar a lista de conteúdo | ✅ |
 | Pelo navegador (só administrador): editar o texto dos moldes de uma pele numa caixa de texto, com conferência da sintaxe antes de salvar, criar e apagar moldes e escolher a pele do site; as páginas são republicadas em seguida | ✅ |
 | Busca que ignora maiúsculas e acentos (`presidencia` acha `Presidência`) | ✅ |
+| Busca com várias palavras (todas), começo de palavra (`presid` acha `Presidência`), plural e singular (`ações`/`ação`) e ordem por relevância (título antes de descrição e texto), no título, na descrição e no texto | ✅ |
 | Ligar conteúdos entre si (uma notícia aponta para seu autor) e, nos moldes, mostrar, filtrar e ordenar pelo conteúdo apontado | ✅ |
 | Consultas com até três condições, comparações (maior, menor, contém) e carga rápida de listas | ✅ |
 
@@ -43,7 +44,8 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 
 | Recurso | Estado |
 |---|---|
-| Busca com várias palavras, relevância e correção de erros de digitação ("você quis dizer…") | 🗓️ |
+| Busca que corrige erros de digitação (`Fernandha` sugere `Fernanda`, "você quis dizer…"), opcional por site | 🗓️ |
+| Busca para portais muito grandes (centenas de milhares de páginas) com serviço de busca próprio | 🗓️ |
 | Atualização automática com cópia de segurança | 🔨 (já funciona por linha de comando, com assinatura, cópia do banco e volta atrás; falta o botão no painel e a primeira versão publicada) |
 | Editor de peles completo (realce de código, pré-visualização, histórico e voltar atrás, arquivos de CSS e imagens) | 🗓️ (hoje só a caixa de texto simples) |
 | Galeria de peles prontas para instalar | 🗓️ |
