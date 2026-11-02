@@ -4,7 +4,7 @@ Para quem instala em um servidor. Quem só quer um passo a passo simples: [Como 
 
 ## Requisitos
 
-PHP 8.2+ com `pdo_sqlite`, `mbstring`, `sodium`, `json` e `ctype`; pasta `dados/` gravável. MySQL e PostgreSQL estão previstos (hoje o instalador cria SQLite).
+PHP 8.2+ com `pdo_sqlite` (pacote `php8.x-sqlite3` em Debian/Ubuntu), `mbstring`, `sodium`, `json` e `ctype`; pasta `dados/` gravável e dentro do `open_basedir` do PHP, se houver. MySQL e PostgreSQL estão previstos (hoje o instalador cria SQLite).
 
 ## Formas de instalar
 
@@ -36,10 +36,39 @@ raiz-do-projeto/
 
 Com `mod_rewrite` e `AllowOverride All`, os arquivos `.htaccess` já cobrem tudo:
 
-- `public/.htaccess`: manda todo endereço que não é arquivo para `index.php`, desliga listagem de pastas e nega arquivos ocultos e de configuração.
-- `.htaccess` da raiz: se a raiz do site for a pasta inteira, nega `app/`, `dados/`, `vendor/`, `bin/`, `tests/`, `docs/`, `docker/`, `.git/`, `composer.*` etc. e serve o resto a partir de `public/`.
+- `public/.htaccess`: manda todo endereço que não é arquivo existente (pastas inclusive, o que evita listagem) para `index.php` e nega arquivos ocultos e de configuração.
+- `.htaccess` da raiz: só vale se a raiz do site for a pasta inteira. Nega (403) `app/`, `dados/`, `vendor/`, `bin/`, `tests/`, `docs/`, `docker/`, `.git/`, `composer.*` etc. e serve o resto a partir de `public/`, **mas só se `public/index.php` existir sob a raiz do site**. Se a raiz do site já for `public/`, ele é inofensivo (nem é lido, e se for não faz nada).
 
-Conferido em Apache 2.4 de verdade (`docker compose --profile apache up -d`): com a raiz na pasta inteira, `dados/pbl4.sqlite`, `dados/config/segredo`, `app/`, `vendor/` e `composer.json` dão **403**; com a raiz em `public/`, ficam inalcançáveis.
+Os dois arquivos **não usam `Options`** (que exige `AllowOverride Options` e, em hospedagens com painel, dá erro 500), e cada bloco só vale se o módulo existir (`<IfModule>`); a negação usa `Require all denied` (Apache 2.4), com ramo `Order/Deny` só para 2.2. Basta `AllowOverride FileInfo AuthConfig` (ou `All`).
+
+Conferido em Apache 2.4 de verdade (`php:8.3-apache`): com `AllowOverride All` e com `AllowOverride AuthConfig Limit FileInfo` (sem `Options`), a raiz na pasta inteira dá **403** em `app/`, `vendor/`, `dados/`, `.git/`, `composer.json` e `Makefile`, e serve `/` e os estilos; com a raiz em `public/`, o `.htaccess` da raiz não interfere e `composer.json`/`.git` seguem negados. Antes desta correção, `Options -Indexes` no `public/.htaccess` dava **500** com `AllowOverride` restrito (`Options not allowed here`).
+
+### Hestia/VestaCP e hospedagens com `open_basedir`
+
+Nesses painéis o PHP-FPM de cada domínio só enxerga a pasta do domínio (`open_basedir`). Um projeto enviado para `public_html/` fica **todo público**; um projeto fora do domínio fica **inacessível ao PHP**. A solução é o projeto dentro de `private/` do domínio, com o docroot apontando para `public/`:
+
+```bash
+# como o usuário do domínio (ex.: usuario, domínio exemplo.org)
+cd /home/usuario/web/exemplo.org
+mkdir -p private && cd private
+# envie/extraia o PBL4 aqui, de modo que exista private/pbl4/public/index.php
+cd ../
+mv public_html public_html.orig            # guarde a pasta padrão do painel
+ln -s private/pbl4/public public_html      # o docroot passa a ser public/
+mkdir -p private/pbl4/dados && touch private/pbl4/dados/instalar.liberar
+```
+
+Notas:
+
+- O symlink aponta **para dentro** do domínio, então o `open_basedir` (que costuma incluir `.../exemplo.org/` e `/tmp`) é satisfeito. Se o painel recriar `public_html`, refaça o link.
+- Instale o SQLite do PHP: `apt install php8.3-sqlite3` (ajuste para a versão do PHP do domínio) e reinicie o PHP-FPM (`systemctl restart php8.3-fpm`). O assistente mostra isso quando falta `pdo_sqlite`.
+- Se o `open_basedir` impedir o acesso a `dados/`, o assistente diz isso no item "Acesso do PHP à pasta dados/ (open_basedir)" (sem mostrar caminhos do servidor). Ou o projeto está fora da pasta do domínio, ou o PHP do domínio precisa liberar a pasta (no Hestia, o template do PHP-FPM do domínio).
+- Com o docroot em `public/`, o `.htaccess` da raiz do projeto fica fora do alcance do Apache e não causa erro.
+- O Apache do Hestia (atrás ou não do nginx) precisa de `AllowOverride` com `FileInfo`; o padrão do painel serve. Se usar só nginx, aplique a configuração de referência abaixo.
+
+### Atrás da Cloudflare com SSL "Full"
+
+Com o modo SSL/TLS **Full** (ou Full strict) a Cloudflare fala HTTPS com a origem: o servidor precisa de um certificado válido para o domínio. Sem ele (ou com o modo **Flexible** e a origem forçando HTTPS), o navegador cai num **laço de redirecionamento 301**. No Hestia: edite o domínio, ative **SSL** e **Let's Encrypt** (o domínio precisa já apontar para o servidor, ou desligue temporariamente o proxy laranja durante a emissão), e marque **Redirecionar HTTP para HTTPS**. Depois crie `dados/config/rede.json` para o IP real e o HTTPS serem reconhecidos ([Segurança](seguranca.md#atrás-de-um-proxy-cloudflare-nginx)).
 
 ### nginx (com PHP-FPM)
 

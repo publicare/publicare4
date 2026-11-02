@@ -14,7 +14,7 @@ Pelo navegador, com um assistente: veja [Como instalar](instalar.md). Hoje ainda
 
 ## Onde posso hospedar?
 
-Funciona em servidores **Apache** (a maioria das hospedagens compartilhadas) e **nginx**, ambos testados. A meta é uma hospedagem comum, daquelas que oferecem PHP e permitem enviar arquivos, sem terminal. Os requisitos são **PHP 8.2 ou mais novo** e um banco de dados (o padrão é SQLite, que não precisa de servidor; MySQL e PostgreSQL também serão suportados).
+Funciona em servidores **Apache** (a maioria das hospedagens compartilhadas) e **nginx**, ambos testados. A meta é uma hospedagem comum, daquelas que oferecem PHP e permitem enviar arquivos, sem terminal. Os requisitos são **PHP 8.2 ou mais novo** e um banco de dados (o padrão é SQLite, que não precisa de servidor; MySQL e PostgreSQL também serão suportados). Painéis como Hestia/VestaCP, que restringem o PHP à pasta do domínio (`open_basedir`), também funcionam: veja a seção correspondente em [Como instalar](instalar.md).
 
 ## E o meu site feito no Publicare antigo?
 

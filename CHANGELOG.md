@@ -9,6 +9,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 > Primeira versão pública prevista: **0.1.0** (núcleo mínimo: dados, linguagem de moldes, segurança básica, instalador e atualizador).
 
 ### Adicionado
+- **Hospedagem Hestia/VestaCP e `open_basedir`** (lições da demo): guia passo a passo (projeto em `private/` com a raiz do site como link para `public/`, `php8.3-sqlite3`, Cloudflare SSL Full com Let's Encrypt). O assistente de instalação agora avisa, sem revelar caminhos do servidor, quando o `open_basedir` deixa a pasta `dados/` fora do alcance do PHP, e orienta o pacote `sqlite3` quando falta `pdo_sqlite`.
 - **Atualizador** (`bin/pbl atualizar`, ADR 0006): confere a assinatura Ed25519 do manifesto, baixa o pacote por HTTPS do mesmo servidor, confere SHA-256 e cada arquivo, extrai de forma defensiva (sem `..`, links, fora das pastas permitidas, com teto de tamanho), copia o banco, liga a manutenção (503 com `Retry-After`), troca o código por `rename`, migra e confere a versão com o código novo; se falhar, volta ao código anterior. Modo offline com `--manifesto`. Ferramentas do mantenedor: `bin/pbl chaves:gerar` e `bin/pbl empacotar` (zip reproduzível); `bin/pbl migrar`. A chave pública de produção ainda está vazia: sem ela, o atualizador recusa tudo. (#23)
 - Estrutura do projeto: PHP 8.2+, SQLite por padrão (MySQL e PostgreSQL previstos), ambiente de desenvolvimento em container, testes (PHPUnit) e análise estática (PHPStan nível 8). (#3)
 - Instalação por linha de comando (`bin/pbl instalar`) com site de exemplo e pele básica; publicação das páginas (`bin/pbl publicar`) em cache e entrega a partir do cache. (#4)
@@ -58,6 +59,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - Documentação de design (ADRs 0003 a 0009, fluxos e plano), documentação para quem usa e técnica, guia de colaboração, política de segurança, versionamento e pipeline automática de testes.
 
 ### Alterado
+- `.htaccess` da raiz e de `public/` não usam mais `Options` (dava erro 500 com `AllowOverride` restrito, como no Hestia); negação com `Require all denied` e blocos condicionais; a raiz só reescreve para `public/` se essa pasta existir sob a raiz do site. Listagem de pastas segue impedida (pastas vão ao `index.php`).
 - A política de segurança de conteúdo (CSP) da administração e do instalador ficou mais restrita: estilos só de arquivos do próprio site (`style-src 'self'`), sem `unsafe-inline`. (#24)
 - A URL `index` passou a ser reservada (a página inicial é gravada no cache como `index.html`). Quem já usava esse endereço é renomeado pela migração para `index-1` (ou o primeiro número livre), e a publicação pula um endereço inválido em vez de interromper o site. (#18)
 - `contem` e `busca=` agora ignoram acentos, não só maiúsculas (antes `árvore` não achava `Arvore`). (#17)

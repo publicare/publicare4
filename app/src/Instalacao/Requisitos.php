@@ -18,7 +18,8 @@ final class Requisitos
         'ctype' => 'validação de textos',
     ];
 
-    public function __construct(private readonly Caminhos $caminhos)
+    /** @param string|null $openBasedir valor do open_basedir (null = o do PHP em uso; só os testes passam outro) */
+    public function __construct(private readonly Caminhos $caminhos, private readonly ?string $openBasedir = null)
     {
     }
 
@@ -33,15 +34,27 @@ final class Requisitos
         ]];
         foreach (self::EXTENSOES as $extensao => $para) {
             $ok = extension_loaded($extensao);
-            $itens[] = ['nome' => "Extensão {$extensao}", 'ok' => $ok, 'obrigatorio' => true, 'detalhe' => $ok ? "Presente ({$para})." : "Ausente: necessária para {$para}. Peça à hospedagem para ativá-la."];
+            $itens[] = ['nome' => "Extensão {$extensao}", 'ok' => $ok, 'obrigatorio' => true, 'detalhe' => $ok ? "Presente ({$para})." : "Ausente: necessária para {$para}. " . $this->comoAtivar($extensao)];
         }
         $dados = $this->caminhos->dados();
-        $gravavel = is_dir($dados) ? is_writable($dados) : is_writable(dirname($dados));
+        $limite = $this->openBasedir ?? (string) ini_get('open_basedir');
+        $liberado = self::dentroDoOpenBasedir($dados, $limite);
+        if (!$liberado) {
+            $itens[] = [
+                'nome' => 'Acesso do PHP à pasta dados/ (open_basedir)',
+                'ok' => false,
+                'obrigatorio' => true,
+                'detalhe' => 'O PHP deste servidor só pode acessar certas pastas (open_basedir), e a pasta dados/ do PBL4 está fora delas. '
+                    . 'Em painéis como Hestia/VestaCP isso acontece quando o projeto fica fora da pasta do domínio. '
+                    . 'Coloque o projeto dentro da pasta do domínio (por exemplo em private/) e faça a raiz do site apontar para a pasta public/ dele (veja "Hestia/VestaCP e hospedagens com open_basedir" no guia de instalação), ou peça à hospedagem para liberar a pasta.',
+            ];
+        }
+        $gravavel = $liberado && (is_dir($dados) ? is_writable($dados) : is_writable(dirname($dados)));
         $itens[] = [
             'nome' => 'Pasta dados/ gravável',
             'ok' => $gravavel,
             'obrigatorio' => true,
-            'detalhe' => $gravavel ? 'O PBL4 consegue guardar o banco, o cache e os arquivos do site.' : 'O PBL4 precisa gravar na pasta dados/. Dê permissão de escrita a ela (ou à pasta acima, para que seja criada).',
+            'detalhe' => !$liberado ? 'Não dá para verificar enquanto o item acima não for resolvido.' : ($gravavel ? 'O PBL4 consegue guardar o banco, o cache e os arquivos do site.' : 'O PBL4 precisa gravar na pasta dados/. Dê permissão de escrita a ela (ou à pasta acima, para que seja criada).'),
         ];
         $zip = extension_loaded('zip');
         $itens[] = [
@@ -59,6 +72,47 @@ final class Requisitos
         ];
 
         return $itens;
+    }
+
+    /** Como ativar uma extensão que falta, no vocabulário de quem usa painel de hospedagem. */
+    private function comoAtivar(string $extensao): string
+    {
+        if ($extensao === 'pdo_sqlite') {
+            return 'Peça à hospedagem para ativá-la (em servidores Debian/Ubuntu/Hestia o pacote é o php' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION . '-sqlite3; depois reinicie o PHP-FPM).';
+        }
+
+        return 'Peça à hospedagem para ativá-la.';
+    }
+
+    /** Diz se o caminho está dentro de alguma das pastas do open_basedir (vazio = sem restrição). Funciona mesmo se o caminho ainda não existe. */
+    public static function dentroDoOpenBasedir(string $caminho, string $openBasedir): bool
+    {
+        if (trim($openBasedir) === '') {
+            return true;
+        }
+        // Sobe até a primeira pasta que existe, para resolver links simbólicos como o PHP faz; o que falta é anexado de volta.
+        $resto = '';
+        $atual = rtrim($caminho, '/');
+        while ($atual !== '' && @realpath($atual) === false) {
+            $resto = '/' . basename($atual) . $resto;
+            $atual = dirname($atual);
+            if ($atual === '/' || $atual === '.') {
+                break;
+            }
+        }
+        $real = (@realpath($atual) ?: $atual) . $resto;
+        foreach (explode(PATH_SEPARATOR, $openBasedir) as $permitida) {
+            $permitida = trim($permitida);
+            if ($permitida === '') {
+                continue;
+            }
+            $permitida = rtrim(@realpath($permitida) ?: $permitida, '/');
+            if ($real === $permitida || str_starts_with($real, $permitida . '/')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function tudoCerto(): bool

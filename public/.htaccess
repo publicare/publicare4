@@ -1,12 +1,18 @@
 # PBL4: todo endereço que não é um arquivo existente vai para o controlador (index.php).
-Options -Indexes
+# Nada aqui exige "AllowOverride Options" (comum em hospedagens com painel, onde Options dá erro 500).
+# Pastas também vão ao controlador (não há !-d), o que impede a listagem de pastas sem usar "Options -Indexes".
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^ index.php [QSA,L]
 </IfModule>
 # Nunca servir arquivos ocultos nem de configuração.
 <FilesMatch "^\.(?!well-known)|\.(env|json|lock|sqlite|log|bak|sql)$">
-    Require all denied
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
