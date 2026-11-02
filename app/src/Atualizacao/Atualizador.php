@@ -72,7 +72,42 @@ final class Atualizador
         if (!$v->disponivel || $v->manifesto === null) {
             throw new ErroDeAtualizacao($v->motivo);
         }
-        $m = $v->manifesto;
+        $trava = $this->travar();
+        try {
+            return $this->aplicarTravado($v, $urlDoManifesto);
+        } finally {
+            flock($trava, LOCK_UN);
+            fclose($trava);
+        }
+    }
+
+    /**
+     * Exclusão mútua entre qualquer origem (linha de comando, painel, cron): `flock` em `dados/atualizacao.lock`, fora de
+     * `dados/atualizacao/` (que cada execução apaga). O sistema solta a trava sozinho se o processo morrer.
+     *
+     * @return resource
+     */
+    private function travar()
+    {
+        $dados = $this->caminhos->dados();
+        if (!is_dir($dados) && !@mkdir($dados, 0750, true) && !is_dir($dados)) {
+            throw new ErroDeAtualizacao('Não foi possível criar a pasta dados/.');
+        }
+        $f = @fopen($dados . '/atualizacao.lock', 'c');
+        if ($f === false) {
+            throw new ErroDeAtualizacao('Não foi possível criar dados/atualizacao.lock (falta permissão de escrita em dados/).');
+        }
+        if (!flock($f, LOCK_EX | LOCK_NB)) {
+            fclose($f);
+            throw new ErroDeAtualizacao('Outra atualização em andamento: espere terminar antes de tentar de novo.');
+        }
+
+        return $f;
+    }
+
+    private function aplicarTravado(Verificacao $v, string $urlDoManifesto): Aplicada
+    {
+        $m = $v->manifesto ?? throw new ErroDeAtualizacao($v->motivo);
         $trabalho = $this->caminhos->dados() . '/atualizacao';
         $this->limpar($trabalho);
         $this->preparar($trabalho);
