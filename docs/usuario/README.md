@@ -29,3 +29,7 @@ Quando cada recurso ficar pronto, ele ganha um guia curto, com passos e imagens:
 8. Migrar um site feito em uma versão anterior do Publicare
 
 Quer ajudar a escrever ou testar algum? Veja [Como participar](como-participar.md).
+
+## Usar o painel no celular
+
+O painel (`/_pbl/`) funciona no celular sem JavaScript: a barra de cima mostra Início, Tipos de conteúdo, Contas e Atualização (a seção em que você está fica destacada) e o trilho "Início > ..." logo abaixo leva de volta. No Início, cada site tem seus botões (Conteúdo, Redirecionamentos, Peles, Domínios). Nos formulários, todo campo tem rótulo visível; botões de salvar ocupam a largura da tela. Se a barra ainda aparecer cortada depois de uma atualização, recarregue a página (o navegador pode estar com o CSS antigo guardado).

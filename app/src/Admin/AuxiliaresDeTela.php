@@ -44,7 +44,41 @@ trait AuxiliaresDeTela
 
     private function erro(?string $erro): string
     {
-        return $erro === null ? '' : '<div id="erro-formulario" class="alert alert-danger" role="alert">' . Pagina::h($erro) . '</div>';
+        return $erro === null ? '' : Pagina::alerta('danger', $erro, 'erro-formulario');
+    }
+
+    // Componentes de formulário (HTML escapado em Pagina): usados pelas telas para não repetir marcação.
+
+    /**
+     * @param array<string, mixed> $o ver `Pagina::campo`
+     */
+    private function campo(string $id, string $nome, string $rotulo, string $valor = '', array $o = []): string
+    {
+        return Pagina::campo($id, $nome, $rotulo, $valor, $o);
+    }
+
+    private function checkbox(string $id, string $nome, string $rotulo, bool $marcado, string $ajuda = '', string $valor = '1', bool $rotuloHtml = false): string
+    {
+        return Pagina::checkbox($id, $nome, $rotulo, $marcado, $ajuda, $valor, $rotuloHtml);
+    }
+
+    private function card(string $titulo, string $corpo, string $ajuda = '', string $tag = 'fieldset', string $classe = ''): string
+    {
+        return Pagina::card($titulo, $corpo, $ajuda, $tag, $classe);
+    }
+
+    private function alerta(string $tipo, string $texto, string $id = '', bool $html = false): string
+    {
+        return Pagina::alerta($tipo, $texto, $id, $html);
+    }
+
+    /**
+     * @param list<array{0: string, 1: string}> $secundarios
+     * @param array{0: string, 1: string}|null $destrutivo
+     */
+    private function acoes(string $primario, array $secundarios = [], ?array $destrutivo = null, string $classePrimario = 'btn-primary'): string
+    {
+        return Pagina::acoes($primario, $secundarios, $destrutivo, $classePrimario);
     }
 
     /** Campo de texto do POST (só texto: lista ou outro tipo vira null). */

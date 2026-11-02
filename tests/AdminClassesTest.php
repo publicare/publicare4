@@ -608,7 +608,8 @@ final class AdminClassesTest extends TestCase
         self::assertStringContainsString('name="p[capa][tipos][]" value="jpg" checked', $html);
         self::assertStringContainsString('name="p[capa][tipos][]" value="png"', $html);
         self::assertStringNotContainsString('name="p[capa][tipos][]" value="png" checked', $html);
-        self::assertStringContainsString('name="p[capa][tamanho_max_mb]" value="3"', $html);
+        self::assertMatchesRegularExpression('/name="p\[capa\]\[tamanho_max_mb\]"[^>]* value="3"/', $html);
+        self::assertStringContainsString('>Tamanho máximo (MB)</label>', $html);
     }
 
     public function testTelaDeEdicaoNaoRepeteIdsEntreAsLinhasDeCampos(): void

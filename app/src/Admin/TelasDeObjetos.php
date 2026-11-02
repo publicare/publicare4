@@ -241,7 +241,7 @@ final class TelasDeObjetos
 
     private function tabelaDeDados(SessaoAtiva $sessao, Objeto $o, string $agora): string
     {
-        $html = '<table class="table table-sm"><caption class="visually-hidden">Dados deste conteúdo</caption><tbody>'
+        $html = '<div class="table-responsive"><table class="table table-sm"><caption class="visually-hidden">Dados deste conteúdo</caption><tbody>'
             . '<tr><th scope="row">Número</th><td>' . $o->id . '</td></tr>'
             . '<tr><th scope="row">Tipo</th><td>' . Pagina::h($this->nomeDaClasse($o->classeId)) . '</td></tr>'
             . '<tr><th scope="row">Estado</th><td>' . Pagina::h($this->estadoLegivel($o, $agora)) . '</td></tr>'
@@ -260,7 +260,7 @@ final class TelasDeObjetos
             $html .= '<tr><th scope="row">' . Pagina::h(Classe::rotuloDe($p)) . '</th><td>' . $this->valorLegivel($sessao, $o, $p, $valor) . '</td></tr>';
         }
 
-        return $html . '</tbody></table>';
+        return $html . '</tbody></table></div>';
     }
 
     /**
@@ -476,9 +476,9 @@ final class TelasDeObjetos
         $corpo = $this->migalhas($sessao, $o) . $this->resumoDeErros($erros)
             . '<form method="post" action="' . $this->link($o->id) . '/editar" enctype="multipart/form-data" novalidate>' . $this->camposOcultos($sessao, $versao)
             . $this->camposDoFormulario($classe, $digitado, $erros, $o->paiId === null)
-            . '<button type="submit" class="btn btn-primary">Salvar</button> <a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></form>';
+            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar</button><a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></div></form>';
         if ($mostrarAtual) {
-            $corpo .= '<h2 class="h5 mt-4">Salvo agora (versão ' . $o->versao . ')</h2><table class="table table-sm"><caption class="visually-hidden">Valores salvos agora</caption><tbody>'
+            $corpo .= '<h2 class="h5 mt-4">Salvo agora (versão ' . $o->versao . ')</h2><div class="table-responsive"><table class="table table-sm"><caption class="visually-hidden">Valores salvos agora</caption><tbody>'
                 . '<tr><th scope="row">Título</th><td>' . Pagina::h($o->titulo) . '</td></tr>'
                 . '<tr><th scope="row">Descrição</th><td>' . nl2br(Pagina::h($o->descricao)) . '</td></tr>'
                 . '<tr><th scope="row">Endereço</th><td><code>/' . Pagina::h($o->urlAmigavel) . '</code></td></tr>'
@@ -486,7 +486,7 @@ final class TelasDeObjetos
             foreach ($classe->propriedades as $p) {
                 $corpo .= '<tr><th scope="row">' . Pagina::h(Classe::rotuloDe($p)) . '</th><td>' . $this->valorLegivel($sessao, $o, $p, $o->dados[$p['nome']] ?? null) . '</td></tr>';
             }
-            $corpo .= '</tbody></table>';
+            $corpo .= '</tbody></table></div>';
         }
 
         return Pagina::resposta('Editar: ' . $o->titulo, $corpo, $status, false, $this->barra($sessao));
@@ -528,7 +528,7 @@ final class TelasDeObjetos
             . '<p>O novo conteúdo vai ficar dentro de <strong>' . Pagina::h($pai->titulo) . '</strong>. Primeiro escolha o tipo: os campos do formulário dependem dele.</p>'
             . '<form method="get" action="' . $this->link($pai->id) . '/novo">'
             . '<div class="mb-3"><label for="campo-tipo" class="form-label">Tipo de conteúdo</label><select id="campo-tipo" name="classe" class="form-select" required>' . $opcoes . '</select></div>'
-            . '<button type="submit" class="btn btn-primary">Continuar</button> <a class="btn btn-outline-secondary" href="' . $this->link($pai->id) . '">Cancelar</a></form>';
+            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Continuar</button><a class="btn btn-outline-secondary" href="' . $this->link($pai->id) . '">Cancelar</a></div></form>';
 
         return Pagina::resposta('Criar conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao));
     }
@@ -616,7 +616,7 @@ final class TelasDeObjetos
             . '<input type="hidden" name="_csrf" value="' . Pagina::h($this->csrf->daSessao($sessao->idHash)) . '">'
             . '<input type="hidden" name="classe" value="' . $classe->id . '">'
             . $this->camposDoFormulario($classe, $digitado, $erros, false, true)
-            . '<button type="submit" class="btn btn-primary">Criar</button> <a class="btn btn-outline-secondary" href="' . $this->link($pai->id) . '">Cancelar</a></form>';
+            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Criar</button><a class="btn btn-outline-secondary" href="' . $this->link($pai->id) . '">Cancelar</a></div></form>';
 
         return Pagina::resposta('Criar conteúdo', $corpo, $status, false, $this->barra($sessao));
     }
@@ -1152,7 +1152,7 @@ final class TelasDeObjetos
             . $this->campo('estado', 'Estado', '<select id="campo-estado" name="estado" class="form-select' . $this->invalido($erros, 'estado') . '"' . $this->descrito($erros, 'estado') . '>' . $opcoes . '</select>', $erros)
             . $this->campo('data_publicacao', 'Publicar a partir de', '<input id="campo-data_publicacao" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_publicacao') . '" name="data_publicacao" value="' . Pagina::h($inicio) . '"' . $this->descrito($erros, 'data_publicacao', true) . '>', $erros, $ajudaData . ' Vazio = assim que publicado.')
             . $this->campo('data_validade', 'Tirar do ar a partir de', '<input id="campo-data_validade" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_validade') . '" name="data_validade" value="' . Pagina::h($fim) . '"' . $this->descrito($erros, 'data_validade', true) . '>', $erros, $ajudaData . ' Vazio = sem prazo.')
-            . '<button type="submit" class="btn btn-primary">Salvar</button> <a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></form>';
+            . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar</button><a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></div></form>';
 
         return Pagina::resposta('Publicar ou tirar do ar: ' . $o->titulo, $corpo, $status, false, $this->barra($sessao));
     }
@@ -1448,7 +1448,7 @@ final class TelasDeObjetos
             $corpo .= '<p>Mandar <strong>' . Pagina::h($o->titulo) . '</strong> para a lixeira? Ele sai do ar na hora e deixa de aparecer nas listas. '
                 . 'Nada é apagado de vez: dá para tirá-lo da lixeira depois, com o histórico inteiro.</p>'
                 . '<form method="post" action="' . $this->link($o->id) . '/apagar">' . $this->camposOcultos($sessao, $o->versao)
-                . '<button type="submit" class="btn btn-danger">Mandar para a lixeira</button> <a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></form>';
+                . '<div class="pbl-acoes"><button type="submit" class="btn btn-danger">Mandar para a lixeira</button><a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></div></form>';
         }
 
         return Pagina::resposta('Mandar para a lixeira: ' . $o->titulo, $corpo, $status, false, $this->barra($sessao));

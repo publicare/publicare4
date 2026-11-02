@@ -1,34 +1,74 @@
 /* PBL4 — ajustes da administração e do instalador sobre o Bootstrap 5 (ADR 0012). Único CSS próprio: nada inline. */
-main { max-width: 60rem; }
+main { max-width: 60rem; overflow-wrap: anywhere; }
+main pre, main textarea { max-width: 100%; }
 
 /* Marcas de texto usadas pelo instalador (contraste AA sobre fundo claro). */
 .erro, .no { color: #a40000; }
 .ok { color: #146c2e; }
 .aviso { color: #8a5a00; }
 
-/* Formulários simples (instalador): rótulo envolvendo o campo, sem classes de framework. */
-main label:not(.form-label):not(.form-check-label):not(.visually-hidden) { display: block; margin: .75rem 0; }
-main label:not(.form-label) > input:not([type="hidden"]) {
-  display: block; width: 100%; padding: .375rem .75rem; font: inherit;
-  border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius);
-}
-main label:not(.form-label) > input:focus { outline: 0; border-color: #86b7fe; box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25); }
-main form > button:not(.btn) { margin-top: 1rem; }
-main table:not(.table) { width: 100%; border-collapse: collapse; }
-main table:not(.table) td { padding: .25rem .5rem; border-bottom: 1px solid var(--bs-border-color); vertical-align: top; }
+/* Instalador: formulário em coluna única, rótulo acima do campo, requisitos numa tabela que rola dentro do quadro. */
+.pbl-requisitos td:first-child { width: 2.5rem; text-align: center; }
 
-/* Barra de navegação: o formulário de sair fica na mesma linha. */
+/* Barra de navegação: sem JavaScript não há menu recolhível. Linha 1 = marca, nome e Sair; linha 2 = seções (quebram de linha). */
 .navbar form { margin: 0; }
-/* Celular: sem JavaScript não há menu recolhível, então os links descem para uma segunda linha em vez de estourar a barra. */
-@media (max-width: 767.98px) {
-  .navbar > .container { flex-wrap: wrap; row-gap: .25rem; }
-  .navbar .navbar-brand { margin-right: auto; }
-  .navbar .pbl-links { order: 3; width: 100%; flex-direction: row; flex-wrap: wrap; column-gap: 1rem; }
-  .navbar .navbar-text { max-width: 8rem; }
+.pbl-barra > .container { flex-wrap: wrap; row-gap: 0; }
+.pbl-barra .navbar-brand { margin-right: auto; }
+.pbl-barra .pbl-nome { max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pbl-barra .pbl-links { order: 3; width: 100%; flex-direction: row; flex-wrap: wrap; column-gap: .25rem; margin-bottom: .25rem; }
+.pbl-barra .nav-link { min-height: 44px; display: flex; align-items: center; padding-left: .75rem; padding-right: .75rem; }
+.pbl-barra .nav-link.active { color: #fff; font-weight: 600; box-shadow: inset 0 -3px 0 #6ea8fe; }
+@media (min-width: 768px) {
+  .pbl-barra .pbl-links { order: 0; width: auto; margin: 0 0 0 1rem; }
+  .pbl-barra .navbar-brand { margin-right: 0; }
 }
 
-/* Tipos de conteúdo: a coluna de ordem dos campos não precisa ser larga. */
-.campo-ordem { width: 5rem; }
+/* Alvos de toque de pelo menos 44px no celular. */
+@media (max-width: 767.98px) {
+  main .btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding-left: .85rem; padding-right: .85rem; }
+  main .form-check { min-height: 44px; display: flex; align-items: center; gap: .5rem; padding-left: 0; }
+  main .form-check .form-check-input { float: none; margin: 0; width: 1.4em; height: 1.4em; flex: none; }
+  main .form-control, main .form-select { min-height: 44px; }
+  main .list-group-item a:not(.btn) { display: inline-block; padding: .35rem 0; }
+}
+
+/* Caminho de volta (breadcrumb). */
+.pbl-migalhas .breadcrumb { flex-wrap: wrap; font-size: .9rem; }
+.pbl-migalhas a { padding: .25rem 0; display: inline-block; }
+
+/* Ações do formulário: no celular os botões ocupam a largura toda, um por linha; em telas maiores ficam lado a lado e afastados. */
+.pbl-acoes { display: flex; flex-direction: column; gap: .5rem; margin-top: 1.25rem; }
+.pbl-acoes .btn { width: 100%; }
+.pbl-acoes .pbl-acao-destrutiva { margin-top: .75rem; }
+@media (min-width: 768px) {
+  .pbl-acoes { flex-direction: row; flex-wrap: wrap; align-items: center; gap: .75rem; }
+  .pbl-acoes .btn { width: auto; }
+  .pbl-acoes .pbl-acao-destrutiva { margin-top: 0; margin-left: auto; }
+}
+
+/* Cartão (grupo de campos com título) e cartão de cada campo de um tipo de conteúdo. */
+.pbl-card { border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: var(--bs-body-bg); padding: 1rem; margin-bottom: 1rem; min-width: 0; }
+.pbl-card > legend, .pbl-card > .pbl-card-titulo { float: none; width: auto; padding: 0 .35rem; margin: 0 0 .5rem -.35rem; font-size: 1.05rem; font-weight: 600; }
+.pbl-card fieldset { border: 0; padding: 0; margin: 0 0 1rem; min-width: 0; }
+.pbl-card fieldset > legend { float: none; width: auto; padding: 0; margin: 0 0 .25rem; font-size: .95rem; font-weight: 600; }
+.pbl-grade { display: grid; grid-template-columns: 1fr; gap: .75rem 1rem; }
+.pbl-grade > * { min-width: 0; }
+@media (min-width: 768px) {
+  .pbl-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pbl-grade.pbl-grade-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pbl-grade .pbl-largo { grid-column: 1 / -1; }
+}
+.pbl-extensoes { display: flex; flex-wrap: wrap; column-gap: 1.25rem; }
+.pbl-extensoes .form-check { margin-bottom: 0; padding-left: 0; display: flex; align-items: center; gap: .4rem; min-height: 44px; }
+.pbl-extensoes .form-check .form-check-input { float: none; margin: 0; flex: none; }
+.pbl-tamanho { max-width: 12rem; }
+.campo-ordem { max-width: 8rem; }
+
+/* Lista de ações por site: botões com nome claro, quebrando de linha. */
+.pbl-lista-acoes { display: flex; flex-wrap: wrap; gap: .5rem; padding: 0; margin: 0 0 1rem; list-style: none; }
+
+/* Tabelas largas rolam dentro do próprio quadro, nunca a página inteira. */
+.table-responsive { max-width: 100%; }
 
 /* Realce de sintaxe dos moldes, só leitura (fase 5j, ADR 0012 §9): visualização, diferença e histórico. A caixa de
    edição continua uma <textarea> simples, sem realce (ver o ADR). */

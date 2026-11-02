@@ -185,7 +185,7 @@ final class TelasDeDominios
             . '<div id="ajuda-host" class="form-text">Só o nome (sem <code>https://</code>, porta ou caminho). O DNS e o certificado do domínio precisam apontar para esta hospedagem; isso se faz fora do PBL4.</div></form></section>'
             . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
 
-        return Pagina::resposta('Domínios: ' . $site->nome, $corpo, $status, false, $this->barra($sessao));
+        return Pagina::resposta('Domínios: ' . $site->nome, $corpo, $status, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Domínios', null]]);
     }
 
     private function acoesDe(SessaoAtiva $sessao, string $csrf, string $base, Dominio $d): string

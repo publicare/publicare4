@@ -374,7 +374,7 @@ final class TelasDeAtualizacao
         }
         $corpo .= $this->voltarAtras($andamento, $base, $csrf, $lembrarConfirmacao) . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
 
-        return Pagina::resposta('Atualização', $corpo, $status, false, $this->barra($sessao));
+        return Pagina::resposta('Atualização', $corpo, $status, false, $this->barra($sessao), [['Atualização', null]]);
     }
 
     /**

@@ -106,14 +106,14 @@ final class InstaladorWeb
             }
         } catch (\Throwable) {
             // O site já está instalado (o instalador não volta): a publicação pode ser refeita depois, sem refazer nada.
-            $aviso = '<p role="alert" class="erro">O PBL4 foi instalado, mas não conseguiu publicar as páginas de exemplo agora. '
-                . 'Dê permissão de escrita à pasta <code>dados/cache/</code> e rode <code>php bin/pbl publicar</code> (ou republique pela administração).</p>';
+            $aviso = Pagina::alerta('warning', 'O PBL4 foi instalado, mas não conseguiu publicar as páginas de exemplo agora. '
+                . 'Dê permissão de escrita à pasta <code>dados/cache/</code> e rode <code>php bin/pbl publicar</code> (ou republique pela administração).', '', true);
         }
         @unlink($this->caminhos->dados() . '/' . self::ARQUIVO_DE_POSSE);
 
-        return Pagina::resposta('PBL4 instalado', '<p class="ok">Tudo pronto.</p>' . $aviso . '<ul>'
+        return Pagina::resposta('PBL4 instalado', Pagina::alerta('success', 'Tudo pronto.') . $aviso . '<ul>'
             . '<li><a href="/">Ver o site</a></li><li><a href="/_pbl/entrar">Entrar na administração</a> com o login <strong>' . Pagina::h($campos['login']) . '</strong></li></ul>'
-            . '<h2>Antes de seguir</h2><ul>'
+            . '<h2 class="h5">Antes de seguir</h2><ul>'
             . '<li>Use <strong>HTTPS</strong> no endereço do site (o login só fica totalmente protegido assim). Se o site fica atrás de um proxy (como o Cloudflare), crie <code>dados/config/rede.json</code> para o login funcionar (veja o guia de instalação).</li>'
             . '<li>Confirme que só a pasta <code>public/</code> é a raiz do site no servidor.</li>'
             . '<li>Guarde a senha em um gerenciador de senhas. O PBL4 não consegue recuperá-la.</li></ul>', Response::HTTP_OK, $seguro);
@@ -127,31 +127,31 @@ final class InstaladorWeb
         $linhas = '';
         foreach ($requisitos->verificar() as $item) {
             $marca = $item['ok'] ? '✔' : ($item['obrigatorio'] ? '✘' : '⚠');
-            $linhas .= '<tr><td class="' . ($item['ok'] ? 'ok' : ($item['obrigatorio'] ? 'no' : 'aviso')) . '">' . $marca . '</td><td><strong>' . Pagina::h($item['nome']) . '</strong><br>' . Pagina::h($item['detalhe']) . '</td></tr>';
+            $linhas .= '<tr><td class="text-center ' . ($item['ok'] ? 'ok' : ($item['obrigatorio'] ? 'no' : 'aviso')) . '">' . $marca . '</td><td><strong>' . Pagina::h($item['nome']) . '</strong><br>' . Pagina::h($item['detalhe']) . '</td></tr>';
         }
-        $corpo = '<h2>1. Requisitos do servidor</h2><table>' . $linhas . '</table>';
+        $corpo = '<h2 class="h5">1. Requisitos do servidor</h2><div class="table-responsive"><table class="table table-sm pbl-requisitos"><caption class="visually-hidden">Requisitos do servidor</caption><tbody>' . $linhas . '</tbody></table></div>';
         if (!$requisitos->tudoCerto() || $csrf === null) {
-            return Pagina::resposta('Instalar o PBL4', $corpo . '<p class="erro">Corrija os itens marcados com ✘ e recarregue esta página. Os marcados com ⚠ são avisos: não impedem a instalação.</p>', $status, $seguro);
+            return Pagina::resposta('Instalar o PBL4', $corpo . Pagina::alerta('danger', 'Corrija os itens marcados com ✘ e recarregue esta página. Os marcados com ⚠ são avisos: não impedem a instalação.'), $status, $seguro);
         }
-        $corpo .= '<h2>2. Prove que você é o dono do servidor</h2>';
+        $corpo .= '<h2 class="h5 mt-4">2. Prove que você é o dono do servidor</h2>';
         if (!$this->temPosse()) {
             return Pagina::resposta('Instalar o PBL4', $corpo
                 . '<p>Para ninguém mais poder instalar no seu lugar, crie um arquivo <strong>vazio</strong> chamado <code>' . self::ARQUIVO_DE_POSSE
                 . '</code> dentro da pasta <code>dados/</code> do site (por FTP ou pelo painel da hospedagem) e recarregue esta página.</p>', $status, $seguro);
         }
         $v = static fn (string $campo, string $padrao = ''): string => Pagina::h($campos[$campo] ?? $padrao);
-        $corpo .= '<p class="ok">✔ Arquivo encontrado.</p><h2>3. Seu site e a conta de administrador</h2>'
-            . ($erro === null ? '' : '<p role="alert" class="erro">' . Pagina::h($erro) . '</p>')
-            . '<form method="post" action="' . self::PREFIXO . '" autocomplete="off">'
+        $corpo .= '<p class="ok">✔ Arquivo encontrado.</p><h2 class="h5 mt-4">3. Seu site e a conta de administrador</h2>'
+            . ($erro === null ? '' : Pagina::alerta('danger', $erro, 'erro-formulario'))
+            . '<form method="post" action="' . self::PREFIXO . '" autocomplete="off"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>'
             . '<input type="hidden" name="_csrf" value="' . Pagina::h($csrf->paraEntrar()) . '">'
-            . '<label>Nome do site <input name="site" maxlength="200" required value="' . $v('site') . '"></label>'
-            . '<label>Endereço (domínio) do site <input name="dominio" maxlength="253" required value="' . $v('dominio', $requisicao->getHost()) . '"></label>'
-            . '<label>Login do administrador <input name="login" maxlength="64" required autocomplete="username" value="' . $v('login') . '"></label>'
-            . '<label>Nome <input name="nome" maxlength="200" value="' . $v('nome') . '"></label>'
-            . '<label>E-mail <input name="email" type="email" maxlength="255" required value="' . $v('email') . '"></label>'
-            . '<label>Senha (mínimo ' . SenhaPolitica::MINIMO . ' caracteres) <input name="senha" type="password" required autocomplete="new-password"></label>'
-            . '<label>Repita a senha <input name="senha2" type="password" required autocomplete="new-password"></label>'
-            . '<button type="submit">Instalar</button></form>';
+            . Pagina::card('O site', Pagina::campo('i-site', 'site', 'Nome do site', $campos['site'] ?? '', ['maxlength' => 200, 'obrigatorio' => true])
+                . Pagina::campo('i-dominio', 'dominio', 'Endereço (domínio) do site', $campos['dominio'] ?? $requisicao->getHost(), ['maxlength' => 253, 'obrigatorio' => true, 'grupo' => 'mb-0']))
+            . Pagina::card('Conta de administrador', Pagina::campo('i-login', 'login', 'Login do administrador', $campos['login'] ?? '', ['maxlength' => 64, 'obrigatorio' => true, 'autocomplete' => 'username'])
+                . Pagina::campo('i-nome', 'nome', 'Nome', $campos['nome'] ?? '', ['maxlength' => 200])
+                . Pagina::campo('i-email', 'email', 'E-mail', $campos['email'] ?? '', ['tipo' => 'email', 'maxlength' => 255, 'obrigatorio' => true])
+                . Pagina::campo('i-senha', 'senha', 'Senha', '', ['tipo' => 'password', 'obrigatorio' => true, 'autocomplete' => 'new-password', 'ajuda' => 'Mínimo de ' . SenhaPolitica::MINIMO . ' caracteres.'])
+                . Pagina::campo('i-senha2', 'senha2', 'Repita a senha', '', ['tipo' => 'password', 'obrigatorio' => true, 'autocomplete' => 'new-password', 'grupo' => 'mb-0']))
+            . Pagina::acoes('Instalar') . '</form>';
 
         return Pagina::resposta('Instalar o PBL4', $corpo, $status, $seguro);
     }
