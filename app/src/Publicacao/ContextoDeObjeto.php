@@ -22,6 +22,8 @@ final class ContextoDeObjeto
             'pai' => $objeto->paiId ?? '',
             'peso' => $objeto->peso,
             'descricao' => $objeto->descricao,
+            'no_menu' => $objeto->noMenu ? 1 : 0,
+            'rotulo_menu' => $objeto->rotuloMenu === '' ? $objeto->titulo : $objeto->rotuloMenu,
             'data_publicacao' => $objeto->dataPublicacao ?? '',
             'data_validade' => $objeto->dataValidade ?? '',
             'url_amigavel' => $objeto->urlAmigavel,

@@ -41,6 +41,7 @@ final class TelasDeObjetos
     public const POR_PAGINA = 100;
     public const MAX_TITULO = 300;
     public const MAX_DESCRICAO = 2000;
+    public const MAX_ROTULO_MENU = 60;
     /** Teto de uma propriedade `texto` e de uma `html` (em caracteres). */
     public const MAX_TEXTO = 10000;
     public const MAX_HTML = 200000;
@@ -425,7 +426,7 @@ final class TelasDeObjetos
         // Na edição $pendentes vem sempre vazio (o arquivo é enviado na hora, ver lerFormulario); só a criação adia.
 
         $mudancas = [];
-        foreach (['titulo' => $o->titulo, 'descricao' => $o->descricao, 'url_amigavel' => $o->urlAmigavel, 'peso' => $o->peso] as $campo => $atual) {
+        foreach (['titulo' => $o->titulo, 'descricao' => $o->descricao, 'url_amigavel' => $o->urlAmigavel, 'peso' => $o->peso, 'no_menu' => $o->noMenu, 'rotulo_menu' => $o->rotuloMenu] as $campo => $atual) {
             if (array_key_exists($campo, $valores) && $valores[$campo] !== $atual) {
                 $mudancas[$campo] = $valores[$campo];
             }
@@ -507,7 +508,7 @@ final class TelasDeObjetos
         if ($classe === null || !$this->aceita($pai, $classe)) {
             return $this->escolherClasse($sessao, $pai);
         }
-        $vazio = ['titulo' => '', 'descricao' => '', 'url' => '', 'peso' => '0'];
+        $vazio = ['titulo' => '', 'descricao' => '', 'url' => '', 'peso' => '0', 'no_menu' => '0', 'rotulo_menu' => ''];
 
         return $this->telaDeCriacao($sessao, $pai, $classe, $vazio);
     }
@@ -577,7 +578,7 @@ final class TelasDeObjetos
             // roda dentro da mesma transação de `criarDentro`/`criar`; se algum upload falhar (`ErroDeUpload`), o insert
             // inteiro é desfeito e nada fica pela metade.
             $novo = $this->servicos->objetos->criarDentro($pai->siteId, $classe, $pai->id, $valores['titulo'], $url, $dados, 'privado', [
-                'peso' => $valores['peso'], 'descricao' => $valores['descricao'], 'criado_por' => $u->id,
+                'peso' => $valores['peso'], 'descricao' => $valores['descricao'], 'no_menu' => $valores['no_menu'], 'rotulo_menu' => $valores['rotulo_menu'], 'criado_por' => $u->id,
             ], $aposInserir);
         } catch (ConflitoDeArvore) {
             return $this->naLixeira($sessao, $pai);
@@ -658,7 +659,7 @@ final class TelasDeObjetos
      * obrigatório e nada foi enviado; o conteúdo do arquivo em si só é conferido depois.
      *
      * @param array<string, mixed> $campos
-     * @return array{0: array{titulo: string, descricao: string, url_amigavel?: string, peso: int, dados: array<string, string|int|float|null>}, 1: array<string, string>, 2: array<string, string>, 3: array<string, UploadedFile>}|null
+     * @return array{0: array{titulo: string, descricao: string, url_amigavel?: string, peso: int, no_menu: bool, rotulo_menu: string, dados: array<string, string|int|float|null>}, 1: array<string, string>, 2: array<string, string>, 3: array<string, UploadedFile>}|null
      */
     private function lerFormulario(SessaoAtiva $sessao, int $siteId, Classe $classe, array $campos, ?Objeto $atual, ?Request $r = null): ?array
     {
@@ -667,17 +668,25 @@ final class TelasDeObjetos
         $descricao = $campos['descricao'] ?? null;
         $url = $campos['url'] ?? ($atual === null ? '' : $atual->urlAmigavel);
         $peso = $campos['peso'] ?? ($atual === null ? '0' : (string) $atual->peso);
+        $noMenu = $campos['no_menu'] ?? ($atual?->noMenu ? '1' : '0');
+        $rotulo = $campos['rotulo_menu'] ?? ($atual === null ? '' : $atual->rotuloMenu);
         $dadosBrutos = $campos['dados'] ?? [];
-        if (!is_string($titulo) || !is_string($descricao) || !is_string($url) || !is_string($peso) || !is_array($dadosBrutos)) {
+        if (!is_string($titulo) || !is_string($descricao) || !is_string($url) || !is_string($peso) || !is_string($noMenu) || !is_string($rotulo) || !is_array($dadosBrutos)) {
             return null;
         }
         $titulo = trim($titulo);
         $descricao = trim($this->linhas($descricao));
         $url = trim($url);
         $peso = trim($peso);
-        $digitado = ['titulo' => $titulo, 'descricao' => $descricao, 'url' => $url, 'peso' => $peso];
+        $rotulo = trim($rotulo);
+        $digitado = ['titulo' => $titulo, 'descricao' => $descricao, 'url' => $url, 'peso' => $peso, 'no_menu' => $noMenu === '1' ? '1' : '0', 'rotulo_menu' => $rotulo];
         $erros = [];
-        $valores = ['titulo' => $titulo, 'descricao' => $descricao, 'peso' => 0, 'dados' => []];
+        $valores = ['titulo' => $titulo, 'descricao' => $descricao, 'peso' => 0, 'no_menu' => $noMenu === '1', 'rotulo_menu' => $rotulo, 'dados' => []];
+        if (!mb_check_encoding($rotulo, 'UTF-8') || $this->temControle($rotulo, false)) {
+            $erros['rotulo_menu'] = 'O texto do menu tem caracteres que não são permitidos.';
+        } elseif (mb_strlen($rotulo) > self::MAX_ROTULO_MENU) {
+            $erros['rotulo_menu'] = 'O texto do menu pode ter até ' . self::MAX_ROTULO_MENU . ' caracteres.';
+        }
 
         if (!mb_check_encoding($titulo, 'UTF-8') || $this->temControle($titulo, false)) {
             $erros['titulo'] = 'O título tem caracteres que não são permitidos.';
@@ -897,7 +906,7 @@ final class TelasDeObjetos
     /** @return array<string, string> os valores atuais como texto, para preencher o formulário */
     private function digitadoDe(Objeto $o, Classe $classe): array
     {
-        $d = ['titulo' => $o->titulo, 'descricao' => $o->descricao, 'url' => $o->urlAmigavel, 'peso' => (string) $o->peso];
+        $d = ['titulo' => $o->titulo, 'descricao' => $o->descricao, 'url' => $o->urlAmigavel, 'peso' => (string) $o->peso, 'no_menu' => $o->noMenu ? '1' : '0', 'rotulo_menu' => $o->rotuloMenu];
         foreach ($classe->propriedades as $p) {
             $d['dados.' . $p['nome']] = isset($o->dados[$p['nome']]) ? (string) $o->dados[$p['nome']] : '';
         }
@@ -917,7 +926,11 @@ final class TelasDeObjetos
             $html .= $this->campo('url', 'Endereço (URL amigável)', '<div class="input-group"><span class="input-group-text">/</span><input id="campo-url" class="form-control' . $this->invalido($erros, 'url') . '" name="url" maxlength="' . Caminhos::URL_TAMANHO_MAXIMO . '" value="' . Pagina::h($digitado['url'] ?? '') . '"' . $this->descrito($erros, 'url', true) . '></div>', $erros,
                 $criando ? 'Opcional: se ficar vazio, é criado a partir do título. Letras minúsculas sem acento, números, hífen e "/".' : 'Letras minúsculas sem acento, números, hífen e "/". Se mudar, o endereço antigo passa a levar ao novo.');
         }
-        $html .= $this->campo('peso', 'Peso', '<input id="campo-peso" class="form-control' . $this->invalido($erros, 'peso') . '" name="peso" type="number" step="1" min="-999999" max="999999" value="' . Pagina::h($digitado['peso'] ?? '0') . '"' . $this->descrito($erros, 'peso', true) . '>', $erros, 'Ordem nas listas: menor aparece primeiro.');
+        $html .= $this->campo('peso', 'Peso', '<input id="campo-peso" class="form-control' . $this->invalido($erros, 'peso') . '" name="peso" type="number" step="1" min="-999999" max="999999" value="' . Pagina::h($digitado['peso'] ?? '0') . '"' . $this->descrito($erros, 'peso', true) . '>', $erros, 'Ordem nas listas e no menu: menor aparece primeiro.');
+        if ($criando || !$raiz) {
+            $html .= $this->campo('no_menu', 'Aparece no menu do site', '<select id="campo-no-menu" class="form-select" name="no_menu">' . $this->opcao('1', 'Sim', ($digitado['no_menu'] ?? '0') === '1') . $this->opcao('0', 'Não', ($digitado['no_menu'] ?? '0') !== '1') . '</select>', $erros, 'Vale para conteúdo publicado direto na página inicial (ou dentro de um item do menu, como submenu).')
+                . $this->campo('rotulo_menu', 'Texto no menu', '<input id="campo-rotulo-menu" class="form-control' . $this->invalido($erros, 'rotulo_menu') . '" name="rotulo_menu" maxlength="' . self::MAX_ROTULO_MENU . '" value="' . Pagina::h($digitado['rotulo_menu'] ?? '') . '"' . $this->descrito($erros, 'rotulo_menu', true) . '>', $erros, 'Opcional: se ficar vazio, o menu usa o título.');
+        }
         $ativas = $this->propriedadesAtivas($classe);
         if ($ativas !== []) {
             $html .= '<fieldset class="mb-3"><legend class="h6">Campos do tipo ' . Pagina::h($classe->nome) . '</legend>';

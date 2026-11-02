@@ -21,7 +21,7 @@ final class ClasseRepositorio
 {
     public const TIPOS = ['texto', 'numero', 'html', 'data', 'booleano', 'ref', 'arquivo', 'imagem'];
     /** Nomes que o contexto do molde já usa (`#id`, `#titulo`...). */
-    public const RESERVADOS = ['id', 'titulo', 'url', 'url_amigavel', 'classe', 'classe_id', 'site', 'pai', 'filhos', 'peso', 'descricao', 'data_publicacao', 'data_validade', 'status', 'apagado', 'temfilhos'];
+    public const RESERVADOS = ['id', 'titulo', 'url', 'url_amigavel', 'classe', 'classe_id', 'site', 'pai', 'filhos', 'peso', 'descricao', 'no_menu', 'rotulo_menu', 'raiz', 'site_nome', 'data_publicacao', 'data_validade', 'status', 'apagado', 'temfilhos'];
     public const MAX_NOME = 64;
     public const MAX_ROTULO = 100;
     public const MAX_DESCRICAO = 2000;

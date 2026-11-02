@@ -87,8 +87,8 @@ final class Instalador
             $objetos->criar($site->id, $pagina, $inicio->id, 'Sobre', 'sobre', [
                 'resumo' => 'Sobre este site',
                 'corpo' => '<p>Página de exemplo. Conte aqui quem você é e o que o site oferece.</p>',
-            ], 'publicado', ['peso' => 10]);
-            $noticias = $objetos->criar($site->id, $pasta, $inicio->id, 'Notícias', 'noticias', [], 'publicado', ['peso' => 20, 'descricao' => 'Novidades e avisos']);
+            ], 'publicado', ['peso' => 10, 'no_menu' => true]);
+            $noticias = $objetos->criar($site->id, $pasta, $inicio->id, 'Notícias', 'noticias', [], 'publicado', ['peso' => 20, 'descricao' => 'Novidades e avisos', 'no_menu' => true]);
             $objetos->criar($site->id, $noticia, $noticias->id, 'Bem-vindo ao novo site', 'bem-vindo-ao-novo-site', [
                 'resumo' => 'Nossa primeira notícia.',
                 'corpo' => '<p>Esta é uma notícia de exemplo. Edite-a ou apague-a pelo painel de administração.</p>',
@@ -103,7 +103,7 @@ final class Instalador
                 'campos' => 'nome,email,mensagem',
                 'mensagem' => 'Recebemos a sua mensagem. Obrigado!',
                 'botao' => 'Enviar mensagem',
-            ], 'publicado', ['peso' => 30]);
+            ], 'publicado', ['peso' => 30, 'no_menu' => true]);
         });
 
         file_put_contents($this->trava(), gmdate('c') . "\n");

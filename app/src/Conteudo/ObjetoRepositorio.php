@@ -32,7 +32,7 @@ final class ObjetoRepositorio
 
     /**
      * @param array<string, string|int|float|bool> $dados
-     * @param array{peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null, criado_por?: int|null} $meta `criado_por` = id do usuário (o autor só edita o que criou)
+     * @param array{peso?: int, descricao?: string, no_menu?: bool, rotulo_menu?: string, data_publicacao?: string|null, data_validade?: string|null, criado_por?: int|null} $meta `criado_por` = id do usuário (o autor só edita o que criou)
      * @param bool $liberarUrl true = tomar de propósito um endereço que hoje redireciona para outro objeto
      * @param (\Closure(int): array<string, string|int|float|bool>)|null $aposInserir chamado **dentro da mesma transação**, já com
      *     o id do objeto novo; devolve dados adicionais para mesclar (upload de arquivo, que precisa do id do dono antes de
@@ -88,6 +88,8 @@ final class ObjetoRepositorio
                 'data_publicacao' => $meta['data_publicacao'] ?? null,
                 'data_validade' => $meta['data_validade'] ?? null,
                 'criado_por' => $meta['criado_por'] ?? null,
+                'no_menu' => empty($meta['no_menu']) ? 0 : 1,
+                'rotulo_menu' => ($meta['rotulo_menu'] ?? '') === '' ? null : $meta['rotulo_menu'],
                 'criado_em' => $agora,
                 'atualizado_em' => $agora,
             ]);
@@ -109,7 +111,7 @@ final class ObjetoRepositorio
             $this->registrarVersao($id, 'criação', $meta['criado_por'] ?? null);
             $this->auditar('objeto.criar', $meta['criado_por'] ?? null, $id, ['classe' => $classe->nome, 'estado' => $status]);
 
-            return new Objeto($id, $siteId, $classe->id, $paiId, $caminho, $titulo, $urlAmigavel, $status, $dados, $meta['peso'] ?? 0, $meta['descricao'] ?? '', $meta['data_publicacao'] ?? null, $meta['data_validade'] ?? null, 1, $meta['criado_por'] ?? null);
+            return new Objeto($id, $siteId, $classe->id, $paiId, $caminho, $titulo, $urlAmigavel, $status, $dados, $meta['peso'] ?? 0, $meta['descricao'] ?? '', $meta['data_publicacao'] ?? null, $meta['data_validade'] ?? null, 1, $meta['criado_por'] ?? null, !empty($meta['no_menu']), (string) ($meta['rotulo_menu'] ?? ''));
         });
     }
 
@@ -230,7 +232,7 @@ final class ObjetoRepositorio
      * as demais chaves substituem o valor. Se a URL muda, a antiga vira redirecionamento 301 para o objeto
      * (`url_historico`). `$versaoEsperada` evita sobrescrever o trabalho de outra pessoa.
      *
-     * @param array{titulo?: string, url_amigavel?: string, status?: string, dados?: array<string, string|int|float|bool|null>, peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null} $mudancas
+     * @param array{titulo?: string, url_amigavel?: string, status?: string, dados?: array<string, string|int|float|bool|null>, peso?: int, descricao?: string, no_menu?: bool, rotulo_menu?: string, data_publicacao?: string|null, data_validade?: string|null} $mudancas
      * @throws ConflitoDeVersao se a versão atual não for a esperada
      * @throws \InvalidArgumentException valor, estado ou URL inválidos (nada é gravado)
      */
@@ -262,6 +264,12 @@ final class ObjetoRepositorio
                 if (array_key_exists($campo, $mudancas)) {
                     $linha[$campo] = $mudancas[$campo];
                 }
+            }
+            if (array_key_exists('no_menu', $mudancas)) {
+                $linha['no_menu'] = empty($mudancas['no_menu']) ? 0 : 1;
+            }
+            if (array_key_exists('rotulo_menu', $mudancas)) {
+                $linha['rotulo_menu'] = trim((string) $mudancas['rotulo_menu']) === '' ? null : trim((string) $mudancas['rotulo_menu']);
             }
             foreach (['data_publicacao', 'data_validade'] as $campo) {
                 if (array_key_exists($campo, $mudancas)) {
@@ -411,7 +419,7 @@ final class ObjetoRepositorio
      * para a lixeira" simultâneo (que trava a mesma linha) espera ou acontece antes e é visto aqui.
      *
      * @param array<string, string|int|float|bool> $dados
-     * @param array{peso?: int, descricao?: string, data_publicacao?: string|null, data_validade?: string|null, criado_por?: int|null} $meta
+     * @param array{peso?: int, descricao?: string, no_menu?: bool, rotulo_menu?: string, data_publicacao?: string|null, data_validade?: string|null, criado_por?: int|null} $meta
      * @param (\Closure(int): array<string, string|int|float|bool>)|null $aposInserir ver `criar()`
      * @throws ConflitoDeArvore se o pai está na lixeira (ou não existe)
      * @throws \InvalidArgumentException endereço, estado ou dados inválidos
@@ -806,6 +814,8 @@ final class ObjetoRepositorio
             isset($linha['data_validade']) ? (string) $linha['data_validade'] : null,
             (int) ($linha['versao'] ?? 1),
             isset($linha['criado_por']) ? (int) $linha['criado_por'] : null,
+            (int) ($linha['no_menu'] ?? 0) === 1,
+            (string) ($linha['rotulo_menu'] ?? ''),
         );
     }
 }

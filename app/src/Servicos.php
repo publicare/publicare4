@@ -46,6 +46,7 @@ final class Servicos
     public readonly UsuarioRepositorio $usuarios;
     public readonly Permissoes $permissoes;
     public readonly Publicador $publicador;
+    public readonly Renderizador $renderizador;
     public readonly GerenciadorDePeles $peles;
     public readonly FormularioRepositorio $formularios;
     public readonly ArquivoRepositorio $arquivos;
@@ -66,7 +67,7 @@ final class Servicos
         $this->permissoes = new Permissoes($conexao);
         $this->formularios = new FormularioRepositorio($this->objetos, $this->classes);
         $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos);
-        $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
+        $this->renderizador = $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador);
         $this->peles = new GerenciadorDePeles($caminhos);
     }

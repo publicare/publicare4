@@ -22,16 +22,29 @@ final class Renderizador
     ) {
     }
 
-    public function renderizar(Site $site, Objeto $objeto): string
+    /** A pele do site tem este molde? (`busca`, `erro404`…) */
+    public function temMolde(Site $site, string $nome): bool
+    {
+        return (new ResolvedorDePele($this->caminhos, $site->pele))->existe($nome);
+    }
+
+    /**
+     * @param string|null $moldeNomeado molde da pele a usar no lugar do molde da classe do objeto (páginas dinâmicas: `busca`, `erro404`)
+     * @param array<string, scalar> $variaveis variáveis do molde (`$q`, `$pagina`) definidas antes de executar
+     */
+    public function renderizar(Site $site, Objeto $objeto, ?string $moldeNomeado = null, array $variaveis = []): string
     {
         $classe = $this->classes->porId($objeto->classeId)
             ?? throw new \RuntimeException("Classe {$objeto->classeId} não existe");
         $pele = new ResolvedorDePele($this->caminhos, $site->pele);
-        $nome = $pele->existe($classe->nome) ? $classe->nome : 'padrao';
+        $nome = $moldeNomeado ?? ($pele->existe($classe->nome) ? $classe->nome : 'padrao');
         $molde = $pele->fonte($nome);
 
         $incluidor = fn (string $arquivo, array $o, Runtime $r): string => ($this->compilador->carregar($pele->fonte($arquivo), $pele))($o, $r);
         $runtime = new Runtime($this->fonte, $incluidor);
+        foreach ($variaveis as $chave => $valor) {
+            $runtime->definir($chave, $valor);
+        }
 
         try {
             return ($this->compilador->carregar($molde, $pele))($this->fonte->contextoDe($objeto), $runtime);

@@ -228,6 +228,7 @@ final class FonteRepositorio implements FonteDeDados
             return [];
         }
         $site = $objetos[0]->siteId;
+        $config = $this->sites?->porId($site);
         $comFilhos = array_flip($this->motor->idsComFilhos(array_map(static fn (Objeto $o): int => $o->id, $objetos), $site));
         $referenciados = [];
         foreach ($expandir as $propriedade) {
@@ -244,6 +245,9 @@ final class FonteRepositorio implements FonteDeDados
         $lista = [];
         foreach ($objetos as $o) {
             $contexto = ContextoDeObjeto::de($o, $this->nomeDaClasse($o->classeId), isset($comFilhos[$o->id]));
+            // Dados do site para o molde montar menu e título: `#raiz` (id da página inicial) e `#site_nome`.
+            $contexto['raiz'] = $config?->objetoRaizId ?? '';
+            $contexto['site_nome'] = $config?->nome ?? '';
             foreach ($referenciados as $propriedade => $alvos) {
                 $alvo = $alvos[(int) ($o->dados[$propriedade] ?? 0)] ?? null;
                 if ($alvo !== null) {
