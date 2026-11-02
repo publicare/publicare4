@@ -67,7 +67,11 @@ Segurança é critério de aceite do projeto. As peles rodam em ambiente restrit
 
 ## A busca ignora maiúsculas e acentos?
 
-Sim. Procurar por `presidencia` acha `Presidência`, e `ORGAO` acha `órgão`. Estão no plano a busca com várias palavras e relevância e a correção de erros de digitação ("você quis dizer…"), que o Publicare vai oferecer por configuração; veja o [estado do projeto](estado-do-projeto.md).
+Sim. Procurar por `presidencia` acha `Presidência`, e `ORGAO` acha `órgão`.
+
+## Como funciona a busca por várias palavras?
+
+Todas as palavras digitadas precisam aparecer (em qualquer ordem) no título, na descrição ou no texto da página. Basta o começo da palavra (`presid` acha `Presidência`) e o plural vale pelo singular (`ações` acha `ação`, `casas` acha `casa`). Os resultados vêm com os melhores primeiro: título pesa mais que descrição, que pesa mais que o texto, e a palavra inteira pesa mais que só o começo. Palavras como "de", "da" e "para" são ignoradas, e a busca olha no máximo as 8 primeiras palavras. Ainda não corrige erros de digitação (`Fernandha` não acha `Fernanda`): isso está no plano, por configuração; veja o [estado do projeto](estado-do-projeto.md).
 
 ## Como fico sabendo das novidades?
 

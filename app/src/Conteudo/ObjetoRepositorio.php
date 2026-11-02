@@ -8,6 +8,9 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Pbl\Acesso\Auditoria;
+use Pbl\Busca\BuscaInterface;
+use Pbl\Busca\BuscaSql;
+use Pbl\Busca\IndexadorDeObjeto;
 use Pbl\Busca\Texto;
 
 /**
@@ -19,8 +22,11 @@ final class ObjetoRepositorio
     /** Estados de um objeto (fluxo 5). Só `publicado` aparece ao público. */
     public const STATUS = ['privado', 'submetido', 'rejeitado', 'publicado', 'apagado'];
 
-    public function __construct(private readonly Connection $conexao, private readonly ?Auditoria $auditoria = null)
+    private readonly IndexadorDeObjeto $buscador;
+
+    public function __construct(private readonly Connection $conexao, private readonly ?Auditoria $auditoria = null, ?BuscaInterface $busca = null)
     {
+        $this->buscador = new IndexadorDeObjeto($busca ?? new BuscaSql($conexao), new ClasseRepositorio($conexao));
     }
 
     /**
@@ -78,6 +84,7 @@ final class ObjetoRepositorio
             $caminho = $caminhoPai . $id . '/';
             $this->conexao->update('objeto', ['caminho' => $caminho], ['id' => $id]);
             $this->indexar($id, $classe, $dados);
+            $this->buscador->indexar($id, $classe->id, $titulo, (string) ($meta['descricao'] ?? ''), $dados);
             $this->registrarVersao($id, 'criação', $meta['criado_por'] ?? null);
             $this->auditar('objeto.criar', $meta['criado_por'] ?? null, $id, ['classe' => $classe->nome, 'estado' => $status]);
 
@@ -231,6 +238,10 @@ final class ObjetoRepositorio
                 $this->indexar($id, $classe, $novos);
             }
             $this->conexao->update('objeto', $linha, ['id' => $id]);
+            if (isset($linha['titulo']) || array_key_exists('descricao', $linha) || isset($linha['dados'])) {
+                $novo = $this->porId($id) ?? throw new \RuntimeException('Objeto sumiu durante a atualização');
+                $this->buscador->indexar($id, $novo->classeId, $novo->titulo, $novo->descricao, $novo->dados);
+            }
             $this->registrarVersao($id, $motivo, $usuarioId);
             // Só os NOMES do que mudou, nunca o conteúdo (título, texto, dados pessoais ficam fora da auditoria).
             $campos = array_values(array_diff(array_keys($linha), ['versao', 'atualizado_em', 'titulo_busca', 'titulo_norm', 'dados']));
