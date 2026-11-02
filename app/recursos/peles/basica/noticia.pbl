@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="<@eco %SITE.config.idioma@>">
 <head>
 <@incluir arquivo="cabeca"@>
 <@incluir arquivo="estilo"@>

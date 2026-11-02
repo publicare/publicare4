@@ -1,5 +1,5 @@
 <header class="topo">
 <a class="marca" href="/"><@eco #site_nome@></a>
-<form class="busca" action="/busca" method="get" role="search"><label for="busca-q" style="position:absolute;left:-9999px">Buscar no site</label><input id="busca-q" type="search" name="q" value="<@eco $q@>" maxlength="200"> <button type="submit">Buscar</button></form>
-<@menu profundidade=3 inicio="Início"@>
+<@se %SITE.config.busca_ligada == 1@><form class="busca" action="/busca" method="get" role="search"><label for="busca-q" style="position:absolute;left:-9999px">Buscar no site</label><input id="busca-q" type="search" name="q" value="<@eco $q@>" maxlength="200"> <button type="submit">Buscar</button></form>
+<@/se@><@menu profundidade=3 inicio="Início"@>
 </header>

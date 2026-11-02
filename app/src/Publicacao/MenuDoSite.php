@@ -7,6 +7,7 @@ namespace Pbl\Publicacao;
 use Doctrine\DBAL\Connection;
 use Pbl\Acesso\Auditoria;
 use Pbl\Caminhos;
+use Pbl\Conteudo\ConfigDoSiteRepositorio;
 use Pbl\Conteudo\RegrasDeLink;
 use Pbl\Conteudo\Site;
 
@@ -37,13 +38,23 @@ final class MenuDoSite
         private readonly Caminhos $caminhos,
         private readonly Auditoria $auditoria,
         int $profundidade = self::PROFUNDIDADE_PADRAO,
+        private readonly ?ConfigDoSiteRepositorio $config = null,
     ) {
         $this->profundidade = max(1, min(self::PROFUNDIDADE_MAXIMA, $profundidade));
     }
 
+    /** O teto global (`PBL_MENU_PROFUNDIDADE`). */
     public function profundidade(): int
     {
         return $this->profundidade;
+    }
+
+    /** A profundidade do site: a configurada (`menu_profundidade`, ADR 0017) limitada pelo teto global; 0 ou ausente = o teto. */
+    public function profundidadeDe(Site $site): int
+    {
+        $propria = $this->config?->valor($site->id, 'menu_profundidade');
+
+        return is_int($propria) && $propria >= 1 ? min($propria, $this->profundidade) : $this->profundidade;
     }
 
     /** @return array{hash: string, profundidade: int, cortes: int, arvore: list<array<string, mixed>>} */
@@ -53,7 +64,7 @@ final class MenuDoSite
             return $this->memoria[$site->id];
         }
         $lido = $this->ler($site->id);
-        if ($lido !== null && $lido['profundidade'] === $this->profundidade) {
+        if ($lido !== null && $lido['profundidade'] === $this->profundidadeDe($site)) {
             return $this->memoria[$site->id] = $lido;
         }
 
@@ -117,8 +128,9 @@ final class MenuDoSite
     /** @return array{hash: string, profundidade: int, cortes: int, arvore: list<array<string, mixed>>} */
     private function construir(Site $site): array
     {
+        $profundidade = $this->profundidadeDe($site);
         if ($site->objetoRaizId === null) {
-            return ['hash' => hash('sha256', '[]'), 'profundidade' => $this->profundidade, 'cortes' => 0, 'arvore' => []];
+            return ['hash' => hash('sha256', '[]'), 'profundidade' => $profundidade, 'cortes' => 0, 'arvore' => []];
         }
         $agora = gmdate('c');
         $this->consultas++;
@@ -142,19 +154,19 @@ final class MenuDoSite
             $porPai[(int) ($l['pai_id'] ?? 0)][] = $l;
         }
         $cortes = 0;
-        $arvore = $this->nivel($porPai, $site->objetoRaizId, 1, $cortes);
+        $arvore = $this->nivel($porPai, $site->objetoRaizId, 1, $cortes, $profundidade);
 
-        return ['hash' => hash('sha256', json_encode($arvore, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)), 'profundidade' => $this->profundidade, 'cortes' => $cortes, 'arvore' => $arvore];
+        return ['hash' => hash('sha256', json_encode($arvore, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)), 'profundidade' => $profundidade, 'cortes' => $cortes, 'arvore' => $arvore];
     }
 
     /**
      * @param array<int, list<array<string, mixed>>> $porPai
      * @return list<array<string, mixed>>
      */
-    private function nivel(array $porPai, int $paiId, int $nivel, int &$cortes): array
+    private function nivel(array $porPai, int $paiId, int $nivel, int &$cortes, int $profundidade): array
     {
         $filhos = $porPai[$paiId] ?? [];
-        if ($nivel > $this->profundidade) {
+        if ($nivel > $profundidade) {
             $cortes += count($filhos);
 
             return [];
@@ -169,7 +181,7 @@ final class MenuDoSite
                 $cortes++;
                 continue;
             }
-            $item['filhos'] = $this->nivel($porPai, (int) $l['id'], $nivel + 1, $cortes);
+            $item['filhos'] = $this->nivel($porPai, (int) $l['id'], $nivel + 1, $cortes, $profundidade);
             $itens[] = $item;
         }
 

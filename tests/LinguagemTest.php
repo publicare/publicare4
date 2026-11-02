@@ -101,6 +101,15 @@ final class LinguagemTest extends TestCase
                 return '<form data-id="' . ($id ?? $objeto['id'] ?? '') . '"></form>';
             }
 
+            public function configDoSite(array $objeto, string $chave): string|int
+            {
+                return match ($chave) {
+                    'nome' => 'Meu Site',
+                    'busca_ligada' => 1,
+                    default => '',
+                };
+            }
+
             public function temFilhos(array $objeto, ?int $id): bool
             {
                 return $this->filhos !== [] && ($id === null || $id > 0);
