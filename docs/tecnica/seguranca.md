@@ -34,6 +34,7 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 | **Domínios e redirecionamentos** | Host de destino vem do cadastro, nunca da requisição; host inválido → 400; nomes de domínio validados rótulo a rótulo (sem regex ambíguo); regras só aceitam destino no site ou `https://` (sem `//`, `javascript:`, `http:`, credenciais, `..`, quebra de linha), com limites de 5000 regras e 200 prefixos por site | `Aplicacao`, `Dominio`, `RedirecionamentoRepositorio` |
 | **Edição simultânea** | `versaoEsperada` recusa salvar sobre uma versão que outra pessoa já alterou; histórico imutável | `ObjetoRepositorio::atualizar` |
 | **Conversor de moldes** | Não escreve fora do destino nem através de link simbólico; nomes de molde sanitizados | `ConversorDeDiretorio` |
+| **Upload de arquivos** (fase 7a) | Whitelist fechada (nunca `php`/`html`/`svg`/`js`), tipo real por `finfo` no conteúdo (nunca pela extensão do nome), imagem decodificada de verdade e **recodificada** pelo GD quando disponível (payload e EXIF somem), nome em disco aleatório (nunca o do cliente), `dados/uploads/` fora do `docroot`, entrega só de objeto publicado e vigente com `Content-Type` fixo e `nosniff`, apagar órfão só por `bin/pbl limpar-uploads` (nunca na requisição) | `Pbl\Arquivos`, [ADR 0014](../adr/0014-upload-de-arquivos.md) |
 | **Dependências** | `composer audit` e Dependabot na pipeline | `.github/` |
 
 ## Como tratamos entrada de fora
@@ -64,6 +65,32 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 - **Limitação conhecida**: sem captcha de terceiros nem verificação de e-mail; um atacante com muitos IPs ainda consegue encher a seção de destino de envios privados (a equipe os manda para a lixeira). Captcha plugável e quotas globais são próximos passos.
 - Testes: `tests/FormulariosTest.php`.
 
+## Upload de arquivos (fase 7a)
+
+Único lugar, fora dos moldes, em que a administração grava o **conteúdo** de um arquivo (não só texto). Desenho completo no
+[ADR 0014](../adr/0014-upload-de-arquivos.md).
+
+- **Ordem das defesas**: erro do PHP (`upload_max_filesize`/`post_max_size`, mensagem clara) → tamanho configurado da
+  propriedade → tipo real do conteúdo por `finfo` contra a whitelist (nunca a extensão do nome enviado) → imagem:
+  decodificação de verdade pelo GD e recodificação (payload escondido e EXIF somem); sem GD, só os bytes mágicos do formato
+  (mais fraco, registrado em `sanitizada = false`).
+- **Nunca o nome do cliente como caminho**: chave aleatória de 16 bytes no disco; a extensão vem sempre da whitelist. O nome
+  original só é metadado saneado (exibição e `Content-Disposition`).
+- **Whitelist fechada por categoria** (`imagem`: jpg/png/gif/webp; documento: pdf/txt/csv e, com verificação mais fraca por
+  só confirmar a assinatura ZIP, docx/xlsx/pptx/odt/ods/odp): nunca `php`, `phtml`, `html`, `svg` ou `js`.
+- **Defesa em profundidade no repositório**: `ObjetoRepositorio::validar` confere de novo que o arquivo apontado existe, é
+  do mesmo site e da categoria certa — um formulário forjado não troca o valor por um arquivo de outro site ou tipo.
+- **Entrega só por `ArquivoController`**, rota pública (sem sessão, como `EnvioDeFormulario`) que só serve o arquivo de um
+  objeto **publicado e vigente agora**; qualquer outro caso dá 404, sempre a mesma resposta. `Content-Type` fixo da
+  whitelist, `nosniff`, `Content-Disposition` seguro (nome saneado), `ETag`/cache e um trecho de `Range`.
+- **Nunca apaga na requisição**: trocar ou remover o valor de uma propriedade só deixa de referenciar o arquivo antigo; só
+  `bin/pbl limpar-uploads` (cron, fora da requisição) apaga o que nenhum objeto nem versão antiga referencia mais, com
+  carência de 1 hora.
+- **Limitação conhecida**: a verificação de `docx`/`xlsx`/`pptx`/`odt`/`ods`/`odp` confere a assinatura ZIP, não a
+  estrutura interna do documento (ver ADR 0014 §2). Sem GD, upload de imagem fica só com a verificação de cabeçalho (mais
+  fraca que decodificar de verdade); o instalador avisa quando o GD falta.
+- Testes: `tests/ArquivosTest.php`, `tests/AdminUploadTest.php`.
+
 ## Escrita em disco pela administração (moldes de pele)
 
 A edição de peles é a única superfície em que a administração **grava arquivos** (`dados/peles/<pele>/<molde>.pbl`), e moldes são código-ish, então ela é fechada em `GerenciadorDePeles` ([ADR 0012](../adr/0012-administracao-web.md) §8):
@@ -82,7 +109,7 @@ A edição de peles é a única superfície em que a administração **grava arq
 | Recuperação de senha por e-mail, autenticação em dois fatores | depois da fase 4 ([ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md)) |
 | Permissão por campo | a decidir (o modelo de classes não tem permissão por campo; as telas de objetos tratam todos os campos não arquivados igual) |
 | Captcha plugável, verificação de e-mail e quota global em formulários públicos | próximas fatias da fase 6 ([ADR 0013](../adr/0013-formularios-publicos.md)) |
-| Upload seguro (lista de tipos, fora do `docroot`) | com o upload (fluxo 7) |
+| Upload na criação do conteúdo (hoje só na edição); verificação da estrutura interna de `docx`/`xlsx`/`pptx`/`odt`/`ods`/`odp` (hoje só a assinatura ZIP); anexo de formulário público; `tipos`/`tamanho_max_mb` por propriedade na tela de tipos de conteúdo (hoje só pelo `ClasseRepositorio` direto) | próximas fatias do fluxo 7 ([ADR 0014](../adr/0014-upload-de-arquivos.md)) |
 | Atualizar pelo painel sem que o PHP web precise gravar o código (hoje o processo de segundo plano roda com o mesmo usuário do PHP, então a pasta do PBL4 precisa ser gravável por ele; onde isso é indesejável, use a linha de comando com outro usuário) | a decidir ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | Voltar atrás **depois** de uma atualização concluída por botão ou comando | a decidir (hoje é manual: `dados/atualizacao/anterior/` e `dados/backups/`) |
 | HTTPS forçado na administração (hoje é recomendação) | a decidir |

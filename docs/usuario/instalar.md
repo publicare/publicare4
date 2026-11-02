@@ -56,5 +56,7 @@ Depois de instalar, entre em `/_pbl/` com a conta de administrador: já dá para
 | O navegador dá "redirecionamento em laço" atrás da Cloudflare | Ative o certificado (Let's Encrypt) no servidor e use SSL Full. |
 | Erro 500 com o projeto na raiz do site | Aponte a raiz para `public/`; confira que a hospedagem permite `.htaccess` (AllowOverride). |
 | Falta outra extensão do PHP | Peça à hospedagem para ativá-la (ou ative no painel, em "extensões do PHP"). |
+| Falta `fileinfo` | Obrigatória para enviar arquivo/imagem num conteúdo; peça à hospedagem para ativá-la. |
+| Falta `GD` (upload de imagem avisa) | Opcional: upload de imagem continua funcionando, só com uma verificação mais simples e sem miniaturas. Ative a extensão quando puder. |
 | A página `/_pbl/instalar` dá "não encontrado" | Ou o PBL4 já está instalado, ou a raiz do site não está apontando para a pasta correta. |
 | Erro ao instalar | Nada fica pela metade: corrija o que a mensagem pedir e tente de novo. |

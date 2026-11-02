@@ -4,7 +4,7 @@ Para quem instala em um servidor. Quem só quer um passo a passo simples: [Como 
 
 ## Requisitos
 
-PHP 8.2+ com `pdo_sqlite` (pacote `php8.x-sqlite3` em Debian/Ubuntu), `mbstring`, `sodium`, `json`, `ctype` e `dom` (para limpar o HTML dos campos); pasta `dados/` gravável e dentro do `open_basedir` do PHP, se houver. MySQL e PostgreSQL estão previstos (hoje o instalador cria SQLite).
+PHP 8.2+ com `pdo_sqlite` (pacote `php8.x-sqlite3` em Debian/Ubuntu), `mbstring`, `sodium`, `json`, `ctype`, `dom` (para limpar o HTML dos campos) e `fileinfo` (para identificar de verdade o tipo de um arquivo enviado); pasta `dados/` gravável e dentro do `open_basedir` do PHP, se houver. **GD é opcional**: sem ela, upload de imagem ainda funciona (com uma verificação mais fraca, sem recodificar) e não há miniaturas. MySQL e PostgreSQL estão previstos (hoje o instalador cria SQLite).
 
 ## Formas de instalar
 

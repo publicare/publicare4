@@ -11,6 +11,7 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Propriedade (campo)** | Cada informação de um tipo de conteúdo: texto, número, data, sim/não ou ligação (referência) para outro conteúdo. Tem um **nome técnico** (o que os moldes usam, não muda depois de criado) e um **rótulo** (o nome que a equipe vê). |
 | **Campo arquivado** | Campo que saiu dos formulários mas cujos valores continuam guardados (e os moldes continuam mostrando). É o jeito de "tirar" um campo que já tem valores sem perder nada; dá para voltá-lo a ativo. |
 | **Referência** | Uma propriedade que aponta para outro conteúdo (uma notícia aponta para seu autor). Dá para mostrar, filtrar e ordenar pelo conteúdo apontado (por exemplo, notícias ordenadas pelo nome do autor). Só aponta para conteúdo do mesmo site. |
+| **Arquivo / imagem (propriedade)** | Uma propriedade onde você envia um arquivo (documento) ou uma imagem, pela tela de editar o conteúdo. O Publicare confere o tipo pelo conteúdo de verdade (não pelo nome do arquivo), nunca aceita um `.php` ou algo que o navegador execute, e só mostra o arquivo em páginas publicadas. |
 | **Busca por palavras** | Procura todas as palavras digitadas, em qualquer ordem, aceitando só o começo da palavra e o plural; mostra primeiro o que combina melhor (relevância). |
 | **Relevância** | A pontuação que ordena os resultados da busca: título vale mais que descrição, que vale mais que o texto. |
 | **Busca sem acento** | A busca trata `Presidência`, `presidencia` e `PRESIDÊNCIA` como a mesma palavra. |
