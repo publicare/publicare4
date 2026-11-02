@@ -1,0 +1,3 @@
+<@-- Modelo "bloco": rodapé reutilizável. Crie um bloco com o endereço "bloco-rodape". --@>
+<@usarobjeto url="bloco-rodape"@><footer class="rodape-bloco"><@ecocru #corpo@></footer>
+<@/usarobjeto@>

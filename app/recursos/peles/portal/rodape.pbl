@@ -1,0 +1,4 @@
+<footer class="bg-body-tertiary py-4 mt-4"><div class="container">
+<@se %SITE.config.rodape != ""@><@ecocru %SITE.config.rodape@><@senao@><small><@eco #site_nome@></small><@/se@>
+</div></footer>
+<@incluir arquivo="bloco_rodape"@>

@@ -159,7 +159,7 @@ final class Modelos
      * Cria o objeto se o endereço ainda não existe no site (senão devolve o que está lá, sem alterar nada).
      *
      * @param array<string, string|int|float|bool> $dados
-     * @param array{peso?: int, descricao?: string, no_menu?: bool, rotulo_menu?: string, data_publicacao?: string|null, data_validade?: string|null} $meta
+     * @param array{peso?: int, descricao?: string, no_menu?: bool, rotulo_menu?: string, data_publicacao?: string|null, data_validade?: string|null, pele?: string|null, molde?: string|null} $meta
      * @param (\Closure(int): array<string, string|int|float|bool>)|null $aposInserir
      */
     public function garantirObjeto(Site $site, string $classe, ?int $paiId, string $titulo, string $url, array $dados = [], string $status = 'publicado', array $meta = [], ?\Closure $aposInserir = null): Objeto

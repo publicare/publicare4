@@ -127,6 +127,18 @@ final class Aparencia
         return '<nav class="pbl-migalhas" aria-label="Migalhas"><ol class="breadcrumb">' . $itens . '</ol></nav>';
     }
 
+    /** Endereço (relativo) do objeto que é a raiz da pele: `/` para a raiz do site, `/<url>` para os demais. */
+    public function urlDaRaiz(Site $site, ?int $raizId): string
+    {
+        if ($raizId === null || $raizId === $site->objetoRaizId) {
+            return '/';
+        }
+        $this->consultar();
+        $url = $this->conexao->fetchOne('SELECT url_amigavel FROM objeto WHERE id = ?', [$raizId]);
+
+        return is_string($url) && $url !== '' ? '/' . $url : '/';
+    }
+
     private function peleExiste(string $pele): bool
     {
         return preg_match('/^[a-z0-9_-]+$/D', $pele) === 1 && is_dir($this->caminhos->peles() . '/' . $pele);
