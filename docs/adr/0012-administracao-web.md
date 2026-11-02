@@ -247,3 +247,7 @@ Os campos `html` ganharam um editor (TinyMCE 6.8.6, MIT, hospedado, carregado s�
 - **Papéis efetivos**: administrador global mostra "acesso total" e o formulário de conceder fica recolhido; conta comum lista conteúdo, site, papel e alcance (subárvore pelo caminho materializado) com Revogar. A seção é escolhida num seletor (`ObjetoRepositorio::conteineresDoSite`: início do site e tudo que tem filhos), com o número como alternativa.
 - **Lista de contas**: lista compacta (`list-group`), linha inteira clicável, filtro numa linha; migalha "Início" nas telas de contas.
 - **Outras telas longas**: as configurações do site (`/_pbl/site/{id}/configuracoes`) são um formulário único com o catálogo inteiro e sem categoria no catálogo; abas por categoria pedem antes agrupar o catálogo (um formulário só, um único Salvar), por isso ficam como sugestão. O editor de tipo de conteúdo já usa accordion.
+
+### Adendo (ADR 0022): JavaScript opcional por pele
+
+- "Páginas públicas sem JavaScript" passa a ser **o padrão da pele básica**, não uma regra absoluta: uma pele pode declarar JS próprio **local** (mesmo domínio, sem inline, sem CDN). `onepage` e `portal` usam o Bootstrap 5.3.8 local; todas as peles, inclusive a básica, carregam o `pbl-barra.js` (só age para quem tem o cookie indicador de sessão do painel).
