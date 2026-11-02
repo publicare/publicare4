@@ -8,7 +8,7 @@
 
 ## PBL4
 
-> **Decisões:** [ADR 0012](../adr/0012-administracao-web.md). **Implementado (fase 5a):** painel com os sites e seções que a pessoa pode ver, navegação na árvore (com conteúdo fora do ar) e edição de título e descrição com proteção contra edição simultânea e republicação. **(fase 5c):** tipos de conteúdo (classes): listar, criar, editar campos e apagar, sem nunca apagar valor guardado. **(fase 5b):** lista de filhos com ordem e filtros por classe e estado, criar filho (só dos tipos que o pai aceita) com as propriedades da classe, editar todas as propriedades (obrigatórias exigidas, arquivadas preservadas), estado e datas, mover com a subárvore, lixeira (mandar e tirar) e histórico com restaurar. **(fase 5e):** redirecionamentos (listar, criar, editar e remover, com aviso de laço e duplicata) e peles (listar, ver moldes, editar com validação pelo parser antes de salvar, criar, apagar e definir a pele ativa; o site é republicado). **Falta:** contas e domínios.
+> **Decisões:** [ADR 0012](../adr/0012-administracao-web.md). **Implementado (fase 5a):** painel com os sites e seções que a pessoa pode ver, navegação na árvore (com conteúdo fora do ar) e edição de título e descrição com proteção contra edição simultânea e republicação. **(fase 5c):** tipos de conteúdo (classes): listar, criar, editar campos e apagar, sem nunca apagar valor guardado. **(fase 5b):** lista de filhos com ordem e filtros por classe e estado, criar filho (só dos tipos que o pai aceita) com as propriedades da classe, editar todas as propriedades (obrigatórias exigidas, arquivadas preservadas), estado e datas, mover com a subárvore, lixeira (mandar e tirar) e histórico com restaurar. **(fase 5e):** redirecionamentos (listar, criar, editar e remover, com aviso de laço e duplicata) e peles (listar, ver moldes, editar com validação pelo parser antes de salvar, criar, apagar e definir a pele ativa; o site é republicado). **(fase 5d):** contas (listar, criar, editar, desativar e reativar, redefinir senha, papéis por seção, marca de administrador) e domínios por site (adicionar, principal, alias ou redirecionador, remover). **Falta:** mais do editor de peles (criar pele, CSS e imagens, pré-visualização).
 
 ### Ver um conteúdo
 
@@ -126,6 +126,29 @@ sequenceDiagram
 8. **Apagar tipo** só sem conteúdo e sem outro tipo que dependa dele.
 9. **Nada se apaga de vez** pela tela de conteúdo: a lixeira é o estado `apagado`, e tirar dela devolve o conteúdo fora do ar.
 10. **Conteúdo novo nasce fora do ar**; ir ao ar é outra permissão (editor).
+
+### Contas e domínios (fase 5d)
+
+```mermaid
+sequenceDiagram
+    participant V as Navegador
+    participant T as TelasDeContas / TelasDeDominios
+    participant A as Permissoes
+    participant R as UsuarioRepositorio / DominioRepositorio
+    V->>T: POST /_pbl/conta/5/desativar (_csrf, Origin)
+    T->>T: origem e CSRF (403 se falhar, nada gravado)
+    T->>A: podeAdministrarContas(usuário)? não → 403 + auditoria conta.negado
+    T->>T: é a própria conta ou a última de administrador ativa? → 422, nada muda
+    T->>R: definirAtivo(5, false, "usuario:ID") encerra as sessões da conta
+    R-->>T: ok (auditoria usuario.desativar)
+    T-->>V: 303 /_pbl/conta/5?ok=desativada
+```
+
+Domínios seguem o mesmo caminho com `podeAdministrarSite` (ação `Administrar` na raiz do site) e `DominioRepositorio`; o erro de regra (principal que não se remove, domínio de outro site, endereço em uso) volta como 422 com a explicação.
+
+11. **Contas só com o administrador geral**; ninguém desativa nem rebaixa a si mesmo, e a última conta de administrador ativa fica protegida.
+12. **Trocar a senha derruba as sessões** da conta; a senha nunca volta à página nem vai para a auditoria.
+13. **O site sempre tem um domínio principal**; os outros são alias (mesmo conteúdo) ou redirecionador (301 para o principal).
 
 ### Editar um molde de pele (fase 5e)
 

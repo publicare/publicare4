@@ -25,8 +25,11 @@ make pbl ARGS="usuario auditoria"                  # as últimas 50 ações regi
 - A senha **nunca** vai em argumento (apareceria no histórico e em `ps`): é pedida de forma oculta e repetida, ou lida da entrada padrão com `--senha-stdin` (`printf '%s\n' "$SENHA" | php bin/pbl usuario criar ana --senha-stdin …`).
 - Perfis: `leitor`, `autor`, `editor`. `--admin` cria administrador global (todos os poderes, inclusive contas, domínios e redirecionamentos).
 - Cada ação fica na auditoria com o ator `cli`.
+- As mesmas operações existem pelo navegador para o administrador geral (`/_pbl/contas`), com regras a mais: a tela não desativa a própria conta nem a última de administrador ativa (a linha de comando não tem essa trava).
 
 ## `dominio` e `redirecionamento`
+
+Os domínios também se gerenciam pelo navegador (`/_pbl/site/{id}/dominios`); aqui ficam os comandos, que também alcançam o redirecionamento de endereços antigos (ainda sem tela).
 
 ```bash
 make pbl ARGS="dominio listar"

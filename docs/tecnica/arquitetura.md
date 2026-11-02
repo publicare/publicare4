@@ -61,6 +61,8 @@ flowchart LR
 
 Os tipos de conteúdo (`/_pbl/classes`, `/_pbl/classe/{id}/...`) seguem a mesma receita em `TelasDeClasses`, com `Permissoes::podeModelarClasses` no lugar de `pode` e `ClasseRepositorio` (versão esperada, regra de não apagar valores) no lugar de `ObjetoRepositorio`; veja o [fluxo 12](../fluxos/12-administracao-web.md).
 
+Contas (`/_pbl/contas`, `/_pbl/conta/{id}/...`) ficam em `TelasDeContas` e domínios (`/_pbl/site/{id}/dominios/...`) em `TelasDeDominios`, com a mesma receita: `Permissoes::podeAdministrarContas` e `Permissoes::podeAdministrarSite` (ação `Administrar` na raiz do site) no lugar de `pode`, e os repositórios que a linha de comando já usa (`UsuarioRepositorio`, `DominioRepositorio`). As peças comuns (origem e CSRF, barra, leitura de texto) estão no trait `AuxiliaresDeTela`.
+
 Redirecionamentos e peles de um site (`/_pbl/site/{id}/...`) ficam em `TelasDeSite`, com `Permissoes::pode(Acao::Administrar)` na seção raiz; os moldes são lidos e gravados só por `GerenciadorDePeles` (nomes validados, sem links simbólicos, gravação atômica, validação pelo parser antes de salvar) e o site é republicado pelo `Publicador` depois.
 
 As telas são HTML montado no servidor, sem JavaScript, com o CSS do Bootstrap servido do próprio site (`public/_pbl/assets/`). Arquivo existente em `public/` é entregue direto pelo servidor web; o resto de `/_pbl/` vai para o `Painel`. Detalhes no [ADR 0012](../adr/0012-administracao-web.md) e no [fluxo 12](../fluxos/12-administracao-web.md).
@@ -90,7 +92,7 @@ Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banc
 | Entrada | `Pbl\Aplicacao`, `public/index.php` | resolver host e URL, devolver arquivo do cache |
 | Conteúdo | `Pbl\Conteudo` | classes, objetos, sites; validação dos dados por tipo (`texto`, `numero`, `html`, `data`, `booleano`, `ref`); índice |
 | Instalação | `Pbl\Instalacao` | `Instalador` (atômico), `InstaladorWeb` (assistente em `/_pbl/instalar`, só antes de instalar), `Requisitos` |
-| Administração | `Pbl\Admin` | `Painel`: rotas sob `/_pbl/` (entrar, sair) com sessão, CSRF, limite de tentativas e cabeçalhos de segurança; `TelasDeConteudo`: painel inicial com os sites; `TelasDeObjetos`: um conteúdo e seus filhos (ordem e filtros), criar, editar todas as propriedades, estado e datas, mover, lixeira e histórico ([ADR 0012](../adr/0012-administracao-web.md)); `TelasDeClasses`: tipos de conteúdo (só administrador; campo com valores é arquivado, nunca apagado); `Pagina`: HTML com Bootstrap local, escape e cabeçalhos |
+| Administração | `Pbl\Admin` | `Painel`: rotas sob `/_pbl/` (entrar, sair) com sessão, CSRF, limite de tentativas e cabeçalhos de segurança; `TelasDeConteudo`: painel inicial com os sites; `TelasDeObjetos`: um conteúdo e seus filhos (ordem e filtros), criar, editar todas as propriedades, estado e datas, mover, lixeira e histórico ([ADR 0012](../adr/0012-administracao-web.md)); `TelasDeClasses`: tipos de conteúdo (só administrador; campo com valores é arquivado, nunca apagado); `TelasDeContas`: contas, senhas e papéis por seção (só administrador; última conta de administrador protegida); `TelasDeDominios`: domínios do site (alias, redirecionador, principal); `Pagina`: HTML com Bootstrap local, escape e cabeçalhos |
 | Acesso | `Pbl\Acesso` | contas, senhas (argon2id), perfis por subárvore, `Permissoes::pode` (único ponto de decisão) e auditoria |
 | Busca | `Pbl\Busca` | normalização de texto (minúsculas e sem acento) usada na gravação e na consulta; relevância e grafias parecidas no [ADR 0010](../adr/0010-busca.md) |
 | Consulta | `Pbl\Consulta` | `Consulta` (o pedido) e `MotorDeConsulta` (a execução): filtros, ordem, referências, contagem, carga em lote. Único caminho para ler conteúdo em lista |
@@ -114,4 +116,4 @@ dados/
 
 ## O que ainda não existe
 
-Parte das telas da administração (contas, domínios, regras e peles: hoje por linha de comando), o botão do atualizador e upload de arquivos. Estão no [plano](../plano.md).
+Parte das telas da administração (regras de redirecionamento e peles: hoje por linha de comando), o botão do atualizador e upload de arquivos. Estão no [plano](../plano.md).

@@ -1444,7 +1444,7 @@ final class TelasDeObjetos
 
     private function barra(SessaoAtiva $sessao): string
     {
-        return Pagina::barra($sessao->usuario->nome, $this->csrf->daSessao($sessao->idHash));
+        return Pagina::barra($sessao->usuario->nome, $this->csrf->daSessao($sessao->idHash), $sessao->usuario->administrador);
     }
 
     private function nomeDaClasse(int $classeId): string
