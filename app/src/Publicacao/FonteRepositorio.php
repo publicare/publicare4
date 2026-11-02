@@ -10,6 +10,7 @@ use Pbl\Consulta\MotorDeConsulta;
 use Pbl\Conteudo\ClasseRepositorio;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
+use Pbl\Conteudo\SiteRepositorio;
 use Pbl\Formularios\FormularioParaMolde;
 use Pbl\Linguagem\FonteDeDados;
 
@@ -29,6 +30,7 @@ final class FonteRepositorio implements FonteDeDados
         private readonly ClasseRepositorio $classes,
         private readonly MotorDeConsulta $motor,
         private readonly ?FormularioParaMolde $formularios = null,
+        private readonly ?SiteRepositorio $sites = null,
     ) {
     }
 
@@ -103,6 +105,25 @@ final class FonteRepositorio implements FonteDeDados
         $site = $objeto['site'] ?? null;
 
         return is_int($alvo) && is_int($site) && $this->motor->temFilhos($alvo, $site);
+    }
+
+    /**
+     * @param array<string, mixed> $objeto
+     * @param array<string, int|string> $filtros
+     */
+    public function sugestao(array $objeto, array $filtros): ?string
+    {
+        $site = $objeto['site'] ?? null;
+        $busca = $filtros['busca'] ?? null;
+        if (!is_int($site) || !is_string($busca) || trim($busca) === '') {
+            return null;
+        }
+        $config = $this->sites?->porId($site);
+        if ($config === null || !$config->buscaTolerancia) {
+            return null;
+        }
+
+        return $this->motor->sugerir($site, $busca);
     }
 
     public function formulario(array $objeto, ?int $id): string

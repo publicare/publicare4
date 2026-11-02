@@ -38,6 +38,7 @@ final class TelasDeClasses
     public const NOMES_DOS_TIPOS = [
         'texto' => 'Texto curto', 'numero' => 'Número', 'html' => 'Texto formatado (HTML)', 'data' => 'Data',
         'booleano' => 'Sim ou não', 'ref' => 'Referência a outro conteúdo',
+        'imagem' => 'Imagem (jpg, png, gif, webp)', 'arquivo' => 'Arquivo (pdf, texto, planilha, documento...)',
     ];
 
     public function __construct(
@@ -359,7 +360,7 @@ final class TelasDeClasses
      * campo novo. Tipo, classe apontada e indexação das existentes vêm da definição salva sempre que o tipo não mudou.
      *
      * @param Rascunho $r
-     * @return list<array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool}>
+     * @return list<array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool, tipos?: list<string>, tamanho_max_mb?: int}>
      */
     private function propriedadesDe(Classe $classe, array $r): array
     {
@@ -395,7 +396,7 @@ final class TelasDeClasses
 
     /**
      * @param array{nome: string, tipo: string, indexavel: bool, classe?: string} $p
-     * @return array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool}
+     * @return array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool, tipos?: list<string>, tamanho_max_mb?: int}
      */
     private function comApresentacao(array $p, string $rotulo, bool $obrigatorio, bool $arquivada): array
     {
@@ -475,7 +476,7 @@ final class TelasDeClasses
     /**
      * Nomes do que mudou, para a auditoria (nunca o texto de rótulo ou descrição).
      *
-     * @param list<array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool}> $novas
+     * @param list<array{nome: string, tipo: string, indexavel: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool, tipos?: list<string>, tamanho_max_mb?: int}> $novas
      * @param list<string> $filhas
      * @return list<string>
      */

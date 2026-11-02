@@ -48,7 +48,7 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `#ref.campo` | campo do objeto **apontado** por uma propriedade `ref` (`#autor.titulo`, `#autor.cargo`). Um só nível. Só enxerga objetos do mesmo site, publicados e vigentes; sem autor, vem vazio. O ponto precisa estar colado ao nome: `#a . "x"` e `#a."x"` continuam sendo concatenação. |
 | `#campo` | campo do objeto corrente: `#id`, `#titulo`, `#url` (`/` + URL amigável), `#url_amigavel`, `#classe`, `#classe_id`, `#site`, `#pai`, `#peso`, `#descricao`, `#data_publicacao`, `#data_validade`, `#status`, `#apagado`, `#temfilhos` (1 se tem filhos visíveis, senão 0) e os campos da classe (esses nomes são reservados). Dentro de `filhos`, o objeto corrente é o filho. Campo inexistente é vazio. |
 | `$variavel` | variável do molde, criada por `var` ou `repetir`; compartilhada com os moldes incluídos; vazia se não definida. Não toca em variáveis do PHP. |
-| `%MACRO` | `DIA`, `MES`, `ANO`, `DATA` (dd/mm/aaaa); em laço de coleção: `INDICE` (1..n) e `FIM`/`QUANTIDADE` (total). Macro desconhecida é erro de sintaxe. |
+| `%MACRO` | `DIA`, `MES`, `ANO`, `DATA` (dd/mm/aaaa); em laço de coleção: `INDICE` (1..n) e `FIM`/`QUANTIDADE` (total); `SUGESTAO` (ver [Busca](#busca-busca)). Macro desconhecida é erro de sintaxe. |
 | `.` | concatenação (texto). `+ - * /` aritmética; texto não numérico vale 0; divisão por zero dá vazio. |
 | data | `formatadata` aceita `aaaa-mm-dd[ hh:mm:ss]` e `dd/mm/aaaa[ hh:mm:ss]`; data impossível (`2026-02-31`) dá vazio |
 | comparação | se os dois lados são numéricos compara como número, senão como texto (diferencia maiúsculas). |
@@ -104,7 +104,13 @@ Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`
 - Limites: até 8 palavras (as demais são ignoradas), 200 caracteres no total, 40 por palavra.
 - Combina com `classes`, `pai`, `niveis`, `campo`/`op`/`valor`, `inicio` e `limite`.
 - **Relevância**: sem `ordem`, os melhores resultados vêm primeiro (título 3, descrição 2, texto 1; palavra inteira e início do título pesam mais). Em `ordem`, escreva `relevancia` (sozinha ou com outros critérios, como `relevancia, -data_publicacao`); sem `busca` ela é ignorada. Uma propriedade chamada `relevancia` fica inacessível em `ordem`.
-- Não corrige erros de digitação (`Fernandha` não acha `Fernanda`): isso é o nível C do [ADR 0010](adr/0010-busca.md), ainda não feito.
+- **Sugestão de grafia parecida** (`%SUGESTAO`, nível C do [ADR 0010](adr/0010-busca.md)): quando `busca=` não acha nada, `%SUGESTAO` (dentro de `<@naolocalizado@>`, igual a como `semfilhos` lê o resultado do laço) traz um "você quis dizer…" calculado em cima do vocabulário já indexado — nada de serviço externo nem tabela nova. Cada palavra digitada que não é começo de nenhum termo visível (publicado e vigente; nunca de conteúdo privado, fora do ar ou na lixeira) vira o candidato mais parecido por distância de edição (uma letra de diferença em palavras curtas, duas nas longas); se alguma palavra não tem candidato confiável, `%SUGESTAO` fica vazia — nenhuma sugestão é melhor que uma errada. **Opcional por site, desligada por padrão**: liga em `/_pbl/site/{id}/busca`, no painel. Fora de `naolocalizado`/depois de um `localizar busca=…` sem resultado, `%SUGESTAO` também é vazia. Exemplo:
+  ```
+  <@localizar busca=$q@>…<@/localizar@>
+  <@naolocalizado@>
+    <@se %SUGESTAO != ""@>Nada encontrado. Você quis dizer <a href="?q=<@eco %SUGESTAO@>"><@eco %SUGESTAO@></a>?<@/se@>
+  <@/naolocalizado@>
+  ```
 
 ### Tipos de propriedade
 
@@ -115,6 +121,7 @@ Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`
 | `data` | `aaaa-mm-dd`, `aaaa-mm-dd hh:mm:ss` (data impossível é recusada) | opcional |
 | `booleano` | verdadeiro/falso (guardado como 1/0) | opcional |
 | `ref` | id de outro objeto **do mesmo site** (e da classe indicada, se a propriedade restringe) | sempre |
+| `arquivo`, `imagem` | id de um arquivo enviado (upload pela tela de editar objeto, nunca pelo molde); `imagem` só jpg/png/gif/webp, `arquivo` documentos (pdf, txt, csv...). Sem comando de molde ainda: ver [fluxo 7](fluxos/07-upload-blobs.md) | nunca |
 
 `expandir="autor"` em `filhos`/`localizar` carrega os objetos apontados da lista inteira numa consulta só (até 4 propriedades). Sem ele, `#autor.titulo` funciona do mesmo jeito, buscando o objeto sob demanda uma vez por página.
 
@@ -160,7 +167,7 @@ A tabela orienta o conversor de moldes (fase 2c). Estado: ✅ nesta versão (o c
 | `#tags` | ainda não existe no contexto | ⏳ |
 | `localizar`, `localizaraleatorio` | `localizar`/`localizaraleatorio` com o subconjunto acima; `condicao`, `like`, `ilike` e `tags` em SQL livre **não** existem: o conversor os marca para revisão e a fase 1 traz filtros equivalentes | ✅ (parcial) |
 | `usarobjeto titulo=…`/`cod_objeto=…`, `temfilho cod_objeto=…` | `usarobjeto titulo=…`/`id=…`, `temfilho id=…` | ✅ |
-| `usarblob`, `linkblob`, `downloadblob`, `tamanhoblob`, `iconeblob`, `tipoblob`, `srcblob`, `srcthumb`, `iconeclasse` | comandos de arquivo/imagem: entram com o upload e a entrega de blobs (fluxo 7) | ⏳ |
+| `usarblob`, `linkblob`, `downloadblob`, `tamanhoblob`, `iconeblob`, `tipoblob`, `srcblob`, `srcthumb`, `iconeclasse` | upload e entrega de arquivo **feitos** (fase 7a, `Pbl\Arquivos`, [ADR 0014](adr/0014-upload-de-arquivos.md)): propriedade `arquivo`/`imagem`, link `/_pbl/arquivo/<id>`. Ainda não há comando de molde equivalente (`#propriedade` dá o id; o link é montado por quem lê o id) | ⏳ |
 | `config`, macros `ROOT`, `PERFIL`, `CONFIG`, `USUARIO` | só valores públicos e seguros do site (configuração de site); usuário/perfil depois da fase 3 | ⏳ |
 | `executar` (inclui script PHP e chama função) | **módulo** com interface estável (ADR 0005); o conversor aponta cada uso | ❌ |
 | `protegido`, `incluimenu` | área protegida e menu do admin: fase 3 e 5 | ❌ |

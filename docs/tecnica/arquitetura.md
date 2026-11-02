@@ -68,7 +68,7 @@ Os tipos de conteúdo (`/_pbl/classes`, `/_pbl/classe/{id}/...`) seguem a mesma 
 
 Contas (`/_pbl/contas`, `/_pbl/conta/{id}/...`) ficam em `TelasDeContas` e domínios (`/_pbl/site/{id}/dominios/...`) em `TelasDeDominios`, com a mesma receita: `Permissoes::podeAdministrarContas` e `Permissoes::podeAdministrarSite` (ação `Administrar` na raiz do site) no lugar de `pode`, e os repositórios que a linha de comando já usa (`UsuarioRepositorio`, `DominioRepositorio`). As peças comuns (origem e CSRF, barra, leitura de texto) estão no trait `AuxiliaresDeTela`.
 
-Redirecionamentos e peles de um site (`/_pbl/site/{id}/...`) ficam em `TelasDeSite`, com `Permissoes::pode(Acao::Administrar)` na seção raiz; os moldes são lidos e gravados só por `GerenciadorDePeles` (nomes validados, sem links simbólicos, gravação atômica, validação pelo parser antes de salvar) e o site é republicado pelo `Publicador` depois.
+Redirecionamentos, peles e a opção de busca (`/_pbl/site/{id}/...`) de um site ficam em `TelasDeSite`, com `Permissoes::pode(Acao::Administrar)` na seção raiz; os moldes são lidos e gravados só por `GerenciadorDePeles` (nomes validados, sem links simbólicos, gravação atômica, validação pelo parser antes de salvar) e o site é republicado pelo `Publicador` depois. A tela de busca só liga/desliga `Site::$buscaTolerancia` (`SiteRepositorio::definirBuscaTolerancia`), sem tocar em pele nem em moldes.
 
 As telas são HTML montado no servidor, sem JavaScript, com o CSS do Bootstrap servido do próprio site (`public/_pbl/assets/`). Arquivo existente em `public/` é entregue direto pelo servidor web; o resto de `/_pbl/` vai para o `Painel`. Detalhes no [ADR 0012](../adr/0012-administracao-web.md) e no [fluxo 12](../fluxos/12-administracao-web.md).
 
@@ -86,6 +86,7 @@ As telas são HTML montado no servidor, sem JavaScript, com o CSS do Bootstrap s
 | `dominio` | host → site, com `modo` (`principal`, `servir`, `redirecionar`) |
 | `usuario`, `acesso`, `auditoria` | equipe, perfil de um usuário numa subárvore e o registro de ações (só acrescenta) |
 | `sessao`, `tentativa_login` | sessões da administração (só o hash do token) e falhas de login (só hashes) |
+| `arquivo` | metadados de cada arquivo enviado (propriedade `arquivo`/`imagem`): dono (`objeto_id`), chave em disco, tipo, tamanho, sha256; o conteúdo mora em `dados/uploads/` (fluxo 7, ADR 0014) |
 | `schema_versao` | migrações já aplicadas |
 
 Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banco em uso normal só precisa de `SELECT/INSERT/UPDATE/DELETE` ([ADR 0003](../adr/0003-plataforma-low-code.md)). A subárvore de um objeto sai do prefixo do `caminho`, o que também limita cada consulta ao seu site.
@@ -98,9 +99,10 @@ Sem DDL em produção: só o migrador cria ou altera tabelas; o usuário do banc
 | Conteúdo | `Pbl\Conteudo` | classes, objetos, sites; validação dos dados por tipo (`texto`, `numero`, `html`, `data`, `booleano`, `ref`); índice |
 | Instalação | `Pbl\Instalacao` | `Instalador` (atômico), `InstaladorWeb` (assistente em `/_pbl/instalar`, só antes de instalar), `Requisitos` |
 | Formulários públicos | `Pbl\Formularios` | `FormularioRepositorio` (lê a definição e falha fechada), `FormularioHtml` (HTML escapado), `FormularioParaMolde` (ponte do comando `formulario`), `EnvioDeFormulario` (rotas `/_pbl/enviar/{id}` e `/_pbl/enviado/{id}`: limite, tamanho, origem, token, armadilha, validação e criação do objeto privado); `Acesso\LimiteDeEnvios` e `Csrf::paraFormulario` ([ADR 0013](../adr/0013-formularios-publicos.md)) |
-| Administração | `Pbl\Admin` | `Painel`: rotas sob `/_pbl/` (entrar, sair) com sessão, CSRF, limite de tentativas e cabeçalhos de segurança; `TelasDeConteudo`: painel inicial com os sites; `TelasDeObjetos`: um conteúdo e seus filhos (ordem e filtros), criar, editar todas as propriedades, estado e datas, mover, lixeira e histórico ([ADR 0012](../adr/0012-administracao-web.md)); `TelasDeClasses`: tipos de conteúdo (só administrador; campo com valores é arquivado, nunca apagado); `TelasDeContas`: contas, senhas e papéis por seção (só administrador; última conta de administrador protegida); `TelasDeDominios`: domínios do site (alias, redirecionador, principal); `Pagina`: HTML com Bootstrap local, escape e cabeçalhos |
+| Administração | `Pbl\Admin` | `Painel`: rotas sob `/_pbl/` (entrar, sair) com sessão, CSRF, limite de tentativas e cabeçalhos de segurança; `TelasDeConteudo`: painel inicial com os sites; `TelasDeObjetos`: um conteúdo e seus filhos (ordem e filtros), criar, editar todas as propriedades (inclusive upload nas propriedades `arquivo`/`imagem`), estado e datas, mover, lixeira e histórico ([ADR 0012](../adr/0012-administracao-web.md)); `TelasDeClasses`: tipos de conteúdo (só administrador; campo com valores é arquivado, nunca apagado); `TelasDeContas`: contas, senhas e papéis por seção (só administrador; última conta de administrador protegida); `TelasDeDominios`: domínios do site (alias, redirecionador, principal); `Pagina`: HTML com Bootstrap local, escape e cabeçalhos |
+| Arquivos | `Pbl\Arquivos` | Upload e entrega de arquivo numa propriedade `arquivo`/`imagem` ([ADR 0014](../adr/0014-upload-de-arquivos.md)): `TiposDeArquivo` (whitelist fechada), `ServicoDeUpload` (valida e grava, com `finfo` e recodificação por GD), `ArmazenamentoDeArquivos` (caminho em disco, gravação atômica), `ArquivoRepositorio` (metadados), `ArquivoController` (rota pública de entrega, como `EnvioDeFormulario`), `ServicoDeMiniaturas` (miniaturas sob demanda, cache em disco), `LimpadorDeUploads` (`bin/pbl limpar-uploads`) |
 | Acesso | `Pbl\Acesso` | contas, senhas (argon2id), perfis por subárvore, `Permissoes::pode` (único ponto de decisão) e auditoria |
-| Busca | `Pbl\Busca` | normalização de texto (minúsculas e sem acento) na gravação e na consulta (`Texto`); busca por palavras: `Termos` (palavras, plural), `BuscaInterface` e o driver padrão `BuscaSql` sobre a tabela `objeto_termo`, alimentada por `IndexadorDeObjeto` a cada criação/alteração; o `MotorDeConsulta` encaixa a condição e a relevância na consulta única ([ADR 0010](../adr/0010-busca.md), nível C ainda não feito) |
+| Busca | `Pbl\Busca` | normalização de texto (minúsculas e sem acento) na gravação e na consulta (`Texto`); busca por palavras: `Termos` (palavras, plural), `BuscaInterface` e o driver padrão `BuscaSql` sobre a tabela `objeto_termo`, alimentada por `IndexadorDeObjeto` a cada criação/alteração; o `MotorDeConsulta` encaixa a condição e a relevância na consulta única; `Visibilidade` centraliza a condição de conteúdo público, usada pela busca e pela sugestão de grafia parecida (`BuscaSql::sugerir`, nível C, opcional por site via `Site::$buscaTolerancia`, exposta ao molde como `%SUGESTAO`) ([ADR 0010](../adr/0010-busca.md)) |
 | Consulta | `Pbl\Consulta` | `Consulta` (o pedido) e `MotorDeConsulta` (a execução): filtros, ordem, referências, contagem, carga em lote. Único caminho para ler conteúdo em lista |
 | Linguagem | `Pbl\Linguagem` | compilar e executar moldes (PBL4) em ambiente restrito |
 | Publicação | `Pbl\Publicacao` | renderizar, gravar e limpar o cache; ligar o runtime ao banco |
@@ -116,10 +118,10 @@ dados/
   config/     configuração e a trava de instalação
   cache/      paginas/ (HTML pronto) e pbl/ (PHP compilado)
   peles/      moldes de cada pele (a pele básica é copiada na instalação)
-  uploads/    arquivos enviados (previsto)
+  uploads/    arquivos enviados (propriedade `arquivo`/`imagem`, fluxo 7): nome gerado, nunca o do cliente
   pbl4.sqlite banco SQLite padrão
 ```
 
 ## O que ainda não existe
 
-Parte das telas da administração (regras de redirecionamento e peles: hoje por linha de comando), o botão do atualizador e upload de arquivos. Estão no [plano](../plano.md).
+Parte das telas da administração (regras de redirecionamento e peles: hoje por linha de comando). Upload e entrega de arquivo estão feitos (fluxo 7, ADR 0014); falta upload na criação do conteúdo e comando de molde para montar o link. Estão no [plano](../plano.md).

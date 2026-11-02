@@ -102,10 +102,10 @@ final class AdminSiteTest extends TestCase
     public function testSemLoginTodaRotaMandaParaEntrarEPostNaoGrava(): void
     {
         $b = $this->base();
-        foreach (['/redirecionamentos', '/redirecionamentos/1/editar', '/peles', '/peles/basica', '/peles/basica/molde?nome=padrao', '/peles/basica/novo', '/peles/basica/apagar?nome=padrao'] as $c) {
+        foreach (['/redirecionamentos', '/redirecionamentos/1/editar', '/peles', '/peles/basica', '/peles/basica/molde?nome=padrao', '/peles/basica/novo', '/peles/basica/apagar?nome=padrao', '/busca'] as $c) {
             self::assertSame(303, $this->req('GET', $b . $c)->getStatusCode(), $c);
         }
-        foreach (['/redirecionamentos', '/peles/ativar', '/peles/basica/molde', '/peles/basica/novo', '/peles/basica/apagar'] as $c) {
+        foreach (['/redirecionamentos', '/peles/ativar', '/peles/basica/molde', '/peles/basica/novo', '/peles/basica/apagar', '/busca'] as $c) {
             self::assertSame(303, $this->req('POST', $b . $c, null, ['nome' => 'x', 'conteudo' => 'x'], self::ORIGEM)->getStatusCode(), $c);
         }
         self::assertSame([], $this->s->redirecionamentos->doSite($this->siteId));
@@ -115,7 +115,7 @@ final class AdminSiteTest extends TestCase
     public function testRotasDesconhecidasDao404(): void
     {
         $t = $this->token('admin');
-        foreach (['/peles/BASICA', '/peles/basica/molde/x', '/redirecionamentos/abc/editar', '/redirecionamentos/1/outra', '/peles/..'] as $c) {
+        foreach (['/peles/BASICA', '/peles/basica/molde/x', '/redirecionamentos/abc/editar', '/redirecionamentos/1/outra', '/peles/..', '/busca/x', '/busca/1'] as $c) {
             self::assertSame(404, $this->req('GET', $this->base() . $c, $t)->getStatusCode(), $c);
         }
         self::assertSame(404, $this->req('DELETE', $this->base() . '/peles', $t)->getStatusCode());
@@ -125,7 +125,7 @@ final class AdminSiteTest extends TestCase
     {
         $t = $this->token('editor');
         $b = $this->base();
-        foreach (['/redirecionamentos', '/peles', '/peles/basica', '/peles/basica/molde?nome=padrao', '/peles/basica/novo', '/peles/basica/apagar?nome=padrao'] as $c) {
+        foreach (['/redirecionamentos', '/peles', '/peles/basica', '/peles/basica/molde?nome=padrao', '/peles/basica/novo', '/peles/basica/apagar?nome=padrao', '/busca'] as $c) {
             self::assertSame(403, $this->req('GET', $b . $c, $t)->getStatusCode(), $c);
         }
         self::assertSame(403, $this->post($t, $b . '/redirecionamentos', $this->regra('/a', '/b'))->getStatusCode());
@@ -133,6 +133,7 @@ final class AdminSiteTest extends TestCase
         self::assertSame(403, $this->post($t, $b . '/peles/basica/novo', ['nome' => 'novo', 'conteudo' => 'x'])->getStatusCode());
         self::assertSame(403, $this->post($t, $b . '/peles/basica/apagar', ['nome' => 'padrao'])->getStatusCode());
         self::assertSame(403, $this->post($t, $b . '/peles/ativar', ['pele' => 'basica'])->getStatusCode());
+        self::assertSame(403, $this->post($t, $b . '/busca', ['ligado' => '1'])->getStatusCode());
         self::assertSame([], $this->s->redirecionamentos->doSite($this->siteId));
         self::assertFileDoesNotExist($this->caminhos->peles() . '/basica/novo.pbl');
         self::assertNotEmpty(array_filter($this->s->auditoria->recentes(), static fn (array $l): bool => $l['acao'] === 'site.negado'));
@@ -151,6 +152,7 @@ final class AdminSiteTest extends TestCase
             '/peles/basica/molde' => ['nome' => 'padrao', 'conteudo' => 'x', 'base' => 'x'],
             '/peles/basica/novo' => ['nome' => 'novo', 'conteudo' => 'x'],
             '/peles/basica/apagar' => ['nome' => 'padrao'],
+            '/busca' => ['ligado' => '1'],
         ];
         $csrf = $this->s->csrf()->daSessao(SessaoRepositorio::hash($t));
         foreach ($posts as $c => $campos) {
@@ -263,6 +265,24 @@ final class AdminSiteTest extends TestCase
             self::assertSame(422, $this->post($t, "{$b}/ativar", ['pele' => $pele])->getStatusCode(), $pele);
         }
         self::assertSame('escura', $this->s->sites->porId($this->siteId)?->pele);
+    }
+
+    public function testTelaDeBuscaMostraEGravaAOpcaoDeTolerancia(): void
+    {
+        $t = $this->token('admin');
+        $b = $this->base() . '/busca';
+        self::assertFalse($this->s->sites->porId($this->siteId)?->buscaTolerancia, 'desligada por padrão');
+        $html = $this->html($this->req('GET', $b, $t));
+        self::assertStringNotContainsString('checked', $html);
+
+        self::assertSame(303, $this->post($t, $b, ['ligado' => '1'])->getStatusCode());
+        self::assertTrue($this->s->sites->porId($this->siteId)?->buscaTolerancia);
+        self::assertStringContainsString('checked', $this->html($this->req('GET', $b, $t)));
+        self::assertNotEmpty(array_filter($this->s->auditoria->recentes(), static fn (array $l): bool => $l['acao'] === 'busca.tolerancia'));
+
+        // sem o campo "ligado" no POST: desliga de novo (como um checkbox desmarcado, que o navegador não envia)
+        self::assertSame(303, $this->post($t, $b, [])->getStatusCode());
+        self::assertFalse($this->s->sites->porId($this->siteId)?->buscaTolerancia);
     }
 
     public function testEditarMoldeFelizValidaGravaERepublica(): void

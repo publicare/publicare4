@@ -11,6 +11,7 @@ use Pbl\Busca\BuscaInterface;
 use Pbl\Busca\BuscaSql;
 use Pbl\Busca\FragmentoDeBusca;
 use Pbl\Busca\Texto;
+use Pbl\Busca\Visibilidade;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
 
@@ -83,6 +84,15 @@ final class MotorDeConsulta
         }
 
         return $saida;
+    }
+
+    /**
+     * Sugestão de grafia parecida ("você quis dizer…") para uma busca sem resultado, dentro do vocabulário visível ao
+     * público do site (nível C, ADR 0010). Repassa ao driver de busca; null se não há palavra para corrigir com confiança.
+     */
+    public function sugerir(int $siteId, string $consulta): ?string
+    {
+        return $this->busca->sugerir($siteId, $consulta);
     }
 
     /** O objeto precisa ser do site informado e ter filhos visíveis (um molde não sonda a estrutura de outro site). */
@@ -175,13 +185,7 @@ final class MotorDeConsulta
      */
     private function visivel(string $alias, array &$valores, array &$tipos): string
     {
-        $valores['status'] = 'publicado';
-        $valores['agora'] = gmdate('c');
-        $tipos['status'] = ParameterType::STRING;
-        $tipos['agora'] = ParameterType::STRING;
-
-        return "({$alias}.status = :status AND ({$alias}.data_publicacao IS NULL OR {$alias}.data_publicacao <= :agora)"
-            . " AND ({$alias}.data_validade IS NULL OR {$alias}.data_validade >= :agora))";
+        return Visibilidade::condicao($alias, $valores, $tipos);
     }
 
     /** @param array<string, mixed> $q */

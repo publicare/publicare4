@@ -12,11 +12,11 @@ use Pbl\Banco\Migracao;
  * em `sessao`: a janela acaba sozinha quando a sessão acaba (logout, troca de senha, expiração), sem tabela nem
  * limpeza extra.
  */
-final class M012ModoElevado implements Migracao
+final class M014ModoElevado implements Migracao
 {
     public function versao(): int
     {
-        return 12;
+        return 14;
     }
 
     public function aplicar(Connection $conexao): void
