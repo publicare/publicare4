@@ -8,7 +8,7 @@
 
 ## PBL4
 
-> **Decisões:** [ADR 0012](../adr/0012-administracao-web.md). **Implementado (fase 5a):** painel com os sites e seções que a pessoa pode ver, navegação na árvore (com conteúdo fora do ar) e edição de título e descrição com proteção contra edição simultânea e republicação. **(fase 5c):** tipos de conteúdo (classes): listar, criar, editar campos e apagar, sem nunca apagar valor guardado. **(fase 5b):** lista de filhos com ordem e filtros por classe e estado, criar filho (só dos tipos que o pai aceita) com as propriedades da classe, editar todas as propriedades (obrigatórias exigidas, arquivadas preservadas), estado e datas, mover com a subárvore, lixeira (mandar e tirar) e histórico com restaurar. **(fase 5e):** redirecionamentos (listar, criar, editar e remover, com aviso de laço e duplicata) e peles (listar, ver moldes, editar com validação pelo parser antes de salvar, criar, apagar e definir a pele ativa; o site é republicado). **(fase 5d):** contas (listar, criar, editar, desativar e reativar, redefinir senha, papéis por seção, marca de administrador) e domínios por site (adicionar, principal, alias ou redirecionador, remover). **(fase 5g):** as regras de tipos aceitos e de campos obrigatórios passam a valer no repositório (linha de comando e importadores também), HTML de campos `html` é limpo ao gravar, publicação agendada (`bin/pbl agendados`, estado "agendado" na tela) e mover escolhendo o lugar pela árvore. **(fase 5h):** "modo elevado" (confirmar a senha abre uma janela de 10 min em que outras ações sensíveis não pedem de novo) exigido em criar/editar/desativar/reativar conta, redefinir senha de outra conta, conceder/revogar papel, adicionar/remover domínio e trocar o principal, apagar tipo de conteúdo, criar/editar/apagar molde e trocar a pele ativa; atualizar/reverter passaram a usar o mesmo componente; lista de contas paginada (50 por página) e com busca por login/nome/e-mail e filtro por situação. **Falta:** mais do editor de peles (criar pele, CSS e imagens, pré-visualização).
+> **Decisões:** [ADR 0012](../adr/0012-administracao-web.md). **Implementado (fase 5a):** painel com os sites e seções que a pessoa pode ver, navegação na árvore (com conteúdo fora do ar) e edição de título e descrição com proteção contra edição simultânea e republicação. **(fase 5c):** tipos de conteúdo (classes): listar, criar, editar campos e apagar, sem nunca apagar valor guardado. **(fase 5b):** lista de filhos com ordem e filtros por classe e estado, criar filho (só dos tipos que o pai aceita) com as propriedades da classe, editar todas as propriedades (obrigatórias exigidas, arquivadas preservadas), estado e datas, mover com a subárvore, lixeira (mandar e tirar) e histórico com restaurar. **(fase 5e):** redirecionamentos (listar, criar, editar e remover, com aviso de laço e duplicata) e peles (listar, ver moldes, editar com validação pelo parser antes de salvar, criar, apagar e definir a pele ativa; o site é republicado). **(fase 5d):** contas (listar, criar, editar, desativar e reativar, redefinir senha, papéis por seção, marca de administrador) e domínios por site (adicionar, principal, alias ou redirecionador, remover). **(fase 5g):** as regras de tipos aceitos e de campos obrigatórios passam a valer no repositório (linha de comando e importadores também), HTML de campos `html` é limpo ao gravar, publicação agendada (`bin/pbl agendados`, estado "agendado" na tela) e mover escolhendo o lugar pela árvore. **(fase 5h):** "modo elevado" (confirmar a senha abre uma janela de 10 min em que outras ações sensíveis não pedem de novo) exigido em criar/editar/desativar/reativar conta, redefinir senha de outra conta, conceder/revogar papel, adicionar/remover domínio e trocar o principal, apagar tipo de conteúdo, criar/editar/apagar molde e trocar a pele ativa; atualizar/reverter passaram a usar o mesmo componente; lista de contas paginada (50 por página) e com busca por login/nome/e-mail e filtro por situação. **(fase 5j):** o editor de peles ganhou histórico de versões (com diferença entre duas e "voltar a esta versão", pela mesma validação e pelo mesmo modo elevado de uma edição comum), rascunho (salvar sem publicar) com pré-visualização isolada de uma página do site, e realce de sintaxe só leitura (histórico, diferença e visualização — nunca na caixa de edição). **Falta:** mais do editor de peles (criar pele, CSS e imagens, importar/exportar, galeria, pele filha — ADR 0007).
 
 ### Ver um conteúdo
 
@@ -205,3 +205,36 @@ sequenceDiagram
 ### Redirecionamentos (fase 5e)
 
 A tela segue as regras do site a partir do endereço antigo antes de gravar: volta a um caminho já visto (laço) → 422; mais de um salto ou endereço que já é de um conteúdo → grava com aviso; duplicata → 422 (regra do repositório).
+
+### Rascunho, pré-visualização e voltar a uma versão (fase 5j)
+
+```mermaid
+sequenceDiagram
+    participant V as Navegador
+    participant T as TelasDeSite
+    participant G as GerenciadorDePeles
+    participant R as Renderizador
+
+    V->>T: POST …/molde/rascunho: nome, conteudo, _csrf
+    T->>G: validarBasico (tamanho, UTF-8) — sem parser, pode salvar incompleto
+    T->>G: salvarRascunho (não grava o arquivo, não gera versão)
+    T-->>V: 303 de volta ao editor, que agora mostra o rascunho
+
+    V->>T: GET …/molde/previsualizar?nome=&objeto=
+    T->>G: rascunho(pele, nome): sem rascunho → 404
+    T->>T: página pertence à lista de páginas cujo molde efetivo é "nome"? não → 404
+    T->>R: renderizar(site, objeto, pele, [nome => conteúdo do rascunho])
+    T-->>V: 200, a página inteira, no-store + noindex + CSP própria (nunca grava em dados/cache)
+
+    V->>T: POST …/molde/publicar: nome, _csrf, senha (se o modo elevado não está aberto)
+    T->>G: validar(pele, rascunho) → 422 se não compila
+    T->>G: gravar(…, acao="salvar") → registra versão; apagarRascunho
+    T-->>V: 303, pele republicada
+
+    V->>T: POST …/molde/voltar: nome, versao, base (hash do arquivo aberto no histórico), _csrf, senha
+    T->>G: versaoDoHistorico(pele, nome, versao): não existe → 404
+    T->>T: base ≠ hash do arquivo atual → 409 (alguém mexeu depois que a tela abriu)
+    T->>G: validar(pele, versão escolhida) → 422 se não compila mais (ex.: layout apagado)
+    T->>G: gravar(…, acao="voltar") → nova versão com o conteúdo de volta
+    T-->>V: 303, pele republicada
+```

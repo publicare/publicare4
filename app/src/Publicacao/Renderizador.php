@@ -22,11 +22,19 @@ final class Renderizador
     ) {
     }
 
-    public function renderizar(Site $site, Objeto $objeto): string
+    /**
+     * `$peleParaPreVisualizar` e `$sobrescritas` (fase 5j): só a pré-visualização isolada de um rascunho os usa, para
+     * renderizar com uma pele e um conteúdo que ainda não foram gravados em disco, sem tocar no cache público nem na
+     * pele realmente ativa do site. Sem eles, o comportamento é o mesmo da fase 5e (pele do próprio `$site`).
+     *
+     * @param array<string, string> $sobrescritas nome do molde (sem `.pbl`) => conteúdo
+     */
+    public function renderizar(Site $site, Objeto $objeto, ?string $peleParaPreVisualizar = null, array $sobrescritas = []): string
     {
         $classe = $this->classes->porId($objeto->classeId)
             ?? throw new \RuntimeException("Classe {$objeto->classeId} não existe");
-        $pele = new ResolvedorDePele($this->caminhos, $site->pele);
+        $nomeDaPele = $peleParaPreVisualizar ?? $site->pele;
+        $pele = new ResolvedorDePele($this->caminhos, $nomeDaPele, $sobrescritas);
         $nome = $pele->existe($classe->nome) ? $classe->nome : 'padrao';
         $molde = $pele->fonte($nome);
 
@@ -36,7 +44,7 @@ final class Renderizador
         try {
             return ($this->compilador->carregar($molde, $pele))($this->fonte->contextoDe($objeto), $runtime);
         } catch (\Pbl\Linguagem\ErroSintaxe $e) {
-            throw $e->arquivo === null ? $e->noArquivo("{$site->pele}/{$nome}.pbl") : $e;
+            throw $e->arquivo === null ? $e->noArquivo("{$nomeDaPele}/{$nome}.pbl") : $e;
         }
     }
 }
