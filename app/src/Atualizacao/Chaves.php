@@ -33,4 +33,16 @@ final class Chaves
 
     /** @var list<string> as de produção (uso + recuperação) */
     public const PUBLICAS = [...self::USO, ...self::RECUPERACAO];
+
+    /**
+     * Não há em que confiar para este canal? Nos canais de produção olha as chaves de produção informadas; no canal `teste`
+     * basta haver chave de teste (um build só com `TESTE` preenchido deve chegar ao verificador).
+     *
+     * @param list<string> $producao
+     * @param list<string> $teste
+     */
+    public static function semConfianca(array $producao, string $canal, array $teste = self::TESTE): bool
+    {
+        return $canal === 'teste' ? $teste === [] : $producao === [];
+    }
 }

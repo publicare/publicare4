@@ -83,6 +83,7 @@ final class Empacotador
         $manifestoCaminho = rtrim($saida, '/') . '/' . $nome;
         file_put_contents($manifestoCaminho, $manifesto);
         $assinatura = null;
+        @unlink($manifestoCaminho . '.sig'); // .sig antiga de uma saída reaproveitada nunca fica ao lado do manifesto novo
         if ($chavePrivadaHex !== null) {
             $assinatura = $manifestoCaminho . '.sig';
             file_put_contents($assinatura, Assinatura::assinar($manifesto, $chavePrivadaHex) . "\n");

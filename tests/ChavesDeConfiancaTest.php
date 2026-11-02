@@ -7,6 +7,7 @@ namespace Pbl\Testes;
 use Pbl\Atualizacao\Assinatura;
 use Pbl\Atualizacao\Atualizador;
 use Pbl\Atualizacao\BaixadorLocal;
+use Pbl\Atualizacao\Chaves;
 use Pbl\Atualizacao\ChavesLocais;
 use Pbl\Atualizacao\Empacotador;
 use Pbl\Atualizacao\ErroDeAtualizacao;
@@ -268,5 +269,33 @@ final class ChavesDeConfiancaTest extends TestCase
 
         $t->execute(['--saida' => $pasta . '/chaves', '--nome' => 'recuperacao']);
         self::assertSame(1, $t->getStatusCode(), 'não sobrescreve chave existente');
+    }
+
+    public function testSemConfiancaOlhaATesteSoNoCanalDeTeste(): void
+    {
+        self::assertTrue(Chaves::semConfianca([], 'estavel', ['t']));
+        self::assertFalse(Chaves::semConfianca(['p'], 'estavel', []));
+        self::assertFalse(Chaves::semConfianca([], 'teste', ['t']), 'build só com TESTE chega ao verificador do canal de teste');
+        self::assertTrue(Chaves::semConfianca(['p'], 'teste', []));
+    }
+
+    public function testEmpacotarSemAssinarRemoveSigAntigaDaSaidaReaproveitada(): void
+    {
+        $origem = Ajuda::raizDeProjeto();
+        $this->limpar[] = $origem;
+        mkdir($origem . '/app/src', 0775, true);
+        mkdir($origem . '/vendor', 0775, true);
+        mkdir($origem . '/bin', 0775, true);
+        file_put_contents($origem . '/app/src/Versao.php', "<?php\nfinal class Versao { public const ATUAL = '0.2.0'; }\n");
+        file_put_contents($origem . '/vendor/autoload.php', '<?php');
+        file_put_contents($origem . '/bin/pbl', '#!/usr/bin/env php');
+        $saida = Ajuda::pastaTemporaria();
+        $this->limpar[] = $saida;
+        file_put_contents($saida . '/latest.json.sig', "antiga\n");
+
+        $r = (new Empacotador())->empacotar($origem, $saida, null);
+
+        self::assertNull($r['assinatura']);
+        self::assertFileDoesNotExist($saida . '/latest.json.sig');
     }
 }
