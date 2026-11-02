@@ -48,6 +48,9 @@ Interface `Autenticador` (credenciais → usuário ou nulo). O padrão é o banc
 ### 10. Operação até haver tela
 `bin/pbl usuario` (criar, senha, ativar/desativar, listar, acesso) cobre a administração de contas pela linha de comando.
 
+### 11. Modo elevado para ações sensíveis do painel (ADR 0012, fase 5h)
+A tela de Atualização (ADR 0012 §12) já pedia a senha de novo antes de aplicar ou reverter; a fase 5h generaliza isso num componente único, `Pbl\Acesso\ModoElevado`, usado por toda ação sensível do painel (contas, domínios, tipos de conteúdo e peles — detalhe em ADR 0012 §13). Confirmar a senha abre uma janela curta (10 min) guardada na própria sessão (`sessao.elevado_ate`): outra ação sensível da mesma sessão, dentro da janela, não pede a senha de novo. A janela não tem limpeza própria: acaba com a sessão, por **logout**, por **troca de senha** (que já encerra as sessões da conta) ou pela expiração normal (inatividade ou tempo absoluto). O limite de tentativas é o mesmo do login (§6), por login e por IP; falha e bloqueio vão para a auditoria, nunca a senha.
+
 ## Consequências
 
 - Nenhuma decisão de permissão depende de texto da requisição; o erro do PBL3 deixa de ser possível por construção.
