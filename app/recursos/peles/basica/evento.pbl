@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="<@eco %SITE.config.idioma@>">
+<head>
+<@incluir arquivo="cabeca"@>
+<@incluir arquivo="estilo"@>
+</head>
+<body>
+<@incluir arquivo="topo"@>
+<main>
+<article>
+<h1><@eco #titulo@></h1>
+<p class="evento-quando"><@formatadata valor=#inicio formato="d/m/Y H:i"@><@se #fim != ""@> até <@formatadata valor=#fim formato="d/m/Y H:i"@><@/se@></p>
+<@se #local != ""@><p><strong>Local:</strong> <@eco #local@></p><@/se@>
+<@se #imagem != ""@><p><img src="<@miniatura valor=#imagem tamanho=800@>" alt="" style="max-width:100%;height:auto"></p><@/se@>
+<@se #resumo != ""@><p><em><@eco #resumo@></em></p><@/se@>
+<div><@ecocru #corpo@></div>
+<@se #link_inscricao != ""@><p><a href="<@ecourl #link_inscricao@>" rel="noopener noreferrer">Inscreva-se</a></p><@/se@>
+</article>
+</main>
+<@incluir arquivo="bloco_rodape"@>
+</body>
+</html>

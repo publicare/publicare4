@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Console;
 
 use Pbl\Caminhos;
+use Pbl\Conteudo\Modelos;
 use Pbl\Instalacao\Instalador;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -28,6 +29,7 @@ final class InstalarComando extends Command
         $this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Domínio principal', 'localhost');
         $this->addOption('admin-login', null, InputOption::VALUE_REQUIRED, 'Cria um administrador com esse login (a senha é pedida de forma oculta)');
         $this->addOption('admin-email', null, InputOption::VALUE_REQUIRED, 'E-mail do administrador');
+        $this->addOption('modelos', null, InputOption::VALUE_REQUIRED, 'Modelos opcionais a ativar, separados por vírgula (' . implode(', ', Modelos::NOMES) . ' ou todos)');
         $this->addOption('admin-nome', null, InputOption::VALUE_REQUIRED, 'Nome do administrador');
     }
 
@@ -49,7 +51,11 @@ final class InstalarComando extends Command
                     'senha' => $senha,
                 ];
             }
-            (new Instalador($this->caminhos))->instalar((string) $input->getOption('nome'), (string) $input->getOption('host'), $admin);
+            $escolhidos = array_values(array_filter(array_map('trim', explode(',', strtolower((string) $input->getOption('modelos')))), static fn (string $m): bool => $m !== ''));
+            if (in_array('todos', $escolhidos, true)) {
+                $escolhidos = Modelos::NOMES;
+            }
+            (new Instalador($this->caminhos))->instalar((string) $input->getOption('nome'), (string) $input->getOption('host'), $admin, $escolhidos);
         } catch (\RuntimeException | \InvalidArgumentException $e) {
             $output->writeln('<error>' . $e->getMessage() . '</error>');
 

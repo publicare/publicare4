@@ -56,6 +56,7 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Link (tipo de conteúdo)** | Atalho para outro conteúdo do site (acompanha o endereço dele se mudar) ou para um endereço externo. Só um dos dois destinos por vez. |
 | **Menu / nome no menu** | O menu principal mostra as páginas marcadas "no menu", na ordem do peso. O nome no menu é opcional; vazio, vale o título. | O painel avisa quando o menu foi cortado (muitos níveis ou mais de 50 itens num nível). O site também ganha `sitemap.xml` e `robots.txt` automáticos.
 | **Configurações do site** | Valores que valem para o site inteiro (nome, idioma, textos para buscadores, contato, rodapé, busca ligada, itens por página, profundidade do menu). Ficam em `/_pbl/site/{id}/configuracoes`; ao salvar, o site é republicado. |
+| **Modelo opcional** | Pacote pronto de tipos de conteúdo, exemplos e aparência (agenda de eventos, perguntas frequentes, destaques, blocos) que você liga quando precisa, sem afetar o que já existe. Veja [Modelos opcionais](modelos-e-demo.md). |
 | **SEO** | Título, descrição e imagem pensados para buscadores e redes sociais; opcionais, e sem eles o site usa o título, o resumo e a imagem de destaque. |
 | **Busca (do site)** | A caixa de busca do visitante e a página de resultados, que usam o mesmo motor de busca do sistema. |
 | **PBL3** | A versão anterior do Publicare. |

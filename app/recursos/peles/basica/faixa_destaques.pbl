@@ -1,0 +1,12 @@
+<@-- Modelo "destaque": faixa de até 3 destaques na página inicial (ordem pelo peso). Sem destaques publicados, não imprime nada. --@>
+<@localizar classes="destaque" ordem="peso, titulo" limite=3 expandir="destino_interno"@>
+<@se %INDICE == 1@><section class="destaques" aria-label="Destaques">
+<@/se@><article class="destaque">
+<@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=400@>" alt=""><@/se@>
+<h2><@eco #titulo@></h2>
+<@se #texto != ""@><p><@eco #texto@></p><@/se@>
+<@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
+<@se $dest != ""@><a href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span style="position:absolute;left:-9999px"> sobre <@eco #titulo@></span></a><@/se@>
+</article>
+<@se %INDICE == %QUANTIDADE@></section>
+<@/se@><@/localizar@>

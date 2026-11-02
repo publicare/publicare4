@@ -144,7 +144,7 @@ final class Pagina
     {
         $caminho = rtrim(self::$caminhoAtual, '/');
         $secao = match (true) {
-            str_starts_with($caminho, '/_pbl/classes') => 'classes',
+            str_starts_with($caminho, '/_pbl/classes'), str_starts_with($caminho, '/_pbl/modelos') => 'classes',
             str_starts_with($caminho, '/_pbl/contas') => 'contas',
             str_starts_with($caminho, '/_pbl/atualizacao') => 'atualizacao',
             default => 'inicio',

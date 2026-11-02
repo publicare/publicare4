@@ -324,6 +324,35 @@ final class LinguagemTest extends TestCase
         self::assertSame('01/11/2026 01 11 2026', $this->render('<@eco %DATA@> <@eco %DIA@> <@eco %MES@> <@eco %ANO@>', [], [], [], $agora));
     }
 
+    /** @return array<string, array{string, string}> */
+    public static function enderecosDeHref(): array
+    {
+        return [
+            'https' => ['https://exemplo.com/a?b=1&c=2', 'https://exemplo.com/a?b=1&amp;c=2'],
+            'HTTP maiúsculo' => ['HTTP://exemplo.com', 'HTTP://exemplo.com'],
+            'relativo' => ['/agenda', '/agenda'],
+            'javascript' => ['javascript:alert(1)', ''],
+            'javascript maiúsculo' => ['JaVaScRiPt:alert(1)', ''],
+            'javascript com espaço' => [' javascript:alert(1)', ''],
+            'javascript com tab' => ["java\tscript:alert(1)", ''],
+            'javascript com quebra' => ["java\nscript:alert(1)", ''],
+            'tab antes' => ["\tjavascript:alert(1)", ''],
+            'data' => ['data:text/html;base64,PHNjcmlwdD4=', ''],
+            'vbscript' => ['vbscript:msgbox(1)', ''],
+            'https com espaço' => ['https ://x.com', ''],
+            'sem host' => ['https:', ''],
+            'barra invertida' => ['/\\evil.com', ''],
+            'mailto' => ['mailto:a@b.c', ''],
+            'texto solto' => ['exemplo.com', ''],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('enderecosDeHref')]
+    public function testEcourlSoAceitaHttpOuRelativo(string $entrada, string $esperado): void
+    {
+        self::assertSame($esperado, $this->render('<@ecourl #u@>', ['u' => $entrada]));
+    }
+
     public function testFormatadataEEcoLimite(): void
     {
         self::assertSame('01/11/2026', $this->render('<@formatadata valor=#d formato="d/m/Y"@>', ['d' => '2026-11-01 08:30:00']));

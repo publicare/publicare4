@@ -10,6 +10,7 @@ use Pbl\Acesso\Segredo;
 use Pbl\Acesso\SenhaPolitica;
 use Pbl\Admin\Pagina;
 use Pbl\Caminhos;
+use Pbl\Conteudo\Modelos;
 use Pbl\Servicos;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -75,6 +76,9 @@ final class InstaladorWeb
             'email' => mb_substr(trim((string) $requisicao->request->get('email', '')), 0, 255),
             'nome' => mb_substr(trim((string) $requisicao->request->get('nome', '')), 0, 200),
         ];
+        $marcados = $requisicao->request->all('modelos');
+        $modelos = array_values(array_filter(Modelos::NOMES, static fn (string $m): bool => in_array($m, $marcados, true)));
+        $campos['modelos'] = implode(',', $modelos);
         $senha = mb_substr((string) $requisicao->request->get('senha', ''), 0, SenhaPolitica::MAXIMO + 1);
         $senha2 = mb_substr((string) $requisicao->request->get('senha2', ''), 0, SenhaPolitica::MAXIMO + 1);
 
@@ -88,7 +92,7 @@ final class InstaladorWeb
             try {
                 (new Instalador($this->caminhos))->instalar($campos['site'], $campos['dominio'], [
                     'login' => $campos['login'], 'email' => $campos['email'], 'nome' => $campos['nome'] === '' ? $campos['login'] : $campos['nome'], 'senha' => $senha,
-                ]);
+                ], $modelos);
             } catch (\InvalidArgumentException | \RuntimeException $e) {
                 $erro = $e->getMessage();
             }
@@ -139,6 +143,7 @@ final class InstaladorWeb
                 . '<p>Para ninguém mais poder instalar no seu lugar, crie um arquivo <strong>vazio</strong> chamado <code>' . self::ARQUIVO_DE_POSSE
                 . '</code> dentro da pasta <code>dados/</code> do site (por FTP ou pelo painel da hospedagem) e recarregue esta página.</p>', $status, $seguro);
         }
+        $modelosMarcados = array_values(array_filter(explode(',', $campos['modelos'] ?? '')));
         $v = static fn (string $campo, string $padrao = ''): string => Pagina::h($campos[$campo] ?? $padrao);
         $corpo .= '<p class="ok">✔ Arquivo encontrado.</p><h2 class="h5 mt-4">3. Seu site e a conta de administrador</h2>'
             . ($erro === null ? '' : Pagina::alerta('danger', $erro, 'erro-formulario'))
@@ -151,9 +156,23 @@ final class InstaladorWeb
                 . Pagina::campo('i-email', 'email', 'E-mail', $campos['email'] ?? '', ['tipo' => 'email', 'maxlength' => 255, 'obrigatorio' => true])
                 . Pagina::campo('i-senha', 'senha', 'Senha', '', ['tipo' => 'password', 'obrigatorio' => true, 'autocomplete' => 'new-password', 'ajuda' => 'Mínimo de ' . SenhaPolitica::MINIMO . ' caracteres.'])
                 . Pagina::campo('i-senha2', 'senha2', 'Repita a senha', '', ['tipo' => 'password', 'obrigatorio' => true, 'autocomplete' => 'new-password', 'grupo' => 'mb-0']))
+            . Pagina::card('Modelos opcionais', '<p class="text-body-secondary">Tipos de conteúdo extras, com exemplos. Dá para ligar depois, em Modelos, na administração.</p>' . $this->caixasDeModelos($modelosMarcados))
             . Pagina::acoes('Instalar') . '</form>';
 
         return Pagina::resposta('Instalar o PBL4', $corpo, $status, $seguro);
+    }
+
+    /** @param list<string> $marcados */
+    private function caixasDeModelos(array $marcados): string
+    {
+        $html = '';
+        foreach (Modelos::catalogo() as $m) {
+            $id = 'i-modelo-' . $m['nome'];
+            $html .= '<div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="' . $id . '" name="modelos[]" value="' . Pagina::h($m['nome']) . '"' . (in_array($m['nome'], $marcados, true) ? ' checked' : '') . '>'
+                . '<label class="form-check-label" for="' . $id . '"><strong>' . Pagina::h($m['titulo']) . '</strong><br><span class="text-body-secondary">' . Pagina::h($m['descricao']) . '</span></label></div>';
+        }
+
+        return $html;
     }
 
     private function temPosse(): bool

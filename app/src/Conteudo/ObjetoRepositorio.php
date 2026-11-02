@@ -599,6 +599,8 @@ final class ObjetoRepositorio
         // Só no `link` do pacote padrão (tem `destino_interno`): um tipo homônimo criado à mão em outra instalação fica como está.
         if ($classe->nome === RegrasDeLink::CLASSE && in_array('destino_interno', array_column($classe->propriedades, 'nome'), true)) {
             RegrasDeLink::exigir($dados);
+        } else {
+            RegrasDeLink::exigirEnderecosWeb($dados);
         }
     }
 

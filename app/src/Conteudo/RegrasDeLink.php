@@ -37,6 +37,49 @@ final class RegrasDeLink
         }
     }
 
+    /** Campos de endereço dos modelos opcionais (destaque, evento): vão para `href`, então só http(s):// ou "/caminho". */
+    private const CAMPOS_WEB = ['destino_externo', 'link_inscricao'];
+
+    /**
+     * @param array<string, mixed> $dados
+     * @throws ViolacaoDeRegra
+     */
+    public static function exigirEnderecosWeb(array $dados): void
+    {
+        foreach (self::CAMPOS_WEB as $campo) {
+            $v = $dados[$campo] ?? null;
+            if (is_string($v) && $v !== '' && !self::urlWebSegura($v)) {
+                throw new ViolacaoDeRegra(ViolacaoDeRegra::DESTINO_DE_LINK, 'O endereço precisa começar com http://, https:// ou / (caminho do próprio site).', $campo);
+            }
+        }
+    }
+
+    /**
+     * Endereço seguro para `href` de molde/campo livre: só `http(s)://host…` ou caminho relativo começando em `/`. Qualquer outra
+     * coisa (`javascript:`, `data:`, `vbscript:`, espaço/tab/controle em qualquer posição, esquema disfarçado) é recusada.
+     */
+    public static function urlWebSegura(string $endereco): bool
+    {
+        if ($endereco === '' || strlen($endereco) > self::MAX_EXTERNO || preg_match('/[\x00-\x20\x7F\\\\]/', $endereco) === 1 || !mb_check_encoding($endereco, 'UTF-8')) {
+            return false;
+        }
+        if ($endereco[0] === '/') {
+            return true;
+        }
+        if (preg_match('#^https?://[^/?\#]+#i', $endereco) !== 1) {
+            return false;
+        }
+        $partes = parse_url($endereco);
+
+        return $partes !== false && isset($partes['host']) && $partes['host'] !== '';
+    }
+
+    /** Devolve o endereço se for seguro, senão vazio (usado em `<@ecourl@>`). */
+    public static function urlWebOuVazio(string $endereco): string
+    {
+        return self::urlWebSegura($endereco) ? $endereco : '';
+    }
+
     public static function externoValido(string $endereco): bool
     {
         if ($endereco !== trim($endereco) || strlen($endereco) > self::MAX_EXTERNO || preg_match('/[\x00-\x20\x7F]/', $endereco) === 1 || !mb_check_encoding($endereco, 'UTF-8')) {

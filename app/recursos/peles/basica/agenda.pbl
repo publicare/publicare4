@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="<@eco %SITE.config.idioma@>">
+<head>
+<@incluir arquivo="cabeca"@>
+<@incluir arquivo="estilo"@>
+</head>
+<body>
+<@incluir arquivo="topo"@>
+<main class="agenda">
+<h1><@eco #titulo@></h1>
+<@se #descricao != ""@><p><@eco #descricao@></p><@/se@>
+<@-- "Hoje" vale na hora da publicação; republique (ou use bin/pbl agendados) para atualizar as listas. --@>
+<@var $hoje = %ANO . "-" . %MES . "-" . %DIA@>
+<h2>Próximos eventos</h2>
+<@filhos classes="evento" ordem="inicio"@><@se #inicio >= $hoje@><@incluir arquivo="item"@><@var $ha_proximos = 1@><@/se@><@/filhos@>
+<@se $ha_proximos != 1@><p>Nenhum evento marcado por enquanto.</p><@/se@>
+<h2>Eventos passados</h2>
+<@filhos classes="evento" ordem="-inicio"@><@se #inicio < $hoje@><@incluir arquivo="item"@><@var $ha_passados = 1@><@/se@><@/filhos@>
+<@se $ha_passados != 1@><p>Nenhum evento anterior.</p><@/se@>
+</main>
+<@incluir arquivo="bloco_rodape"@>
+</body>
+</html>

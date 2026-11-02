@@ -14,6 +14,7 @@ use Pbl\Conteudo\ClasseRepositorio;
 use Pbl\Conteudo\ConfigDoSiteRepositorio;
 use Pbl\Conteudo\ClassesPadrao;
 use Pbl\Conteudo\Dominio;
+use Pbl\Conteudo\Modelos;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
 
@@ -34,9 +35,16 @@ final class Instalador
 
     /**
      * @param array{login: string, email: string, nome: string, senha: string}|null $administrador conta de administrador global criada junto
+     * @param list<string> $modelos modelos opcionais a ativar já na instalação (`Modelos::NOMES`, ADR 0021)
      */
-    public function instalar(string $nomeDoSite, string $host, ?array $administrador = null): void
+    public function instalar(string $nomeDoSite, string $host, ?array $administrador = null, array $modelos = []): void
     {
+        $modelos = array_values(array_unique($modelos));
+        foreach ($modelos as $modelo) {
+            if (!in_array($modelo, Modelos::NOMES, true)) {
+                throw new \InvalidArgumentException("Modelo desconhecido: {$modelo}. Os modelos são: " . implode(', ', Modelos::NOMES));
+            }
+        }
         if ($this->instalado()) {
             throw new \RuntimeException('PBL4 já está instalado (apague dados/config/instalado.lock só se souber o que faz)');
         }
@@ -60,7 +68,7 @@ final class Instalador
         (new Migrador($conexao))->migrar();
 
         // Tudo ou nada: se algo falhar no meio, o banco volta ao estado limpo e dá para tentar de novo sem "classe já existe".
-        $conexao->transactional(function () use ($conexao, $nomeDoSite, $host, $administrador): void {
+        $conexao->transactional(function () use ($conexao, $nomeDoSite, $host, $administrador, $modelos): void {
             $classes = new ClasseRepositorio($conexao);
             $objetos = new ObjetoRepositorio($conexao);
             $sites = new SiteRepositorio($conexao);
@@ -106,6 +114,12 @@ final class Instalador
                 'mensagem' => 'Recebemos a sua mensagem. Obrigado!',
                 'botao' => 'Enviar mensagem',
             ], 'publicado', ['peso' => 30, 'no_menu' => true]);
+
+            // Modelos opcionais escolhidos (ADR 0021): classes, exemplos e moldes, na mesma transação do resto.
+            $ativador = new Modelos($conexao, $this->caminhos);
+            foreach ($modelos as $modelo) {
+                $ativador->ativar($modelo, $site->id);
+            }
         });
 
         file_put_contents($this->trava(), gmdate('c') . "\n");

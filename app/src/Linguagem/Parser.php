@@ -100,6 +100,9 @@ final class Parser
                 case 'ecocru':
                     $adicionar(new NoEco($this->expr->expressao($resto, $linha), $nome === 'ecocru'));
                     break;
+                case 'ecourl':
+                    $adicionar(new NoEco($this->expr->expressao($resto, $linha), false, 'url'));
+                    break;
                 case 'eco_limite':
                     $p = $this->parametros($nome, $resto, $linha, ['texto']);
                     $adicionar(new NoEco($p['texto'], false, 'cortar', [
