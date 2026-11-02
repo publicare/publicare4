@@ -56,7 +56,10 @@ final class TelasDeConteudo
             if ($site === null) {
                 continue;
             }
-            $corpo .= '<section class="mb-4"><h2 class="h5">' . Pagina::h($site->nome) . '</h2>';
+            $raiz = $site->objetoRaizId === null ? null : $this->servicos->objetos->porId($site->objetoRaizId);
+            $dominios = $this->servicos->permissoes->podeAdministrarSite($u, $raiz)
+                ? ' <a class="btn btn-sm btn-outline-secondary ms-2" href="' . Painel::PREFIXO . '/site/' . $site->id . '/dominios">Domínios<span class="visually-hidden"> de ' . Pagina::h($site->nome) . '</span></a>' : '';
+            $corpo .= '<section class="mb-4"><h2 class="h5">' . Pagina::h($site->nome) . $dominios . '</h2>';
             if ($u->administrador) {
                 $corpo .= '<p><a href="' . Painel::PREFIXO . '/site/' . $site->id . '/redirecionamentos">Redirecionamentos</a> · <a href="' . Painel::PREFIXO . '/site/' . $site->id . '/peles">Peles</a></p>';
             }
@@ -81,7 +84,7 @@ final class TelasDeConteudo
 
     private function barra(SessaoAtiva $sessao): string
     {
-        return Pagina::barra($sessao->usuario->nome, $this->csrf->daSessao($sessao->idHash));
+        return Pagina::barra($sessao->usuario->nome, $this->csrf->daSessao($sessao->idHash), $sessao->usuario->administrador);
     }
 
     private function link(int $id): string
