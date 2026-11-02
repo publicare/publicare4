@@ -97,7 +97,7 @@ final class TelasDeConteudo
         $saudacao = '';
         $avisoDeVersao = TelasDeAtualizacao::avisoHomePage($this->servicos, $u);
 
-        return Pagina::resposta('Sites e conteúdo', $saudacao . $avisoDeVersao . $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Olá, ' . Pagina::h($u->nome) . '. ' . ($u->administrador ? 'Você é administrador: escolha um site para cuidar dele ou abra uma seção para editar conteúdo.' : 'Abra uma seção para editar o conteúdo.'));
+        return Pagina::resposta('Sites e conteúdo', $saudacao . $avisoDeVersao . $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Olá, <strong>' . Pagina::h($u->nome) . '</strong>. ' . ($u->administrador ? 'Você é administrador: escolha um site para cuidar dele ou abra uma seção para editar conteúdo.' : 'Abra uma seção para editar o conteúdo.'));
     }
 
     private function barra(SessaoAtiva $sessao): string
