@@ -132,7 +132,8 @@ final class TelasDeClasses
         $usos = $modela ? $this->servicos->classes->objetosPorClasse() : [];
         $corpo = ($requisicao->query->all()['ok'] ?? null) === 'apagada' ? '<div class="alert alert-success" role="status">Tipo de conteúdo apagado.</div>' : '';
         if ($modela) {
-            $corpo .= '<p><a class="btn btn-primary" href="' . Painel::PREFIXO . '/classes/nova">Novo tipo de conteúdo</a></p>';
+            $corpo .= '<p><a class="btn btn-primary" href="' . Painel::PREFIXO . '/classes/nova">Novo tipo de conteúdo</a> '
+                . '<a class="btn btn-outline-secondary" href="' . Painel::PREFIXO . '/modelos">Modelos</a></p>';
         } else {
             $corpo .= '<p class="text-body-secondary">Só administradores criam e alteram tipos de conteúdo.</p>';
         }
