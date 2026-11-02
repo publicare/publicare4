@@ -234,6 +234,8 @@ final class HtmlSeguroTest extends TestCase
         self::assertSame('<p><sup>2</sup></p>', HtmlSeguro::limpar('<p><span style="vertical-align:super">2</span></p>'));
         self::assertSame('<p>a</p>', HtmlSeguro::limpar('<p><b style="font-weight:normal">a</b></p>'));
         self::assertSame('<p><b>a</b></p>', HtmlSeguro::limpar('<p><b>a</b></p>'));
+        self::assertSame('<p><span lang="en">hi</span> <span dir="rtl">x</span> <span title="t" style="font-size: 12px">y</span></p>', HtmlSeguro::limpar('<p><span lang="en" class="z">hi</span> <span dir="rtl">x</span> <span title="t" style="font-size:12px;color:red">y</span></p>'));
+        self::assertSame('<p><strong><span lang="pt">a</span></strong></p>', HtmlSeguro::limpar('<p><span lang="pt" style="font-weight:700">a</span></p>'));
     }
 
     public function testComentariosCondicionaisStyleMetaEXmlSomem(): void

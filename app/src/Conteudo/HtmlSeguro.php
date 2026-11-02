@@ -179,8 +179,12 @@ final class HtmlSeguro
         if ($dentro === '') {
             return '';
         }
-        if (isset($atributos['style'])) {
-            $dentro = '<span style="' . htmlspecialchars($atributos['style'], ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8') . '">' . $dentro . '</span>';
+        if ($atributos !== []) { // `style` válido e/ou `title`/`lang`/`dir` já conferidos
+            $abre = '';
+            foreach ($atributos as $chave => $valor) {
+                $abre .= ' ' . $chave . '="' . htmlspecialchars($valor, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8') . '"';
+            }
+            $dentro = '<span' . $abre . '>' . $dentro . '</span>';
         }
         $peso = $estilo['font-weight'] ?? '';
         $decoracao = ($estilo['text-decoration'] ?? '') . ' ' . ($estilo['text-decoration-line'] ?? '');
