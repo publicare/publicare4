@@ -6,6 +6,7 @@ namespace Pbl\Testes;
 
 use Pbl\Acesso\Perfil;
 use Pbl\Acesso\SessaoRepositorio;
+use Pbl\Admin\Pagina;
 use Pbl\Aplicacao;
 use Pbl\Caminhos;
 use Pbl\Conteudo\Classe;
@@ -161,7 +162,7 @@ final class AdminClassesTest extends TestCase
         self::assertStringContainsString('<code>pagina</code>', $html);
         self::assertStringContainsString('href="/_pbl/classes/nova"', $html);
         self::assertStringContainsString('href="/_pbl/classe/' . $this->pagina->id . '/editar"', $html);
-        self::assertMatchesRegularExpression('#<td>2</td><td>2</td>#', $html, '2 campos, 2 conteúdos');
+        self::assertMatchesRegularExpression('#<td data-label="Campos">2</td><td data-label="Conteúdos que usam">2</td>#', $html, '2 campos, 2 conteúdos');
         self::assertStringContainsString("default-src 'none'", (string) $admin->headers->get('Content-Security-Policy'));
 
         $leitor = $this->req('GET', '/_pbl/classes', $this->token('leitor'));
@@ -610,6 +611,43 @@ final class AdminClassesTest extends TestCase
         self::assertStringNotContainsString('name="p[capa][tipos][]" value="png" checked', $html);
         self::assertMatchesRegularExpression('/name="p\[capa\]\[tamanho_max_mb\]"[^>]* value="3"/', $html);
         self::assertStringContainsString('>Tamanho máximo (MB)</label>', $html);
+    }
+
+    public function testCampoNaoArquivoNaoMostraOpcoesDeArquivoEFormularioNovoTambemNao(): void
+    {
+        $token = $this->token('admin');
+        $classe = $this->s->classes->criar('album_opcoes', [
+            ['nome' => 'capa', 'tipo' => 'imagem'],
+            ['nome' => 'titulo_extra', 'tipo' => 'texto'],
+        ]);
+        $html = (string) $this->req('GET', '/_pbl/classe/' . $classe->id . '/editar', $token)->getContent();
+        self::assertStringContainsString('name="p[capa][tipos][]"', $html);
+        self::assertStringNotContainsString('name="p[titulo_extra][tipos][]"', $html);
+        // Campo novo: o bloco existe, mas oculto e ligado ao seletor de tipo (o pbl-admin.js o mostra para arquivo/imagem).
+        self::assertMatchesRegularExpression('/<div class="border-top pt-3" data-pbl-visivel-se="novo-tipo:arquivo,imagem" hidden>/', $html);
+        self::assertSame(2, substr_count($html, 'Opções de arquivo e imagem'), 'campo capa + bloco condicional do campo novo');
+        self::assertStringContainsString('data-bs-target="#painel-campo-1-titulo_extra"', $html);
+        self::assertMatchesRegularExpression('/<div id="painel-campo-1-titulo_extra" class="accordion-collapse collapse">/', $html, 'campo existente começa fechado');
+        self::assertMatchesRegularExpression('/<div id="painel-novo-campo" class="accordion-collapse collapse">/', $html);
+        self::assertStringContainsString('<strong>Adicionar um campo</strong>', $html);
+    }
+
+    public function testNovoTipoMostraSoNomeEDescricaoEBarraTemMenuRecolhivel(): void
+    {
+        $html = (string) $this->req('GET', '/_pbl/classes/nova', $this->token('admin'))->getContent();
+        self::assertMatchesRegularExpression('/<div id="painel-filhos" class="accordion-collapse collapse">/', $html, 'filhos aceitos começam recolhidos');
+        self::assertStringContainsString('name="aceita_filhos"', $html, 'o campo continua no formulário (envia mesmo recolhido)');
+        self::assertStringContainsString('navbar-expand-md', $html);
+        self::assertStringContainsString('data-bs-toggle="collapse" data-bs-target="#menu-principal"', $html);
+        self::assertStringNotContainsString('<details', $html);
+    }
+
+    public function testTabelasViramCartoesComRotuloPorCelula(): void
+    {
+        $html = Pagina::tabelasEmCartoes('<table class="table"><caption>x</caption><thead><tr><th scope="col">Nome</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody><tr><td>a</td><td>b</td></tr><tr><td colspan="2">vazio</td></tr></tbody></table>');
+        self::assertStringContainsString('class="table pbl-cartoes"', $html);
+        self::assertStringContainsString('<td data-label="Nome">a</td><td>b</td>', $html);
+        self::assertStringContainsString('<td colspan="2">vazio</td>', $html);
     }
 
     public function testTelaDeEdicaoNaoRepeteIdsEntreAsLinhasDeCampos(): void

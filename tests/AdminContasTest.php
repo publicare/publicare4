@@ -331,7 +331,7 @@ final class AdminContasTest extends TestCase
         self::assertSame(Perfil::Autor, $acessos[0]['perfil']);
         $html = $this->html($this->req('GET', "/_pbl/conta/{$alvo}", $admin));
         self::assertStringContainsString('href="/_pbl/objeto/' . $this->inicioId . '"', $html);
-        self::assertStringContainsString('<td>autor</td>', $html);
+        self::assertStringContainsString('>autor</td>', $html);
         self::assertStringContainsString('Meu Site', $html);
         $log = $this->auditoria('acesso.conceder');
         self::assertSame('usuario:' . $this->ids['admin'], $log[0]['ator']);
