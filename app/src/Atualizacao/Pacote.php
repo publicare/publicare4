@@ -13,7 +13,7 @@ namespace Pbl\Atualizacao;
 final class Pacote
 {
     /** Itens da raiz do projeto que o pacote traz e a atualização troca. */
-    public const ITENS = ['app', 'vendor', 'bin', 'public', 'composer.json', 'composer.lock', '.htaccess', 'LICENSE'];
+    public const ITENS = ['app', 'vendor', 'bin', 'public', 'composer.json', 'composer.lock', '.htaccess', 'LICENSE', 'NOTICE'];
     public const ARQUIVO_DE_CONTROLE = 'PACOTE.json';
     public const MAX_ARQUIVOS = 30_000;
     public const MAX_BYTES = 400_000_000;

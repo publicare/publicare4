@@ -37,13 +37,34 @@ final class Assinatura
     }
 
     /**
-     * @param list<string> $chavesPublicasHex as chaves em que se confia (mais de uma permite trocar de chave sem quebrar quem atualiza)
+     * @param list<string> $chavesPublicasHex as chaves em que se confia
      */
     public static function verificar(string $mensagem, string $assinaturaBase64, array $chavesPublicasHex): bool
     {
+        return self::quemAssinou($mensagem, $assinaturaBase64, $chavesPublicasHex) !== null;
+    }
+
+    /** A chave pública (hex) que corresponde a uma privada (hex), para o dono conferir qual chave está usando. */
+    public static function publicaDe(string $chavePrivadaHex): string
+    {
+        if (preg_match('/^[0-9a-f]{128}$/D', $chavePrivadaHex) !== 1) {
+            throw new \InvalidArgumentException('Chave privada inválida (esperado: 128 caracteres hexadecimais)');
+        }
+        /** @var non-empty-string $chave */
+        $chave = sodium_hex2bin($chavePrivadaHex);
+
+        return sodium_bin2hex(sodium_crypto_sign_publickey_from_secretkey($chave));
+    }
+
+    /**
+     * @param list<string> $chavesPublicasHex candidatas
+     * @return string|null a chave pública (hex) que fez a assinatura, ou null se nenhuma fez
+     */
+    public static function quemAssinou(string $mensagem, string $assinaturaBase64, array $chavesPublicasHex): ?string
+    {
         $assinatura = base64_decode(trim($assinaturaBase64), true);
         if ($assinatura === false || strlen($assinatura) !== SODIUM_CRYPTO_SIGN_BYTES) {
-            return false;
+            return null;
         }
         foreach ($chavesPublicasHex as $chave) {
             if (preg_match('/^[0-9a-f]{64}$/D', $chave) !== 1) {
@@ -52,10 +73,10 @@ final class Assinatura
             /** @var non-empty-string $binaria */
             $binaria = sodium_hex2bin($chave);
             if (sodium_crypto_sign_verify_detached($assinatura, $mensagem, $binaria)) {
-                return true;
+                return $chave;
             }
         }
 
-        return false;
+        return null;
     }
 }

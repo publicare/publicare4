@@ -23,6 +23,10 @@ final class Manifesto
         public readonly string $urlDoPacote,
         public readonly int $tamanho,
         public readonly string $sha256,
+        /** Só vale se o manifesto foi assinado pela chave de recuperação (o Atualizador confere). */
+        public readonly ?string $novaChaveDeUso = null,
+        /** @var list<string> idem */
+        public readonly array $chavesRevogadas = [],
     ) {
     }
 
@@ -41,7 +45,7 @@ final class Manifesto
             throw new ErroDeAtualizacao('Manifesto com versão inválida');
         }
         $canal = $texto('canal', 20);
-        if (!in_array($canal, ['estavel', 'beta'], true)) {
+        if (!in_array($canal, ['estavel', 'beta', 'teste'], true)) {
             throw new ErroDeAtualizacao('Manifesto com canal desconhecido');
         }
         $phpMinimo = $texto('php_minimo', 20);
@@ -63,12 +67,37 @@ final class Manifesto
             throw new ErroDeAtualizacao('Manifesto incoerente: a versão mínima para atualizar é maior que a própria versão');
         }
 
+        $novaChave = null;
+        $revogadas = [];
+        if (isset($d['chaves'])) {
+            $c = $d['chaves'];
+            if (!is_array($c)) {
+                throw new ErroDeAtualizacao('Manifesto com bloco de chaves inválido');
+            }
+            if (isset($c['uso'])) {
+                if (!is_string($c['uso']) || !ChavesLocais::valida($c['uso'])) {
+                    throw new ErroDeAtualizacao('Manifesto com chave de uso inválida');
+                }
+                $novaChave = $c['uso'];
+            }
+            foreach (is_array($c['revogadas'] ?? []) ? ($c['revogadas'] ?? []) : throw new ErroDeAtualizacao('Manifesto com lista de chaves revogadas inválida') as $r) {
+                if (!is_string($r) || !ChavesLocais::valida($r)) {
+                    throw new ErroDeAtualizacao('Manifesto com chave revogada inválida');
+                }
+                $revogadas[] = $r;
+            }
+            if (count($revogadas) > 20) {
+                throw new ErroDeAtualizacao('Manifesto com chaves revogadas demais');
+            }
+        }
+
         return new self(
             $canal, $versao, $data, $phpMinimo, $minimo,
             ($d['seguranca'] ?? false) === true, ($d['migracoes'] ?? false) === true,
             isset($d['resumo']) && is_string($d['resumo']) ? mb_substr($d['resumo'], 0, 300) : '',
             isset($d['notas']) && is_string($d['notas']) && str_starts_with($d['notas'], 'https://') ? mb_substr($d['notas'], 0, 300) : '',
             $p['url'], $p['tamanho'], $p['sha256'],
+            $novaChave, array_values(array_unique($revogadas)),
         );
     }
 }

@@ -2,7 +2,7 @@
     "name": "publicare/publicare4",
     "description": "PBL4 - plataforma low-code de sites, dados e fluxos",
     "type": "project",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "require": {
         "php": ">=8.2",
         "ext-dom": "*",

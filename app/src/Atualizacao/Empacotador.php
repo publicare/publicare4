@@ -12,21 +12,22 @@ namespace Pbl\Atualizacao;
 final class Empacotador
 {
     /**
-     * @param array{atualizar_a_partir_de?: string, seguranca?: bool, resumo?: string, notas?: string, data?: string} $opcoes
-     * @return array{zip: string, manifesto: string, assinatura: string, versao: string}
+     * @param array{atualizar_a_partir_de?: string, seguranca?: bool, resumo?: string, notas?: string, data?: string, nova_chave_de_uso?: string, chaves_revogadas?: list<string>} $opcoes
+     * @param string|null $chavePrivadaHex null = não assina (o CI monta o pacote; o dono assina depois com `bin/pbl assinar`, ADR 0019)
+     * @return array{zip: string, manifesto: string, assinatura: string|null, versao: string}
      */
-    public function empacotar(string $origem, string $saida, string $chavePrivadaHex, string $canal = 'estavel', array $opcoes = []): array
+    public function empacotar(string $origem, string $saida, ?string $chavePrivadaHex, string $canal = 'estavel', array $opcoes = []): array
     {
         $origem = rtrim($origem, '/');
         $versao = $this->versaoDe($origem);
-        if (str_ends_with($versao, '-dev') || str_contains($versao, '-dev.')) {
+        if ($canal !== 'teste' && (str_ends_with($versao, '-dev') || str_contains($versao, '-dev.'))) {
             throw new ErroDeAtualizacao("A versão {$versao} é de desenvolvimento: ajuste Versao::ATUAL antes de empacotar (docs/releases.md)");
         }
         if ($canal === 'estavel' && Semver::preLancamento($versao)) {
             throw new ErroDeAtualizacao("A versão {$versao} é um pré-lançamento: use o canal beta");
         }
-        if (!in_array($canal, ['estavel', 'beta'], true)) {
-            throw new ErroDeAtualizacao('Canal inválido (estavel ou beta)');
+        if (!in_array($canal, ['estavel', 'beta', 'teste'], true)) {
+            throw new ErroDeAtualizacao('Canal inválido (estavel, beta ou teste)');
         }
         if (!is_dir($saida) && !@mkdir($saida, 0775, true) && !is_dir($saida)) {
             throw new ErroDeAtualizacao("Não foi possível criar {$saida}");
@@ -55,6 +56,13 @@ final class Empacotador
         }
         $z->close();
 
+        $chaves = [];
+        if (isset($opcoes['nova_chave_de_uso'])) {
+            $chaves['uso'] = $opcoes['nova_chave_de_uso'];
+        }
+        if (($opcoes['chaves_revogadas'] ?? []) !== []) {
+            $chaves['revogadas'] = $opcoes['chaves_revogadas'];
+        }
         $manifesto = json_encode([
             'formato' => Manifesto::FORMATO,
             'canal' => $canal,
@@ -67,16 +75,20 @@ final class Empacotador
             'resumo' => $opcoes['resumo'] ?? '',
             'notas' => $opcoes['notas'] ?? '',
             'pacote' => ['url' => "pbl4-{$versao}.zip", 'tamanho' => (int) filesize($zipCaminho), 'sha256' => (string) hash_file('sha256', $zipCaminho)],
-        ], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
+        ] + ($chaves === [] ? [] : ['chaves' => $chaves]), JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
         // Confere que o que vamos assinar passa na mesma validação de quem vai atualizar.
         Manifesto::analisar($manifesto);
 
-        $nome = $canal === 'estavel' ? 'latest.json' : 'latest-beta.json';
+        $nome = $canal === 'estavel' ? 'latest.json' : "latest-{$canal}.json";
         $manifestoCaminho = rtrim($saida, '/') . '/' . $nome;
         file_put_contents($manifestoCaminho, $manifesto);
-        file_put_contents($manifestoCaminho . '.sig', Assinatura::assinar($manifesto, $chavePrivadaHex) . "\n");
+        $assinatura = null;
+        if ($chavePrivadaHex !== null) {
+            $assinatura = $manifestoCaminho . '.sig';
+            file_put_contents($assinatura, Assinatura::assinar($manifesto, $chavePrivadaHex) . "\n");
+        }
 
-        return ['zip' => $zipCaminho, 'manifesto' => $manifestoCaminho, 'assinatura' => $manifestoCaminho . '.sig', 'versao' => $versao];
+        return ['zip' => $zipCaminho, 'manifesto' => $manifestoCaminho, 'assinatura' => $assinatura, 'versao' => $versao];
     }
 
     private function versaoDe(string $origem): string

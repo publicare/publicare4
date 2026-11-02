@@ -1,6 +1,6 @@
 # Licenças de terceiros
 
-O PBL4 é MIT. Além das dependências PHP instaladas pelo Composer (cada uma com a licença no próprio pacote em `vendor/`; liste com `composer licenses`), o produto distribui estes arquivos de terceiros:
+O PBL4 é Apache-2.0 (o código herdado do Publicare 3 segue MIT; ver `LICENSE` e `NOTICE`, que vão em todo pacote de atualização). Além das dependências PHP instaladas pelo Composer (cada uma com a licença no próprio pacote em `vendor/`; liste com `composer licenses`), o produto distribui estes arquivos de terceiros:
 
 | O quê | Onde | Versão | Licença | Procedência |
 |---|---|---|---|---|
