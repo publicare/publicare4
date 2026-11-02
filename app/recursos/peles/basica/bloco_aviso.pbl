@@ -1,0 +1,3 @@
+<@-- Modelo "bloco": aviso no topo de todas as páginas. Crie um bloco com o endereço "bloco-aviso" para exibir; despublique-o para esconder. --@>
+<@usarobjeto url="bloco-aviso"@><div class="aviso-do-site" role="status"><@ecocru #corpo@></div>
+<@/usarobjeto@>

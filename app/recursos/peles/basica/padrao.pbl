@@ -7,6 +7,7 @@
 <body>
 <@incluir arquivo="topo"@>
 <main>
+<@se #id == #raiz@><@incluir arquivo="faixa_destaques"@><@/se@>
 <h1><@eco #titulo@></h1>
 <@se #resumo@><p><em><@eco #resumo@></em></p><@/se@>
 <div><@ecocru #corpo@></div>
@@ -15,5 +16,6 @@
 </nav>
 </main>
 <@se %SITE.config.rodape != ""@><footer><@ecocru %SITE.config.rodape@></footer>
-<@/se@></body>
+<@/se@><@incluir arquivo="bloco_rodape"@>
+</body>
 </html>
