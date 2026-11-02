@@ -27,6 +27,8 @@ final class Objeto
         public readonly ?int $criadoPor = null,
         public readonly bool $noMenu = false,
         public readonly string $rotuloMenu = '',
+        public readonly ?string $pele = null,
+        public readonly ?string $molde = null,
     ) {
     }
 

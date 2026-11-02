@@ -33,6 +33,13 @@ final class MigrarComando extends Command
         $aplicadas = (new Migrador($conexao))->migrar();
         $fixas = ClassesPadrao::garantirFixas(new ClasseRepositorio($conexao));
         $output->writeln($aplicadas === [] ? 'Banco em dia.' : 'Migrações aplicadas: ' . implode(', ', $aplicadas));
+        $peles = (new \Pbl\Instalacao\PelesDistribuidas($this->caminhos))->sincronizar();
+        if ($peles['gravados'] !== []) {
+            $output->writeln('Peles atualizadas: ' . implode(', ', $peles['gravados']));
+        }
+        foreach ($peles['avisos'] as $aviso) {
+            $output->writeln('<comment>' . $aviso . '</comment>');
+        }
         if ($fixas !== []) {
             $output->writeln('Tipos fixos criados: ' . implode(', ', $fixas));
         }

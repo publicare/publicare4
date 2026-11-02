@@ -13,16 +13,17 @@ final class MenuHtml
     /**
      * @param list<array<string, mixed>> $arvore
      * @param string $caminho `caminho` materializado do objeto corrente (`/1/5/9/`): de onde saem os ancestrais
+     * @param string $urlInicio endereço do item de início: `/` ou a raiz da pele (ADR 0022)
      * @param string $inicio rótulo do item "página inicial" (`/`) no começo; vazio: sem ele
      */
-    public static function gerar(array $arvore, int $profundidade, string $inicio, int $objetoId, string $caminho, ?int $raizId): string
+    public static function gerar(array $arvore, int $profundidade, string $inicio, int $objetoId, string $caminho, ?int $raizId, string $urlInicio = '/'): string
     {
         /** @var array<int, int> $ancestrais */
         $ancestrais = array_flip(array_filter(array_map('intval', explode('/', $caminho))));
         $itens = '';
         if ($inicio !== '') {
             $ehRaiz = $raizId !== null && $raizId === $objetoId;
-            $itens .= self::li('/', $inicio, false, false, $ehRaiz, false, '');
+            $itens .= self::li($urlInicio, $inicio, false, false, $ehRaiz, false, '');
         }
         $itens .= self::itens($arvore, $profundidade, 1, $objetoId, $ancestrais);
         if ($itens === '') {

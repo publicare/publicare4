@@ -29,6 +29,7 @@ use Pbl\Conteudo\SiteRepositorio;
 use Pbl\Formularios\FormularioParaMolde;
 use Pbl\Formularios\FormularioRepositorio;
 use Pbl\Linguagem\Compilador;
+use Pbl\Publicacao\Aparencia;
 use Pbl\Publicacao\EnderecoDoSite;
 use Pbl\Publicacao\FonteRepositorio;
 use Pbl\Publicacao\MenuDoSite;
@@ -77,7 +78,7 @@ final class Servicos
         $this->menu = new MenuDoSite($conexao, $caminhos, $this->auditoria, (int) (getenv('PBL_MENU_PROFUNDIDADE') ?: MenuDoSite::PROFUNDIDADE_PADRAO), $this->configs);
         $this->enderecos = new EnderecoDoSite($this->dominios, EnderecoDoSite::esquemaDoAmbiente());
         $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos, $this->menu, $this->configs, $this->enderecos);
-        $this->renderizador = $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
+        $this->renderizador = $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()), new Aparencia($caminhos, $conexao));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador, $this->menu);
         $this->peles = new GerenciadorDePeles($caminhos, $conexao);
     }

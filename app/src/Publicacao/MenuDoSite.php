@@ -12,9 +12,16 @@ use Pbl\Conteudo\RegrasDeLink;
 use Pbl\Conteudo\Site;
 
 /**
+ * @phpstan-type Arvore list<array<string, mixed>>
+ * @phpstan-type Snapshot array{hash: string, profundidade: int, cortes: int, arvore: Arvore, subarvores: array<int, array{url: string, arvore: Arvore}>}
+ *
  * A árvore do menu de um site (ADR 0016): montada com **uma** consulta, guardada em memória e em um snapshot em
  * `dados/cache/menu/<site>.json`, com impressão digital (hash). As páginas só leem o snapshot; o banco não é consultado
  * por página. Quando uma edição muda o hash, o site inteiro fica marcado como pendente de republicação.
+ *
+ * Peles por objeto (ADR 0022): quem tem pele própria é a raiz de uma subárvore (`subarvores[id]`, com a sua `url`), e o menu
+ * das páginas dela parte dali. Nas outras árvores, o item de uma raiz de pele aparece mas não é percorrido (o menu do Portal não
+ * lista as seções do Onepage).
  *
  * Item: `id`, `rotulo`, `url`, `externo`, `nova_aba`, `filhos` (lista de itens). Profundidade e itens por nível têm teto;
  * o que passa do teto é cortado e contado em `cortes` (o painel avisa).
@@ -25,7 +32,7 @@ final class MenuDoSite
     public const PROFUNDIDADE_MAXIMA = 5;
     public const ITENS_POR_NIVEL = 50;
 
-    /** @var array<int, array{hash: string, profundidade: int, cortes: int, arvore: list<array<string, mixed>>}> */
+    /** @var array<int, Snapshot> */
     private array $memoria = [];
 
     /** Quantas consultas ao banco esta instância fez (para os testes de desempenho). */
@@ -57,7 +64,7 @@ final class MenuDoSite
         return is_int($propria) && $propria >= 1 ? min($propria, $this->profundidade) : $this->profundidade;
     }
 
-    /** @return array{hash: string, profundidade: int, cortes: int, arvore: list<array<string, mixed>>} */
+    /** @return Snapshot */
     public function snapshot(Site $site): array
     {
         if (isset($this->memoria[$site->id])) {
@@ -78,9 +85,19 @@ final class MenuDoSite
     }
 
     /**
+     * A subárvore cuja raiz de pele é `$raizId` (ADR 0022): `url` da raiz e os itens. Null se não houver (o chamador usa a árvore do site).
+     *
+     * @return array{url: string, arvore: Arvore}|null
+     */
+    public function subarvore(Site $site, int $raizId): ?array
+    {
+        return $this->snapshot($site)['subarvores'][$raizId] ?? null;
+    }
+
+    /**
      * Monta de novo a partir do banco (uma consulta), grava o snapshot e devolve-o. Não mexe no pendente.
      *
-     * @return array{hash: string, profundidade: int, cortes: int, arvore: list<array<string, mixed>>}
+     * @return Snapshot
      */
     public function reconstruir(Site $site): array
     {
@@ -125,17 +142,17 @@ final class MenuDoSite
         @unlink($this->arquivo($site->id) . '.pendente');
     }
 
-    /** @return array{hash: string, profundidade: int, cortes: int, arvore: list<array<string, mixed>>} */
+    /** @return Snapshot */
     private function construir(Site $site): array
     {
         $profundidade = $this->profundidadeDe($site);
         if ($site->objetoRaizId === null) {
-            return ['hash' => hash('sha256', '[]'), 'profundidade' => $profundidade, 'cortes' => 0, 'arvore' => []];
+            return ['hash' => hash('sha256', '[]'), 'profundidade' => $profundidade, 'cortes' => 0, 'arvore' => [], 'subarvores' => []];
         }
         $agora = gmdate('c');
         $this->consultas++;
         $linhas = $this->conexao->fetchAllAssociative(
-            "SELECT o.id, o.pai_id, o.titulo, o.rotulo_menu, o.url_amigavel, o.dados, c.nome AS classe,
+            "SELECT o.id, o.pai_id, o.titulo, o.rotulo_menu, o.url_amigavel, o.dados, o.pele, c.nome AS classe,
                     d.url_amigavel AS destino_url
                FROM objeto o
                JOIN classe c ON c.id = o.classe_id
@@ -155,8 +172,22 @@ final class MenuDoSite
         }
         $cortes = 0;
         $arvore = $this->nivel($porPai, $site->objetoRaizId, 1, $cortes, $profundidade);
+        // Uma subárvore por objeto com pele própria (não precisa estar no menu); a raiz do site não entra (é a árvore principal).
+        $subarvores = [];
+        $this->consultas++;
+        $raizes = $this->conexao->fetchAllAssociative(
+            "SELECT id, url_amigavel FROM objeto WHERE site_id = ? AND pele IS NOT NULL AND pele != '' AND status <> 'apagado' ORDER BY id LIMIT 200",
+            [$site->id],
+        );
+        foreach ($raizes as $r) {
+            $id = (int) $r['id'];
+            if ($id === $site->objetoRaizId) {
+                continue;
+            }
+            $subarvores[$id] = ['url' => '/' . $r['url_amigavel'], 'arvore' => $this->nivel($porPai, $id, 1, $cortes, $profundidade)];
+        }
 
-        return ['hash' => hash('sha256', json_encode($arvore, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)), 'profundidade' => $profundidade, 'cortes' => $cortes, 'arvore' => $arvore];
+        return ['hash' => hash('sha256', json_encode([$arvore, $subarvores], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)), 'profundidade' => $profundidade, 'cortes' => $cortes, 'arvore' => $arvore, 'subarvores' => $subarvores];
     }
 
     /**
@@ -181,7 +212,8 @@ final class MenuDoSite
                 $cortes++;
                 continue;
             }
-            $item['filhos'] = $this->nivel($porPai, (int) $l['id'], $nivel + 1, $cortes, $profundidade);
+            // Quem tem pele própria é raiz de outra subárvore: aparece aqui, mas o que há dentro é do menu dele.
+            $item['filhos'] = ($l['pele'] ?? '') !== '' ? [] : $this->nivel($porPai, (int) $l['id'], $nivel + 1, $cortes, $profundidade);
             $itens[] = $item;
         }
 
@@ -220,7 +252,7 @@ final class MenuDoSite
         return $item;
     }
 
-    /** @return array{hash: string, profundidade: int, cortes: int, arvore: list<array<string, mixed>>}|null */
+    /** @return Snapshot|null */
     private function ler(int $siteId): ?array
     {
         $arquivo = $this->arquivo($siteId);
@@ -228,17 +260,20 @@ final class MenuDoSite
             return null;
         }
         $json = json_decode((string) @file_get_contents($arquivo), true);
-        if (!is_array($json) || !is_string($json['hash'] ?? null) || !is_array($json['arvore'] ?? null)) {
+        if (!is_array($json) || !is_string($json['hash'] ?? null) || !is_array($json['arvore'] ?? null) || !is_array($json['subarvores'] ?? null)) {
             return null;
         }
 
         /** @var list<array<string, mixed>> $arvore */
         $arvore = $json['arvore'];
 
-        return ['hash' => $json['hash'], 'profundidade' => (int) ($json['profundidade'] ?? 0), 'cortes' => (int) ($json['cortes'] ?? 0), 'arvore' => $arvore];
+        /** @var array<int, array{url: string, arvore: Arvore}> $subarvores */
+        $subarvores = $json['subarvores'];
+
+        return ['hash' => $json['hash'], 'profundidade' => (int) ($json['profundidade'] ?? 0), 'cortes' => (int) ($json['cortes'] ?? 0), 'arvore' => $arvore, 'subarvores' => $subarvores];
     }
 
-    /** @param array{hash: string, profundidade: int, cortes: int, arvore: list<array<string, mixed>>} $snap */
+    /** @param Snapshot $snap */
     private function gravar(int $siteId, array $snap): void
     {
         $this->garantirPasta();
