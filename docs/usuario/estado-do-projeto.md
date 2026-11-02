@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Última atualização: **novembro de 2026** (contas, domínios, redirecionamentos e peles na administração). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
+Última atualização: **novembro de 2026** (contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, publicação agendada e mover pela árvore). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
 
 ## Legenda
 
@@ -16,7 +16,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 |---|---|
 | Instalar (por linha de comando) com um site de exemplo | ✅ |
 | Criar conteúdos em árvore | ✅ (por código; sem tela ainda) |
-| Tipos de conteúdo pelo navegador (só administrador): criar, descrever, dizer que tipos podem ficar dentro, adicionar campos, mudar rótulo, ordem e obrigatório, arquivar campo e apagar tipo sem uso, sem nunca apagar dado guardado | ✅ (a exigência de "obrigatório" e de "tipos que podem ficar dentro" ao salvar um conteúdo vem com as telas de conteúdo) |
+| Tipos de conteúdo pelo navegador (só administrador): criar, descrever, dizer que tipos podem ficar dentro, adicionar campos, mudar rótulo, ordem e obrigatório, arquivar campo e apagar tipo sem uso, sem nunca apagar dado guardado | ✅ (e a exigência de "obrigatório" e de "tipos que podem ficar dentro" vale ao salvar qualquer conteúdo, pelo navegador ou pela linha de comando) |
 | Linguagem de moldes para montar páginas (listas, menus, herança de layout) | ✅ |
 | Publicar as páginas e entregá-las prontas, com cache | ✅ |
 | Vários sites e domínios no mesmo programa | ✅ |
@@ -35,6 +35,9 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Corrigir o título e a descrição de uma página pelo navegador, com aviso se outra pessoa mudou a página ao mesmo tempo; a página no ar é atualizada na hora | ✅ |
 | Pelo navegador: criar páginas e outros conteúdos, editar todos os campos, publicar ou tirar do ar (com datas), mover, mandar para a lixeira e tirar de lá, ver o histórico e voltar a uma versão antiga; ordenar e filtrar a lista de conteúdo | ✅ |
 | Pelo navegador (só administrador): editar o texto dos moldes de uma pele numa caixa de texto, com conferência da sintaxe antes de salvar, criar e apagar moldes e escolher a pele do site; as páginas são republicadas em seguida | ✅ |
+| Campos de texto com HTML são limpos ao salvar (sem scripts, estilos, formulários nem eventos; só marcações comuns, links e imagens seguros) | ✅ |
+| Publicar numa data futura e tirar do ar numa data de validade: a página mostra "agendado" e o comando `bin/pbl agendados` (para o cron do servidor) põe no ar e tira na hora certa | ✅ (precisa agendar o comando no servidor) |
+| Mover um conteúdo escolhendo o novo lugar andando pela árvore, sem digitar número | ✅ |
 | Busca que ignora maiúsculas e acentos (`presidencia` acha `Presidência`) | ✅ |
 | Busca com várias palavras (todas), começo de palavra (`presid` acha `Presidência`), plural e singular (`ações`/`ação`) e ordem por relevância (título antes de descrição e texto), no título, na descrição e no texto | ✅ |
 | Ligar conteúdos entre si (uma notícia aponta para seu autor) e, nos moldes, mostrar, filtrar e ordenar pelo conteúdo apontado | ✅ |

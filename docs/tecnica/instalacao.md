@@ -4,7 +4,7 @@ Para quem instala em um servidor. Quem só quer um passo a passo simples: [Como 
 
 ## Requisitos
 
-PHP 8.2+ com `pdo_sqlite` (pacote `php8.x-sqlite3` em Debian/Ubuntu), `mbstring`, `sodium`, `json` e `ctype`; pasta `dados/` gravável e dentro do `open_basedir` do PHP, se houver. MySQL e PostgreSQL estão previstos (hoje o instalador cria SQLite).
+PHP 8.2+ com `pdo_sqlite` (pacote `php8.x-sqlite3` em Debian/Ubuntu), `mbstring`, `sodium`, `json`, `ctype` e `dom` (para limpar o HTML dos campos); pasta `dados/` gravável e dentro do `open_basedir` do PHP, se houver. MySQL e PostgreSQL estão previstos (hoje o instalador cria SQLite).
 
 ## Formas de instalar
 

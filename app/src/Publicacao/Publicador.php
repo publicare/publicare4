@@ -74,6 +74,53 @@ final class Publicador
     }
 
     /**
+     * O que a passagem do tempo mudou e o cache ainda não reflete: objetos que já deviam estar no ar (a `data_publicacao`
+     * chegou) mas não têm página, e objetos que já deviam ter saído (a `data_validade` passou, ou foram despublicados por outro
+     * caminho) mas ainda têm página. Só olha o banco e a existência dos arquivos; não grava nada.
+     *
+     * @return array{entram: list<Objeto>, saem: list<Objeto>}
+     */
+    public function pendentes(Site $site): array
+    {
+        $saida = ['entram' => [], 'saem' => []];
+        $raiz = $site->objetoRaizId === null ? null : $this->objetos->porId($site->objetoRaizId);
+        if ($raiz === null) {
+            return $saida;
+        }
+        $agora = gmdate('c');
+        foreach ($this->objetos->todosDaSubarvore($site->id, $raiz->caminho) as $objeto) {
+            try {
+                $existe = is_file($this->caminhos->pagina($site->id, $objeto->urlAmigavel));
+            } catch (\InvalidArgumentException) {
+                continue; // endereço inválido (dado antigo): a publicação também o ignora
+            }
+            if ($objeto->visivel($agora) && !$existe) {
+                $saida['entram'][] = $objeto;
+            } elseif (!$objeto->visivel($agora) && $existe) {
+                $saida['saem'][] = $objeto;
+            }
+        }
+
+        return $saida;
+    }
+
+    /**
+     * Aplica as transições por data: se há algo pendente (`pendentes`), republica o site inteiro (páginas que listam o conteúdo
+     * que entrou ou saiu também mudam). Sem nada pendente não grava nada, então pode rodar a cada minuto sem custo.
+     *
+     * @return array{entraram: int, sairam: int}
+     */
+    public function aplicarAgendados(Site $site): array
+    {
+        $p = $this->pendentes($site);
+        if ($p['entram'] !== [] || $p['saem'] !== []) {
+            $this->publicarSite($site);
+        }
+
+        return ['entraram' => count($p['entram']), 'sairam' => count($p['saem'])];
+    }
+
+    /**
      * Remove do cache as páginas cujo endereço não pertence mais a nenhum objeto publicado (o objeto mudou de URL ou saiu
      * da árvore). O endereço antigo continua respondendo por redirecionamento (histórico de URLs).
      *

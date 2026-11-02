@@ -8,7 +8,7 @@
 
 ## PBL4
 
-> **Decisões:** [ADR 0012](../adr/0012-administracao-web.md). **Implementado (fase 5a):** painel com os sites e seções que a pessoa pode ver, navegação na árvore (com conteúdo fora do ar) e edição de título e descrição com proteção contra edição simultânea e republicação. **(fase 5c):** tipos de conteúdo (classes): listar, criar, editar campos e apagar, sem nunca apagar valor guardado. **(fase 5b):** lista de filhos com ordem e filtros por classe e estado, criar filho (só dos tipos que o pai aceita) com as propriedades da classe, editar todas as propriedades (obrigatórias exigidas, arquivadas preservadas), estado e datas, mover com a subárvore, lixeira (mandar e tirar) e histórico com restaurar. **(fase 5e):** redirecionamentos (listar, criar, editar e remover, com aviso de laço e duplicata) e peles (listar, ver moldes, editar com validação pelo parser antes de salvar, criar, apagar e definir a pele ativa; o site é republicado). **(fase 5d):** contas (listar, criar, editar, desativar e reativar, redefinir senha, papéis por seção, marca de administrador) e domínios por site (adicionar, principal, alias ou redirecionador, remover). **Falta:** mais do editor de peles (criar pele, CSS e imagens, pré-visualização).
+> **Decisões:** [ADR 0012](../adr/0012-administracao-web.md). **Implementado (fase 5a):** painel com os sites e seções que a pessoa pode ver, navegação na árvore (com conteúdo fora do ar) e edição de título e descrição com proteção contra edição simultânea e republicação. **(fase 5c):** tipos de conteúdo (classes): listar, criar, editar campos e apagar, sem nunca apagar valor guardado. **(fase 5b):** lista de filhos com ordem e filtros por classe e estado, criar filho (só dos tipos que o pai aceita) com as propriedades da classe, editar todas as propriedades (obrigatórias exigidas, arquivadas preservadas), estado e datas, mover com a subárvore, lixeira (mandar e tirar) e histórico com restaurar. **(fase 5e):** redirecionamentos (listar, criar, editar e remover, com aviso de laço e duplicata) e peles (listar, ver moldes, editar com validação pelo parser antes de salvar, criar, apagar e definir a pele ativa; o site é republicado). **(fase 5d):** contas (listar, criar, editar, desativar e reativar, redefinir senha, papéis por seção, marca de administrador) e domínios por site (adicionar, principal, alias ou redirecionador, remover). **(fase 5g):** as regras de tipos aceitos e de campos obrigatórios passam a valer no repositório (linha de comando e importadores também), HTML de campos `html` é limpo ao gravar, publicação agendada (`bin/pbl agendados`, estado "agendado" na tela) e mover escolhendo o lugar pela árvore. **Falta:** mais do editor de peles (criar pele, CSS e imagens, pré-visualização).
 
 ### Ver um conteúdo
 
@@ -70,6 +70,25 @@ sequenceDiagram
     T->>T: valida; endereço vazio → gerado do título (-2, -3… se usado)
     T->>R: criar(..., estado privado, criado_por = pessoa)
     T-->>V: 303 /_pbl/objeto/novo?salvo=criado
+```
+
+### Integridade, HTML e mover pela árvore (fase 5g)
+
+- **Mesma regra em todo lugar**: tela, `bin/pbl` e importadores passam por `ObjetoRepositorio`, que recusa tipo não aceito no pai e campo obrigatório vazio com `ViolacaoDeRegra` (mensagem clara, mostrada ao lado do campo). Conteúdo antigo que não cumpre a regra continua aparecendo e podendo ser editado em outros campos.
+- **HTML limpo**: em campo `html`, o que fica salvo é o HTML depois da lista de permissões (sem script, estilo, formulário, `iframe`, eventos nem `javascript:`). A tela avisa na ajuda do campo; se nada sobrar, recusa com explicação.
+- **Agendamento**: na tela de estado, data de publicação no futuro = "agendado". O servidor precisa rodar `bin/pbl agendados` no cron para a página entrar (e sair) na hora certa.
+- **Mover**: a tela mostra onde você está na árvore, com links para subir e entrar, e um botão "Mover para cá" em cada lugar possível; sem digitar número.
+
+```mermaid
+flowchart TD
+    M[GET /mover?em=lugar] --> V{lugar do mesmo site,<br/>visível, fora da lixeira<br/>e fora da subárvore?}
+    V -- não --> P[usa o pai atual]
+    V -- sim --> L[lista os filhos como links]
+    P --> L
+    L -->|link do filho| M
+    L -->|botão Mover para cá| POST[POST /mover destino=id<br/>origem, CSRF, permissão, tipo aceito]
+    POST --> R[ObjetoRepositorio::mover<br/>repete a regra de tipos]
+    CRON[cron: bin/pbl agendados] --> PE[Publicador::pendentes] --> AP[republica o site<br/>só se algo entrou ou saiu]
 ```
 
 ### Estado, mover, lixeira e histórico (fase 5b)

@@ -13,6 +13,8 @@ use Pbl\Busca\Texto;
 use Pbl\Consulta\Consulta;
 use Pbl\Consulta\Filtro;
 use Pbl\Conteudo\Classe;
+use Pbl\Conteudo\HtmlSeguro;
+use Pbl\Conteudo\ViolacaoDeRegra;
 use Pbl\Conteudo\ConflitoDeArvore;
 use Pbl\Conteudo\ConflitoDeVersao;
 use Pbl\Conteudo\Objeto;
@@ -88,7 +90,7 @@ final class TelasDeObjetos
             'editar' => $post ? $this->salvar($sessao, $id, $r) : $this->formulario($sessao, $id),
             'novo' => $post ? $this->criar($sessao, $id, $r) : $this->formularioNovo($sessao, $id, $r),
             'estado' => $post ? $this->salvarEstado($sessao, $id, $r) : $this->formularioEstado($sessao, $id),
-            'mover' => $post ? $this->mover($sessao, $id, $r) : $this->formularioMover($sessao, $id),
+            'mover' => $post ? $this->mover($sessao, $id, $r) : $this->formularioMover($sessao, $id, $r),
             'apagar' => $post ? $this->apagar($sessao, $id, $r) : $this->confirmarApagar($sessao, $id),
             'recuperar' => $this->recuperar($sessao, $id, $r),
             'versoes' => $this->versoes($sessao, $id),
@@ -140,7 +142,7 @@ final class TelasDeObjetos
             foreach ($filhos as $f) {
                 $corpo .= '<tr><td><a href="' . $this->link($f->id) . '">' . Pagina::h($f->titulo) . '</a></td>'
                     . '<td>' . Pagina::h($this->nomeDaClasse($f->classeId)) . '</td>'
-                    . '<td>' . Pagina::h($f->status) . ($f->visivel($agora) ? '' : ' (fora do ar)') . '</td>'
+                    . '<td>' . Pagina::h($f->visivel($agora) ? $f->status : $this->estadoLegivel($f, $agora, true)) . '</td>'
                     . '<td>' . $f->peso . '</td></tr>';
             }
             $corpo .= '</tbody></table></div>';
@@ -168,7 +170,7 @@ final class TelasDeObjetos
             'aviso' => ['warning', 'Alterações salvas, mas alguma página não pôde ser atualizada agora. Publique o site de novo (bin/pbl publicar).'],
             'criado' => ['success', 'Conteúdo criado. Ele começa fora do ar (privado); publique quando estiver pronto.'],
             'estado' => ['success', 'Estado e datas salvos.'],
-            'agendado' => ['info', 'Estado salvo. Como a data de publicação ainda não chegou, a página só vai ao ar quando o site for publicado de novo depois dessa data.'],
+            'agendado' => ['info', 'Estado salvo e publicação agendada: a página entra no ar na data marcada, quando o agendamento do servidor rodar (bin/pbl agendados, de preferência no cron). Até lá ela fica fora do ar.'],
             'movido' => ['success', 'Conteúdo movido.'],
             'apagado' => ['success', 'Conteúdo enviado para a lixeira. Para ver a lixeira, filtre a lista pelo estado "Na lixeira".'],
             'recuperado' => ['success', 'Conteúdo tirado da lixeira. Ele volta fora do ar (privado).'],
@@ -184,7 +186,7 @@ final class TelasDeObjetos
         $html = '<table class="table table-sm"><caption class="visually-hidden">Dados deste conteúdo</caption><tbody>'
             . '<tr><th scope="row">Número</th><td>' . $o->id . '</td></tr>'
             . '<tr><th scope="row">Tipo</th><td>' . Pagina::h($this->nomeDaClasse($o->classeId)) . '</td></tr>'
-            . '<tr><th scope="row">Estado</th><td>' . Pagina::h($o->status) . ($o->visivel($agora) ? ' (visível ao público)' : ' (fora do ar)') . '</td></tr>'
+            . '<tr><th scope="row">Estado</th><td>' . Pagina::h($this->estadoLegivel($o, $agora)) . '</td></tr>'
             . '<tr><th scope="row">Endereço</th><td><code>/' . Pagina::h($o->urlAmigavel) . '</code></td></tr>'
             . '<tr><th scope="row">Peso</th><td>' . $o->peso . '</td></tr>';
         if ($o->dataPublicacao !== null) {
@@ -201,6 +203,22 @@ final class TelasDeObjetos
         }
 
         return $html . '</tbody></table>';
+    }
+
+    /**
+     * O estado em palavras, com o agendamento: "publicado, agendado para…" (data de publicação no futuro) ou "publicado, vencido
+     * em…" (data de validade passada). `$curto` tira o "(fora do ar)" repetido da lista.
+     */
+    private function estadoLegivel(Objeto $o, string $agora, bool $curto = false): string
+    {
+        if ($o->status === 'publicado' && $o->dataPublicacao !== null && $o->dataPublicacao > $agora) {
+            return 'publicado, agendado para ' . $this->dataLegivel($o->dataPublicacao) . ' (fora do ar até lá)';
+        }
+        if ($o->status === 'publicado' && $o->dataValidade !== null && $o->dataValidade < $agora) {
+            return 'publicado, vencido em ' . $this->dataLegivel($o->dataValidade) . ' (fora do ar)';
+        }
+
+        return $o->status . ($o->visivel($agora) ? ($curto ? '' : ' (visível ao público)') : ' (fora do ar)');
     }
 
     /**
@@ -349,6 +367,8 @@ final class TelasDeObjetos
             $atual = $this->servicos->objetos->porId($o->id) ?? $o;
 
             return $this->telaDeEdicao($sessao, $atual, $classe, $digitado, $atual->versao, ['_' => $erro], Response::HTTP_CONFLICT, true);
+        } catch (ViolacaoDeRegra $e) {
+            return $this->telaDeEdicao($sessao, $o, $classe, $digitado, $versao, $this->erroDaRegra($e), Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\InvalidArgumentException) {
             return $this->telaDeEdicao($sessao, $o, $classe, $digitado, $versao, ['_' => 'Não foi possível salvar: algum valor não foi aceito. Confira os campos e tente de novo.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -473,6 +493,8 @@ final class TelasDeObjetos
             ]);
         } catch (ConflitoDeArvore) {
             return $this->naLixeira($sessao, $pai);
+        } catch (ViolacaoDeRegra $e) {
+            return $this->telaDeCriacao($sessao, $pai, $classe, $digitado, $this->erroDaRegra($e), Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\InvalidArgumentException|\Doctrine\DBAL\Exception\UniqueConstraintViolationException) {
             return $this->telaDeCriacao($sessao, $pai, $classe, $digitado, ['_' => 'Não foi possível criar: algum valor não foi aceito (o endereço pode ter acabado de ser usado). Confira e tente de novo.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -502,6 +524,16 @@ final class TelasDeObjetos
             . '<button type="submit" class="btn btn-primary">Criar</button> <a class="btn btn-outline-secondary" href="' . $this->link($pai->id) . '">Cancelar</a></form>';
 
         return Pagina::resposta('Criar conteúdo', $corpo, $status, false, $this->barra($sessao));
+    }
+
+    /**
+     * Erro de regra do repositório (tipo não aceito, campo obrigatório) como erro de formulário: ao lado do campo, se houver um.
+     *
+     * @return array<string, string>
+     */
+    private function erroDaRegra(ViolacaoDeRegra $e): array
+    {
+        return [$e->campo !== null ? 'dados.' . $e->campo : '_' => $e->getMessage()];
     }
 
     /** Endereço livre a partir do título (`Notícia de Hoje!` → `noticia-de-hoje`, `-2`, `-3`… se já usado), ou null. */
@@ -652,13 +684,22 @@ final class TelasDeObjetos
                 }
 
                 return [$alvo->id, null];
-            default: // texto e html: guardados como vieram (o html só é interpretado pelo molde, nunca na administração)
+            default: // texto e html
                 $max = $p['tipo'] === 'html' ? self::MAX_HTML : self::MAX_TEXTO;
                 if ($this->temControle($texto, true)) {
                     return [null, 'Este campo tem caracteres de controle, que não são permitidos.'];
                 }
+                if (mb_strlen($texto) > $max) {
+                    return [null, 'Este campo pode ter até ' . $max . ' caracteres.'];
+                }
+                if ($p['tipo'] === 'html') {
+                    // O repositório limpa de novo ao gravar; limpar aqui faz o formulário mostrar o que de fato ficará salvo.
+                    $limpo = HtmlSeguro::limpar($texto);
 
-                return mb_strlen($texto) > $max ? [null, 'Este campo pode ter até ' . $max . ' caracteres.'] : [$texto, null];
+                    return $limpo === '' ? [null, 'Nada deste HTML é permitido (scripts, estilos, formulários e eventos são removidos). Escreva o texto com as marcações comuns.'] : [$limpo, null];
+                }
+
+                return [$texto, null];
         }
     }
 
@@ -715,7 +756,7 @@ final class TelasDeObjetos
             'data' => ['<input class="form-control' . $classe . '"' . $comum . ' maxlength="25" value="' . Pagina::h($valor) . '">', 'Data no formato aaaa-mm-dd, com hora opcional (2026-12-31 18:30).'],
             'booleano' => ['<select class="form-select' . $classe . '"' . $comum . '>' . $this->opcao('', '(sem valor)', $valor === '') . $this->opcao('1', 'Sim', $valor === '1') . $this->opcao('0', 'Não', $valor === '0') . '</select>', 'Sim ou não.'],
             'ref' => ['<input class="form-control' . $classe . '"' . $comum . ' type="number" min="1" step="1" value="' . Pagina::h($valor) . '">', 'Número de outro conteúdo deste site' . (isset($p['classe']) ? ' (do tipo ' . Pagina::h($p['classe']) . ')' : '') . '. O número aparece na página de cada conteúdo.'],
-            'html' => ['<textarea class="form-control font-monospace' . $classe . '"' . $comum . ' rows="10" maxlength="' . self::MAX_HTML . '">' . Pagina::h($valor) . '</textarea>', 'Texto com marcação HTML, até ' . self::MAX_HTML . ' caracteres.'],
+            'html' => ['<textarea class="form-control font-monospace' . $classe . '"' . $comum . ' rows="10" maxlength="' . self::MAX_HTML . '">' . Pagina::h($valor) . '</textarea>', 'Texto com marcação HTML, até ' . self::MAX_HTML . ' caracteres. Ao salvar, o HTML é limpo: ficam só marcações comuns (parágrafos, títulos, listas, tabelas, links, imagens); scripts, estilos, formulários e eventos são removidos.'],
             default => ['<textarea class="form-control' . $classe . '"' . $comum . ' rows="3" maxlength="' . self::MAX_TEXTO . '">' . Pagina::h($valor) . '</textarea>', 'Texto, até ' . self::MAX_TEXTO . ' caracteres.'],
         };
 
@@ -867,7 +908,8 @@ final class TelasDeObjetos
         }
         $ajudaData = 'Opcional. Horário de Brasília.';
         $corpo = $this->migalhas($sessao, $o) . $this->resumoDeErros($erros)
-            . '<p>Hoje: <strong>' . Pagina::h($o->status) . '</strong>' . ($o->visivel(gmdate('c')) ? ', visível ao público.' : ', fora do ar.') . ' Só o estado "Publicado", dentro das datas, aparece no site.</p>'
+            . '<p>Hoje: <strong>' . Pagina::h($this->estadoLegivel($o, gmdate('c'))) . '</strong>. Só o estado "Publicado", dentro das datas, aparece no site. '
+            . 'Datas futuras dependem do agendamento do servidor (<code>bin/pbl agendados</code>).</p>'
             . '<form method="post" action="' . $this->link($o->id) . '/estado" novalidate>' . $this->camposOcultos($sessao, $versao)
             . $this->campo('estado', 'Estado', '<select id="campo-estado" name="estado" class="form-select' . $this->invalido($erros, 'estado') . '"' . $this->descrito($erros, 'estado') . '>' . $opcoes . '</select>', $erros)
             . $this->campo('data_publicacao', 'Publicar a partir de', '<input id="campo-data_publicacao" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_publicacao') . '" name="data_publicacao" value="' . Pagina::h($inicio) . '"' . $this->descrito($erros, 'data_publicacao', true) . '>', $erros, $ajudaData . ' Vazio = assim que publicado.')
@@ -937,7 +979,7 @@ final class TelasDeObjetos
 
     // ---------------------------------------------------------------- mover
 
-    private function formularioMover(SessaoAtiva $sessao, int $id): Response
+    private function formularioMover(SessaoAtiva $sessao, int $id, Request $r): Response
     {
         $o = $this->servicos->objetos->porId($id);
         if ($o === null || !$this->pode($sessao, Acao::Apagar, $o)) {
@@ -950,7 +992,9 @@ final class TelasDeObjetos
             return $this->ehRaiz($sessao, $o);
         }
 
-        return $this->telaDeMover($sessao, $o, '', $o->versao);
+        $q = $r->query->all();
+
+        return $this->telaDeMover($sessao, $o, $this->numero($q['em'] ?? null), $o->versao, null, Response::HTTP_OK, $this->numero($q['inicio'] ?? null) ?? 0);
     }
 
     private function mover(SessaoAtiva $sessao, int $id, Request $r): Response
@@ -978,58 +1022,163 @@ final class TelasDeObjetos
         $destino = preg_match('/^[1-9][0-9]{0,9}$/D', $destinoTexto) === 1 ? $this->servicos->objetos->porId((int) $destinoTexto) : null;
         // Mesma mensagem para "não existe", "é de outro site" e "sem permissão de criar lá".
         if ($destino === null || $destino->siteId !== $o->siteId || !$this->servicos->permissoes->podeCriarSob($sessao->usuario, $destino)) {
-            return $this->telaDeMover($sessao, $o, $destinoTexto, $versao, 'Indique o número de um conteúdo deste site onde você possa criar conteúdo.');
+            return $this->telaDeMover($sessao, $o, null, $versao, 'Escolha na lista um conteúdo deste site onde você possa criar conteúdo.');
         }
         if ($destino->status === self::LIXEIRA) {
-            return $this->telaDeMover($sessao, $o, $destinoTexto, $versao, 'O destino está na lixeira.');
+            return $this->telaDeMover($sessao, $o, $destino->id, $versao, 'O destino está na lixeira.');
         }
         if (str_starts_with($destino->caminho, $o->caminho)) {
-            return $this->telaDeMover($sessao, $o, $destinoTexto, $versao, 'Não é possível mover um conteúdo para dentro dele mesmo.');
+            return $this->telaDeMover($sessao, $o, $destino->id, $versao, 'Não é possível mover um conteúdo para dentro dele mesmo.');
         }
         if ($destino->id === $o->paiId) {
             return new RedirectResponse($this->link($o->id) . '?salvo=nada', Response::HTTP_SEE_OTHER);
         }
         $classe = $this->classeDe($o);
         if ($classe === null || !$this->aceita($destino, $classe)) {
-            return $this->telaDeMover($sessao, $o, $destinoTexto, $versao, 'O tipo do destino não aceita conteúdo do tipo ' . $this->nomeDaClasse($o->classeId) . ' dentro dele.');
+            return $this->telaDeMover($sessao, $o, $destino->id, $versao, 'O tipo do destino não aceita conteúdo do tipo ' . $this->nomeDaClasse($o->classeId) . ' dentro dele.');
         }
         $paiAntigo = $this->pai($o);
         try {
             $novo = $this->servicos->objetos->mover($o->id, $destino->id, self::MOTIVO, $sessao->usuario->id, $versao, true);
         } catch (ConflitoDeArvore) {
-            return $this->telaDeMover($sessao, $o, $destinoTexto, $versao, 'O destino está na lixeira.', Response::HTTP_CONFLICT);
+            return $this->telaDeMover($sessao, $o, $destino->id, $versao, 'O destino está na lixeira.', Response::HTTP_CONFLICT);
+        } catch (ViolacaoDeRegra $e) {
+            return $this->telaDeMover($sessao, $o, $destino->id, $versao, $e->getMessage());
         } catch (ConflitoDeVersao) {
             $atual = $this->servicos->objetos->porId($o->id) ?? $o;
 
-            return $this->telaDeMover($sessao, $atual, $destinoTexto, $atual->versao, 'Outra pessoa alterou este conteúdo depois que você abriu esta tela. Confira e confirme de novo.', Response::HTTP_CONFLICT);
+            return $this->telaDeMover($sessao, $atual, $destino->id, $atual->versao, 'Outra pessoa alterou este conteúdo depois que você abriu esta tela. Confira e confirme de novo.', Response::HTTP_CONFLICT);
         }
         // Defesa em profundidade: destino foi para a lixeira apesar da trava? Volta para o lugar de antes.
         if ($this->servicos->objetos->porId($destino->id)?->status === self::LIXEIRA && $paiAntigo !== null) {
             $this->desfazer(fn () => $this->servicos->objetos->mover($novo->id, $paiAntigo->id, self::MOTIVO . ': desfeito', $sessao->usuario->id));
             $atual = $this->servicos->objetos->porId($o->id) ?? $o;
 
-            return $this->telaDeMover($sessao, $atual, $destinoTexto, $atual->versao, 'O destino foi para a lixeira enquanto você movia. Nada mudou.', Response::HTTP_CONFLICT);
+            return $this->telaDeMover($sessao, $atual, $destino->id, $atual->versao, 'O destino foi para a lixeira enquanto você movia. Nada mudou.', Response::HTTP_CONFLICT);
         }
         $ok = $this->sincronizar($novo, $paiAntigo, $destino);
 
         return new RedirectResponse($this->link($novo->id) . '?salvo=' . ($ok ? 'movido' : 'aviso'), Response::HTTP_SEE_OTHER);
     }
 
-    private function telaDeMover(SessaoAtiva $sessao, Objeto $o, string $destino, int $versao, ?string $erro = null, int $status = Response::HTTP_OK): Response
+    /**
+     * Escolha do novo lugar navegando pela árvore, só com links e botões (sem JavaScript e sem digitar número): a tela mostra o
+     * conteúdo onde se está (`$em`), os filhos dele para entrar e, em cada um, o botão de mover para dentro. Começa no pai atual.
+     * Só mostra conteúdo que a pessoa pode ver, do mesmo site e fora da subárvore de quem está sendo movido; o POST confere tudo de novo.
+     */
+    private function telaDeMover(SessaoAtiva $sessao, Objeto $o, ?int $em, int $versao, ?string $erro = null, int $status = Response::HTTP_OK, int $inicio = 0): Response
     {
         if ($erro !== null && $status === Response::HTTP_OK) {
             $status = Response::HTTP_UNPROCESSABLE_ENTITY;
         }
-        $erros = $erro === null ? [] : ['destino' => $erro];
+        $aqui = $this->lugarNavegavel($sessao, $o, $em) ?? $this->lugarNavegavel($sessao, $o, $o->paiId) ?? $this->primeiroLugarVisivel($sessao, $o);
         $pai = $this->pai($o);
-        $corpo = $this->migalhas($sessao, $o) . $this->resumoDeErros($erros)
-            . '<p>Hoje está dentro de <strong>' . ($pai === null ? '?' : Pagina::h($pai->titulo) . ' (nº ' . $pai->id . ')') . '</strong>. '
-            . 'Tudo o que está dentro dele vai junto. O endereço não muda.</p>'
-            . '<form method="post" action="' . $this->link($o->id) . '/mover" novalidate>' . $this->camposOcultos($sessao, $versao)
-            . $this->campo('destino', 'Número do novo lugar', '<input id="campo-destino" class="form-control' . $this->invalido($erros, 'destino') . '" name="destino" type="number" min="1" step="1" required value="' . Pagina::h($destino) . '"' . $this->descrito($erros, 'destino', true) . '>', $erros, 'O número aparece na página de cada conteúdo, na linha "Número".')
-            . '<button type="submit" class="btn btn-primary">Mover</button> <a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></form>';
+        $corpo = $this->migalhas($sessao, $o) . ($erro === null ? '' : '<div class="alert alert-danger" role="alert">' . Pagina::h($erro) . '</div>')
+            . '<p>Hoje está dentro de <strong>' . ($pai === null ? '?' : Pagina::h($pai->titulo)) . '</strong>. '
+            . 'Tudo o que está dentro dele vai junto. O endereço não muda.</p>';
+        if ($aqui === null) {
+            return Pagina::resposta('Mover: ' . $o->titulo, $corpo . '<div class="alert alert-warning" role="alert">Não há onde navegar a partir da sua permissão.</div>', $status, false, $this->barra($sessao));
+        }
+
+        $consulta = new Consulta($o->siteId, $aqui->id, 1, null, [new Filtro('status', '!=', self::LIXEIRA)], 'peso, titulo', $inicio, self::POR_PAGINA, false);
+        $filhos = array_values(array_filter($this->servicos->motor->buscar($consulta), static fn (Objeto $f): bool => !str_starts_with($f->caminho, $o->caminho)));
+        $total = $this->servicos->motor->contar($consulta);
+
+        $corpo .= $this->trilhaDeDestino($sessao, $o, $aqui)
+            . '<h2 class="h5 mt-3">Onde você está: ' . Pagina::h($aqui->titulo) . '</h2>' . $this->botaoMoverPara($sessao, $o, $aqui, $versao, 'Mover para dentro de "' . $aqui->titulo . '"', true);
+        if ($filhos === []) {
+            $corpo .= '<p class="text-body-secondary mt-3">Não há outro conteúdo dentro deste lugar.</p>';
+        } else {
+            $corpo .= '<div class="table-responsive mt-3"><table class="table table-sm align-middle"><caption class="visually-hidden">Conteúdo dentro de ' . Pagina::h($aqui->titulo) . '</caption>'
+                . '<thead><tr><th scope="col">Título</th><th scope="col">Tipo</th><th scope="col">Mover para dentro</th></tr></thead><tbody>';
+            foreach ($filhos as $f) {
+                $corpo .= '<tr><td><a href="' . $this->linkDeDestino($o, $f->id) . '">' . Pagina::h($f->titulo) . '</a></td>'
+                    . '<td>' . Pagina::h($this->nomeDaClasse($f->classeId)) . '</td><td>' . $this->botaoMoverPara($sessao, $o, $f, $versao, 'Mover para cá', false) . '</td></tr>';
+            }
+            $corpo .= '</tbody></table></div>';
+        }
+        if ($total > self::POR_PAGINA) {
+            $base = $this->linkDeDestino($o, $aqui->id);
+            $corpo .= '<p class="text-body-secondary">Mostrando ' . ($inicio + 1) . ' a ' . min($total, $inicio + self::POR_PAGINA) . ' de ' . $total . '.';
+            if ($inicio > 0) {
+                $corpo .= ' <a href="' . Pagina::h($base . '&inicio=' . max(0, $inicio - self::POR_PAGINA)) . '">Anteriores</a>';
+            }
+            if ($inicio + self::POR_PAGINA < $total) {
+                $corpo .= ' <a href="' . Pagina::h($base . '&inicio=' . ($inicio + self::POR_PAGINA)) . '">Próximos</a>';
+            }
+            $corpo .= '</p>';
+        }
+        $corpo .= '<p class="mt-3"><a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></p>';
 
         return Pagina::resposta('Mover: ' . $o->titulo, $corpo, $status, false, $this->barra($sessao));
+    }
+
+    /** Endereço da tela de mover olhando para `$em` (já escapado para atributo). */
+    private function linkDeDestino(Objeto $o, int $em): string
+    {
+        return Pagina::h($this->link($o->id) . '/mover?em=' . $em);
+    }
+
+    /**
+     * Um lugar para navegar: existe, é do mesmo site, não está na lixeira, não é o próprio objeto nem está dentro dele, e a pessoa
+     * pode vê-lo. Qualquer outro caso é null (a tela cai no pai atual).
+     */
+    private function lugarNavegavel(SessaoAtiva $sessao, Objeto $o, ?int $id): ?Objeto
+    {
+        $lugar = $id === null ? null : $this->servicos->objetos->porId($id);
+        if ($lugar === null || $lugar->siteId !== $o->siteId || $lugar->status === self::LIXEIRA || str_starts_with($lugar->caminho, $o->caminho) || !$this->pode($sessao, Acao::Ver, $lugar)) {
+            return null;
+        }
+
+        return $lugar;
+    }
+
+    /** O ancestral mais alto que a pessoa pode ver (quem vê um ancestral vê tudo abaixo dele). */
+    private function primeiroLugarVisivel(SessaoAtiva $sessao, Objeto $o): ?Objeto
+    {
+        foreach (array_filter(explode('/', trim($o->caminho, '/')), static fn (string $p): bool => $p !== '') as $parte) {
+            $lugar = $this->lugarNavegavel($sessao, $o, (int) $parte);
+            if ($lugar !== null) {
+                return $lugar;
+            }
+        }
+
+        return null;
+    }
+
+    /** Ancestrais do lugar atual da navegação que a pessoa pode ver, como links da própria tela de mover. */
+    private function trilhaDeDestino(SessaoAtiva $sessao, Objeto $o, Objeto $aqui): string
+    {
+        $partes = [];
+        foreach (array_filter(explode('/', trim($aqui->caminho, '/')), static fn (string $p): bool => $p !== '') as $parte) {
+            $a = (int) $parte === $aqui->id ? null : $this->lugarNavegavel($sessao, $o, (int) $parte);
+            if ($a !== null) {
+                $partes[] = '<li class="breadcrumb-item"><a href="' . $this->linkDeDestino($o, $a->id) . '">' . Pagina::h($a->titulo) . '</a></li>';
+            }
+        }
+        $partes[] = '<li class="breadcrumb-item active" aria-current="page">' . Pagina::h($aqui->titulo) . '</li>';
+
+        return '<nav aria-label="Navegação até o novo lugar"><ol class="breadcrumb">' . implode('', $partes) . '</ol></nav>';
+    }
+
+    /** Botão de mover para dentro de `$destino`, ou o motivo de não poder (permissão, tipo não aceito, já é o pai atual). */
+    private function botaoMoverPara(SessaoAtiva $sessao, Objeto $o, Objeto $destino, int $versao, string $rotulo, bool $destaque): string
+    {
+        $classe = $this->classeDe($o);
+        $motivo = match (true) {
+            $classe === null => 'O tipo deste conteúdo não foi encontrado.',
+            $destino->id === $o->paiId => 'É onde já está.',
+            !$this->servicos->permissoes->podeCriarSob($sessao->usuario, $destino) => 'Você não pode criar conteúdo aqui.',
+            !$this->aceita($destino, $classe) => 'O tipo deste lugar não aceita conteúdo do tipo ' . $this->nomeDaClasse($o->classeId) . '.',
+            default => null,
+        };
+        if ($motivo !== null) {
+            return '<span class="text-body-secondary small">' . Pagina::h($motivo) . '</span>';
+        }
+
+        return '<form method="post" action="' . $this->link($o->id) . '/mover" class="d-inline">' . $this->camposOcultos($sessao, $versao)
+            . '<input type="hidden" name="destino" value="' . $destino->id . '">'
+            . '<button type="submit" class="btn btn-sm ' . ($destaque ? 'btn-primary' : 'btn-outline-primary') . '">' . Pagina::h($rotulo) . '</button></form>';
     }
 
     // ---------------------------------------------------------------- lixeira
@@ -1339,9 +1488,7 @@ final class TelasDeObjetos
 
     private function aceita(Objeto $pai, Classe $filha): bool
     {
-        $tipo = $this->classeDe($pai);
-
-        return $tipo !== null && $tipo->aceitaFilhos && ($tipo->filhas === [] || in_array($filha->nome, $tipo->filhas, true));
+        return $this->classeDe($pai)?->aceita($filha) ?? false;
     }
 
     /**

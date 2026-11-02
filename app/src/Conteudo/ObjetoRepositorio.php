@@ -43,6 +43,9 @@ final class ObjetoRepositorio
             throw new \InvalidArgumentException("Estado inválido: {$status}");
         }
         $dados = $this->validar($siteId, $classe, $dados);
+        $this->exigirObrigatorios($classe, $dados);
+        $meta['data_publicacao'] = $this->dataDaVigencia('data_publicacao', $meta['data_publicacao'] ?? null);
+        $meta['data_validade'] = $this->dataDaVigencia('data_validade', $meta['data_validade'] ?? null);
 
         return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta, $liberarUrl): Objeto {
             // Um endereço que redireciona para outro conteúdo não pode ser tomado por acidente: o cache da página nova passaria
@@ -59,6 +62,7 @@ final class ObjetoRepositorio
                 if ($caminhoPai === '') {
                     throw new \InvalidArgumentException("Pai {$paiId} não existe no site {$siteId}");
                 }
+                $this->exigirQueOPaiAceita($paiId, $classe);
             }
             $agora = gmdate('c');
             $this->conexao->insert('objeto', [
@@ -218,7 +222,7 @@ final class ObjetoRepositorio
             }
             foreach (['data_publicacao', 'data_validade'] as $campo) {
                 if (array_key_exists($campo, $mudancas)) {
-                    $linha[$campo] = $mudancas[$campo];
+                    $linha[$campo] = $this->dataDaVigencia($campo, $mudancas[$campo]);
                 }
             }
             if (isset($mudancas['dados'])) {
@@ -233,6 +237,7 @@ final class ObjetoRepositorio
                     }
                 }
                 $novos = $this->validar($atual->siteId, $classe, $novos);
+                $this->exigirObrigatoriosTocados($classe, $novos, array_keys($mudancas['dados']));
                 $linha['dados'] = json_encode($novos, JSON_THROW_ON_ERROR);
                 $this->conexao->delete('objeto_indice', ['objeto_id' => $id]);
                 $this->indexar($id, $classe, $novos);
@@ -262,6 +267,7 @@ final class ObjetoRepositorio
      *
      * @throws ConflitoDeVersao
      * @throws ConflitoDeArvore com `$destinoForaDaLixeira`, se o destino está na lixeira
+     * @throws ViolacaoDeRegra se o tipo do novo pai não aceita o tipo deste conteúdo
      */
     public function mover(int $id, ?int $novoPaiId, string $motivo = 'mover', ?int $usuarioId = null, ?int $versaoEsperada = null, bool $destinoForaDaLixeira = false): Objeto
     {
@@ -287,6 +293,9 @@ final class ObjetoRepositorio
                     throw new \InvalidArgumentException('Um objeto não pode ser movido para dentro de si mesmo');
                 }
                 $caminhoPai = $pai->caminho;
+                if ($novoPaiId !== $o->paiId) {
+                    $this->exigirQueOPaiAceita($novoPaiId, $this->classeDoObjeto($o));
+                }
             }
             $novo = $caminhoPai . $id . '/';
             foreach ($this->conexao->fetchAllAssociative("SELECT id, caminho FROM objeto WHERE site_id = ? AND caminho LIKE ? ESCAPE '!'", [$o->siteId, $this->escaparLike($o->caminho) . '%']) as $d) {
@@ -423,6 +432,80 @@ final class ObjetoRepositorio
     }
 
     /**
+     * O tipo do pai aceita conteúdo desta classe dentro dele? (`aceita_filhos` e `filhas`.) Vale para criar e mover, venha o pedido
+     * da administração, da linha de comando ou de um importador.
+     *
+     * @throws ViolacaoDeRegra
+     */
+    private function exigirQueOPaiAceita(int $paiId, Classe $filha): void
+    {
+        $classeId = $this->conexao->fetchOne('SELECT classe_id FROM objeto WHERE id = ?', [$paiId]);
+        $tipoDoPai = $classeId === false ? null : (new ClasseRepositorio($this->conexao))->porId((int) $classeId);
+        if ($tipoDoPai !== null && !$tipoDoPai->aceita($filha)) {
+            throw new ViolacaoDeRegra(ViolacaoDeRegra::TIPO_NAO_ACEITO, "O tipo {$tipoDoPai->nome} não aceita conteúdo do tipo {$filha->nome} dentro dele.");
+        }
+    }
+
+    private function classeDoObjeto(Objeto $o): Classe
+    {
+        return (new ClasseRepositorio($this->conexao))->porId($o->classeId) ?? throw new \RuntimeException("Classe {$o->classeId} não existe");
+    }
+
+    /**
+     * Ao criar, todo campo obrigatório (e não arquivado) precisa ter valor.
+     *
+     * @param array<string, string|int|float> $dados
+     * @throws ViolacaoDeRegra
+     */
+    private function exigirObrigatorios(Classe $classe, array $dados): void
+    {
+        $this->exigirObrigatoriosTocados($classe, $dados, null);
+    }
+
+    /**
+     * Campos obrigatórios (não arquivados) sem valor. Ao atualizar, só os campos **tocados** pela mudança contam (`$tocados`):
+     * um conteúdo antigo que já não cumpria a regra continua podendo ser lido e editado em outros campos; o que não se pode é
+     * apagar ou esvaziar um obrigatório. `null` = todos (criação).
+     *
+     * @param array<string, string|int|float> $dados valores já validados (após a mudança)
+     * @param list<string|int>|null $tocados
+     * @throws ViolacaoDeRegra
+     */
+    private function exigirObrigatoriosTocados(Classe $classe, array $dados, ?array $tocados): void
+    {
+        foreach ($classe->propriedades as $p) {
+            if (!($p['obrigatorio'] ?? false) || ($p['arquivada'] ?? false)) {
+                continue;
+            }
+            if ($tocados !== null && !in_array($p['nome'], array_map('strval', $tocados), true)) {
+                continue;
+            }
+            $valor = $dados[$p['nome']] ?? null;
+            if ($valor === null || (is_string($valor) && trim($valor) === '')) {
+                throw new ViolacaoDeRegra(ViolacaoDeRegra::CAMPO_OBRIGATORIO, 'O campo ' . Classe::rotuloDe($p) . ' é obrigatório.', $p['nome']);
+            }
+        }
+    }
+
+    /**
+     * Data de publicação ou de validade, sempre gravada em UTC no formato ISO 8601 (`2026-12-31T21:30:00+00:00`): a comparação
+     * "já chegou?" / "já passou?" é feita como texto, então todas precisam ter o mesmo formato. Vazio = sem data.
+     *
+     * @throws ViolacaoDeRegra data que não se entende
+     */
+    private function dataDaVigencia(string $campo, ?string $valor): ?string
+    {
+        if ($valor === null || trim($valor) === '') {
+            return null;
+        }
+        try {
+            return (new \DateTimeImmutable(trim($valor), new \DateTimeZone('UTC')))->setTimezone(new \DateTimeZone('UTC'))->format('c');
+        } catch (\Exception) {
+            throw new ViolacaoDeRegra(ViolacaoDeRegra::DATA_INVALIDA, 'A data de ' . ($campo === 'data_publicacao' ? 'publicação' : 'validade') . ' não é válida.', $campo);
+        }
+    }
+
+    /**
      * Trava a linha até o fim da transação: um UPDATE que não muda nada pega o bloqueio de linha no MySQL e no PostgreSQL e o
      * de escrita no SQLite, então duas operações que travam o mesmo objeto ficam uma depois da outra.
      */
@@ -522,6 +605,7 @@ final class ObjetoRepositorio
                 'booleano' => $this->booleano($chave, $valor),
                 'data' => $this->data($chave, $valor),
                 'ref' => $this->referencia($siteId, $chave, $valor, $p['classe'] ?? null),
+                'html' => is_string($valor) ? HtmlSeguro::limpar($valor) : throw new \InvalidArgumentException("Propriedade {$chave} deve ser texto HTML"),
                 default => is_bool($valor) ? throw new \InvalidArgumentException("Propriedade {$chave} deve ser texto") : $valor,
             };
         }
