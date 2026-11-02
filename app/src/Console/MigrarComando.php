@@ -6,6 +6,8 @@ namespace Pbl\Console;
 
 use Pbl\Banco\Conexao;
 use Pbl\Banco\Migrador;
+use Pbl\Conteudo\ClasseRepositorio;
+use Pbl\Conteudo\ClassesPadrao;
 use Pbl\Caminhos;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -27,8 +29,13 @@ final class MigrarComando extends Command
 
             return Command::FAILURE;
         }
-        $aplicadas = (new Migrador(Conexao::sqlite($this->caminhos->banco())))->migrar();
+        $conexao = Conexao::sqlite($this->caminhos->banco());
+        $aplicadas = (new Migrador($conexao))->migrar();
+        $fixas = ClassesPadrao::garantirFixas(new ClasseRepositorio($conexao));
         $output->writeln($aplicadas === [] ? 'Banco em dia.' : 'Migrações aplicadas: ' . implode(', ', $aplicadas));
+        if ($fixas !== []) {
+            $output->writeln('Tipos fixos criados: ' . implode(', ', $fixas));
+        }
 
         return Command::SUCCESS;
     }
