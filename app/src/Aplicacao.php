@@ -8,6 +8,7 @@ use Pbl\Acesso\Rede;
 use Pbl\Admin\Painel;
 use Pbl\Atualizacao\Manutencao;
 use Pbl\Conteudo\Dominio;
+use Pbl\Formularios\EnvioDeFormulario;
 use Pbl\Instalacao\Instalador;
 use Pbl\Instalacao\InstaladorWeb;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
@@ -64,6 +65,10 @@ final class Aplicacao
             return new RedirectResponse($this->noDominio($requisicao, $canonico), Response::HTTP_MOVED_PERMANENTLY);
         }
 
+        if (EnvioDeFormulario::atende($requisicao)) {
+            // Envio público de formulário (sem sessão): só no domínio do site dono do formulário.
+            return (new EnvioDeFormulario($servicos, new Rede($this->caminhos), $site->id))->tratar($requisicao);
+        }
         if (Painel::atende($requisicao)) {
             // Administração (entrar, sair…). Só aqui o segredo do site e as sessões entram em jogo: a página pública não depende deles.
             return (new Painel($servicos, new Rede($this->caminhos), $servicos->csrf(), $servicos->sessoes(), $servicos->limiteDeTentativas()))->tratar($requisicao);

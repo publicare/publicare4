@@ -85,6 +85,10 @@ Sim. Procurar por `presidencia` acha `Presidência`, e `ORGAO` acha `órgão`.
 
 Todas as palavras digitadas precisam aparecer (em qualquer ordem) no título, na descrição ou no texto da página. Basta o começo da palavra (`presid` acha `Presidência`) e o plural vale pelo singular (`ações` acha `ação`, `casas` acha `casa`). Os resultados vêm com os melhores primeiro: título pesa mais que descrição, que pesa mais que o texto, e a palavra inteira pesa mais que só o começo. Palavras como "de", "da" e "para" são ignoradas, e a busca olha no máximo as 8 primeiras palavras. Ainda não corrige erros de digitação (`Fernandha` não acha `Fernanda`): isso está no plano, por configuração; veja o [estado do projeto](estado-do-projeto.md).
 
+## Como recebo inscrições ou mensagens de visitantes?
+
+Com um **formulário público**. Crie (ou use) o tipo de conteúdo do envio (por exemplo `inscricao`, com os campos e os "obrigatórios" que quiser), uma seção para guardar os envios e, dentro do site, um conteúdo do tipo `formulario` dizendo qual é a seção, qual é o tipo e quais campos mostrar. Na pele, o comando `<@formulario@>` desenha o formulário. Cada envio chega **privado**; você vê a lista em "Envios recebidos" na tela do formulário e aprova publicando (ou apaga o que for lixo). Ele não precisa de JavaScript e se protege de robôs, de envios em massa e de conteúdo perigoso. Ainda **não** há aviso por e-mail, etapas de aprovação, anexos nem cadastro de participante; veja o [estado do projeto](estado-do-projeto.md) e o [ADR 0013](../adr/0013-formularios-publicos.md).
+
 ## Como fico sabendo das novidades?
 
 Pelo [CHANGELOG](../../CHANGELOG.md) e pelas *releases* em <https://github.com/publicare/publicare4/releases>. Basta clicar em "Watch" → "Custom" → "Releases" no GitHub.

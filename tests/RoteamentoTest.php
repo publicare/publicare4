@@ -321,7 +321,7 @@ final class RoteamentoTest extends TestCase
             $instalador->instalar('Meu site', 'meusite.exemplo.org');
 
             self::assertTrue($instalador->instalado());
-            self::assertSame(1, (int) \Pbl\Banco\Conexao::sqlite($caminhos->banco())->fetchOne('SELECT COUNT(*) FROM classe'));
+            self::assertSame(2, (int) \Pbl\Banco\Conexao::sqlite($caminhos->banco())->fetchOne('SELECT COUNT(*) FROM classe'));
         } finally {
             Ajuda::apagar($raiz);
         }

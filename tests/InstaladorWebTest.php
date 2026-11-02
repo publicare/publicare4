@@ -156,7 +156,7 @@ final class InstaladorWebTest extends TestCase
 
         $certo = $this->req('POST', '/_pbl/instalar', $this->formulario());
         self::assertSame(200, $certo->getStatusCode(), 'depois dos erros, a instalação correta funciona');
-        self::assertSame(1, (int) Conexao::sqlite($this->caminhos->banco())->fetchOne('SELECT COUNT(*) FROM classe'), 'nada duplicado pelas tentativas');
+        self::assertSame(2, (int) Conexao::sqlite($this->caminhos->banco())->fetchOne('SELECT COUNT(*) FROM classe'), 'nada duplicado pelas tentativas');
     }
 
     public function testValoresDigitadosVoltamEscapadosNoFormulario(): void

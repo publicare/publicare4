@@ -49,7 +49,7 @@ final class TelasDeObjetos
     /** Sub-rota de `/_pbl/objeto/{id}` => métodos aceitos. O resto é 404. */
     private const ROTAS = [
         '' => ['GET'], 'editar' => ['GET', 'POST'], 'novo' => ['GET', 'POST'], 'estado' => ['GET', 'POST'],
-        'mover' => ['GET', 'POST'], 'apagar' => ['GET', 'POST'], 'recuperar' => ['POST'], 'versoes' => ['GET'], 'restaurar' => ['POST'],
+        'mover' => ['GET', 'POST'], 'apagar' => ['GET', 'POST'], 'recuperar' => ['POST'], 'versoes' => ['GET'], 'restaurar' => ['POST'], 'envios' => ['GET'],
     ];
     /** Ordens da lista de filhos: chave da URL => [rótulo, ordem da Consulta]. Só estas chegam ao motor. */
     private const ORDENS = [
@@ -94,6 +94,7 @@ final class TelasDeObjetos
             'apagar' => $post ? $this->apagar($sessao, $id, $r) : $this->confirmarApagar($sessao, $id),
             'recuperar' => $this->recuperar($sessao, $id, $r),
             'versoes' => $this->versoes($sessao, $id),
+            'envios' => $this->envios($sessao, $id, $r),
             default => $this->restaurar($sessao, $id, $r),
         };
     }
@@ -160,6 +161,57 @@ final class TelasDeObjetos
         }
 
         return Pagina::resposta($o->titulo, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+    }
+
+    /**
+     * Envios recebidos por um formulário (ADR 0013): os conteúdos do tipo de envio dentro da seção de destino, fora da lixeira, do
+     * mais novo para o mais antigo. Cada envio abre na tela de conteúdo de sempre; "aprovar" é publicar (ou mover) por lá. Quem pode
+     * ver o formulário e a seção de destino vê a lista; sem isso, a resposta é a mesma de conteúdo inexistente.
+     */
+    private function envios(SessaoAtiva $sessao, int $id, Request $r): Response
+    {
+        $o = $this->servicos->objetos->porId($id);
+        if ($o === null || !$this->pode($sessao, Acao::Ver, $o) || $this->nomeDaClasse($o->classeId) !== \Pbl\Formularios\FormularioRepositorio::CLASSE) {
+            return $this->semAcesso($sessao);
+        }
+        $destinoId = $o->dados['destino'] ?? null;
+        $destino = is_int($destinoId) ? $this->servicos->objetos->porId($destinoId) : null;
+        $tipoNome = $o->dados['classe_envio'] ?? null;
+        $tipo = is_string($tipoNome) ? $this->servicos->classes->porNome(trim($tipoNome)) : null;
+        if ($destino === null || $destino->siteId !== $o->siteId || $tipo === null || !$this->pode($sessao, Acao::Ver, $destino)) {
+            return Pagina::resposta('Envios recebidos', $this->migalhas($sessao, $o)
+                . '<div class="alert alert-warning" role="alert">Este formulário não tem uma seção de destino e um tipo de envio válidos. Confira a configuração dele.</div>', Response::HTTP_OK, false, $this->barra($sessao));
+        }
+        $inicio = $this->numero($r->query->all()['inicio'] ?? null) ?? 0;
+        $consulta = new Consulta($o->siteId, $destino->id, 1, [$tipo->id], [new Filtro('status', '!=', self::LIXEIRA)], '-id', $inicio, self::POR_PAGINA, false);
+        $envios = $this->servicos->motor->buscar($consulta);
+        $total = $this->servicos->motor->contar($consulta);
+
+        $corpo = $this->migalhas($sessao, $o)
+            . '<p>' . $total . ' envio(s) do tipo <strong>' . Pagina::h($tipo->nome) . '</strong> em <a href="' . $this->link($destino->id) . '">' . Pagina::h($destino->titulo) . '</a>. '
+            . 'Todo envio chega <strong>privado</strong> (fora do ar). Para aprovar, publique-o; publicar mostra ao público todos os campos dele.</p>';
+        if ($envios === []) {
+            $corpo .= '<p class="text-body-secondary">Nenhum envio ainda.</p>';
+        } else {
+            $corpo .= '<div class="table-responsive"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Envios recebidos</caption>'
+                . '<thead><tr><th scope="col">Envio</th><th scope="col">Estado</th><th scope="col">Ações</th></tr></thead><tbody>';
+            foreach ($envios as $e) {
+                $acoes = '<a href="' . $this->link($e->id) . '">Ver</a>';
+                if ($this->pode($sessao, Acao::Publicar, $e)) {
+                    $acoes .= ' · <a href="' . $this->link($e->id) . '/estado">Publicar ou recusar</a>';
+                }
+                $corpo .= '<tr><td>' . Pagina::h($e->titulo) . '</td><td>' . Pagina::h($e->status) . '</td><td>' . $acoes . '</td></tr>';
+            }
+            $corpo .= '</tbody></table></div>';
+            if ($total > $inicio + self::POR_PAGINA) {
+                $corpo .= '<p><a href="' . $this->link($o->id) . '/envios?inicio=' . ($inicio + self::POR_PAGINA) . '">Próximos</a></p>';
+            }
+            if ($inicio > 0) {
+                $corpo .= '<p><a href="' . $this->link($o->id) . '/envios?inicio=' . max(0, $inicio - self::POR_PAGINA) . '">Anteriores</a></p>';
+            }
+        }
+
+        return Pagina::resposta('Envios recebidos: ' . $o->titulo, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
     }
 
     private function aviso(mixed $salvo): string
@@ -264,6 +316,9 @@ final class TelasDeObjetos
         if (!$naLixeira && $o->paiId !== null && $this->pode($sessao, Acao::Apagar, $o)) {
             $links[] = '<a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '/mover">Mover</a>';
             $links[] = '<a class="btn btn-outline-danger" href="' . $this->link($o->id) . '/apagar">Mandar para a lixeira</a>';
+        }
+        if ($this->nomeDaClasse($o->classeId) === \Pbl\Formularios\FormularioRepositorio::CLASSE) {
+            $links[] = '<a class="btn btn-outline-primary" href="' . $this->link($o->id) . '/envios">Envios recebidos</a>';
         }
         $links[] = '<a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '/versoes">Histórico de versões</a>';
 

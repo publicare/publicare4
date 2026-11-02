@@ -27,6 +27,9 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Agendado** | Conteúdo publicado cuja data de publicação ainda não chegou. Ele entra no ar sozinho na data, quando o servidor rodar o comando `bin/pbl agendados` (que a hospedagem agenda no "cron"). |
 | **Cron** | O agendador de tarefas do servidor. O Publicare usa para rodar `bin/pbl agendados` de tempos em tempos. |
 | **HTML limpo** | Em campos de texto com HTML, o Publicare guarda só marcações comuns e seguras (parágrafos, títulos, listas, tabelas, links, imagens) e tira scripts, estilos, formulários e eventos. |
+| **Formulário (público)** | Um conteúdo do tipo `formulario` que mostra, numa página, os campos de um tipo de conteúdo para qualquer visitante preencher. Cada envio vira um conteúdo privado na seção de destino. |
+| **Envio** | O que um visitante mandou por um formulário público. Chega privado (fora do ar); a equipe vê em "Envios recebidos" e, para aprovar, publica. |
+| **Campo-armadilha (honeypot)** | Um campo escondido que pessoas não veem e robôs costumam preencher; se vier preenchido, o envio é descartado sem aviso. |
 | **Peso** | Número que define a ordem manual de itens (menores primeiro). |
 | **Cache** | Cópia pronta de uma página, guardada para ser entregue sem refazer o trabalho. |
 | **URL amigável** | Endereço legível de uma página (por exemplo, `/sobre`), em vez de números e símbolos. |

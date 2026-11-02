@@ -33,6 +33,22 @@ Peças, todas **dados/configuração**:
 | Agregações | contagem por opção (enquetes), média de notas (avaliações), vagas restantes |
 | Listagens e relatórios | consulta do fluxo 9 + coluna/ordem + exportação CSV/PDF/RSS |
 
+### O que existe hoje (fatia 6a)
+
+Só o pedaço **Formulário → anônimo → captcha/limite → salva objeto → fila do editor** do diagrama acima, sem captcha de terceiros, sem máquina de estados e sem notificações. Decisões e segurança no [ADR 0013](../adr/0013-formularios-publicos.md).
+
+```mermaid
+flowchart TD
+    F[Conteúdo do tipo formulario: destino, tipo de envio, campos, mensagem] --> M["Comando formulario no molde (HTML + token + armadilha)"]
+    M --> POST["POST /_pbl/enviar/id (sem JavaScript)"]
+    POST --> D{"404 / 429 / 413 / 403 / armadilha / 422?"}
+    D -- tudo certo --> S["Objeto PRIVADO do tipo de envio dentro do destino, autoria anônima"]
+    S --> PRG["303 para /_pbl/enviado/id (mensagem)"]
+    S --> ADM["Admin: Envios recebidos -> publicar (aprovar), mover ou apagar"]
+```
+
+Ainda **não** existe: estados e transições, notificações, captcha, anexos, prazos, agregações, participante identificado, editor de formulário, exportação. São os próximos passos da fase 6.
+
 ### Exemplos que o modelo precisa cobrir
 - **Consulta pública/enquete**: formulário anônimo ou identificado, prazo de abertura e fechamento, agregação de resultados, moderação de comentários.
 - **Biblioteca virtual**: classe com anexo, facetas por campo (tema, autor, ano), busca (fluxo 8), download protegido (fluxo 7).
@@ -43,4 +59,4 @@ Peças, todas **dados/configuração**:
 Regras que cruzam várias tabelas, cálculos próprios ou integrações específicas viram **módulo** (ponto de extensão), não script solto. Ganchos disponíveis: antes/depois de salvar, ao mudar de estado, ao receber notificação de cobrança, comando PBL novo, tipo de campo novo.
 
 ### Segurança
-CSRF em todo formulário; captcha plugável; limite por IP e por participante; upload pela política do fluxo 7; dados pessoais conforme ADR 0004; auditoria das transições.
+CSRF em todo formulário (hoje: token fixo por formulário + conferência de origem, ADR 0013); captcha plugável (hoje: campo-armadilha); limite por IP e por participante; upload pela política do fluxo 7; dados pessoais conforme ADR 0004; auditoria das transições.
