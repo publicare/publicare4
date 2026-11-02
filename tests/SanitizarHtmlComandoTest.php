@@ -74,7 +74,7 @@ final class SanitizarHtmlComandoTest extends TestCase
         self::assertStringNotContainsString('onerror', $depois->dados['corpo']);
         self::assertStringNotContainsString('javascript:', $depois->dados['corpo']);
         self::assertSame($p->versao + 1, $depois->versao, 'uma nova versão foi gravada');
-        self::assertStringContainsString('varridos: 3', $this->t->getDisplay()); // raiz + sobre + a página antiga
+        self::assertStringContainsString('varridos: 5', $this->t->getDisplay()); // pacote da instalação (5l) + a página antiga
         self::assertStringContainsString('alterados: 1', $this->t->getDisplay());
         self::assertStringContainsString('erros: 0', $this->t->getDisplay());
     }
@@ -171,7 +171,7 @@ final class SanitizarHtmlComandoTest extends TestCase
 
         self::assertSame(0, $this->t->execute(['--limite' => '5']));
 
-        self::assertStringContainsString('varridos: 27', $this->t->getDisplay()); // raiz + sobre + 25
+        self::assertStringContainsString('varridos: 29', $this->t->getDisplay()); // pacote da instalação (5l) + 25
         self::assertStringContainsString('alterados: 25', $this->t->getDisplay());
         for ($i = 0; $i < 25; $i++) {
             $o = $this->s->objetos->porUrl($this->site->id, "pagina-{$i}") ?? self::fail();
