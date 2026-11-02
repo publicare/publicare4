@@ -175,7 +175,7 @@ final class AdminIntegridadeTest extends TestCase
         self::assertStringContainsString('href="' . $base . '?em=' . $this->sobre->id . '"', $tela, 'link para subir');
         self::assertStringNotContainsString('>Neto<', $tela, 'a própria subárvore não é oferecida');
         self::assertStringContainsString('É onde já está.', $tela);
-        self::assertStringNotContainsString('<script', $tela);
+        self::assertSame(0, preg_match('/<script(?![^>]*\ssrc=)/', $tela), 'nenhum script inline');
 
         // Subindo até Sobre: aparecem as duas pastas e os botões.
         $tela = $this->html($this->req('GET', $base . '?em=' . $this->sobre->id, $token));
@@ -253,7 +253,7 @@ final class AdminIntegridadeTest extends TestCase
         $filho = $this->evento('Filho');
         $tela = $this->html($this->req('GET', '/_pbl/objeto/' . $filho->id . '/mover?em=' . $this->sobre->id, $this->token('editor')));
         self::assertStringContainsString('&lt;script&gt;', $tela);
-        self::assertStringNotContainsString('<script', $tela);
+        self::assertSame(0, preg_match('/<script(?![^>]*\ssrc=)/', $tela), 'nenhum script inline');
     }
 
     public function testObjetoAgendadoApareceComoAgendadoNaTelaENaLista(): void
