@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Última atualização: **novembro de 2026** (telas de conteúdo da administração). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
+Última atualização: **novembro de 2026** (redirecionamentos e peles na administração). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
 
 ## Legenda
 
@@ -24,7 +24,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Proteções de segurança básicas nos moldes e nas URLs | ✅ |
 | Histórico de versões de cada conteúdo, com restaurar e proteção contra edição simultânea | ✅ |
 | Vários domínios para o mesmo site (um principal e os outros mostrando o mesmo conteúdo ou levando ao principal) | ✅ |
-| Redirecionar endereços antigos que não são páginas atuais (de sistemas que acabaram, com `.php` ou maiúsculas) | ✅ (por linha de comando) |
+| Redirecionar endereços antigos que não são páginas atuais (de sistemas que acabaram, com `.php` ou maiúsculas) | ✅ (pelo navegador e por linha de comando) |
 | Mudar o endereço de uma página sem quebrar o antigo (o antigo passa a levar ao novo) | ✅ |
 | Mover uma página (com tudo que está dentro dela) na árvore | ✅ |
 | Contas da equipe com senha segura e papéis por seção do site (leitor, autor, editor) e administrador geral, com registro de quem fez o quê (por linha de comando) | ✅ |
@@ -33,6 +33,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Administração pelo navegador: ver os sites que você pode acessar e andar pelas páginas de cada um (inclusive as que ainda não estão no ar) | ✅ |
 | Corrigir o título e a descrição de uma página pelo navegador, com aviso se outra pessoa mudou a página ao mesmo tempo; a página no ar é atualizada na hora | ✅ |
 | Pelo navegador: criar páginas e outros conteúdos, editar todos os campos, publicar ou tirar do ar (com datas), mover, mandar para a lixeira e tirar de lá, ver o histórico e voltar a uma versão antiga; ordenar e filtrar a lista de conteúdo | ✅ |
+| Pelo navegador (só administrador): editar o texto dos moldes de uma pele numa caixa de texto, com conferência da sintaxe antes de salvar, criar e apagar moldes e escolher a pele do site; as páginas são republicadas em seguida | ✅ |
 | Busca que ignora maiúsculas e acentos (`presidencia` acha `Presidência`) | ✅ |
 | Ligar conteúdos entre si (uma notícia aponta para seu autor) e, nos moldes, mostrar, filtrar e ordenar pelo conteúdo apontado | ✅ |
 | Consultas com até três condições, comparações (maior, menor, contém) e carga rápida de listas | ✅ |
@@ -43,8 +44,8 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 |---|---|
 | Busca com várias palavras, relevância e correção de erros de digitação ("você quis dizer…") | 🗓️ |
 | Atualização automática com cópia de segurança | 🔨 (já funciona por linha de comando, com assinatura, cópia do banco e volta atrás; falta o botão no painel e a primeira versão publicada) |
-| Restante da administração: contas, domínios, redirecionamentos e peles | 🔨 |
-| Editor de peles | 🗓️ |
+| Restante da administração: contas e domínios pelo navegador | 🔨 |
+| Editor de peles completo (realce de código, pré-visualização, histórico e voltar atrás, arquivos de CSS e imagens) | 🗓️ (hoje só a caixa de texto simples) |
 | Galeria de peles prontas para instalar | 🗓️ |
 | Formulários, inscrições e consultas públicas por configuração | 🗓️ |
 | Importar um site feito no Publicare antigo | 🗓️ |

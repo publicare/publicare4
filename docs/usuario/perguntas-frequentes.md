@@ -47,7 +47,7 @@ Entre em `/_pbl/` com seu login. Você vê os sites e as seções que pode acess
 - **move** um conteúdo, com tudo que está dentro dele, ou o manda para a **lixeira** (editor); da lixeira dá para tirar de volta;
 - vê o **histórico** e volta a uma versão antiga (isso cria uma versão nova; nada se perde).
 
-Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou o mesmo conteúdo enquanto você mexia, aparece um aviso e nada é sobrescrito sem você decidir. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). Contas, domínios e peles ainda se cuidam por linha de comando.
+Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou o mesmo conteúdo enquanto você mexia, aparece um aviso e nada é sobrescrito sem você decidir. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). O administrador também edita os **redirecionamentos** e as **peles** de cada site (o texto dos moldes, com a sintaxe conferida antes de salvar). Contas e domínios ainda se cuidam por linha de comando.
 
 ## Como crio um tipo de conteúdo novo (por exemplo, "Evento")?
 

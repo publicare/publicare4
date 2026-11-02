@@ -21,6 +21,7 @@ use Pbl\Conteudo\RedirecionamentoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
 use Pbl\Linguagem\Compilador;
 use Pbl\Publicacao\FonteRepositorio;
+use Pbl\Publicacao\GerenciadorDePeles;
 use Pbl\Publicacao\Publicador;
 use Pbl\Publicacao\Renderizador;
 
@@ -37,6 +38,7 @@ final class Servicos
     public readonly UsuarioRepositorio $usuarios;
     public readonly Permissoes $permissoes;
     public readonly Publicador $publicador;
+    public readonly GerenciadorDePeles $peles;
 
     private ?string $segredo = null;
 
@@ -54,6 +56,7 @@ final class Servicos
         $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor);
         $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador);
+        $this->peles = new GerenciadorDePeles($caminhos);
     }
 
     /** Segredo do site (criado na primeira vez se ainda não existir). Lido só quando preciso, para a área pública não depender dele. */

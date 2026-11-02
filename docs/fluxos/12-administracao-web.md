@@ -8,7 +8,7 @@
 
 ## PBL4
 
-> **Decisões:** [ADR 0012](../adr/0012-administracao-web.md). **Implementado (fase 5a):** painel com os sites e seções que a pessoa pode ver, navegação na árvore (com conteúdo fora do ar) e edição de título e descrição com proteção contra edição simultânea e republicação. **(fase 5c):** tipos de conteúdo (classes): listar, criar, editar campos e apagar, sem nunca apagar valor guardado. **(fase 5b):** lista de filhos com ordem e filtros por classe e estado, criar filho (só dos tipos que o pai aceita) com as propriedades da classe, editar todas as propriedades (obrigatórias exigidas, arquivadas preservadas), estado e datas, mover com a subárvore, lixeira (mandar e tirar) e histórico com restaurar. **Falta:** contas, domínios, redirecionamentos e peles.
+> **Decisões:** [ADR 0012](../adr/0012-administracao-web.md). **Implementado (fase 5a):** painel com os sites e seções que a pessoa pode ver, navegação na árvore (com conteúdo fora do ar) e edição de título e descrição com proteção contra edição simultânea e republicação. **(fase 5c):** tipos de conteúdo (classes): listar, criar, editar campos e apagar, sem nunca apagar valor guardado. **(fase 5b):** lista de filhos com ordem e filtros por classe e estado, criar filho (só dos tipos que o pai aceita) com as propriedades da classe, editar todas as propriedades (obrigatórias exigidas, arquivadas preservadas), estado e datas, mover com a subárvore, lixeira (mandar e tirar) e histórico com restaurar. **(fase 5e):** redirecionamentos (listar, criar, editar e remover, com aviso de laço e duplicata) e peles (listar, ver moldes, editar com validação pelo parser antes de salvar, criar, apagar e definir a pele ativa; o site é republicado). **Falta:** contas e domínios.
 
 ### Ver um conteúdo
 
@@ -126,3 +126,29 @@ sequenceDiagram
 8. **Apagar tipo** só sem conteúdo e sem outro tipo que dependa dele.
 9. **Nada se apaga de vez** pela tela de conteúdo: a lixeira é o estado `apagado`, e tirar dela devolve o conteúdo fora do ar.
 10. **Conteúdo novo nasce fora do ar**; ir ao ar é outra permissão (editor).
+
+### Editar um molde de pele (fase 5e)
+
+```mermaid
+sequenceDiagram
+    participant V as Navegador
+    participant T as TelasDeSite
+    participant A as Permissoes
+    participant G as GerenciadorDePeles
+    participant L as Compilador (parser)
+    participant U as Publicador
+    V->>T: POST /_pbl/site/1/peles/basica/molde: nome, conteudo, base (SHA-256 do aberto), _csrf (+ Origin)
+    T->>T: origem e CSRF (403), pode(Administrar) no site? não → 403 + site.negado
+    T->>G: ler(pele, nome): nome validado, sem link simbólico, dentro da pele; não existe → 404
+    T->>T: base diferente do arquivo atual → 409, nada gravado
+    T->>G: validar(pele, conteudo): tamanho, UTF-8, sem NUL
+    G->>L: compilar(conteudo, ResolvedorDePele): parser, herança, PHP cru recusado
+    L-->>T: ErroSintaxe com linha → 422: mensagem, linha, trecho e o texto digitado
+    T->>G: gravar: temporário na mesma pasta + rename
+    T->>U: publicarSite dos sites que usam a pele (falha só avisa)
+    T-->>V: 303 /_pbl/site/1/peles/basica?ok=salvo
+```
+
+### Redirecionamentos (fase 5e)
+
+A tela segue as regras do site a partir do endereço antigo antes de gravar: volta a um caminho já visto (laço) → 422; mais de um salto ou endereço que já é de um conteúdo → grava com aviso; duplicata → 422 (regra do repositório).

@@ -41,6 +41,17 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 3. Testar com entrada hostil (veja `tests/CaminhosTest.php`, `tests/ConsultaTest.php`).
 4. Regex sobre entrada pública: sem quantificadores sobrepostos, com teto de tamanho e teste de tempo.
 
+## Escrita em disco pela administração (moldes de pele)
+
+A edição de peles é a única superfície em que a administração **grava arquivos** (`dados/peles/<pele>/<molde>.pbl`), e moldes são código-ish, então ela é fechada em `GerenciadorDePeles` ([ADR 0012](../adr/0012-administracao-web.md) §8):
+
+- Só administra o site quem tem `Acao::Administrar` (hoje o administrador global); CSRF e origem em todo POST.
+- Nome da pele e do molde por expressão ancorada e possessiva (sem `..`, barra inicial, barra dupla, contrabarra, maiúscula, byte nulo); a extensão `.pbl` é sempre acrescentada pelo código, então não há como criar `.php`, `.htaccess` ou outro arquivo.
+- Links simbólicos nunca são seguidos (pele, pasta ou arquivo) e o `realpath` precisa ficar dentro da pasta da pele; tamanho máximo de 200 000 bytes, UTF-8 válido, limite de moldes por pele.
+- Gravação atômica (temporário na mesma pasta + `rename`) e proteção contra edição simultânea por SHA-256.
+- O conteúdo só é salvo se o parser da linguagem o aceitar; PHP cru é recusado e o `Gerador` só emite literais e chamadas ao `Runtime`, então o molde não executa nada fora do sandbox da linguagem.
+- Auditoria com site, pele e nome do molde, nunca o conteúdo. Testes em `tests/AdminSiteTest.php` (travessia, extensões, links simbólicos, PHP cru, XSS no editor).
+
 ## O que ainda não existe (e quando entra)
 
 | Item | Previsto |
@@ -50,7 +61,8 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 | Upload seguro (lista de tipos, fora do `docroot`) | com o upload (fluxo 7) |
 | Botão de atualizar no painel (reautenticação, janela de escrita) | com a administração ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | HTTPS forçado na administração (hoje é recomendação) | a decidir |
-| Telas de contas, domínios e peles, com as mesmas defesas | próximas fatias da fase 5 ([ADR 0012](../adr/0012-administracao-web.md)) |
+| Telas de contas e domínios, com as mesmas defesas | próximas fatias da fase 5 ([ADR 0012](../adr/0012-administracao-web.md)) |
+| Pele inteira (criar, importar, apagar), arquivos de pele que não sejam `.pbl`, histórico de moldes | com o editor e a galeria de peles ([fluxo 4](../fluxos/04-edicao-peles.md)) |
 | `ObjetoRepositorio` repetir as regras de tipos aceitos e de campos obrigatórios (hoje só as telas exigem; a linha de comando não) | a decidir |
 | Saneamento por tipo do HTML guardado em propriedades `html` (hoje o molde decide se mostra com escape ou cru; quem edita pode gravar HTML) | com o editor ([fluxo 5](../fluxos/05-conteudo-workflow.md)) |
 
