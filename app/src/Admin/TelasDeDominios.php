@@ -76,6 +76,14 @@ final class TelasDeDominios
         }
         $host = strtolower(trim($host));
         $erro = $this->erroDeTexto($host, 253, 'O domínio');
+        // Ações sensíveis (fase 5h): adicionar, trocar o principal e remover pedem a senha de novo (ou o modo elevado da sessão).
+        // "modo" (alias/redirecionador) não troca o endereço nem derruba acesso, então não entra nessa exigência.
+        if ($erro === null && in_array($tela, ['adicionar', 'principal', 'remover'], true)) {
+            $falha = $this->exigirReautenticacao($sessao, $requisicao, 'dominio');
+            if ($falha !== null) {
+                return $this->aplicarFalhaDeReautenticacao($this->pagina($sessao, $site, $falha['mensagem'], Response::HTTP_OK), $falha);
+            }
+        }
         if ($erro === null) {
             try {
                 return $this->aplicar($sessao, $site, $tela, $host, $requisicao);
@@ -156,7 +164,7 @@ final class TelasDeDominios
                     Dominio::PRINCIPAL => '<span class="badge text-bg-primary">Principal</span>',
                     Dominio::SERVIR => 'Alias',
                     default => 'Redirecionador',
-                } . '</td><td>' . ($d->modo === Dominio::PRINCIPAL ? '<span class="text-body-secondary">—</span>' : $this->acoesDe($csrf, $base, $d)) . '</td></tr>';
+                } . '</td><td>' . ($d->modo === Dominio::PRINCIPAL ? '<span class="text-body-secondary">—</span>' : $this->acoesDe($sessao, $csrf, $base, $d)) . '</td></tr>';
             }
             $corpo .= '</tbody></table></div>';
         }
@@ -167,24 +175,26 @@ final class TelasDeDominios
         $corpo .= '<section class="mt-4"><h2 class="h5">Adicionar domínio</h2><form method="post" action="' . $base . '/adicionar" class="row g-2 align-items-end">' . $csrf
             . '<div class="col-sm-5"><label for="campo-host" class="form-label">Domínio</label><input id="campo-host" class="form-control" name="host" maxlength="253" required placeholder="www.exemplo.org" aria-describedby="ajuda-host"></div>'
             . '<div class="col-sm-5"><label for="campo-modo" class="form-label">Tipo</label><select id="campo-modo" class="form-select" name="modo">' . $modos . '</select></div>'
-            . '<div class="col-sm-2"><button type="submit" class="btn btn-primary">Adicionar</button></div>'
+            . '<div class="col-sm-2">' . $this->campoSenha($sessao, 'campo-senha-adicionar') . '<button type="submit" class="btn btn-primary">Adicionar</button></div>'
             . '<div id="ajuda-host" class="form-text">Só o nome (sem <code>https://</code>, porta ou caminho). O DNS e o certificado do domínio precisam apontar para esta hospedagem; isso se faz fora do PBL4.</div></form></section>'
             . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
 
         return Pagina::resposta('Domínios: ' . $site->nome, $corpo, $status, false, $this->barra($sessao));
     }
 
-    private function acoesDe(string $csrf, string $base, Dominio $d): string
+    private function acoesDe(SessaoAtiva $sessao, string $csrf, string $base, Dominio $d): string
     {
         $h = '<input type="hidden" name="host" value="' . Pagina::h($d->host) . '">';
         $oculto = '<span class="visually-hidden"> ' . Pagina::h($d->host) . '</span>';
         $outro = $d->modo === Dominio::SERVIR ? Dominio::REDIRECIONAR : Dominio::SERVIR;
 
-        return '<div class="d-flex flex-wrap gap-1">'
-            . '<form method="post" action="' . $base . '/principal">' . $csrf . $h . '<input type="hidden" name="antigo" value="' . Dominio::REDIRECIONAR . '"><button type="submit" class="btn btn-sm btn-outline-primary">Tornar principal' . $oculto . '</button></form>'
+        return '<div class="d-flex flex-wrap gap-1 align-items-end">'
+            . '<form method="post" action="' . $base . '/principal" class="d-flex gap-1 align-items-end">' . $csrf . $h . '<input type="hidden" name="antigo" value="' . Dominio::REDIRECIONAR . '">'
+            . $this->campoSenha($sessao, 'campo-senha-principal-' . md5($d->host)) . '<button type="submit" class="btn btn-sm btn-outline-primary">Tornar principal' . $oculto . '</button></form>'
             . '<form method="post" action="' . $base . '/modo">' . $csrf . $h . '<input type="hidden" name="modo" value="' . $outro . '"><button type="submit" class="btn btn-sm btn-outline-secondary">'
             . ($outro === Dominio::SERVIR ? 'Tornar alias' : 'Tornar redirecionador') . $oculto . '</button></form>'
-            . '<form method="post" action="' . $base . '/remover">' . $csrf . $h . '<button type="submit" class="btn btn-sm btn-outline-danger">Remover' . $oculto . '</button></form></div>';
+            . '<form method="post" action="' . $base . '/remover" class="d-flex gap-1 align-items-end">' . $csrf . $h
+            . $this->campoSenha($sessao, 'campo-senha-remover-' . md5($d->host)) . '<button type="submit" class="btn btn-sm btn-outline-danger">Remover' . $oculto . '</button></form></div>';
     }
 
     private function pode(SessaoAtiva $sessao, Site $site): bool

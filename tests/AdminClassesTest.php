@@ -53,7 +53,20 @@ final class AdminClassesTest extends TestCase
         Ajuda::apagar($this->raiz);
     }
 
+    /** Sessão já no modo elevado (fase 5h), sem conferir senha nem tocar no limite de tentativas (ver AdminAuxiliar). */
     private function token(string $login): string
+    {
+        $token = $this->tokenSemElevar($login);
+        $sessao = $this->s->sessoes()->validar($token);
+        if ($sessao !== null) {
+            $this->s->modoElevado()->abrirParaTestes($sessao);
+        }
+
+        return $token;
+    }
+
+    /** Sessão nova, sem o modo elevado — para testar a própria reautenticação de apagar um tipo de conteúdo. */
+    private function tokenSemElevar(string $login): string
     {
         return $this->s->sessoes()->criar($this->ids[$login]);
     }
@@ -588,5 +601,28 @@ final class AdminClassesTest extends TestCase
         self::assertStringContainsString('name="p[capa][tipos][]" value="png"', $html);
         self::assertStringNotContainsString('name="p[capa][tipos][]" value="png" checked', $html);
         self::assertStringContainsString('name="p[capa][tamanho_max_mb]" value="3"', $html);
+    }
+
+    // ---------------------------------------------------------------- modo elevado (fase 5h)
+
+    public function testApagarTipoDeConteudoExigeSenhaDeNovo(): void
+    {
+        $token = $this->tokenSemElevar('admin');
+        $this->post($token, '/_pbl/classes/nova', ['nome' => 'descartavel']);
+        $id = $this->classe('descartavel')->id;
+
+        $r = $this->post($token, "/_pbl/classe/{$id}/apagar", ['versao' => '1']);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertStringContainsString('Confirme sua senha', (string) $r->getContent());
+        self::assertNotNull($this->s->classes->porId($id), 'nada apagado sem a senha');
+
+        $r2 = $this->post($token, "/_pbl/classe/{$id}/apagar", ['versao' => '1', 'senha' => 'senha-errada']);
+        self::assertSame(401, $r2->getStatusCode());
+        self::assertNotNull($this->s->classes->porId($id));
+        self::assertStringNotContainsString('senha-errada', (string) json_encode($this->s->auditoria->recentes(500)));
+
+        $r3 = $this->post($token, "/_pbl/classe/{$id}/apagar", ['versao' => '1', 'senha' => self::SENHA]);
+        self::assertSame(303, $r3->getStatusCode());
+        self::assertNull($this->s->classes->porId($id));
     }
 }

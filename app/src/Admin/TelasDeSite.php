@@ -28,6 +28,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class TelasDeSite
 {
+    use AuxiliaresDeTela;
+
     private readonly GerenciadorDePeles $peles;
 
     private const AVISOS = [
@@ -413,8 +415,8 @@ final class TelasDeSite
             $corpo .= '<tr><td><code>' . Pagina::h($p) . '</code></td><td>' . count($this->peles->moldes($p)) . '</td><td>'
                 . ($ativa ? '<span class="badge text-bg-success">Ativa neste site</span>' : '<span class="text-body-secondary">—</span>') . '</td><td class="text-end">'
                 . '<a class="btn btn-sm btn-outline-secondary" href="' . $this->linkPeles($site) . '/' . $p . '">Ver arquivos</a> '
-                . ($ativa ? '' : '<form class="d-inline" method="post" action="' . $this->linkPeles($site) . '/ativar">' . $this->campoCsrf($sessao)
-                    . '<input type="hidden" name="pele" value="' . Pagina::h($p) . '"><button type="submit" class="btn btn-sm btn-outline-primary">Usar neste site</button></form>')
+                . ($ativa ? '' : '<form class="d-inline-flex gap-1 align-items-end" method="post" action="' . $this->linkPeles($site) . '/ativar">' . $this->campoCsrf($sessao)
+                    . '<input type="hidden" name="pele" value="' . Pagina::h($p) . '">' . $this->campoSenha($sessao, 'campo-senha-pele-' . md5($p)) . '<button type="submit" class="btn btn-sm btn-outline-primary">Usar neste site</button></form>')
                 . '</td></tr>';
         }
         $corpo .= '</tbody></table></div>';
@@ -429,6 +431,10 @@ final class TelasDeSite
         if (!$this->peles->peleExiste($nova) || !in_array('padrao', $this->peles->moldes($nova), true)) {
             return $this->listaDePeles($sessao, $site, '<div class="alert alert-danger" role="alert">Pele inexistente, ou sem o molde <code>padrao</code>, que todo site precisa.</div>')
                 ->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        $falhaReauth = $this->exigirReautenticacao($sessao, $req, 'pele');
+        if ($falhaReauth !== null) {
+            return $this->aplicarFalhaDeReautenticacao($this->listaDePeles($sessao, $site, '<div class="alert alert-danger" role="alert">' . Pagina::h($falhaReauth['mensagem']) . '</div>'), $falhaReauth);
         }
         $this->servicos->sites->definirPele($site->id, $nova);
         $this->servicos->auditoria->registrar('pele.ativar', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['site_id' => $site->id, 'pele' => $nova]);
@@ -480,7 +486,7 @@ final class TelasDeSite
             return new RedirectResponse($this->linkPeles($site) . '/' . $pele . '?ok=nada', Response::HTTP_SEE_OTHER);
         }
 
-        return $this->validarEGravar($sessao, $site, $pele, $nome, $conteudo, hash('sha256', $atual), false, 'pele.molde.salvar', 'salvo');
+        return $this->validarEGravar($sessao, $site, $pele, $nome, $conteudo, hash('sha256', $atual), false, 'pele.molde.salvar', 'salvo', $req);
     }
 
     private function criarMolde(SessaoAtiva $sessao, Site $site, string $pele, Request $req): Response
@@ -501,11 +507,15 @@ final class TelasDeSite
             return $this->formularioDeMolde($sessao, $site, $pele, $nome, $conteudo, ['mensagem' => 'Limite de moldes da pele atingido.', 'linha' => null], null, true, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return $this->validarEGravar($sessao, $site, $pele, $nome, $conteudo, null, true, 'pele.molde.criar', 'criado');
+        return $this->validarEGravar($sessao, $site, $pele, $nome, $conteudo, null, true, 'pele.molde.criar', 'criado', $req);
     }
 
-    private function validarEGravar(SessaoAtiva $sessao, Site $site, string $pele, string $nome, string $conteudo, ?string $base, bool $novo, string $acao, string $ok): Response
+    private function validarEGravar(SessaoAtiva $sessao, Site $site, string $pele, string $nome, string $conteudo, ?string $base, bool $novo, string $acao, string $ok, Request $req): Response
     {
+        $falhaReauth = $this->exigirReautenticacao($sessao, $req, 'pele');
+        if ($falhaReauth !== null) {
+            return $this->aplicarFalhaDeReautenticacao($this->formularioDeMolde($sessao, $site, $pele, $nome, $conteudo, ['mensagem' => $falhaReauth['mensagem'], 'linha' => null], $base, $novo), $falhaReauth);
+        }
         $erro = $this->peles->validar($pele, $conteudo);
         if ($erro !== null) {
             return $this->formularioDeMolde($sessao, $site, $pele, $nome, $conteudo, $erro, $base, $novo, Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -532,7 +542,7 @@ final class TelasDeSite
         $corpo = $motivo !== null ? '<div class="alert alert-warning" role="alert">' . Pagina::h($motivo) . '</div>'
             : '<p>Apagar o molde <code>' . Pagina::h($nome) . '.pbl</code> da pele <code>' . Pagina::h($pele) . '</code>? Não há como desfazer.</p>'
             . '<form method="post" action="' . $base . '/apagar">' . $this->campoCsrf($sessao) . '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '">'
-            . '<button type="submit" class="btn btn-danger">Apagar</button></form>';
+            . $this->campoSenha($sessao) . '<button type="submit" class="btn btn-danger">Apagar</button></form>';
 
         return Pagina::resposta('Apagar molde', $corpo . '<p class="mt-3"><a href="' . $base . '">Voltar aos arquivos da pele</a></p>', $motivo === null ? Response::HTTP_OK : Response::HTTP_CONFLICT, false, $this->barra($sessao));
     }
@@ -546,6 +556,10 @@ final class TelasDeSite
         $motivo = $this->impedimentoParaApagar($pele, $nome);
         if ($motivo !== null) {
             return Pagina::resposta('Apagar molde', '<div class="alert alert-warning" role="alert">' . Pagina::h($motivo) . '</div>', Response::HTTP_CONFLICT, false, $this->barra($sessao));
+        }
+        $falhaReauth = $this->exigirReautenticacao($sessao, $req, 'pele');
+        if ($falhaReauth !== null) {
+            return $this->aplicarFalhaDeReautenticacao(Pagina::resposta('Apagar molde', '<div class="alert alert-danger" role="alert">' . Pagina::h($falhaReauth['mensagem']) . '</div>', Response::HTTP_OK, false, $this->barra($sessao)), $falhaReauth);
         }
         $this->peles->apagar($pele, $nome);
         $this->servicos->auditoria->registrar('pele.molde.apagar', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['site_id' => $site->id, 'pele' => $pele, 'molde' => $nome]);
@@ -587,6 +601,7 @@ final class TelasDeSite
                 : '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '"><input type="hidden" name="base" value="' . Pagina::h((string) $base) . '"><p>Molde <code>' . Pagina::h($nome) . '.pbl</code></p>')
             . '<div class="mb-3"><label for="m-conteudo" class="form-label">Conteúdo</label>'
             . '<textarea id="m-conteudo" class="form-control font-monospace" name="conteudo" rows="26" spellcheck="false" wrap="off"' . ($erro === null ? '' : ' aria-invalid="true" aria-describedby="erro-molde"') . '>' . Pagina::h($conteudo) . '</textarea></div>'
+            . $this->campoSenha($sessao, 'm-senha')
             . '<button type="submit" class="btn btn-primary">Validar e salvar</button> <a class="btn btn-link" href="' . $url . '">Cancelar</a></form>';
 
         return Pagina::resposta($novo ? 'Novo molde' : 'Editar molde', $corpo, $status, false, $this->barra($sessao));

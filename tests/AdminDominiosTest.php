@@ -255,4 +255,43 @@ final class AdminDominiosTest extends TestCase
         $this->s->usuarios->definirAtivo($this->ids['admin2'], false);
         self::assertSame(303, $this->req('GET', $this->lista(), $token)->getStatusCode());
     }
+
+    // ---------------------------------------------------------------- modo elevado (fase 5h)
+
+    public function testAdicionarPrincipalERemoverExigemSenhaDeNovoMasModoNao(): void
+    {
+        $token = $this->tokenSemElevar('admin');
+        $r = $this->post($token, $this->lista() . '/adicionar', ['host' => 'novo.exemplo.org', 'modo' => Dominio::SERVIR]);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertStringContainsString('Confirme sua senha', $this->html($r));
+        self::assertArrayNotHasKey('novo.exemplo.org', $this->dominios());
+
+        // "modo" (alias ⇄ redirecionador) não troca o endereço nem derruba acesso: não pede a senha.
+        $this->s->dominios->adicionar($this->siteId, 'alias.exemplo.org', Dominio::SERVIR);
+        $r2 = $this->post($token, $this->lista() . '/modo', ['host' => 'alias.exemplo.org', 'modo' => Dominio::REDIRECIONAR]);
+        self::assertSame(303, $r2->getStatusCode());
+        self::assertSame(Dominio::REDIRECIONAR, $this->dominios()['alias.exemplo.org']);
+    }
+
+    public function testAdicionarComSenhaCertaFuncionaEAbreOModoElevado(): void
+    {
+        $token = $this->tokenSemElevar('admin');
+        $r = $this->post($token, $this->lista() . '/adicionar', ['host' => 'novo.exemplo.org', 'modo' => Dominio::SERVIR, 'senha' => self::SENHA]);
+        self::assertSame(303, $r->getStatusCode());
+        self::assertArrayHasKey('novo.exemplo.org', $this->dominios());
+
+        // Já elevado: remover não pede a senha de novo.
+        $r2 = $this->post($token, $this->lista() . '/remover', ['host' => 'novo.exemplo.org']);
+        self::assertSame(303, $r2->getStatusCode());
+        self::assertArrayNotHasKey('novo.exemplo.org', $this->dominios());
+    }
+
+    public function testSenhaErradaNaoAdicionaDominioENaoAparecenaAuditoria(): void
+    {
+        $token = $this->tokenSemElevar('admin');
+        $r = $this->post($token, $this->lista() . '/adicionar', ['host' => 'novo.exemplo.org', 'modo' => Dominio::SERVIR, 'senha' => 'senha-errada']);
+        self::assertSame(401, $r->getStatusCode());
+        self::assertArrayNotHasKey('novo.exemplo.org', $this->dominios());
+        self::assertStringNotContainsString('senha-errada', (string) json_encode($this->s->auditoria->recentes(500)));
+    }
 }

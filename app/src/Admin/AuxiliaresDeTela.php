@@ -9,8 +9,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Peças comuns das telas de contas e de domínios (ADR 0012): conferência de origem e CSRF, campo oculto do token, barra, mensagens
- * e leitura de texto da requisição. Quem usa declara `$rede` (`Rede`) e `$csrf` (`Csrf`).
+ * Peças comuns das telas administrativas (ADR 0012): conferência de origem e CSRF, campo oculto do token, barra, mensagens,
+ * leitura de texto da requisição e o "modo elevado" (ADR 0011, fase 5h) para ações sensíveis. Quem usa declara `$rede` (`Rede`),
+ * `$csrf` (`Csrf`) e `$servicos` (`Servicos`).
  */
 trait AuxiliaresDeTela
 {
@@ -80,5 +81,60 @@ trait AuxiliaresDeTela
     private function numero(mixed $valor): ?int
     {
         return is_string($valor) && preg_match('/^[1-9][0-9]{0,9}$/D', $valor) === 1 ? (int) $valor : null;
+    }
+
+    // ---------------------------------------------------------------- modo elevado (ADR 0011/0012, fase 5h)
+
+    /**
+     * Exige a confirmação de senha de uma ação sensível (ou aproveita o "modo elevado" aberto há pouco pela sessão).
+     * Quem usa declara `$servicos` (`Servicos`). `$sempreExigir` força a conferência mesmo com o modo já elevado
+     * (as telas de atualizar/reverter, que trocam o código em execução). `$campo` é o nome do campo do POST; o
+     * padrão `senha` serve quase toda tela, exceto onde o formulário já usa esse nome para outra coisa (a senha
+     * nova de uma conta, por exemplo), caso em que a tela passa outro nome (e o mesmo em `campoSenha`).
+     *
+     * @return array{mensagem: string, status: int, retryAfter: int|null}|null null = pode seguir com a ação
+     */
+    private function exigirReautenticacao(SessaoAtiva $sessao, Request $requisicao, string $prefixoAcao, bool $sempreExigir = false, string $campo = 'senha'): ?array
+    {
+        $modo = $this->servicos->modoElevado();
+        if (!$sempreExigir && $modo->ativo($sessao)) {
+            return null;
+        }
+        $senha = $this->texto($requisicao, $campo);
+        if ($senha === null) {
+            return ['mensagem' => 'Confirme sua senha para continuar.', 'status' => Response::HTTP_UNPROCESSABLE_ENTITY, 'retryAfter' => null];
+        }
+
+        return $modo->confirmar($sessao, $senha, $this->rede->ip($requisicao), $prefixoAcao);
+    }
+
+    /**
+     * Aplica num `Response` o status e o `Retry-After` de uma falha de `exigirReautenticacao`.
+     *
+     * @param array{mensagem: string, status: int, retryAfter: int|null} $falha
+     */
+    private function aplicarFalhaDeReautenticacao(Response $resposta, array $falha): Response
+    {
+        $resposta->setStatusCode($falha['status']);
+        if ($falha['retryAfter'] !== null) {
+            $resposta->headers->set('Retry-After', (string) $falha['retryAfter']);
+        }
+
+        return $resposta;
+    }
+
+    /**
+     * Campo de senha para confirmar uma ação sensível, pronto para entrar num `<form>`; vazio (com uma nota) se a
+     * sessão já está no "modo elevado" e não precisa da senha de novo por alguns minutos. `$campo` precisa ser o
+     * mesmo nome passado para `exigirReautenticacao`.
+     */
+    private function campoSenha(SessaoAtiva $sessao, string $id = 'campo-senha', string $campo = 'senha'): string
+    {
+        if ($this->servicos->modoElevado()->ativo($sessao)) {
+            return '<p class="form-text">Confirmado há pouco: não precisa da senha de novo por alguns minutos.</p>';
+        }
+
+        return '<div class="mb-3"><label for="' . $id . '" class="form-label">Sua senha, para confirmar</label>'
+            . '<input id="' . $id . '" class="form-control" name="' . $campo . '" type="password" autocomplete="current-password" maxlength="1024" required></div>';
     }
 }

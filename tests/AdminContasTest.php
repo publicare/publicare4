@@ -380,4 +380,114 @@ final class AdminContasTest extends TestCase
         $this->s->usuarios->definirAtivo($this->ids['admin2'], false);
         self::assertSame(303, $this->req('GET', '/_pbl/contas', $token)->getStatusCode());
     }
+
+    // ---------------------------------------------------------------- modo elevado (fase 5h)
+
+    public function testAcoesSensiveisSemModoElevadoExigemSenha(): void
+    {
+        $token = $this->tokenSemElevar('admin');
+        $alvo = $this->ids['editor'];
+        $acoes = [
+            "/_pbl/conta/{$alvo}/desativar" => [],
+            "/_pbl/conta/{$alvo}/conceder" => ['objeto' => (string) $this->inicioId, 'perfil' => 'autor'],
+        ];
+        foreach ($acoes as $caminho => $campos) {
+            $r = $this->post($token, $caminho, $campos);
+            self::assertSame(422, $r->getStatusCode(), $caminho);
+            self::assertStringContainsString('Confirme sua senha', $this->html($r), $caminho);
+        }
+        self::assertTrue($this->s->usuarios->porId($alvo)?->ativo, 'nada mudou sem a senha');
+        self::assertSame([Perfil::Editor], array_map(static fn (array $a): Perfil => $a['perfil'], $this->s->usuarios->acessosDe($alvo)), 'conceder sem senha não mudou o papel (continua o que o setUp deu)');
+    }
+
+    public function testSenhaErradaNaAcaoSensivelNaoExecutaENaoRevelaASenha(): void
+    {
+        $token = $this->tokenSemElevar('admin');
+        $alvo = $this->ids['editor'];
+        $r = $this->post($token, "/_pbl/conta/{$alvo}/desativar", ['senha' => 'senha-errada-do-ataque']);
+        self::assertSame(401, $r->getStatusCode());
+        self::assertStringContainsString('Senha incorreta', $this->html($r));
+        self::assertTrue($this->s->usuarios->porId($alvo)?->ativo);
+        self::assertStringNotContainsString('senha-errada-do-ataque', (string) json_encode($this->s->auditoria->recentes(500)));
+        self::assertSame('conta.senha_errada', $this->auditoria('conta.senha_errada')[0]['acao']);
+    }
+
+    public function testSenhaCertaExecutaEAbreOModoElevadoParaOutrasAcoes(): void
+    {
+        $token = $this->tokenSemElevar('admin');
+        $alvo = $this->ids['editor'];
+        $r = $this->post($token, "/_pbl/conta/{$alvo}/desativar", ['senha' => self::SENHA]);
+        self::assertSame(303, $r->getStatusCode());
+        self::assertFalse($this->s->usuarios->porId($alvo)?->ativo);
+
+        // Modo elevado aberto: a próxima ação sensível da mesma sessão não pede a senha de novo.
+        $r2 = $this->post($token, "/_pbl/conta/{$alvo}/reativar", []);
+        self::assertSame(303, $r2->getStatusCode());
+        self::assertTrue($this->s->usuarios->porId($alvo)?->ativo);
+    }
+
+    public function testLimiteDeTentativasBloqueiaAReautenticacao(): void
+    {
+        $token = $this->tokenSemElevar('admin');
+        $alvo = $this->ids['editor'];
+        for ($i = 0; $i < 5; $i++) {
+            $this->post($token, "/_pbl/conta/{$alvo}/desativar", ['senha' => 'errada-' . $i]);
+        }
+        $r = $this->post($token, "/_pbl/conta/{$alvo}/desativar", ['senha' => self::SENHA]);
+        self::assertSame(429, $r->getStatusCode(), 'bloqueado mesmo com a senha certa');
+        self::assertNotNull($r->headers->get('Retry-After'));
+        self::assertTrue($this->s->usuarios->porId($alvo)?->ativo);
+    }
+
+    public function testCsrfEPermissaoSaoConferidosAntesDaReautenticacao(): void
+    {
+        $alvo = $this->ids['editor'];
+        $outro = $this->token('editor');
+        // CSRF errado: 403, nunca chega a pedir/conferir a senha.
+        self::assertSame(403, $this->req('POST', "/_pbl/conta/{$alvo}/desativar", $this->tokenSemElevar('admin'), [], self::ORIGEM)->getStatusCode());
+        // Sem permissão: 403, idem (editor não é administrador).
+        self::assertSame(403, $this->post($outro, "/_pbl/conta/{$alvo}/desativar", [])->getStatusCode());
+        self::assertTrue($this->s->usuarios->porId($alvo)?->ativo);
+    }
+
+    public function testCriarContaSemModoElevadoExigeSenhaAtualENaoColideComASenhaNova(): void
+    {
+        $token = $this->tokenSemElevar('admin');
+        $campos = ['login' => 'nova', 'nome' => 'Nova', 'email' => 'nova@exemplo.org', 'senha' => 'senha-da-nova-conta-2026', 'senha2' => 'senha-da-nova-conta-2026'];
+        $r = $this->post($token, '/_pbl/contas/nova', $campos);
+        self::assertSame(422, $r->getStatusCode(), 'sem a senha atual do administrador, não cria');
+        self::assertNull($this->s->usuarios->porLogin('nova'));
+
+        $r2 = $this->post($token, '/_pbl/contas/nova', ['senha_atual' => self::SENHA] + $campos);
+        self::assertSame(303, $r2->getStatusCode());
+        self::assertNotNull($this->s->usuarios->porLogin('nova'));
+        self::assertNotNull($this->s->usuarios->autenticar('nova', 'senha-da-nova-conta-2026'), 'a senha nova da conta, não a atual do admin, é a dela');
+    }
+
+    public function testListaPaginaEBuscaIgnorandoAcentoEMaiusculasEFiltraPorSituacao(): void
+    {
+        $this->s->usuarios->criar('ana.paula', 'ana@exemplo.org', 'Ana Paula', self::SENHA);
+        for ($i = 0; $i < 60; $i++) {
+            $this->s->usuarios->criar('conta' . $i, "conta{$i}@exemplo.org", 'Conta ' . $i, self::SENHA);
+        }
+        $token = $this->token('admin');
+        $pagina1 = $this->html($this->req('GET', '/_pbl/contas', $token));
+        self::assertStringContainsString('Página 1 de', $pagina1);
+        self::assertStringContainsString('conta0', $pagina1);
+        $pagina2 = $this->html($this->req('GET', '/_pbl/contas?pagina=2', $token));
+        self::assertStringNotContainsString('>conta0<', $pagina2);
+        // Página além do fim não quebra (cai na última).
+        $html999 = $this->html($this->req('GET', '/_pbl/contas?pagina=999999999', $token));
+        self::assertSame(200, $this->req('GET', '/_pbl/contas?pagina=999999999', $token)->getStatusCode());
+        self::assertStringContainsString('Página', $html999);
+
+        $busca = $this->html($this->req('GET', '/_pbl/contas?q=' . rawurlencode('ANA PÁULA'), $token));
+        self::assertStringContainsString('ana.paula', $busca);
+        self::assertStringNotContainsString('>conta0<', $busca);
+
+        $this->s->usuarios->definirAtivo($this->ids['leitor'], false);
+        $desativadas = $this->html($this->req('GET', '/_pbl/contas?situacao=desativadas', $token));
+        self::assertStringContainsString('leitor', $desativadas);
+        self::assertStringNotContainsString('>admin<', $desativadas);
+    }
 }
