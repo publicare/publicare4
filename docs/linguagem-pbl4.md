@@ -66,7 +66,7 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `<@repetir $i=[a,b]@>…<@/repetir@>` | laço numérico inclusivo |
 | `<@filhos [classes="a,b"] [ordem="peso, -data_publicacao"] [inicio=n] [limite=n] [expandir="autor"]@>…<@/filhos@>` | laço sobre filhos **publicados e vigentes** (fora de `data_publicacao`/`data_validade` não aparecem) |
 | `<@aleatorio …@>…<@/aleatorio@>` | como `filhos`, em ordem aleatória: sorteia entre **todos** os candidatos e só então aplica `inicio`/`limite` (`limite=1` escolhe um item qualquer) |
-| `<@localizar [classes=…] [pai=n] [niveis=n] [campo=… op=… valor=…] [campo2=…] [campo3=…] [busca=…] [ordem=…] [inicio=n] [limite=n] [expandir=…]@>…<@/localizar@>` | laço sobre objetos **publicados e vigentes do mesmo site**. `pai` limita à subárvore (sem o próprio pai) e `niveis` à profundidade (`niveis=1` são os filhos diretos). Até **três condições** (todas precisam valer): `campo`/`op`/`valor`, `campo2`/`op2`/`valor2`, `campo3`/`op3`/`valor3`. `campo` é uma coluna do objeto, uma propriedade **indexável** ou `ref.campo` (`autor.cargo`); `op` é `=` (padrão), `!=`, `<`, `>`, `<=`, `>=` ou `contem`. `busca` procura o texto no título **ignorando maiúsculas e acentos** (`arvore`, `ÁRVORE` e `árvore` acham `Árvore`; `%` e `_` são literais). O operador `contem` faz o mesmo no título e nas propriedades de texto indexáveis (inclusive `autor.titulo`); em outras colunas, como `descricao`, diferencia maiúsculas. Consulta mal formada devolve lista vazia |
+| `<@localizar [classes=…] [pai=n] [niveis=n] [campo=… op=… valor=…] [campo2=…] [campo3=…] [busca=…] [ordem=…] [inicio=n] [limite=n] [expandir=…]@>…<@/localizar@>` | laço sobre objetos **publicados e vigentes do mesmo site**. `pai` limita à subárvore (sem o próprio pai) e `niveis` à profundidade (`niveis=1` são os filhos diretos). Até **três condições** (todas precisam valer): `campo`/`op`/`valor`, `campo2`/`op2`/`valor2`, `campo3`/`op3`/`valor3`. `campo` é uma coluna do objeto, uma propriedade **indexável** ou `ref.campo` (`autor.cargo`); `op` é `=` (padrão), `!=`, `<`, `>`, `<=`, `>=` ou `contem`. `busca` é a busca de texto por palavras (ver [Busca](#busca-busca) abaixo). O operador `contem` faz o mesmo no título e nas propriedades de texto indexáveis (inclusive `autor.titulo`); em outras colunas, como `descricao`, diferencia maiúsculas. Consulta mal formada devolve lista vazia |
 | `<@localizaraleatorio …@>…<@/localizaraleatorio@>` | como `localizar`, em ordem aleatória |
 | `<@semfilhos@>…<@/semfilhos@>` / `<@naolocalizado@>…<@/naolocalizado@>` | executa se o último laço de coleção não achou nada (são sinônimos) |
 | `<@usarobjeto id=n \| url="…" \| titulo="…"@>…<@/usarobjeto@>` | troca o objeto corrente dentro do bloco; objeto inexistente, de outro site ou não publicado: o bloco não roda |
@@ -88,7 +88,21 @@ Nomes de layout e de `incluir` são caminhos relativos à pasta da pele (`a-z 0-
 
 ### Ordenação (`ordem`)
 
-Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`desc` atrás: `peso, -data_publicacao`, `titulo desc`. Aceita as colunas `id`, `titulo`, `peso`, `descricao`, `data_publicacao`, `data_validade`, `criado_em`, `atualizado_em`, `status`, qualquer **propriedade indexável** da classe e o campo de um **objeto referenciado** (`autor.titulo`, `-autor.cargo`), até 4 critérios. Sem `ordem`, vale `peso` e depois `id`, como no PBL3. **Valores nulos ficam sempre por último**, em qualquer direção e em qualquer banco. Nada da `ordem` chega ao SQL como texto livre. Ordenar pelo objeto apontado é uma consulta só, sem tabela temporária (ver [fluxo 9](fluxos/09-armazenamento-consulta.md)).
+Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`desc` atrás: `peso, -data_publicacao`, `titulo desc`. Aceita as colunas `id`, `titulo`, `peso`, `descricao`, `data_publicacao`, `data_validade`, `criado_em`, `atualizado_em`, `status`, qualquer **propriedade indexável** da classe e o campo de um **objeto referenciado** (`autor.titulo`, `-autor.cargo`), até 4 critérios. Sem `ordem`, vale `peso` e depois `id`, como no PBL3 (com `busca`, vale `relevancia`, depois `peso`). `relevancia` também é aceita (ver [Busca](#busca-busca)). **Valores nulos ficam sempre por último**, em qualquer direção e em qualquer banco. Nada da `ordem` chega ao SQL como texto livre. Ordenar pelo objeto apontado é uma consulta só, sem tabela temporária (ver [fluxo 9](fluxos/09-armazenamento-consulta.md)).
+
+### Busca (`busca`)
+
+`<@localizar busca="presid relatório"@>…<@/localizar@>` procura no **título**, na **descrição** e no texto das propriedades `texto` e `html` (sem as marcações), entre os objetos publicados e vigentes do site. Regras:
+
+- **Todas as palavras** precisam aparecer, em qualquer ordem e em qualquer campo (`presidencia relatorio` acha "Relatório da Presidência").
+- **Começo de palavra**: `presid` acha `Presidência` e `Presidente`; um pedaço do meio da palavra não acha.
+- **Plural e singular**: `ações` acha `ação` e vice-versa; `casas`, `casa`. Só plural: não trata feminino nem verbos.
+- **Maiúsculas e acentos** não importam. Pontuação, `%`, `_` e aspas separam palavras e nunca são curingas.
+- Palavras vazias (`de`, `da`, `para`...) e letras soltas são ignoradas; uma busca só com elas não acha nada. Busca em branco não filtra.
+- Limites: até 8 palavras (as demais são ignoradas), 200 caracteres no total, 40 por palavra.
+- Combina com `classes`, `pai`, `niveis`, `campo`/`op`/`valor`, `inicio` e `limite`.
+- **Relevância**: sem `ordem`, os melhores resultados vêm primeiro (título 3, descrição 2, texto 1; palavra inteira e início do título pesam mais). Em `ordem`, escreva `relevancia` (sozinha ou com outros critérios, como `relevancia, -data_publicacao`); sem `busca` ela é ignorada. Uma propriedade chamada `relevancia` fica inacessível em `ordem`.
+- Não corrige erros de digitação (`Fernandha` não acha `Fernanda`): isso é o nível C do [ADR 0010](adr/0010-busca.md), ainda não feito.
 
 ### Tipos de propriedade
 

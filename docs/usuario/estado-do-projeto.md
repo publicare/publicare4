@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Última atualização: **novembro de 2026** (integridade do conteúdo, HTML limpo, publicação agendada e mover pela árvore). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
+Última atualização: **novembro de 2026** (contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, publicação agendada e mover pela árvore). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
 
 ## Legenda
 
@@ -23,11 +23,11 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Conversor de moldes do Publicare antigo (PBL3) para o novo, com relatório | ✅ |
 | Proteções de segurança básicas nos moldes e nas URLs | ✅ |
 | Histórico de versões de cada conteúdo, com restaurar e proteção contra edição simultânea | ✅ |
-| Vários domínios para o mesmo site (um principal e os outros mostrando o mesmo conteúdo ou levando ao principal) | ✅ |
+| Vários domínios para o mesmo site (um principal e os outros mostrando o mesmo conteúdo ou levando ao principal), também pelo navegador: adicionar, trocar o principal, virar alias ou redirecionador e remover | ✅ |
 | Redirecionar endereços antigos que não são páginas atuais (de sistemas que acabaram, com `.php` ou maiúsculas) | ✅ (pelo navegador e por linha de comando) |
 | Mudar o endereço de uma página sem quebrar o antigo (o antigo passa a levar ao novo) | ✅ |
 | Mover uma página (com tudo que está dentro dela) na árvore | ✅ |
-| Contas da equipe com senha segura e papéis por seção do site (leitor, autor, editor) e administrador geral, com registro de quem fez o quê (por linha de comando) | ✅ |
+| Contas da equipe com senha segura e papéis por seção do site (leitor, autor, editor) e administrador geral, com registro de quem fez o quê (por linha de comando e, para o administrador, pelo navegador: criar conta, editar, desativar, redefinir senha e conceder papéis) | ✅ |
 | Instalar pelo navegador (assistente com requisitos, conta de administrador e site de exemplo), com proteção para ninguém instalar no seu lugar | ✅ |
 | Instalar em hospedagem com painel Hestia/VestaCP (`open_basedir`), com guia e avisos claros no assistente (falta de SQLite, pasta fora do alcance do PHP) | ✅ |
 | Entrar e sair pelo navegador, com sessão segura e proteção contra tentativas em massa e contra pedidos forjados | ✅ |
@@ -39,6 +39,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Publicar numa data futura e tirar do ar numa data de validade: a página mostra "agendado" e o comando `bin/pbl agendados` (para o cron do servidor) põe no ar e tira na hora certa | ✅ (precisa agendar o comando no servidor) |
 | Mover um conteúdo escolhendo o novo lugar andando pela árvore, sem digitar número | ✅ |
 | Busca que ignora maiúsculas e acentos (`presidencia` acha `Presidência`) | ✅ |
+| Busca com várias palavras (todas), começo de palavra (`presid` acha `Presidência`), plural e singular (`ações`/`ação`) e ordem por relevância (título antes de descrição e texto), no título, na descrição e no texto | ✅ |
 | Ligar conteúdos entre si (uma notícia aponta para seu autor) e, nos moldes, mostrar, filtrar e ordenar pelo conteúdo apontado | ✅ |
 | Consultas com até três condições, comparações (maior, menor, contém) e carga rápida de listas | ✅ |
 
@@ -46,9 +47,9 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 
 | Recurso | Estado |
 |---|---|
-| Busca com várias palavras, relevância e correção de erros de digitação ("você quis dizer…") | 🗓️ |
+| Busca que corrige erros de digitação (`Fernandha` sugere `Fernanda`, "você quis dizer…"), opcional por site | 🗓️ |
+| Busca para portais muito grandes (centenas de milhares de páginas) com serviço de busca próprio | 🗓️ |
 | Atualização automática com cópia de segurança | 🔨 (já funciona por linha de comando, com assinatura, cópia do banco e volta atrás; falta o botão no painel e a primeira versão publicada) |
-| Restante da administração: contas e domínios pelo navegador | 🔨 |
 | Editor de peles completo (realce de código, pré-visualização, histórico e voltar atrás, arquivos de CSS e imagens) | 🗓️ (hoje só a caixa de texto simples) |
 | Galeria de peles prontas para instalar | 🗓️ |
 | Formulários, inscrições e consultas públicas por configuração | 🗓️ |

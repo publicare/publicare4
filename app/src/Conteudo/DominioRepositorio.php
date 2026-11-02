@@ -52,6 +52,22 @@ final class DominioRepositorio
         });
     }
 
+    /** Muda um domínio que não é o principal entre `servir` (mesmo conteúdo, com canônico) e `redirecionar` (301 para o principal). */
+    public function definirModo(string $host, string $modo): void
+    {
+        if (!in_array($modo, [Dominio::SERVIR, Dominio::REDIRECIONAR], true)) {
+            throw new \InvalidArgumentException("Modo inválido para um domínio que não é o principal: {$modo}");
+        }
+        $d = $this->porHost(strtolower($host));
+        if ($d === null) {
+            throw new \InvalidArgumentException("O domínio {$host} não está configurado");
+        }
+        if ($d->modo === Dominio::PRINCIPAL) {
+            throw new \InvalidArgumentException('O domínio principal não muda de modo; defina outro como principal antes');
+        }
+        $this->conexao->update('dominio', ['modo' => $modo], ['host' => $d->host]);
+    }
+
     public function remover(string $host): void
     {
         $d = $this->porHost(strtolower($host));

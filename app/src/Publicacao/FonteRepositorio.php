@@ -70,6 +70,7 @@ final class FonteRepositorio implements FonteDeDados
             ordem: (string) ($filtros['ordem'] ?? ''),
             inicio: (int) ($filtros['inicio'] ?? 0),
             limite: (int) ($filtros['limite'] ?? 100),
+            busca: isset($filtros['busca']) ? (string) $filtros['busca'] : null,
         ), $filtros);
     }
 
@@ -199,7 +200,7 @@ final class FonteRepositorio implements FonteDeDados
     }
 
     /**
-     * Até três condições: `campo`/`op`/`valor`, `campo2`/`op2`/`valor2`, `campo3`/`op3`/`valor3`; `busca` procura no título.
+     * Até três condições: `campo`/`op`/`valor`, `campo2`/`op2`/`valor2`, `campo3`/`op3`/`valor3`; `busca` é a busca de texto (várias palavras, prefixo, plural, relevância) e vai direto na `Consulta`.
      *
      * @param array<string, int|string> $filtros
      * @return list<Filtro>
@@ -211,9 +212,6 @@ final class FonteRepositorio implements FonteDeDados
             if (isset($filtros["campo{$sufixo}"], $filtros["valor{$sufixo}"])) {
                 $lista[] = new Filtro((string) $filtros["campo{$sufixo}"], (string) ($filtros["op{$sufixo}"] ?? '='), (string) $filtros["valor{$sufixo}"]);
             }
-        }
-        if (isset($filtros['busca']) && $filtros['busca'] !== '') {
-            $lista[] = new Filtro('titulo', 'contem', (string) $filtros['busca']);
         }
 
         return $lista;

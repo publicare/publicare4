@@ -7,6 +7,9 @@ namespace Pbl\Consulta;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use Pbl\Busca\BuscaInterface;
+use Pbl\Busca\BuscaSql;
+use Pbl\Busca\FragmentoDeBusca;
 use Pbl\Busca\Texto;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
@@ -31,8 +34,11 @@ final class MotorDeConsulta
     private const MAX_ORDENS = 4;
     private const MAX_FILTROS = 6;
 
-    public function __construct(private readonly Connection $conexao, private readonly ObjetoRepositorio $objetos)
+    private readonly BuscaInterface $busca;
+
+    public function __construct(private readonly Connection $conexao, private readonly ObjetoRepositorio $objetos, ?BuscaInterface $busca = null)
     {
+        $this->busca = $busca ?? new BuscaSql($conexao);
     }
 
     /** @return list<Objeto> */
@@ -143,7 +149,16 @@ final class MotorDeConsulta
             $q['onde'][] = $this->condicao($f, $q);
         }
 
-        $ordem = $comOrdem ? $this->ordenacao($c->ordem, $q) : '';
+        // Busca de texto (nível B): a condição entra sempre; os pontos de relevância só se for ordenar.
+        $q['relevancia'] = null;
+        $texto = $c->busca === null ? null : $this->busca->fragmento($c->busca, 'o', 'bq');
+        if ($texto !== null) {
+            $q['onde'][] = $texto->onde;
+            $q['valores'] += $texto->valoresOnde;
+            $q['tipos'] += $texto->tiposOnde;
+            $q['relevancia'] = $texto;
+        }
+        $ordem = $comOrdem ? $this->ordenacao($texto === null || $c->ordem !== '' ? $c->ordem : 'relevancia, peso', $q) : '';
 
         return [
             'juncoes' => $q['juncoes'] === [] ? '' : ' ' . implode(' ', $q['juncoes']),
@@ -222,6 +237,15 @@ final class MotorDeConsulta
                 $item = ltrim(substr($item, 1));
             }
             if (preg_match('/^([a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)?)(?:\s+(asc|desc))?$/i', $item, $m) !== 1) {
+                continue;
+            }
+            if (strtolower($m[1]) === 'relevancia') {
+                // Mais pontos primeiro; sem busca na consulta, não há o que ordenar e o item é ignorado.
+                if ($q['relevancia'] instanceof FragmentoDeBusca) {
+                    $itens[] = $q['relevancia']->relevancia . ' DESC';
+                    $q['valores'] += $q['relevancia']->valoresRelevancia;
+                    $q['tipos'] += $q['relevancia']->tiposRelevancia;
+                }
                 continue;
             }
             $dir = ($desc || strtolower($m[2] ?? '') === 'desc') ? ' DESC' : ' ASC';

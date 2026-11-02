@@ -11,6 +11,8 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Propriedade (campo)** | Cada informação de um tipo de conteúdo: texto, número, data, sim/não ou ligação (referência) para outro conteúdo. Tem um **nome técnico** (o que os moldes usam, não muda depois de criado) e um **rótulo** (o nome que a equipe vê). |
 | **Campo arquivado** | Campo que saiu dos formulários mas cujos valores continuam guardados (e os moldes continuam mostrando). É o jeito de "tirar" um campo que já tem valores sem perder nada; dá para voltá-lo a ativo. |
 | **Referência** | Uma propriedade que aponta para outro conteúdo (uma notícia aponta para seu autor). Dá para mostrar, filtrar e ordenar pelo conteúdo apontado (por exemplo, notícias ordenadas pelo nome do autor). Só aponta para conteúdo do mesmo site. |
+| **Busca por palavras** | Procura todas as palavras digitadas, em qualquer ordem, aceitando só o começo da palavra e o plural; mostra primeiro o que combina melhor (relevância). |
+| **Relevância** | A pontuação que ordena os resultados da busca: título vale mais que descrição, que vale mais que o texto. |
 | **Busca sem acento** | A busca trata `Presidência`, `presidencia` e `PRESIDÊNCIA` como a mesma palavra. |
 | **Consulta** | Um pedido de lista de conteúdos com filtros e ordem (por exemplo, "eventos da Sala 1, em ordem de data"). |
 | **Árvore** | A organização em níveis: uma seção contém páginas, que podem conter outras páginas. |
@@ -36,6 +38,7 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Administração** | A área do site, em `/_pbl/`, onde a equipe entra com login e senha para cuidar do conteúdo. Cada pessoa só vê e só muda o que o seu papel permite. |
 | **Edição simultânea** | Quando duas pessoas abrem a mesma página para editar. Quem salvar depois recebe um aviso, vê o que a outra pessoa salvou e decide se substitui; nada se perde sem aviso. |
 | **Domínio principal** | O endereço oficial do site. Os outros domínios do mesmo site mostram o mesmo conteúdo (avisando qual é o oficial) ou levam direto ao principal. |
+| **Alias e redirecionador** | Os dois tipos de domínio que não são o principal: o **alias** mostra o mesmo conteúdo do site; o **redirecionador** leva o visitante ao principal (redirecionamento permanente). Muda-se pela administração, em **Domínios**. |
 | **Pele** | Pasta com os moldes que dão a aparência ao site. Pelo navegador, o administrador edita o texto dos moldes (a sintaxe é conferida antes de salvar) e escolhe qual pele o site usa. |
 | **Regra de redirecionamento** | Uma instrução que você cadastra: "quem pedir `/antigo` vai para `/novo`". Serve para endereços antigos que já não são uma página do site. |
 | **Redirecionamento** | Fazer um endereço antigo levar ao endereço novo, para não quebrar links já divulgados. |

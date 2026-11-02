@@ -47,7 +47,7 @@ Entre em `/_pbl/` com seu login. Você vê os sites e as seções que pode acess
 - **move** um conteúdo (escolhendo o novo lugar andando pela árvore) com tudo que está dentro dele, ou o manda para a **lixeira** (editor); da lixeira dá para tirar de volta;
 - vê o **histórico** e volta a uma versão antiga (isso cria uma versão nova; nada se perde).
 
-Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou o mesmo conteúdo enquanto você mexia, aparece um aviso e nada é sobrescrito sem você decidir. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). O administrador também edita os **redirecionamentos** e as **peles** de cada site (o texto dos moldes, com a sintaxe conferida antes de salvar). Contas e domínios ainda se cuidam por linha de comando.
+Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou o mesmo conteúdo enquanto você mexia, aparece um aviso e nada é sobrescrito sem você decidir. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). O administrador também cuida das **contas** e dos **domínios** (veja abaixo) e edita os **redirecionamentos** e as **peles** de cada site (o texto dos moldes, com a sintaxe conferida antes de salvar).
 
 ## Colei HTML num campo e ele mudou. Por quê?
 
@@ -67,7 +67,11 @@ Se nenhum conteúdo tem valor nesse campo, sim. Se já tem, o Publicare **não d
 
 ## Posso trocar o domínio do meu site sem perder os links?
 
-Pode. O site pode ter vários domínios: o antigo continua funcionando e leva ao novo (redirecionamento permanente) ou mostra o mesmo conteúdo avisando qual é o oficial. Endereços de sistemas que acabaram também podem ser redirecionados. Hoje isso se faz por linha de comando; a tela de administração virá depois.
+Pode. O site pode ter vários domínios: o antigo continua funcionando e leva ao novo (redirecionamento permanente) ou mostra o mesmo conteúdo avisando qual é o oficial. Endereços de sistemas que acabaram também podem ser redirecionados. Quem administra o site faz isso pelo navegador: no painel, ao lado do nome do site, clique em **Domínios**. Dá para adicionar um domínio (como alias, que mostra o mesmo conteúdo, ou como redirecionador, que leva ao principal), escolher qual é o **principal**, trocar um domínio entre alias e redirecionador e remover os que não servem mais. O domínio principal não se remove (escolha outro antes), e o endereço pelo qual você está acessando também não. O DNS e o certificado do domínio novo precisam estar apontados para a hospedagem; isso se faz fora do Publicare. O redirecionamento de endereços antigos que não são páginas é cadastrado em **Redirecionamentos**, no mesmo painel (ou por linha de comando).
+
+## Como crio uma conta para alguém da equipe?
+
+Se você é administrador, clique em **Contas** na barra da administração e em **Nova conta**: informe login (não muda depois), nome, e-mail e uma senha de pelo menos 10 caracteres, sem nada óbvio. Abra a conta para dar um **papel numa seção** (leitor, autor ou editor, pelo número da seção), editar nome e e-mail, tornar a pessoa administradora, **redefinir a senha** (ela é desconectada de todas as sessões) ou **desativar** a conta (não consegue mais entrar; nada do que ela fez se perde). Você não pode desativar a própria conta nem tirar a sua marca de administrador, e a última conta de administrador ativa fica sempre protegida.
 
 ## É seguro?
 
@@ -75,7 +79,11 @@ Segurança é critério de aceite do projeto. As peles rodam em ambiente restrit
 
 ## A busca ignora maiúsculas e acentos?
 
-Sim. Procurar por `presidencia` acha `Presidência`, e `ORGAO` acha `órgão`. Estão no plano a busca com várias palavras e relevância e a correção de erros de digitação ("você quis dizer…"), que o Publicare vai oferecer por configuração; veja o [estado do projeto](estado-do-projeto.md).
+Sim. Procurar por `presidencia` acha `Presidência`, e `ORGAO` acha `órgão`.
+
+## Como funciona a busca por várias palavras?
+
+Todas as palavras digitadas precisam aparecer (em qualquer ordem) no título, na descrição ou no texto da página. Basta o começo da palavra (`presid` acha `Presidência`) e o plural vale pelo singular (`ações` acha `ação`, `casas` acha `casa`). Os resultados vêm com os melhores primeiro: título pesa mais que descrição, que pesa mais que o texto, e a palavra inteira pesa mais que só o começo. Palavras como "de", "da" e "para" são ignoradas, e a busca olha no máximo as 8 primeiras palavras. Ainda não corrige erros de digitação (`Fernandha` não acha `Fernanda`): isso está no plano, por configuração; veja o [estado do projeto](estado-do-projeto.md).
 
 ## Como fico sabendo das novidades?
 
