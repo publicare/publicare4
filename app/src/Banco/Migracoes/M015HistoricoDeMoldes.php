@@ -25,8 +25,24 @@ final class M015HistoricoDeMoldes implements Migracao
 
     public function aplicar(Connection $conexao): void
     {
+        // O `Migrador` guarda só a versão mais alta; testes que "voltam" uma versão anterior reaplicam esta
+        // migração com as tabelas já presentes. Por isso cada tabela só é criada se ainda não existir.
+        $gerente = $conexao->createSchemaManager();
         $e = new Schema();
 
+        if (!$gerente->tablesExist(['pele_molde_versao'])) {
+            $this->versoes($e);
+        }
+        if (!$gerente->tablesExist(['pele_molde_rascunho'])) {
+            $this->rascunhos($e);
+        }
+        if ($e->getTables() !== []) {
+            $gerente->createSchemaObjects($e);
+        }
+    }
+
+    private function versoes(Schema $e): void
+    {
         $v = $e->createTable('pele_molde_versao');
         $v->addColumn('id', 'integer', ['autoincrement' => true]);
         $v->addColumn('pele', 'string', ['length' => 50]);
@@ -39,7 +55,10 @@ final class M015HistoricoDeMoldes implements Migracao
         $v->addColumn('criado_em', 'string', ['length' => 32]);
         $v->setPrimaryKey(['id']);
         $v->addUniqueIndex(['pele', 'molde', 'versao']);
+    }
 
+    private function rascunhos(Schema $e): void
+    {
         $r = $e->createTable('pele_molde_rascunho');
         $r->addColumn('pele', 'string', ['length' => 50]);
         $r->addColumn('molde', 'string', ['length' => 100]);
@@ -47,7 +66,5 @@ final class M015HistoricoDeMoldes implements Migracao
         $r->addColumn('usuario_id', 'integer', ['notnull' => false]);
         $r->addColumn('atualizado_em', 'string', ['length' => 32]);
         $r->setPrimaryKey(['pele', 'molde']);
-
-        $conexao->createSchemaManager()->createSchemaObjects($e);
     }
 }
