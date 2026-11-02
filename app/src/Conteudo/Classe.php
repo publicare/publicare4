@@ -45,7 +45,12 @@ final class Classe
     {
         $rotulo = $propriedade['rotulo'] ?? '';
 
-        return is_string($rotulo) && $rotulo !== '' ? $rotulo : (string) ($propriedade['nome'] ?? '');
+        if (is_string($rotulo) && $rotulo !== '') {
+            return $rotulo;
+        }
+        $nome = str_replace('_', ' ', (string) ($propriedade['nome'] ?? ''));
+
+        return $nome === '' ? '' : mb_strtoupper(mb_substr($nome, 0, 1)) . mb_substr($nome, 1);
     }
 
     /** Este tipo aceita conteúdo do tipo `$filha` dentro dele? (`aceita_filhos` e a lista `filhas`; vazia = qualquer tipo) */
