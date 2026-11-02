@@ -122,3 +122,46 @@ main .form-check .form-text { flex: 0 0 100%; margin-top: .15rem; }
   table.pbl-cartoes td.text-end form, table.pbl-cartoes td.text-end .btn { margin-top: .25rem; }
   table.pbl-cartoes .text-nowrap { white-space: normal !important; }
 }
+
+/* Tela do conteúdo (ADR 0012, adendo): selos, metadados em grade compacta, campos em cartões, corpo renderizado com altura limitada. */
+.pbl-selos { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .75rem; }
+.pbl-barra-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: 1rem; }
+.pbl-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem 1rem; margin: 0 0 1rem; }
+.pbl-meta > div { min-width: 0; }
+.pbl-meta .pbl-largo { grid-column: 1 / -1; }
+.pbl-meta dt { font-size: .75rem; font-weight: 600; color: #5c636a; text-transform: uppercase; letter-spacing: .02em; margin: 0; }
+.pbl-meta dd { margin: 0; overflow-wrap: anywhere; word-break: normal; }
+.pbl-endereco { display: block; overflow-wrap: anywhere; }
+@media (min-width: 768px) { .pbl-meta { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.pbl-conteudo .pbl-card-titulo { font-size: .95rem; color: #5c636a; text-transform: none; }
+.pbl-corpo { max-height: 18rem; overflow: auto; overflow-wrap: anywhere; padding: .5rem .75rem; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: var(--bs-body-bg); }
+.pbl-corpo img, .pbl-corpo table { max-width: 100%; }
+.pbl-corpo table td, .pbl-corpo table th { border: 1px solid #adb5bd; padding: .2rem .4rem; }
+.pbl-ver-html { margin-top: .5rem; }
+.pbl-ver-html summary { cursor: pointer; font-size: .85rem; color: #0a58ca; min-height: 44px; display: flex; align-items: center; }
+.pbl-ver-html pre { max-height: 18rem; overflow: auto; }
+
+/* Filtro da lista de filhos: recolhido; campos em 3 colunas + botão a partir do tablet. Filhos como cartões compactos no celular. */
+.pbl-filtros { display: grid; grid-template-columns: 1fr; gap: .5rem; }
+.pbl-filtros > * { min-width: 0; }
+@media (min-width: 768px) { .pbl-filtros { grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: end; } }
+.pbl-filho { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.pbl-filho-corpo { min-width: 0; }
+.pbl-filho-titulo { font-weight: 600; font-size: 1.05rem; overflow-wrap: anywhere; }
+.pbl-filho-meta { margin-top: .15rem; }
+.pbl-filho .btn { flex: none; }
+
+/* Edição: ajuda curta com detalhe atrás de um "?"; barra Salvar/Cancelar fixa no rodapé do celular. */
+.pbl-ajuda { display: inline-block; }
+.pbl-ajuda summary { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border: 1px solid #6c757d; border-radius: 50%; cursor: pointer; font-weight: 700; list-style: none; color: #343a40; }
+.pbl-ajuda summary::-webkit-details-marker { display: none; }
+.pbl-ajuda[open] { display: block; margin-top: .25rem; }
+.pbl-ajuda span { display: block; margin-top: .25rem; }
+.pbl-campo-tipo { border-left: 4px solid #0d6efd; }
+.pbl-campo-tipo .mb-3:last-child { margin-bottom: 0 !important; }
+.pbl-vigencia { margin: 0 0 .75rem; }
+@media (max-width: 767.98px) {
+  .pbl-acoes.pbl-acoes-fixas { position: sticky; bottom: 0; z-index: 1020; flex-direction: row; gap: .5rem; margin: 1rem -.75rem 0; padding: .6rem .75rem; background: #fff; border-top: 1px solid #adb5bd; box-shadow: 0 -2px 6px rgba(0, 0, 0, .08); }
+  .pbl-acoes.pbl-acoes-fixas .btn { width: auto; flex: 1 1 0; margin: 0; }
+  .pbl-acoes.pbl-acoes-fixas .btn-primary, .pbl-acoes.pbl-acoes-fixas .btn-danger { flex-grow: 2; }
+}

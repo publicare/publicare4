@@ -27,6 +27,7 @@ final class Pagina
     public const EDITOR_JS = self::ASSETS . '/pbl-editor.js';
     /** Marca que as telas põem no `<textarea>` de um campo `html`; a página usa para decidir carregar o editor. */
     public const MARCA_EDITOR = 'data-pbl-editor="';
+    public const MARCA_PREVIA = 'data-pbl-previa="';
 
     public static function h(string $texto): string
     {
@@ -250,14 +251,14 @@ final class Pagina
 
     /**
      * Linha de botões de um formulário: o primário (`<button type="submit">`), os secundários (links em outline, `[rótulo, href]`) e,
-     * afastado, um destrutivo opcional (`[rótulo, href]`, link em vermelho). `$primario` é o rótulo do botão de envio.
+     * afastado, um destrutivo opcional (`[rótulo, href]`, link em vermelho). `$primario` é o rótulo do botão de envio. `$classeBarra` = classe extra (ex.: `pbl-acoes-fixas`, barra fixa no rodapé do celular).
      *
      * @param list<array{0: string, 1: string}> $secundarios
      * @param array{0: string, 1: string}|null $destrutivo
      */
-    public static function acoes(string $primario, array $secundarios = [], ?array $destrutivo = null, string $classePrimario = 'btn-primary'): string
+    public static function acoes(string $primario, array $secundarios = [], ?array $destrutivo = null, string $classePrimario = 'btn-primary', string $classeBarra = ''): string
     {
-        $html = '<div class="pbl-acoes">' . ($primario === '' ? '' : '<button type="submit" class="btn ' . self::h($classePrimario) . '">' . self::h($primario) . '</button>');
+        $html = '<div class="pbl-acoes' . ($classeBarra === '' ? '' : ' ' . self::h($classeBarra)) . '">' . ($primario === '' ? '' : '<button type="submit" class="btn ' . self::h($classePrimario) . '">' . self::h($primario) . '</button>');
         foreach ($secundarios as [$rotulo, $href]) {
             $html .= '<a class="btn btn-outline-secondary" href="' . self::h($href) . '">' . self::h($rotulo) . '</a>';
         }
@@ -277,7 +278,8 @@ final class Pagina
     public static function protegida(Response $r, bool $seguro, bool $editor = false): Response
     {
         // O painel passa por aqui de novo depois da tela: a página que traz o editor é reconhecida pela marca no corpo.
-        $editor = $editor || (str_starts_with((string) $r->headers->get('Content-Type'), 'text/html') && str_contains((string) $r->getContent(), self::MARCA_EDITOR));
+        $html = str_starts_with((string) $r->headers->get('Content-Type'), 'text/html') ? (string) $r->getContent() : '';
+        $editor = $editor || ($html !== '' && (str_contains($html, self::MARCA_EDITOR) || str_contains($html, self::MARCA_PREVIA)));
         $r->headers->set('Cache-Control', 'no-store');
         $r->headers->set('X-Frame-Options', 'DENY');
         $r->headers->set('X-Content-Type-Options', 'nosniff');

@@ -46,16 +46,18 @@
       statusbar: true,
       elementpath: false,
       resize: true,
-      min_height: 360,
+      min_height: 320,
       browser_spellcheck: true,
       contextmenu: false,
       help_accessibility: false,
 
       plugins: 'lists advlist link table image code autolink',
       toolbar:
-        'undo redo | blocks fontsize | bold italic underline | alignleft aligncenter alignright alignjustify | ' +
-        'bullist numlist outdent indent | link table image | removeformat | code',
-      toolbar_mode: 'sliding',
+        'blocks fontsize | bold italic underline | bullist numlist | alignleft aligncenter alignright | ' +
+        'link table image | removeformat code | undo redo',
+      /* wrap: a barra quebra em várias linhas (nada de rolagem de lado nem botão "mais"), importante no celular. */
+      toolbar_mode: 'wrap',
+      toolbar_sticky: false,
       block_formats: 'Parágrafo=p; Título 2=h2; Título 3=h3; Título 4=h4; Citação=blockquote; Texto de código=pre',
       font_size_formats: '12px 14px 16px 18px 24px 32px',
       /* Só estas propriedades de estilo existem no conteúdo (o servidor aceita as mesmas). */
