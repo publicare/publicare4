@@ -94,6 +94,7 @@ final class Renderizador
         $contexto['pele'] = $pele;
         $contexto['pele_url'] = $this->aparencia->urlDaPele($pele);
         $contexto['pele_v'] = $this->aparencia->versaoDaPele($pele);
+        $contexto['barra_v'] = Aparencia::versaoDaBarra();
         $contexto['raiz_pele'] = $inicio ?? '';
         $contexto['migalhas'] = $this->aparencia->migalhas($objeto, $inicio);
 

@@ -56,6 +56,18 @@ final class Aparencia
         return self::URL_ASSETS . '/' . $pele;
     }
 
+    /** Versão (curta) do script da barra de edição (`public/_pbl/assets/pbl-barra.js` e `.css`), para o `?v=`. */
+    public static function versaoDaBarra(): string
+    {
+        $partes = '';
+        foreach (['pbl-barra.js', 'pbl-barra.css'] as $nome) {
+            $arquivo = dirname(__DIR__, 3) . '/public/_pbl/assets/' . $nome;
+            $partes .= is_file($arquivo) ? (string) hash_file('crc32b', $arquivo) : '-';
+        }
+
+        return substr(hash('sha256', $partes), 0, 8);
+    }
+
     /** Versão (curta) dos arquivos da pele, para o `?v=` dos assets: muda quando um arquivo muda. */
     public function versaoDaPele(string $pele): string
     {

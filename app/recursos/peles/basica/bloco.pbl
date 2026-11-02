@@ -5,7 +5,7 @@
 <meta name="robots" content="noindex">
 <@incluir arquivo="estilo"@>
 </head>
-<body>
+<body data-pbl-objeto="<@eco #id@>">
 <@incluir arquivo="topo"@>
 <main>
 <h1><@eco #titulo@></h1>
