@@ -100,7 +100,7 @@ make pbl ARGS="sanitizar-html --limite=500"           # tamanho do lote lido do 
 - Lê o banco **em lotes**, sem carregar todos os objetos na memória de uma vez; `--limite` ajusta o tamanho de cada lote (não muda o resultado, só o uso de memória).
 - Quando a limpeza muda o campo, grava uma **nova versão** pelo caminho normal do repositório (autoria "sistema", auditoria só com o nome do campo e o id do objeto — nunca o conteúdo). Nada é sobrescrito sem versão: o histórico continua inteiro.
 - `--simular` não grava nada; mostra, por objeto e campo, um resumo do que seria retirado (tags e atributos, por nome, e o tamanho antes/depois em bytes) — nunca o HTML inteiro.
-- Páginas afetadas que estão no ar são republicadas na hora, do mesmo jeito que uma edição pelo painel faria.
+- Ao fim, cada site com objeto alterado tem o cache inteiro refeito (uma vez por site, como `bin/pbl publicar`), já que o conteúdo pode aparecer em qualquer página. Se isso falhar, o comando conta erro e sai com código diferente de zero; rode `bin/pbl publicar` ou repita o comando.
 - **Idempotente**: como a própria limpeza é idempotente, rodar de novo depois não encontra mais nada para mudar.
 - Usa a mesma trava de `atualizar`/`reverter` (`dados/atualizacao.lock`): não roda ao mesmo tempo que uma atualização do PBL4.
 - Código de saída diferente de zero se algum objeto falhar (por exemplo, um campo obrigatório que ficaria vazio depois da limpeza); o resumo final mostra quantos foram varridos, alterados e com erro.

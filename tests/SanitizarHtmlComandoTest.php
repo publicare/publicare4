@@ -216,4 +216,41 @@ final class SanitizarHtmlComandoTest extends TestCase
         self::assertStringNotContainsString('<script>', $conteudo);
         self::assertStringContainsString('<p>novo</p>', $conteudo);
     }
+
+    public function testRepublicaOSiteInteiroEntaoOutraPaginaEmCacheTambemEhRefeita(): void
+    {
+        $this->pagina('suja', '<script>alert(1)</script><p>novo</p>');
+        $this->pagina('vizinha', '<p>limpa</p>');
+        $this->s->publicador->publicarSite($this->site);
+        $vizinha = $this->caminhos->pagina($this->site->id, 'vizinha');
+        file_put_contents($vizinha, 'CACHE-VELHO');
+
+        self::assertSame(0, $this->t->execute([]));
+
+        // A "vizinha" não foi alterada nem é a página/pai do objeto sujo: só o rebuild do site a refaz.
+        self::assertStringNotContainsString('CACHE-VELHO', (string) file_get_contents($vizinha));
+    }
+
+    public function testFalhaAoRepublicarContaComoErroESaiComCodigoDiferenteDeZero(): void
+    {
+        $this->pagina('suja', '<script>alert(1)</script><p>novo</p>');
+        $this->s->publicador->publicarSite($this->site);
+        $pasta = $this->caminhos->paginasDoSite($this->site->id);
+        chmod($pasta, 0555);
+        if (is_writable($pasta)) {
+            chmod($pasta, 0755);
+            self::markTestSkipped('o usuário ignora permissões de pasta (root)');
+        }
+        try {
+            $codigo = $this->t->execute([]);
+        } finally {
+            chmod($pasta, 0755);
+        }
+
+        self::assertSame(1, $codigo);
+        $saida = $this->t->getDisplay();
+        self::assertStringContainsString('não foi possível republicar', $saida);
+        self::assertStringContainsString('alterados: 1', $saida);
+        self::assertStringContainsString('erros: 1', $saida);
+    }
 }

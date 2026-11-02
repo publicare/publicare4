@@ -119,6 +119,8 @@ final class SanitizarHtmlComando extends Command
         $alterados = 0;
         $erros = 0;
         $apartirDe = 0;
+        /** @var array<int, true> $sitesAlterados */
+        $sitesAlterados = [];
         while (($lote = $servicos->objetos->loteOrdenadoPorId($siteId, $apartirDe, $tamanho)) !== []) {
             foreach ($lote as $objeto) {
                 $apartirDe = $objeto->id;
@@ -159,7 +161,7 @@ final class SanitizarHtmlComando extends Command
                 try {
                     $novo = $servicos->objetos->atualizar($objeto->id, ['dados' => $mudancas], 'sanitizar-html', $objeto->versao);
                     $alterados++;
-                    $this->republicar($servicos, $novo);
+                    $sitesAlterados[$novo->siteId] = true;
                 } catch (\Throwable $e) {
                     $erros++;
                     $output->writeln("<error>objeto {$objeto->id} (site {$objeto->siteId}): {$e->getMessage()}</error>");
@@ -167,36 +169,36 @@ final class SanitizarHtmlComando extends Command
             }
         }
 
+        // Uma vez por site afetado, no fim: o objeto pode ser renderizado em qualquer página do site (listas, `localizar`),
+        // então refazer só a página dele e a do pai deixaria cache velho no ar.
+        foreach (array_keys($sitesAlterados) as $idDoSite) {
+            $erros += $this->republicarSite($servicos, $output, $idDoSite);
+        }
+
         return [$varridos, $alterados, $erros];
     }
 
     /**
-     * Mesmo mecanismo da edição pelo painel (`TelasDeObjetos::sincronizar`): regrava a página no cache se o objeto está
-     * visível, ou tira de lá se não está; o pai também é refeito (pode listar o conteúdo). Falhar aqui não desfaz a
-     * gravação: a próxima publicação do site (`bin/pbl publicar`) recupera a página.
+     * Refaz o cache do site inteiro (`Publicador::publicarSite`, o mesmo de `bin/pbl publicar`). A gravação das versões não é
+     * desfeita se isto falhar; mas o cache antigo continuaria no ar, então a falha conta como erro (saída diferente de zero).
+     *
+     * @return int 0 se republicou, 1 se falhou
      */
-    private function republicar(Servicos $servicos, Objeto $objeto): void
+    private function republicarSite(Servicos $servicos, OutputInterface $output, int $siteId): int
     {
-        $site = $servicos->sites->porId($objeto->siteId);
+        $site = $servicos->sites->porId($siteId);
         if ($site === null) {
-            return;
+            return 0;
         }
-        $agora = gmdate('c');
-        $pai = $objeto->paiId === null ? null : $servicos->objetos->porId($objeto->paiId);
-        foreach ([$objeto, $pai] as $alvo) {
-            if ($alvo === null) {
-                continue;
-            }
-            try {
-                if ($alvo->visivel($agora)) {
-                    $servicos->publicador->publicar($site, $alvo);
-                } else {
-                    $servicos->publicador->despublicar($site, $alvo);
-                }
-            } catch (\Throwable) {
-                continue;
-            }
+        try {
+            $servicos->publicador->publicarSite($site);
+        } catch (\Throwable $e) {
+            $output->writeln("<error>site {$siteId}: o conteúdo foi limpo, mas não foi possível republicar as páginas ({$e->getMessage()}); as páginas antigas continuam no ar. Rode `bin/pbl publicar` ou execute o comando de novo.</error>");
+
+            return 1;
         }
+
+        return 0;
     }
 
     /** @return array<int, list<string>> id da classe => nomes das propriedades html (inclusive arquivadas: o valor continua gravado e um molde ainda pode lê-lo) */
