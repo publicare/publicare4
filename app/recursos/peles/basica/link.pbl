@@ -2,13 +2,14 @@
 <html lang="pt-BR">
 <head>
 <@incluir arquivo="cabeca"@>
-<style>
-body{font-family:system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#222}
-</style>
+<@incluir arquivo="estilo"@>
 </head>
 <body>
+<@incluir arquivo="topo"@>
+<main>
 <h1><@eco #titulo@></h1>
 <@se #descricao != ""@><p><@eco #descricao@></p><@/se@>
 <p><@incluir arquivo="link_a"@></p>
+</main>
 </body>
 </html>

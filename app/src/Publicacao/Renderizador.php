@@ -42,6 +42,8 @@ final class Renderizador
 
         $incluidor = fn (string $arquivo, array $o, Runtime $r): string => ($this->compilador->carregar($pele->fonte($arquivo), $pele))($o, $r);
         $runtime = new Runtime($this->fonte, $incluidor);
+        $variaveis = array_merge(['pagina' => 1, 'q' => '', 'q_url' => ''], $variaveis);
+        $variaveis['q_url'] = rawurlencode((string) $variaveis['q']);
         foreach ($variaveis as $chave => $valor) {
             $runtime->definir($chave, $valor);
         }

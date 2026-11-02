@@ -91,6 +91,11 @@ final class LinguagemTest extends TestCase
                 return null;
             }
 
+            public function menu(array $objeto, int $profundidade, string $inicio): string
+            {
+                return '<nav data-p="' . $profundidade . '" data-i="' . $inicio . '"></nav>';
+            }
+
             public function formulario(array $objeto, ?int $id): string
             {
                 return '<form data-id="' . ($id ?? $objeto['id'] ?? '') . '"></form>';

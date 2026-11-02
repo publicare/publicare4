@@ -81,6 +81,8 @@ final class Gerador
                 $codigo .= $this->nos($no->corpo, $nivel);
             } elseif ($no instanceof NoFormulario) {
                 $codigo .= "    echo \$r->formulario({$o}, " . $this->mapa($no->params, $nivel) . ");\n";
+            } elseif ($no instanceof NoMenu) {
+                $codigo .= "    echo \$r->menu({$o}, " . $this->mapa($no->params, $nivel) . ");\n";
             } elseif ($no instanceof NoArquivo) {
                 $codigo .= "    echo \$r->esc(\$r->arquivoInfo({$o}, " . $this->mapa($no->params, $nivel) . "));\n";
             } elseif ($no instanceof NoMiniatura) {

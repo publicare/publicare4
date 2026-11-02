@@ -1,0 +1,8 @@
+<div class="item">
+<@se #imagem_destaque != ""@><img src="<@miniatura valor=#imagem_destaque tamanho=150@>" alt=""><@/se@>
+<div>
+<@se #classe == "link"@><strong><@incluir arquivo="link_a"@></strong><@senao@><strong><a href="<@eco #url@>"><@eco #titulo@></a></strong><@/se@>
+<@se #classe == "noticia"@><@se #data_publicacao != ""@><br><small><@formatadata valor=#data_publicacao formato="d/m/Y"@></small><@/se@><@/se@>
+<@se #resumo != ""@><br><span><@eco #resumo@></span><@senao@><@se #descricao != ""@><br><span><@eco #descricao@></span><@/se@><@/se@>
+</div>
+</div>

@@ -173,6 +173,12 @@ final class ObjetoRepositorio
         return array_map($this->hidratar(...), $linhas);
     }
 
+    /** Quantos objetos o site tem (fora da lixeira definitiva). */
+    public function contarDoSite(int $siteId): int
+    {
+        return (int) $this->conexao->fetchOne("SELECT COUNT(*) FROM objeto WHERE site_id = ? AND status <> 'apagado'", [$siteId]);
+    }
+
     /** Primeiro objeto publicado do site com esse título (sem diferenciar maiúsculas). */
     public function porTitulo(int $siteId, string $titulo): ?Objeto
     {

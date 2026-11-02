@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<@incluir arquivo="cabeca"@>
+<@incluir arquivo="estilo"@>
+</head>
+<body>
+<@incluir arquivo="topo"@>
+<main>
+<article>
+<h1><@eco #titulo@></h1>
+<@se #data_publicacao != ""@><p><small>Publicado em <@formatadata valor=#data_publicacao formato="d/m/Y"@></small></p><@/se@>
+<@se #imagem_destaque != ""@><p><img src="<@miniatura valor=#imagem_destaque tamanho=800@>" alt="" style="max-width:100%;height:auto"></p><@/se@>
+<@se #resumo != ""@><p><em><@eco #resumo@></em></p><@/se@>
+<div><@ecocru #corpo@></div>
+</article>
+</main>
+</body>
+</html>

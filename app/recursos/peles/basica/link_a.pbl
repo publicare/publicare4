@@ -1,3 +1,4 @@
 <@var $destino_do_link = #destino_externo@>
 <@se #destino_interno != ""@><@var $destino_do_link = #destino_interno.url@><@/se@>
-<@se $destino_do_link != ""@><a href="<@eco $destino_do_link@>"<@se #destino_interno == "" || #nova_aba@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>><@eco #titulo@></a><@/se@>
+<@var $rel = 0@><@se #destino_interno == ""@><@var $rel = 1@><@/se@><@se #nova_aba@><@var $rel = 1@><@/se@>
+<@se $destino_do_link != ""@><a href="<@eco $destino_do_link@>"<@se $rel == 1@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>><@eco #titulo@></a><@/se@>

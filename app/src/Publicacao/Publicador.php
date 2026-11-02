@@ -15,18 +15,29 @@ use Pbl\Conteudo\Site;
  * Páginas com `data_validade` ganham um arquivo `.expira` ao lado: a `Aplicacao` deixa de servi-las quando a data
  * passa, mesmo sem nova publicação. Páginas que deixaram de estar visíveis (despublicadas, vencidas, rascunho)
  * são removidas do cache a cada `publicarSite`.
+ *
+ * Menu (ADR 0016): `publicarSite` reconstrói o snapshot do menu uma vez e todas as páginas o reutilizam. Publicar ou
+ * despublicar um objeto avulso confere o hash do menu; se mudou, o site inteiro fica pendente e é republicado na hora
+ * (site pequeno) ou por `bin/pbl publicar`/`agendados` (site grande).
  */
 final class Publicador
 {
+    /** Até este tamanho o site é republicado na própria requisição quando o menu muda; acima, fica pendente para o cron. */
+    public const LIMITE_SINCRONO = 300;
+
+    private bool $emLote = false;
+
     public function __construct(
         private readonly Caminhos $caminhos,
         private readonly ObjetoRepositorio $objetos,
         private readonly Renderizador $renderizador,
+        private readonly ?MenuDoSite $menu = null,
     ) {
     }
 
     public function publicar(Site $site, Objeto $objeto): string
     {
+        $mudouMenu = !$this->emLote && $this->menu?->verificar($site, 'publicacao') === true;
         $arquivo = $this->caminhos->pagina($site->id, $objeto->urlAmigavel);
         $pasta = dirname($arquivo);
         if (!is_dir($pasta) && !@mkdir($pasta, 0775, true) && !is_dir($pasta)) {
@@ -38,8 +49,24 @@ final class Publicador
         } elseif (is_file($arquivo . '.expira')) {
             unlink($arquivo . '.expira');
         }
+        if ($mudouMenu) {
+            $this->republicarPorMenu($site);
+        }
 
         return $arquivo;
+    }
+
+    /** O menu do site tem uma republicação pendente (alguma edição mudou o hash e o site ainda não foi refeito)? */
+    public function menuPendente(Site $site): bool
+    {
+        return $this->menu?->pendente($site) ?? false;
+    }
+
+    private function republicarPorMenu(Site $site): void
+    {
+        if ($this->objetos->contarDoSite($site->id) <= self::LIMITE_SINCRONO) {
+            $this->publicarSite($site);
+        }
     }
 
     /** @return int quantidade de páginas publicadas */
@@ -55,20 +82,27 @@ final class Publicador
         $agora = gmdate('c');
         $total = 0;
         $publicadas = [];
-        foreach ($this->objetos->todosDaSubarvore($site->id, $raiz->caminho) as $objeto) {
-            if ($objeto->visivel($agora)) {
-                try {
-                    $this->publicar($site, $objeto);
-                } catch (\InvalidArgumentException) {
-                    continue; // endereço inválido (dado antigo): não derruba a publicação do site inteiro
+        $this->menu?->reconstruir($site); // o snapshot é refeito uma vez e as páginas só o leem
+        $this->emLote = true;
+        try {
+            foreach ($this->objetos->todosDaSubarvore($site->id, $raiz->caminho) as $objeto) {
+                if ($objeto->visivel($agora)) {
+                    try {
+                        $this->publicar($site, $objeto);
+                    } catch (\InvalidArgumentException) {
+                        continue; // endereço inválido (dado antigo): não derruba a publicação do site inteiro
+                    }
+                    $publicadas[$objeto->urlAmigavel] = true;
+                    $total++;
+                } else {
+                    $this->remover($site, $objeto);
                 }
-                $publicadas[$objeto->urlAmigavel] = true;
-                $total++;
-            } else {
-                $this->remover($site, $objeto);
             }
+        } finally {
+            $this->emLote = false;
         }
         $this->limparOrfas($site, $publicadas);
+        $this->menu?->limparPendente($site);
 
         return $total;
     }
@@ -112,8 +146,9 @@ final class Publicador
      */
     public function aplicarAgendados(Site $site): array
     {
+        $this->menu?->verificar($site, 'agendados'); // a passagem do tempo também muda o menu (item que entra ou sai por data)
         $p = $this->pendentes($site);
-        if ($p['entram'] !== [] || $p['saem'] !== []) {
+        if ($p['entram'] !== [] || $p['saem'] !== [] || $this->menuPendente($site)) {
             $this->publicarSite($site);
         }
 
@@ -152,6 +187,9 @@ final class Publicador
     public function despublicar(Site $site, Objeto $objeto): void
     {
         $this->remover($site, $objeto);
+        if ($this->menu?->verificar($site, 'publicacao') === true) {
+            $this->republicarPorMenu($site);
+        }
     }
 
     private function remover(Site $site, Objeto $objeto): void

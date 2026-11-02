@@ -26,6 +26,7 @@ final class ContextoDeObjeto
             'rotulo_menu' => $objeto->rotuloMenu === '' ? $objeto->titulo : $objeto->rotuloMenu,
             'data_publicacao' => $objeto->dataPublicacao ?? '',
             'data_validade' => $objeto->dataValidade ?? '',
+            'caminho' => $objeto->caminho,
             'url_amigavel' => $objeto->urlAmigavel,
             'classe_id' => $objeto->classeId,
             'status' => $objeto->status,
