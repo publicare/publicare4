@@ -54,4 +54,14 @@ interface FonteDeDados
      * @param array<string, mixed> $objeto
      */
     public function temFilhos(array $objeto, ?int $id): bool;
+
+    /**
+     * Sugestão de grafia parecida ("você quis dizer…", nível C do ADR 0010) para a última busca sem resultado. Só
+     * calcula algo se `$filtros` tem `busca` e o site do objeto tem a opção ligada; null nos outros casos, inclusive
+     * sem candidato confiável. Nunca inclui termo de conteúdo privado, não publicado ou na lixeira.
+     *
+     * @param array<string, mixed> $objeto
+     * @param array<string, int|string> $filtros os mesmos filtros de `localizar` (só `busca` importa aqui)
+     */
+    public function sugestao(array $objeto, array $filtros): ?string;
 }

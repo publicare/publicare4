@@ -10,7 +10,7 @@ namespace Pbl\Linguagem;
  */
 final class Runtime
 {
-    public const MACROS = ['DIA', 'MES', 'ANO', 'DATA', 'INDICE', 'FIM', 'QUANTIDADE'];
+    public const MACROS = ['DIA', 'MES', 'ANO', 'DATA', 'INDICE', 'FIM', 'QUANTIDADE', 'SUGESTAO'];
     public const LIMITE_LACO = 10000;
     public const PROFUNDIDADE_INCLUIR = 8;
 
@@ -19,6 +19,8 @@ final class Runtime
     /** @var list<array{indice: int, total: int}> */
     private array $colecoes = [];
     private bool $semResultado = false;
+    /** Sugestão de grafia parecida (nível C, ADR 0010) do último `localizar busca=…` sem resultado, ou '' sem sugestão. */
+    private string $ultimaSugestao = '';
     private int $profundidade = 0;
     /** @var array<string, array<string, mixed>|null> objetos apontados por referências, por site:id */
     private array $referencias = [];
@@ -77,6 +79,7 @@ final class Runtime
             'DATA' => $agora->format('d/m/Y'),
             'INDICE' => $laco['indice'],
             'FIM', 'QUANTIDADE' => $laco['total'],
+            'SUGESTAO' => $this->ultimaSugestao,
             default => '',
         };
     }
@@ -193,17 +196,26 @@ final class Runtime
      */
     public function filhos(array $objeto, array $p): array
     {
+        $this->ultimaSugestao = ''; // filhos nunca tem busca: não deixa %SUGESTAO de um localizar anterior "vazar" para aqui
+
         return $this->fonte?->filhos($objeto, $this->filtros($p)) ?? [];
     }
 
     /**
+     * `%SUGESTAO` (nível C, ADR 0010): quando a busca não acha nada, guarda o "você quis dizer…" para o resto do molde
+     * ler, do mesmo jeito que `naolocalizado` lê `semResultado()` — um valor só, não uma pilha por laço.
+     *
      * @param array<string, mixed> $objeto
      * @param array<string, mixed> $p
      * @return list<array<string, mixed>>
      */
     public function localizar(array $objeto, array $p): array
     {
-        return $this->fonte?->localizar($objeto, $this->filtros($p)) ?? [];
+        $filtros = $this->filtros($p);
+        $resultado = $this->fonte?->localizar($objeto, $filtros) ?? [];
+        $this->ultimaSugestao = $resultado === [] && isset($filtros['busca']) ? ($this->fonte?->sugestao($objeto, $filtros) ?? '') : '';
+
+        return $resultado;
     }
 
     /**
