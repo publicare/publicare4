@@ -202,6 +202,42 @@ final class InstaladorWebTest extends TestCase
         self::assertTrue((new Requisitos($this->caminhos))->tudoCerto());
     }
 
+    public function testOpenBasedirQueExcluiDadosExplicaSemVazarCaminhos(): void
+    {
+        $outra = sys_get_temp_dir() . '/pbl4-fora-' . bin2hex(random_bytes(4));
+        $itens = (new Requisitos($this->caminhos, $outra))->verificar();
+        $item = array_values(array_filter($itens, static fn (array $i): bool => str_contains($i['nome'], 'open_basedir')));
+
+        self::assertCount(1, $item);
+        self::assertFalse($item[0]['ok']);
+        self::assertTrue($item[0]['obrigatorio']);
+        self::assertStringContainsString('private/', $item[0]['detalhe']);
+        $tudo = json_encode($itens, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        self::assertStringNotContainsString($this->raiz, $tudo, 'a mensagem não revela o caminho do projeto');
+        self::assertStringNotContainsString($outra, $tudo, 'nem a lista do open_basedir');
+        self::assertFalse((new Requisitos($this->caminhos, $outra))->tudoCerto());
+    }
+
+    public function testOpenBasedirQueIncluiOProjetoOuVazioNaoReclama(): void
+    {
+        foreach (['', $this->raiz, '/nao/existe' . PATH_SEPARATOR . $this->raiz . '/'] as $limite) {
+            $nomes = implode('|', array_column((new Requisitos($this->caminhos, $limite))->verificar(), 'nome'));
+            self::assertStringNotContainsString('open_basedir', $nomes, "limite: {$limite}");
+        }
+        self::assertTrue(Requisitos::dentroDoOpenBasedir($this->raiz . '/dados/ainda/nao/existe', $this->raiz));
+        self::assertFalse(Requisitos::dentroDoOpenBasedir($this->raiz . '-irmao/dados', $this->raiz), 'prefixo de nome não conta');
+    }
+
+    public function testFaltaDeSqliteOrientaOPacoteDoServidor(): void
+    {
+        $r = new \ReflectionMethod(Requisitos::class, 'comoAtivar');
+        $texto = (string) $r->invoke(new Requisitos($this->caminhos), 'pdo_sqlite');
+
+        self::assertStringContainsString('sqlite3', $texto);
+        self::assertStringContainsString('PHP-FPM', $texto);
+        self::assertStringNotContainsString('sqlite3', (string) $r->invoke(new Requisitos($this->caminhos), 'mbstring'));
+    }
+
     public function testOutrasRotasEmServidorNaoInstaladoContinuamIndisponiveis(): void
     {
         self::assertSame(503, $this->req('GET', '/')->getStatusCode());
