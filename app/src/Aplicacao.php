@@ -14,6 +14,7 @@ use Pbl\Instalacao\Instalador;
 use Pbl\Conteudo\Site;
 use Pbl\Instalacao\InstaladorWeb;
 use Pbl\Publicacao\PaginasDinamicas;
+use Pbl\Publicacao\SitemapERobots;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -108,6 +109,13 @@ final class Aplicacao
             $regra = $servicos->redirecionamentos->resolver($site->id, $pedido);
             if ($regra !== null) {
                 return new RedirectResponse($this->comConsulta($requisicao, $regra['destino']), $regra['codigo']);
+            }
+
+            if ($arquivo === null && SitemapERobots::atende($pedido) && in_array($requisicao->getMethod(), ['GET', 'HEAD'], true)) {
+                $r = (new SitemapERobots($servicos))->tratar($site, $pedido);
+                if ($r !== null) {
+                    return $r;
+                }
             }
 
             return $this->naoEncontrado($servicos, $site);

@@ -52,6 +52,8 @@ final class DominioComando extends Command
                     break;
                 case 'principal':
                     $servicos->dominios->definirPrincipal($site->id, $host);
+                    $servicos->enderecos->esquecer($site->id);
+                    $servicos->publicador->hostMudou($site);
                     $output->writeln("{$host} agora é o domínio principal; o anterior passou a redirecionar para ele.");
                     break;
                 case 'remover':

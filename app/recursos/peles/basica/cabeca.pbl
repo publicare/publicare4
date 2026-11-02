@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<@-- Metatags de SEO (fase 5l). Título: o de SEO, senão o do conteúdo. O nome do site e o endereço absoluto ainda não chegam ao molde (docs/plano.md, fase 5l). --@>
+<@-- Metatags de SEO (fase 5l). Título: o de SEO, senão o do conteúdo. `#base_url` é o endereço do domínio principal do site (vazio se não houver), fixado ao publicar. --@>
 <@var $titulo_seo = #seo_titulo@>
 <@se $titulo_seo == ""@><@var $titulo_seo = #titulo@><@/se@>
 <@var $descricao_seo = #seo_descricao@>
@@ -10,11 +10,11 @@
 <@se $imagem_seo == ""@><@var $imagem_seo = #imagem_destaque@><@/se@>
 <title><@eco $titulo_seo@></title>
 <@se $descricao_seo != ""@><meta name="description" content="<@eco $descricao_seo@>">
-<@/se@><link rel="canonical" href="<@eco #url@>">
+<@/se@><link rel="canonical" href="<@eco #base_url@><@eco #url@>">
 <@se #seo_nao_indexar@><meta name="robots" content="noindex">
 <@/se@><meta property="og:title" content="<@eco $titulo_seo@>">
 <@se $descricao_seo != ""@><meta property="og:description" content="<@eco $descricao_seo@>">
 <@/se@><meta property="og:type" content="<@se #classe == "noticia"@>article<@senao@>website<@/se@>">
-<meta property="og:url" content="<@eco #url@>">
-<@se $imagem_seo != ""@><meta property="og:image" content="<@arquivo valor=$imagem_seo info="url"@>">
+<meta property="og:url" content="<@eco #base_url@><@eco #url@>">
+<@se $imagem_seo != ""@><meta property="og:image" content="<@eco #base_url@><@arquivo valor=$imagem_seo info="url"@>">
 <@/se@>

@@ -14,7 +14,7 @@ nem uma página 404 própria.
 ### 1. Propriedades de menu em todo objeto
 `objeto.no_menu` (0/1) e `objeto.rotulo_menu` (texto curto, até 60; vazio = usa o título), editáveis na tela de criar/editar
 (não na raiz). A **ordem** é o `peso` que já existe. São colunas, não propriedades de classe, porque valem para todo objeto
-e entram no `ORDER BY` do menu. Não são versionadas em `objeto_versao`.
+e entram no `ORDER BY` do menu. Entram no histórico de versões: a versão guarda `no_menu` e `rotulo_menu` no próprio JSON sob a chave `_menu` (sem migração); restaurar uma versão os devolve, e versões antigas sem `_menu` deixam o menu atual como está.
 
 ### 2. Uma consulta por site: `MenuDoSite`
 A árvore sai de **uma** consulta (`objeto JOIN classe`, mais um `LEFT JOIN` que resolve o destino interno dos itens `link`):
@@ -54,7 +54,7 @@ flowchart TD
 - Editar o **corpo** (ou qualquer coisa que não entre no menu) não muda o hash: nada além do objeto é republicado.
 - Mudar rótulo, ordem, `no_menu`, título de item sem rótulo, endereço, estado, datas ou mover **muda** o hash.
 - `bin/pbl agendados` também chama `verificar` (a passagem do tempo faz itens entrarem e saírem) e republica se houver pendente.
-- Site grande: a requisição só marca o pendente; quem republica é o cron (`bin/pbl agendados` / `bin/pbl publicar`), como já
+- Site grande: a requisição só marca o pendente; quem republica é o cron (`bin/pbl agendados` / `bin/pbl publicar`) ou a administração, por `/_pbl/site/{id}/publicacao` ("Republicar agora"), que republica em lotes de até 100 objetos ou 10 s por requisição, com continuação (`Publicador::republicarLote`). Isso mantém a requisição curta.
   era para a entrada e a saída por data. Isso mantém a requisição curta.
 - Auditoria: `menu.invalidado` (site e prefixo do hash), sem conteúdo.
 
@@ -82,5 +82,5 @@ resumo e imagem, paginados), `noticia` (data, imagem de destaque, resumo), `busc
 - Custo do menu: 1 consulta ao reconstruir (publicar o site, ou conferir o hash numa edição) e 0 por página.
 - Uma edição que mexe no menu de um site pequeno republica o site na própria requisição (até 300 objetos); acima disso, o
   efeito vem com o próximo `bin/pbl agendados`.
-- O host do site ainda não chega ao molde; por isso `canonical`/`og:url` são relativos e `sitemap.xml`/`robots.txt` ficam como pendência.
+- O host do site vem do domínio principal (`EnderecoDoSite`, `https` salvo `PBL_ESQUEMA=http`), nunca da requisição, e chega ao molde como `#base_url`: `canonical`, `og:url` e `og:image` saem absolutos, e `/sitemap.xml` e `/robots.txt` são gerados por site (`SitemapERobots`); acima de 50.000 URLs `sitemap.xml` vira índice de `sitemap-N.xml`. Trocar o domínio principal republica o site. Site sem domínio principal volta aos endereços relativos e sem sitemap.
 - `/busca` e `?pagina=` não são cacheados (renderizam a cada pedido). Para tráfego alto, ponha uma CDN na frente.

@@ -58,7 +58,7 @@ flowchart LR
 ```
 
 - Edições que não entram no menu (corpo, outros campos) não mudam o hash.
-- Limites: profundidade 3 por padrão (`PBL_MENU_PROFUNDIDADE`, até 5) e 50 itens por nível; o excedente é contado em `cortes` (o aviso no painel é pendência do plano).
+- Limites: profundidade 3 por padrão (`PBL_MENU_PROFUNDIDADE`, até 5) e 50 itens por nível; o excedente é contado em `cortes` e a página inicial do painel e `/_pbl/site/{id}/publicacao` avisam do corte e da republicação pendente. `sitemap.xml` (só publicados, vigentes, sem `seo_nao_indexar` nem `link`) e `robots.txt` saem do domínio principal; `no_menu`/`rotulo_menu` entram no histórico de versões (chave `_menu` no JSON).
 - `/busca` e `?pagina=N` são páginas dinâmicas (`PaginasDinamicas`), não cacheadas; o resto continua estático. Para tráfego alto, ponha uma CDN na frente.
 - Detalhes e decisões: [ADR 0016](../adr/0016-menu-busca-e-paginas-dinamicas.md).
 
