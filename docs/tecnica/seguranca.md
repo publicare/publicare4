@@ -21,8 +21,9 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 | **Cabeçalhos da administração** | `Cache-Control: no-store`, CSP restritiva (`default-src 'none'`, `style-src 'self'`, sem `script-src` e sem `unsafe-inline`, `frame-ancestors 'none'`, `form-action 'self'`), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: same-origin`, HSTS em HTTPS | `Pagina` |
 | **Telas da administração** | Toda rota exige sessão (sem ela, 303 para entrar) e decide com `Permissoes::pode` e uma ação fixa do código, também no POST (esconder o botão não é a defesa): ver e histórico `Ver`; criar `Criar` no pai; editar e restaurar `Editar`; estado e datas `Publicar`; mover, lixeira e tirar da lixeira `Apagar` (mover também `Criar` no destino). Sem permissão e objeto inexistente dão o mesmo 403; sub-rota e id da URL validados por expressão ancorada e lista fixa (o resto é 404, até sem sessão); todo POST confere origem e CSRF antes de tudo; campos só como texto, UTF-8 válido, sem caracteres de controle, com teto de tamanho e validados pelo tipo da propriedade (obrigatórios exigidos; arquivados nunca tocados, nem por formulário forjado); tipo do filho conferido contra os aceitos pelo pai também no POST; referência só para conteúdo do mesmo site que a pessoa pode ver, com a mesma mensagem para "não existe" e "sem permissão"; ordem e filtros da lista só de listas fixas; toda saída escapada (título hostil e HTML guardado viram texto); gravação só pelo `ObjetoRepositorio` com versão esperada (409 em edição simultânea, também em estado, mover, lixeira e restaurar); a regra da lixeira (nada fora dela sob pai apagado) conferida na mesma transação, com a linha do pai travada, e reconferida depois de gravar (desfaz e dá 409 se uma corrida escapou); auditoria com nomes de campos e motivo fixo, e registro de tentativa negada (`objeto.<ação>.negado`, só ids) | `TelasDeObjetos`, `TelasDeConteudo`, `Painel` |
 | **Tipos de conteúdo na administração** | Só o administrador global altera (`Permissoes::podeModelarClasses`, em toda rota e no POST); os demais veem só a lista, sem contagem de uso, e recebem o mesmo 403 para tipo existente ou não; origem e CSRF antes de tudo; nomes técnicos validados por regex ancorada e com teto, rótulo e descrição como texto UTF-8 sem caracteres de controle e com teto; chaves do formulário só são lidas para os campos que a classe já tem; campo com valor (hoje ou em versão antiga) não é removido nem muda de tipo, só arquivado, com confirmação, e a regra se repete no repositório; apagar tipo só sem objetos e sem dependentes; versão esperada (409); auditoria só com nomes de tipo e de campo | `TelasDeClasses`, `ClasseRepositorio` |
-| **Contas na administração** | Só o administrador global (`Permissoes::podeAdministrarContas`, em toda rota e no POST); conta inexistente e sem permissão dão a mesma 403. Origem + CSRF antes de tudo no POST. Senha pela política (10 a 1024, nada óbvio) e custo de hash fixo do `UsuarioRepositorio`; digitada duas vezes, nunca devolvida à página nem à auditoria. Trocar a senha ou desativar encerra as sessões da conta. Ninguém desativa nem tira a marca de administrador de si mesmo, e a última conta de administrador ativa não é desativada nem rebaixada. Auditoria só com ids, perfil e nomes de campo (`conta.negado` nas tentativas sem permissão) | `TelasDeContas`, `UsuarioRepositorio` |
-| **Domínios na administração** | `Acao::Administrar` na raiz do site (hoje só o administrador global; site sem raiz idem), em toda rota e no POST; mesma 403 para site inexistente. Host validado rótulo a rótulo; o principal não se remove nem muda de modo; domínio de outro site não se mexe por esta tela; o endereço em uso na requisição não se remove. Auditoria `dominio.*` com site, host e modo | `TelasDeDominios`, `DominioRepositorio` |
+| **Contas na administração** | Só o administrador global (`Permissoes::podeAdministrarContas`, em toda rota e no POST); conta inexistente e sem permissão dão a mesma 403. Origem + CSRF antes de tudo no POST. Senha pela política (10 a 1024, nada óbvio) e custo de hash fixo do `UsuarioRepositorio`; digitada duas vezes, nunca devolvida à página nem à auditoria. Trocar a senha ou desativar encerra as sessões da conta. Ninguém desativa nem tira a marca de administrador de si mesmo, e a última conta de administrador ativa não é desativada nem rebaixada. Criar, editar, desativar/reativar, redefinir senha e conceder/revogar papel pedem o **modo elevado** (abaixo). Busca e paginação (`UsuarioRepositorio::listar`, 50 por página) filtram e normalizam em PHP, sem SQL com texto de fora. Auditoria só com ids, perfil e nomes de campo (`conta.negado` nas tentativas sem permissão) | `TelasDeContas`, `UsuarioRepositorio` |
+| **Domínios na administração** | `Acao::Administrar` na raiz do site (hoje só o administrador global; site sem raiz idem), em toda rota e no POST; mesma 403 para site inexistente. Host validado rótulo a rótulo; o principal não se remove nem muda de modo; domínio de outro site não se mexe por esta tela; o endereço em uso na requisição não se remove. Adicionar, trocar o principal e remover pedem o **modo elevado** (alternar alias ⇄ redirecionador não). Auditoria `dominio.*` com site, host e modo | `TelasDeDominios`, `DominioRepositorio` |
+| **Modo elevado (fase 5h)** | Confirmação de senha generalizada para toda ação sensível do painel (contas, domínios, tipos de conteúdo, moldes e pele ativa), não só a Atualização: confirmar a senha abre uma janela de 10 min guardada na sessão (`sessao.elevado_ate`); dentro dela, outra ação sensível não pede a senha de novo. A janela acaba com a sessão (logout, troca de senha, expiração), sem limpeza própria. Mesmo limite de tentativas do login (por login e por IP, 429 com `Retry-After`); a senha nunca entra na auditoria, só o sucesso/falha (`<prefixo>.senha_errada`/`.bloqueado`). Atualizar e reverter usam o mesmo componente, mas sempre pedem a senha (código em execução) | `ModoElevado`, `AuxiliaresDeTela` |
 | **Estilos da administração** | Bootstrap 5.3.8 (só CSS) servido do próprio site, sem CDN; arquivo idêntico à release oficial, com SHA-256 registrado em `public/_pbl/assets/PROVENIENCIA.md` e conferido por teste; nenhum JavaScript | `public/_pbl/assets/` |
 | **Instalador web** | Só antes de instalar; prova de posse (`dados/instalar.liberar`), CSRF, origem, escape de tudo, senha nunca refletida, atômico; some depois (404) | `InstaladorWeb` |
 | **Pastas internas** | `.htaccess` (e a raiz em `public/`): `dados/`, `app/`, `vendor/`, `composer.*` não são servidos (403 no Apache testado) | `.htaccess` |
@@ -35,6 +36,7 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 | **Domínios e redirecionamentos** | Host de destino vem do cadastro, nunca da requisição; host inválido → 400; nomes de domínio validados rótulo a rótulo (sem regex ambíguo); regras só aceitam destino no site ou `https://` (sem `//`, `javascript:`, `http:`, credenciais, `..`, quebra de linha), com limites de 5000 regras e 200 prefixos por site | `Aplicacao`, `Dominio`, `RedirecionamentoRepositorio` |
 | **Edição simultânea** | `versaoEsperada` recusa salvar sobre uma versão que outra pessoa já alterou; histórico imutável | `ObjetoRepositorio::atualizar` |
 | **Conversor de moldes** | Não escreve fora do destino nem através de link simbólico; nomes de molde sanitizados | `ConversorDeDiretorio` |
+| **Upload de arquivos** (fase 7a) | Whitelist fechada (nunca `php`/`html`/`svg`/`js`), tipo real por `finfo` no conteúdo (nunca pela extensão do nome), imagem decodificada de verdade e **recodificada** pelo GD quando disponível (payload e EXIF somem), nome em disco aleatório (nunca o do cliente), `dados/uploads/` fora do `docroot`, entrega só de objeto publicado e vigente com `Content-Type` fixo e `nosniff`, apagar órfão só por `bin/pbl limpar-uploads` (nunca na requisição) | `Pbl\Arquivos`, [ADR 0014](../adr/0014-upload-de-arquivos.md) |
 | **Dependências** | `composer audit` e Dependabot na pipeline | `.github/` |
 
 ## Como tratamos entrada de fora
@@ -76,6 +78,39 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 - **Limitação conhecida**: sem captcha de terceiros nem verificação de e-mail; um atacante com muitos IPs ainda consegue encher a seção de destino de envios privados (a equipe os manda para a lixeira). Captcha plugável e quotas globais são próximos passos.
 - Testes: `tests/FormulariosTest.php`.
 
+## Upload de arquivos (fase 7a)
+
+Único lugar, fora dos moldes, em que a administração grava o **conteúdo** de um arquivo (não só texto). Desenho completo no
+[ADR 0014](../adr/0014-upload-de-arquivos.md).
+
+- **Ordem das defesas**: erro do PHP (`upload_max_filesize`/`post_max_size`, mensagem clara) → tamanho configurado da
+  propriedade → tipo real do conteúdo por `finfo` contra a whitelist (nunca a extensão do nome enviado) → imagem:
+  decodificação de verdade pelo GD e recodificação (payload escondido e EXIF somem); sem GD, só os bytes mágicos do formato
+  (mais fraco, registrado em `sanitizada = false`).
+- **Nunca o nome do cliente como caminho**: chave aleatória de 16 bytes no disco; a extensão vem sempre da whitelist. O nome
+  original só é metadado saneado (exibição e `Content-Disposition`).
+- **Whitelist fechada por categoria** (`imagem`: jpg/png/gif/webp; documento: pdf/txt/csv e docx/xlsx/pptx/odt/ods/odp):
+  nunca `php`, `phtml`, `html`, `svg` ou `js`. Os seis formatos de Office/OpenDocument são contêineres ZIP: quando o
+  `finfo` só diz "é um ZIP", `ServicoDeUpload` confere a assinatura e **olha dentro do pacote** (`word/document.xml`,
+  `xl/workbook.xml`, `ppt/presentation.xml` ou o arquivo `mimetype` do ODF) antes de aceitar; sem bater com nenhum
+  formato conhecido, ou sem a extensão `zip` do PHP para abrir o pacote, o envio é recusado como ambíguo.
+- **Defesa em profundidade no repositório**: `ObjetoRepositorio::validar` confere de novo que o arquivo apontado existe, é
+  do mesmo site e da categoria certa — um formulário forjado não troca o valor por um arquivo de outro site ou tipo.
+- **Entrega só por `ArquivoController`**, rota pública (sem sessão, como `EnvioDeFormulario`) que só serve o arquivo de um
+  objeto **publicado e vigente agora**; qualquer outro caso dá 404, sempre a mesma resposta. `Content-Type` fixo da
+  whitelist, `nosniff`, `Content-Disposition` seguro (nome saneado), `ETag`/cache e um trecho de `Range`.
+- **Nunca apaga na requisição**: trocar ou remover o valor de uma propriedade só deixa de referenciar o arquivo antigo; só
+  `bin/pbl limpar-uploads` (cron, fora da requisição) apaga o que nenhum objeto nem versão antiga referencia mais, com
+  carência de 1 hora.
+- **Limitação conhecida**: sem GD, upload de imagem fica só com a verificação de cabeçalho (mais fraca que decodificar
+  de verdade); sem a extensão `zip`, upload de `docx`/`xlsx`/`pptx`/`odt`/`ods`/`odp` é sempre recusado (não há como
+  olhar dentro do pacote). O instalador avisa nos dois casos.
+- **Deduplicação e limpeza**: dois uploads com o mesmo conteúdo compartilham o arquivo físico (uma linha de `arquivo`
+  por envio, a mesma `chave` em disco); `bin/pbl limpar-uploads` só remove o arquivo físico depois de apagar **todas**
+  as linhas órfãs e confirmar que nenhuma linha (viva ou ainda não examinada) continua usando aquela chave — nunca
+  apaga um arquivo que outra linha, viva ou só fora da carência, ainda precise.
+- Testes: `tests/ArquivosTest.php`, `tests/AdminUploadTest.php`.
+
 ## Escrita em disco pela administração (moldes de pele)
 
 A edição de peles é a única superfície em que a administração **grava arquivos** (`dados/peles/<pele>/<molde>.pbl`), e moldes são código-ish, então ela é fechada em `GerenciadorDePeles` ([ADR 0012](../adr/0012-administracao-web.md) §8):
@@ -85,7 +120,7 @@ A edição de peles é a única superfície em que a administração **grava arq
 - Links simbólicos nunca são seguidos (pele, pasta ou arquivo) e o `realpath` precisa ficar dentro da pasta da pele; tamanho máximo de 200 000 bytes, UTF-8 válido, limite de moldes por pele.
 - Gravação atômica (temporário na mesma pasta + `rename`) e proteção contra edição simultânea por SHA-256.
 - O conteúdo só é salvo se o parser da linguagem o aceitar; PHP cru é recusado e o `Gerador` só emite literais e chamadas ao `Runtime`, então o molde não executa nada fora do sandbox da linguagem.
-- Auditoria com site, pele e nome do molde, nunca o conteúdo. Testes em `tests/AdminSiteTest.php` (travessia, extensões, links simbólicos, PHP cru, XSS no editor).
+- Auditoria com site, pele e nome do molde, nunca o conteúdo. Criar, editar e apagar molde, e trocar a pele ativa, pedem o modo elevado (fase 5h, acima). Testes em `tests/AdminSiteTest.php` (travessia, extensões, links simbólicos, PHP cru, XSS no editor).
 
 ## O que ainda não existe (e quando entra)
 
@@ -94,12 +129,11 @@ A edição de peles é a única superfície em que a administração **grava arq
 | Recuperação de senha por e-mail, autenticação em dois fatores | depois da fase 4 ([ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md)) |
 | Permissão por campo | a decidir (o modelo de classes não tem permissão por campo; as telas de objetos tratam todos os campos não arquivados igual) |
 | Captcha plugável, verificação de e-mail e quota global em formulários públicos | próximas fatias da fase 6 ([ADR 0013](../adr/0013-formularios-publicos.md)) |
-| Upload seguro (lista de tipos, fora do `docroot`) | com o upload (fluxo 7) |
+| Upload na criação do conteúdo (hoje só na edição); anexo de formulário público; `tipos`/`tamanho_max_mb` por propriedade na tela de tipos de conteúdo (hoje só pelo `ClasseRepositorio` direto) | próximas fatias do fluxo 7 ([ADR 0014](../adr/0014-upload-de-arquivos.md)) |
 | Atualizar pelo painel sem que o PHP web precise gravar o código (hoje o processo de segundo plano roda com o mesmo usuário do PHP, então a pasta do PBL4 precisa ser gravável por ele; onde isso é indesejável, use a linha de comando com outro usuário) | a decidir ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | Política para quando existir migração **destrutiva** de verdade (hoje nenhuma existe — ADR 0006 §8 —, então `bin/pbl reverter` sempre é seguro quando o registro da atualização confere) | a decidir ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | HTTPS forçado na administração (hoje é recomendação) | a decidir |
 | Pele inteira (criar, importar, apagar), arquivos de pele que não sejam `.pbl`, histórico de moldes | com o editor e a galeria de peles ([fluxo 4](../fluxos/04-edicao-peles.md)) |
-| Reautenticar (pedir a senha de novo) antes de ações de conta sensíveis; lista de contas paginada | a decidir |
 
 ## Atrás de um proxy (Cloudflare, nginx)
 

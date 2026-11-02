@@ -10,6 +10,7 @@ No ambiente de desenvolvimento: `make pbl ARGS="<comando> …"`. Em um servidor:
 | `agendados [--simular]` | aplica a passagem do tempo no cache: põe no ar o que teve a `data_publicacao` liberada e tira o que passou da `data_validade`, republicando o site só se houve mudança. **Idempotente e silencioso** quando não há nada a fazer, feito para o cron (veja abaixo). `--simular` só mostra quantos entrariam e sairiam |
 | `sanitizar-html [--simular] [--site=ID] [--limite=N]` | varre e limpa (`HtmlSeguro`) o HTML gravado antes da fase 5g, de qualquer site e qualquer estado (inclusive a lixeira). **Idempotente**; `--simular` só mostra um resumo do que mudaria, sem gravar |
 | `converter-moldes <origem> <destino> [--seguro]` | converte moldes do PBL3 em moldes PBL4 e escreve `RELATORIO.md` |
+| `limpar-uploads [--simular]` | apaga arquivos de propriedade `arquivo`/`imagem` que nenhum objeto, nem versão antiga, referencia mais (carência de 1 hora). `--simular` só mostra o que seria apagado. Pensado para o cron, de vez em quando ([fluxo 7](../fluxos/07-upload-blobs.md), [ADR 0014](../adr/0014-upload-de-arquivos.md)) |
 
 ## `usuario`
 

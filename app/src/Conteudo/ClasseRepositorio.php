@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Conteudo;
 
 use Doctrine\DBAL\Connection;
+use Pbl\Arquivos\TiposDeArquivo;
 
 /**
  * Classes (tipos de conteúdo). Valem para a instalação inteira: o mesmo tipo serve a todos os sites.
@@ -18,7 +19,7 @@ use Doctrine\DBAL\Connection;
  */
 final class ClasseRepositorio
 {
-    public const TIPOS = ['texto', 'numero', 'html', 'data', 'booleano', 'ref'];
+    public const TIPOS = ['texto', 'numero', 'html', 'data', 'booleano', 'ref', 'arquivo', 'imagem'];
     /** Nomes que o contexto do molde já usa (`#id`, `#titulo`...). */
     public const RESERVADOS = ['id', 'titulo', 'url', 'url_amigavel', 'classe', 'classe_id', 'site', 'pai', 'filhos', 'peso', 'descricao', 'data_publicacao', 'data_validade', 'status', 'apagado', 'temfilhos'];
     public const MAX_NOME = 64;
@@ -31,7 +32,7 @@ final class ClasseRepositorio
     }
 
     /**
-     * @param list<array{nome: string, tipo: string, indexavel?: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool}> $propriedades
+     * @param list<array{nome: string, tipo: string, indexavel?: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool, tipos?: list<string>, tamanho_max_mb?: int}> $propriedades
      * @param array{descricao?: string, aceita_filhos?: bool, filhas?: list<string>} $meta
      */
     public function criar(string $nome, array $propriedades, array $meta = []): Classe
@@ -154,7 +155,7 @@ final class ClasseRepositorio
     /**
      * Grava a nova definição inteira da classe (o nome técnico não muda). Propriedades são casadas pelo nome técnico.
      *
-     * @param list<array{nome: string, tipo: string, indexavel?: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool}> $propriedades
+     * @param list<array{nome: string, tipo: string, indexavel?: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool, tipos?: list<string>, tamanho_max_mb?: int}> $propriedades
      * @param array{descricao?: string, aceita_filhos?: bool, filhas?: list<string>} $meta
      * @throws ConflitoDeVersao se outra pessoa salvou a classe depois de `$versaoEsperada`
      * @throws \InvalidArgumentException se a mudança apagaria ou invalidaria valores guardados, ou se algo é inválido
@@ -238,7 +239,7 @@ final class ClasseRepositorio
     }
 
     /**
-     * @param list<array{nome: string, tipo: string, indexavel?: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool}> $propriedades
+     * @param list<array{nome: string, tipo: string, indexavel?: bool, classe?: string, rotulo?: string, obrigatorio?: bool, arquivada?: bool, tipos?: list<string>, tamanho_max_mb?: int}> $propriedades
      * @param string $propria nome da classe sendo gravada (uma referência pode apontar para a própria classe)
      * @return list<Propriedade>
      */
@@ -271,6 +272,17 @@ final class ClasseRepositorio
                     $normalizada['classe'] = $p['classe'];
                 }
             }
+            if (in_array($p['tipo'], ['arquivo', 'imagem'], true)) {
+                // Não há como indexar (ordenar/filtrar pelo) um arquivo: fica sempre fora do índice.
+                $normalizada['indexavel'] = false;
+                [$tipos, $tamanhoMaxMb] = $this->normalizarRestricoesDeArquivo($p);
+                if ($tipos !== null) {
+                    $normalizada['tipos'] = $tipos;
+                }
+                if ($tamanhoMaxMb !== null) {
+                    $normalizada['tamanho_max_mb'] = $tamanhoMaxMb;
+                }
+            }
             // Campos de apresentação: só gravados quando têm valor, para o JSON das classes antigas continuar igual.
             $rotulo = trim($p['rotulo'] ?? '');
             if ($rotulo !== '') {
@@ -289,6 +301,41 @@ final class ClasseRepositorio
         }
 
         return $normalizadas;
+    }
+
+    /**
+     * `tipos`: subconjunto das extensões que a propriedade aceita (das de `imagem` ou das de documento, conforme o tipo da
+     * propriedade); vazio ou ausente = todas as da categoria. `tamanho_max_mb`: teto de tamanho desta propriedade (1 a
+     * `TiposDeArquivo::TETO_MB`); ausente = `TiposDeArquivo::PADRAO_MB`.
+     *
+     * `$p` chega com o tipo largo de `array<string, mixed>` (não a forma estreita de `Propriedade`) de propósito: vem de
+     * fora (tela ou chamador direto), então `tipos`/`tamanho_max_mb` não têm garantia de tipo até serem conferidos aqui.
+     *
+     * @param array<string, mixed> $p
+     * @return array{0: list<string>|null, 1: int|null}
+     */
+    private function normalizarRestricoesDeArquivo(array $p): array
+    {
+        $base = $p['tipo'] === 'imagem' ? TiposDeArquivo::imagens() : TiposDeArquivo::documentos();
+        $tipos = null;
+        if (isset($p['tipos']) && is_array($p['tipos']) && $p['tipos'] !== []) {
+            $tipos = array_values(array_unique(array_map('strval', $p['tipos'])));
+            foreach ($tipos as $extensao) {
+                if (!in_array($extensao, $base, true)) {
+                    throw new \InvalidArgumentException("Extensão não aceita na propriedade {$p['nome']}: {$extensao}");
+                }
+            }
+            sort($tipos);
+        }
+        $tamanhoMaxMb = null;
+        if (isset($p['tamanho_max_mb'])) {
+            $tamanhoMaxMb = is_int($p['tamanho_max_mb']) ? $p['tamanho_max_mb'] : (int) $p['tamanho_max_mb'];
+            if ($tamanhoMaxMb < 1 || $tamanhoMaxMb > TiposDeArquivo::TETO_MB) {
+                throw new \InvalidArgumentException("Tamanho máximo inválido na propriedade {$p['nome']}: até " . TiposDeArquivo::TETO_MB . ' MB');
+            }
+        }
+
+        return [$tipos, $tamanhoMaxMb];
     }
 
     /**

@@ -244,25 +244,18 @@ final class TelasDeAtualizacao
             return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
         }
 
-        // Reautenticação: a mesma senha e o mesmo limite de tentativas do login.
+        // Reautenticação (ADR 0011, "modo elevado", fase 5h): o mesmo componente comum, sempre exigindo a senha de
+        // novo (mesmo com o modo já elevado por outra ação), porque esta troca o código em execução.
         $ip = $this->rede->ip($requisicao);
-        $limite = $this->servicos->limiteDeTentativas();
-        $espera = $limite->bloqueadoPor($u->login, $ip);
-        if ($espera !== null) {
-            $this->servicos->auditoria->registrar('atualizacao.bloqueado', 'usuario:' . $u->id, $u->id, null, [], $limite->hashDoIp($ip));
-            $r = $this->pagina($sessao, '', 'Muitas tentativas de senha. Aguarde alguns minutos e tente de novo.', Response::HTTP_TOO_MANY_REQUESTS, false);
-            $r->headers->set('Retry-After', (string) $espera);
+        $falha = $this->servicos->modoElevado()->confirmar($sessao, $senha, $ip, 'atualizacao', true);
+        if ($falha !== null) {
+            $r = $this->pagina($sessao, '', $falha['mensagem'], $falha['status'], true);
+            if ($falha['retryAfter'] !== null) {
+                $r->headers->set('Retry-After', (string) $falha['retryAfter']);
+            }
 
             return $r;
         }
-        $confere = $this->servicos->usuarios->autenticar($u->login, mb_substr($senha, 0, 1024));
-        if ($confere === null || $confere->id !== $u->id) {
-            $limite->registrarFalha($u->login, $ip);
-            $this->servicos->auditoria->registrar('atualizacao.senha_errada', 'usuario:' . $u->id, $u->id, null, [], $limite->hashDoIp($ip));
-
-            return $this->pagina($sessao, '', 'Senha incorreta.', Response::HTTP_UNAUTHORIZED, true);
-        }
-        $limite->limparLogin($u->login);
 
         // O que o administrador viu pode ter mudado no canal: confere de novo, ao vivo, e só segue se for a mesma versão.
         $nova = $this->consultarAgora($c);
@@ -283,7 +276,7 @@ final class TelasDeAtualizacao
         if (!$iniciou) {
             return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
         }
-        $this->servicos->auditoria->registrar('atualizacao.iniciar', 'usuario:' . $u->id, $u->id, null, ['de' => $this->versaoInstalada, 'para' => $versao], $limite->hashDoIp($ip));
+        $this->servicos->auditoria->registrar('atualizacao.iniciar', 'usuario:' . $u->id, $u->id, null, ['de' => $this->versaoInstalada, 'para' => $versao], $this->servicos->limiteDeTentativas()->hashDoIp($ip));
 
         return new RedirectResponse(Painel::PREFIXO . '/atualizacao?ok=iniciada', Response::HTTP_SEE_OTHER);
     }
@@ -319,25 +312,18 @@ final class TelasDeAtualizacao
             return $this->pagina($sessao, '', $a->motivo, Response::HTTP_CONFLICT, false);
         }
 
-        // Reautenticação: a mesma senha e o mesmo limite de tentativas do login (e de "aplicar").
+        // Reautenticação (ADR 0011, "modo elevado", fase 5h): o mesmo componente comum de "aplicar", sempre exigindo
+        // a senha de novo.
         $ip = $this->rede->ip($requisicao);
-        $limite = $this->servicos->limiteDeTentativas();
-        $espera = $limite->bloqueadoPor($u->login, $ip);
-        if ($espera !== null) {
-            $this->servicos->auditoria->registrar('atualizacao.bloqueado', 'usuario:' . $u->id, $u->id, null, [], $limite->hashDoIp($ip));
-            $r = $this->pagina($sessao, '', 'Muitas tentativas de senha. Aguarde alguns minutos e tente de novo.', Response::HTTP_TOO_MANY_REQUESTS, false);
-            $r->headers->set('Retry-After', (string) $espera);
+        $falha = $this->servicos->modoElevado()->confirmar($sessao, $senha, $ip, 'atualizacao', true);
+        if ($falha !== null) {
+            $r = $this->pagina($sessao, '', $falha['mensagem'], $falha['status'], true);
+            if ($falha['retryAfter'] !== null) {
+                $r->headers->set('Retry-After', (string) $falha['retryAfter']);
+            }
 
             return $r;
         }
-        $confere = $this->servicos->usuarios->autenticar($u->login, mb_substr($senha, 0, 1024));
-        if ($confere === null || $confere->id !== $u->id) {
-            $limite->registrarFalha($u->login, $ip);
-            $this->servicos->auditoria->registrar('atualizacao.senha_errada', 'usuario:' . $u->id, $u->id, null, [], $limite->hashDoIp($ip));
-
-            return $this->pagina($sessao, '', 'Senha incorreta.', Response::HTTP_UNAUTHORIZED, true);
-        }
-        $limite->limparLogin($u->login);
 
         if (!is_writable($this->servicos->caminhos->raiz)) {
             return $this->pagina($sessao, '', 'Este servidor não deixa o PHP trocar o código da instalação (falta permissão de escrita na pasta do PBL4). Reverta pelo terminal: php bin/pbl reverter --confirmar.', Response::HTTP_CONFLICT, false);
@@ -350,7 +336,7 @@ final class TelasDeAtualizacao
         if (!$iniciou) {
             return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
         }
-        $this->servicos->auditoria->registrar('atualizacao.reverter_iniciar', 'usuario:' . $u->id, $u->id, null, ['de' => $a->para, 'para' => $a->de], $limite->hashDoIp($ip));
+        $this->servicos->auditoria->registrar('atualizacao.reverter_iniciar', 'usuario:' . $u->id, $u->id, null, ['de' => $a->para, 'para' => $a->de], $this->servicos->limiteDeTentativas()->hashDoIp($ip));
 
         return new RedirectResponse(Painel::PREFIXO . '/atualizacao?ok=reversao_iniciada', Response::HTTP_SEE_OTHER);
     }

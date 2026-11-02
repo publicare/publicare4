@@ -121,6 +121,7 @@ Lista separada por vírgulas, com `-` (decrescente) ou `+` na frente, ou `asc`/`
 | `data` | `aaaa-mm-dd`, `aaaa-mm-dd hh:mm:ss` (data impossível é recusada) | opcional |
 | `booleano` | verdadeiro/falso (guardado como 1/0) | opcional |
 | `ref` | id de outro objeto **do mesmo site** (e da classe indicada, se a propriedade restringe) | sempre |
+| `arquivo`, `imagem` | id de um arquivo enviado (upload pela tela de editar objeto, nunca pelo molde); `imagem` só jpg/png/gif/webp, `arquivo` documentos (pdf, txt, csv...). Sem comando de molde ainda: ver [fluxo 7](fluxos/07-upload-blobs.md) | nunca |
 
 `expandir="autor"` em `filhos`/`localizar` carrega os objetos apontados da lista inteira numa consulta só (até 4 propriedades). Sem ele, `#autor.titulo` funciona do mesmo jeito, buscando o objeto sob demanda uma vez por página.
 
@@ -166,7 +167,7 @@ A tabela orienta o conversor de moldes (fase 2c). Estado: ✅ nesta versão (o c
 | `#tags` | ainda não existe no contexto | ⏳ |
 | `localizar`, `localizaraleatorio` | `localizar`/`localizaraleatorio` com o subconjunto acima; `condicao`, `like`, `ilike` e `tags` em SQL livre **não** existem: o conversor os marca para revisão e a fase 1 traz filtros equivalentes | ✅ (parcial) |
 | `usarobjeto titulo=…`/`cod_objeto=…`, `temfilho cod_objeto=…` | `usarobjeto titulo=…`/`id=…`, `temfilho id=…` | ✅ |
-| `usarblob`, `linkblob`, `downloadblob`, `tamanhoblob`, `iconeblob`, `tipoblob`, `srcblob`, `srcthumb`, `iconeclasse` | comandos de arquivo/imagem: entram com o upload e a entrega de blobs (fluxo 7) | ⏳ |
+| `usarblob`, `linkblob`, `downloadblob`, `tamanhoblob`, `iconeblob`, `tipoblob`, `srcblob`, `srcthumb`, `iconeclasse` | upload e entrega de arquivo **feitos** (fase 7a, `Pbl\Arquivos`, [ADR 0014](adr/0014-upload-de-arquivos.md)): propriedade `arquivo`/`imagem`, link `/_pbl/arquivo/<id>`. Ainda não há comando de molde equivalente (`#propriedade` dá o id; o link é montado por quem lê o id) | ⏳ |
 | `config`, macros `ROOT`, `PERFIL`, `CONFIG`, `USUARIO` | só valores públicos e seguros do site (configuração de site); usuário/perfil depois da fase 3 | ⏳ |
 | `executar` (inclui script PHP e chama função) | **módulo** com interface estável (ADR 0005); o conversor aponta cada uso | ❌ |
 | `protegido`, `incluimenu` | área protegida e menu do admin: fase 3 e 5 | ❌ |

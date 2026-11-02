@@ -8,6 +8,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Pbl\Acesso\Auditoria;
+use Pbl\Arquivos\TiposDeArquivo;
 use Pbl\Busca\BuscaInterface;
 use Pbl\Busca\BuscaSql;
 use Pbl\Busca\IndexadorDeObjeto;
@@ -638,6 +639,7 @@ final class ObjetoRepositorio
                 'booleano' => $this->booleano($chave, $valor),
                 'data' => $this->data($chave, $valor),
                 'ref' => $this->referencia($siteId, $chave, $valor, $p['classe'] ?? null),
+                'arquivo', 'imagem' => $this->arquivo($siteId, $chave, $valor, $p['tipo']),
                 'html' => is_string($valor) ? HtmlSeguro::limpar($valor) : throw new \InvalidArgumentException("Propriedade {$chave} deve ser texto HTML"),
                 default => is_bool($valor) ? throw new \InvalidArgumentException("Propriedade {$chave} deve ser texto") : $valor,
             };
@@ -686,6 +688,30 @@ final class ObjetoRepositorio
             if ($esperada === false || (int) $esperada !== (int) $classeId) {
                 throw new \InvalidArgumentException("Propriedade {$chave} deve apontar para um objeto da classe {$classeNome}");
             }
+        }
+
+        return $id;
+    }
+
+    /**
+     * O valor de uma propriedade `arquivo`/`imagem` é o id de uma linha de `arquivo` (como uma `ref`, mas para `arquivo`, não
+     * para `objeto`). Defesa em profundidade: o upload (`ServicoDeUpload`) já escolheu o tipo certo pela whitelist; aqui só
+     * confere que o arquivo existe, é deste site e o tipo (`arquivo`/`imagem`) bate com o da propriedade — um formulário
+     * forjado não pode trocar o id por um arquivo de outro site ou de outra propriedade.
+     */
+    private function arquivo(int $siteId, string $chave, string|int|float|bool $valor, string $tipoPropriedade): int
+    {
+        $id = is_int($valor) ? $valor : (is_string($valor) && ctype_digit($valor) ? (int) $valor : 0);
+        if ($id <= 0) {
+            throw new \InvalidArgumentException("Propriedade {$chave} deve ser o id de um arquivo enviado");
+        }
+        $linha = $this->conexao->fetchAssociative('SELECT site_id, extensao FROM arquivo WHERE id = ?', [$id]);
+        if ($linha === false || (int) $linha['site_id'] !== $siteId) {
+            throw new \InvalidArgumentException("Propriedade {$chave} aponta para um arquivo que não existe neste site: {$id}");
+        }
+        $ehImagem = (TiposDeArquivo::da((string) $linha['extensao'])['imagem'] ?? false) === true;
+        if ($ehImagem !== ($tipoPropriedade === 'imagem')) {
+            throw new \InvalidArgumentException("Propriedade {$chave} deve apontar para um arquivo do tipo {$tipoPropriedade}");
         }
 
         return $id;
