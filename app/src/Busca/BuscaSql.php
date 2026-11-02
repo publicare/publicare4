@@ -22,7 +22,8 @@ use Doctrine\DBAL\ParameterType;
  * e o tamanho dos termos têm teto (`Termos`).
  *
  * **Nível C** (`sugerir`): sugestão de grafia parecida, sem tabela nova — usa o mesmo `objeto_termo`, filtrado pela
- * mesma visibilidade pública (`Visibilidade`), com candidatos limitados por tamanho e Levenshtein em PHP.
+ * mesma visibilidade pública (`Visibilidade`), com candidatos limitados por tamanho e distância de edição por
+ * caractere (não por byte) em PHP.
  */
 final class BuscaSql implements BuscaInterface
 {
@@ -169,13 +170,20 @@ final class BuscaSql implements BuscaInterface
 
     /**
      * Entre os termos do vocabulário visível com tamanho parecido (teto de candidatos), o mais próximo de `$termo` por
-     * Levenshtein, dentro do limiar (1 letra para termos curtos, 2 para os longos); desempate pelos pontos (mais
-     * frequente no site). Null se nenhum candidato está perto o bastante.
+     * distância de edição, dentro do limiar (1 letra para termos curtos, 2 para os longos); desempate pelos pontos
+     * (mais frequente no site). Null se nenhum candidato está perto o bastante.
+     *
+     * `LENGTH()` conta **bytes** no MySQL e **caracteres** no SQLite e no PostgreSQL — depois de `Texto::normalizar`
+     * os termos costumam ser ASCII (acentos latinos já viram letra base), mas uma letra que sobrevive multibyte (de
+     * um alfabeto que o mapa de acentos não cobre) teria tamanho diferente a cada banco. Em vez de escolher a função
+     * certa por plataforma, a janela em `LENGTH()` fica **larga o bastante para nunca excluir um candidato de verdade**
+     * (até 4 bytes por caractere em UTF-8): é só um corte grosso para não escanear o vocabulário inteiro: a decisão
+     * final de tamanho e de distância usa caracteres, em PHP (`self::distancia`), não bytes.
      */
     private function candidatoMaisProximo(int $siteId, string $termo): ?string
     {
         $tamanho = mb_strlen($termo);
-        $valores = ['site' => $siteId, 'min' => max(1, $tamanho - self::SUGESTAO_JANELA_TAMANHO), 'max' => $tamanho + self::SUGESTAO_JANELA_TAMANHO];
+        $valores = ['site' => $siteId, 'min' => max(1, $tamanho - self::SUGESTAO_JANELA_TAMANHO), 'max' => ($tamanho + self::SUGESTAO_JANELA_TAMANHO) * 4];
         $tipos = ['site' => ParameterType::INTEGER, 'min' => ParameterType::INTEGER, 'max' => ParameterType::INTEGER];
         $visivel = Visibilidade::condicao('obj', $valores, $tipos);
         $sql = 'SELECT ct.termo AS termo, SUM(ct.pontos) AS freq FROM objeto_termo ct JOIN objeto obj ON obj.id = ct.objeto_id'
@@ -187,7 +195,7 @@ final class BuscaSql implements BuscaInterface
         $melhorFrequencia = -1;
         foreach ($this->conexao->fetchAllAssociative($sql, $valores, $tipos) as $linha) {
             $candidato = (string) $linha['termo'];
-            $distancia = levenshtein($termo, $candidato);
+            $distancia = self::distancia($termo, $candidato, $limiar);
             if ($distancia === 0 || $distancia > $limiar) {
                 continue;
             }
@@ -200,5 +208,39 @@ final class BuscaSql implements BuscaInterface
         }
 
         return $melhorTermo;
+    }
+
+    /**
+     * Distância de edição (Levenshtein) por **caractere**, não por byte: `levenshtein()` do PHP é por byte e erraria em
+     * qualquer termo com letra multibyte que sobreviva a `Texto::normalizar` (acentos latinos já viram ASCII; outros
+     * alfabetos, não). `$limiar` poda a conta: uma diferença de tamanho maior que ele já descarta sem montar a matriz
+     * toda, e cada linha para assim que o menor valor já passou do limiar (não dá para melhorar depois disso).
+     */
+    private static function distancia(string $a, string $b, int $limiar): int
+    {
+        $ca = mb_str_split($a);
+        $cb = mb_str_split($b);
+        $m = count($ca);
+        $n = count($cb);
+        if (abs($m - $n) > $limiar) {
+            return $limiar + 1;
+        }
+        $linha = range(0, $n);
+        for ($i = 1; $i <= $m; $i++) {
+            $nova = [$i];
+            $minimoDaLinha = $i;
+            for ($j = 1; $j <= $n; $j++) {
+                $custo = $ca[$i - 1] === $cb[$j - 1] ? 0 : 1;
+                $valor = min($linha[$j] + 1, $nova[$j - 1] + 1, $linha[$j - 1] + $custo);
+                $nova[] = $valor;
+                $minimoDaLinha = min($minimoDaLinha, $valor);
+            }
+            $linha = $nova;
+            if ($minimoDaLinha > $limiar) {
+                return $limiar + 1;
+            }
+        }
+
+        return $linha[$n];
     }
 }

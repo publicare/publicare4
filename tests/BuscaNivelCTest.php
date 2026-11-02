@@ -65,6 +65,18 @@ final class BuscaNivelCTest extends TestCase
         self::assertSame('relatorio anual', $this->busca->sugerir($this->site, 'relatroio anual'));
     }
 
+    public function testSugereErroEmPalavraComLetraMultibyteQueSobreviveANormalizacao(): void
+    {
+        // "иван" (cirílico) não tem letra coberta pelo mapa de acentos de Texto::normalizar (só alfabeto latino):
+        // continua multibyte depois de normalizar. Cada letra ocupa 2 bytes em UTF-8.
+        $this->criar('Иван Иванов');
+
+        // "иванн" tem 1 letra cirílica (2 bytes) a mais que "иван": distância de 1 caractere, mas de 2 bytes.
+        // Levenshtein por byte (como o levenshtein() do PHP) daria distância 2, acima do limiar de palavras curtas (1),
+        // e não sugeriria nada; por caractere, a distância é 1 e a sugestão aparece.
+        self::assertSame('иван иванов', $this->busca->sugerir($this->site, 'иванн иванов'));
+    }
+
     public function testPalavraComAcentoJaAchaDiretoENaoPrecisaDeSugestao(): void
     {
         $this->criar('Relatório Anual');
