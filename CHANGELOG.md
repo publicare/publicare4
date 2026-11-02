@@ -73,6 +73,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - A sintaxe dos moldes mudou em relação ao rascunho inicial: `<@eco titulo@>` agora é `<@eco #titulo@>` e `<@repetir filhos@>` virou `<@filhos@>`. (#6)
 
 ### Corrigido
+- **Data impossível** (`2026-02-31`, `2026-04-31`) nas datas de publicação e de validade agora é recusada (`ViolacaoDeRegra`, `data_invalida`) pela linha de comando e por importadores, em vez de ser corrigida em silêncio para `2026-03-03`.
 - Instalar com um domínio inválido deixava a instalação pela metade e impedia tentar de novo; agora valida antes e grava tudo numa transação. (#19)
 - Ao migrar, um site que já tinha vários domínios ficaria com todos como principais; agora um é o principal e os outros passam a servir o mesmo conteúdo. (#19)
 - O redirecionamento mantém a query string antes da âncora (`/novo?x=1#secao`). (#19)
