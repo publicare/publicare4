@@ -86,6 +86,20 @@ final class AssetsAdminTest extends TestCase
         self::assertStringContainsString('RewriteRule ^(.*)$ public/$1', $raiz);
     }
 
+    public function testHtaccessNaoUsaDiretivasQueDaoErro500EmHospedagemComAllowOverrideRestrito(): void
+    {
+        // "Options" exige AllowOverride Options: em Hestia/painéis restritos vira 500 (conferido em Apache 2.4 real).
+        foreach (['/.htaccess', '/public/.htaccess'] as $arquivo) {
+            $texto = (string) file_get_contents($this->raiz() . $arquivo);
+            $semComentarios = (string) preg_replace('/^\s*#.*$/m', '', $texto);
+            self::assertDoesNotMatchRegularExpression('/^\s*Options\b/mi', $semComentarios, $arquivo);
+            self::assertStringContainsString('Require all denied', $texto, $arquivo);
+            self::assertStringContainsString('<IfModule mod_rewrite.c>', $texto, $arquivo);
+        }
+        // A raiz só redireciona para public/ quando essa pasta existe sob a raiz do site (se a raiz já é public/, não faz nada).
+        self::assertStringContainsString('%{DOCUMENT_ROOT}/public/index.php -f', (string) file_get_contents($this->raiz() . '/.htaccess'));
+    }
+
     public function testNginxDeReferenciaEntregaArquivoExistenteDireto(): void
     {
         $conf = (string) file_get_contents($this->raiz() . '/docker/nginx-teste/pbl4.conf');

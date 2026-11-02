@@ -1,6 +1,6 @@
 # ADR 0012 — Administração pelo navegador
 
-Status: aceito e implementado em parte (2026-11-01, fase 5a: painel com os sites, navegação na árvore e edição de título e descrição; fase 5c: tipos de conteúdo, §6; fase 5b: criar, editar todas as propriedades, estado e datas, mover, lixeira, histórico com restaurar e lista com ordem e filtros, §7). fase 5d: contas e domínios, §8). Ficam para as próximas fatias: redirecionamentos e peles. Complementa o [ADR 0011](0011-autenticacao-sessao-permissoes.md) (sessão, CSRF e permissões) e detalha a parte de administração do [fluxo 5](../fluxos/05-conteudo-workflow.md).
+Status: aceito e implementado em parte (2026-11-01, fase 5a: painel com os sites, navegação na árvore e edição de título e descrição; fase 5c: tipos de conteúdo, §6; fase 5b: criar, editar todas as propriedades, estado e datas, mover, lixeira, histórico com restaurar e lista com ordem e filtros, §7). fase 5d: contas e domínios, §8; fase 5e: redirecionamentos e peles, §9). Ficam para as próximas fatias: mais do editor de peles (veja §9). Complementa o [ADR 0011](0011-autenticacao-sessao-permissoes.md) (sessão, CSRF e permissões) e detalha a parte de administração do [fluxo 5](../fluxos/05-conteudo-workflow.md).
 
 ## Contexto
 
@@ -124,6 +124,30 @@ stateDiagram-v2
 - **Domínios**: o site sempre tem um principal. Adicionar só como alias (`servir`) ou redirecionador (`redirecionar`); trocar o principal escolhe o que o anterior passa a ser; o principal não se remove nem muda de modo; domínio de outro site não se mexe por esta tela; o endereço pelo qual a pessoa está acessando agora não se remove (um domínio `redirecionar` nunca abre a administração, pois a `Aplicacao` redireciona antes). DNS e certificado do domínio são feitos fora do PBL4.
 - **Auditoria**: `usuario.criar`, `usuario.atualizar` (nomes dos campos), `usuario.admin.dar`/`tirar`, `usuario.ativar`/`desativar`, `senha.trocar`, `acesso.conceder`/`revogar` (pelo repositório, com o ator `usuario:ID`) e `dominio.adicionar`/`principal`/`modo`/`remover` (site, host e modo; host é configuração pública, não dado pessoal).
 - **Fora desta fatia**: apagar conta (só desativar), lista paginada e busca de contas, alterar o login, pedir a senha de novo antes de ações sensíveis, atribuir papel escolhendo a seção numa árvore (hoje pelo número) e verificar se o DNS do domínio aponta para cá.
+
+### 9. Redirecionamentos e peles (fase 5e)
+- **Quem**: `Acao::Administrar` na seção raiz do site (`Permissoes::pode`), que hoje só o administrador global tem; sem raiz, o administrador global. Conferido em toda rota, também no POST; site inexistente dá 403 a quem não administra (e 404 ao administrador). Arquivo próprio: `TelasDeSite`; o `Painel` só registra a rota.
+
+| Método e rota | O que faz |
+|---|---|
+| `GET`/`POST /_pbl/site/{id}/redirecionamentos` | listar e criar regra |
+| `GET`/`POST /_pbl/site/{id}/redirecionamentos/{regra}/editar` | editar regra |
+| `POST /_pbl/site/{id}/redirecionamentos/{regra}/remover` | remover regra |
+| `GET /_pbl/site/{id}/peles` | peles disponíveis, qual está ativa |
+| `POST /_pbl/site/{id}/peles/ativar` | definir a pele ativa (precisa existir e ter o molde `padrao`) |
+| `GET /_pbl/site/{id}/peles/{pele}` | moldes da pele |
+| `GET`/`POST /_pbl/site/{id}/peles/{pele}/molde` | editar o texto de um molde (`?nome=`) |
+| `GET`/`POST /_pbl/site/{id}/peles/{pele}/novo` | criar molde |
+| `GET`/`POST /_pbl/site/{id}/peles/{pele}/apagar` | confirmar e apagar molde (`?nome=`) |
+
+- **Redirecionamentos**: reutiliza o `RedirecionamentoRepositorio` (validação de origem/destino com regex possessiva, limites, duplicata), que ganhou `atualizar` e `porId`. Antes de gravar, a tela segue as regras do site a partir da origem: **laço** (volta a um caminho já visitado, ou mais de 10 saltos) é recusado com 422; **encadeamento** (mais de um salto) e **endereço que já é de um conteúdo** (a página publicada vem antes e a regra nunca valeria) são gravados com aviso. Regra de outro site responde 404. Auditoria `redirecionamento.criar`/`atualizar`/`remover` só com ids.
+- **Peles**: `GerenciadorDePeles` é a **única porta de escrita em disco** da administração. Nome da pele `[a-z0-9_-]{1,50}`, nome do molde `[a-z0-9_]+` com `/` só entre partes (até 3 níveis, 100 caracteres), ambos por expressão ancorada e possessiva; a extensão `.pbl` é sempre acrescentada pelo código (nunca digitada, então nunca `.php`); pasta e arquivo não podem ser link simbólico e o `realpath` precisa ficar dentro da pasta da pele; até 200 000 bytes, UTF-8 válido, sem NUL; no máximo 300 moldes por pele. Gravação por arquivo temporário na mesma pasta + `rename`.
+- **Validação antes de salvar**: o texto passa por `Compilador::compilar` com o `ResolvedorDePele` (parser, herança de layout, PHP cru recusado). Erro volta 422 com a mensagem, a **linha** e o trecho da linha (o parser só informa a linha, não a coluna) e o texto digitado preservado. Nada é executado ao validar. Moldes não são PHP: o `Gerador` só emite literais e chamadas ao `Runtime`; o sandbox da linguagem é o mesmo da publicação.
+- **Edição simultânea**: o formulário leva o SHA-256 do texto aberto; se o arquivo mudou, 409 sem gravar.
+- **Apagar**: `padrao` nunca; molde citado entre aspas por outro molde da pele (`estende`, `incluir`) também não. Confirmação em tela própria.
+- **Depois de salvar, criar, apagar ou ativar**: os sites que usam a pele são republicados por `Publicador::publicarSite` (toda a árvore, pois um molde pode ser usado por qualquer página). Falha ao republicar não desfaz a gravação: a tela avisa para publicar de novo. Uma pele pode ser compartilhada por vários sites; a tela avisa que editar vale para todos.
+- **Auditoria**: `pele.molde.salvar`/`criar`/`apagar` (site, pele e nome do molde, nunca o conteúdo), `pele.ativar`, e `site.negado` nas tentativas sem permissão.
+- **Fora desta fatia**: criar, duplicar, importar ou apagar peles inteiras; arquivos que não sejam `.pbl` (CSS, imagens); pré-visualização; histórico e reverter de moldes; coluna do erro; pele por seção.
 
 ## Consequências
 

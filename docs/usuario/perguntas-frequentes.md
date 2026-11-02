@@ -14,7 +14,7 @@ Pelo navegador, com um assistente: veja [Como instalar](instalar.md). Hoje ainda
 
 ## Onde posso hospedar?
 
-Funciona em servidores **Apache** (a maioria das hospedagens compartilhadas) e **nginx**, ambos testados. A meta é uma hospedagem comum, daquelas que oferecem PHP e permitem enviar arquivos, sem terminal. Os requisitos são **PHP 8.2 ou mais novo** e um banco de dados (o padrão é SQLite, que não precisa de servidor; MySQL e PostgreSQL também serão suportados).
+Funciona em servidores **Apache** (a maioria das hospedagens compartilhadas) e **nginx**, ambos testados. A meta é uma hospedagem comum, daquelas que oferecem PHP e permitem enviar arquivos, sem terminal. Os requisitos são **PHP 8.2 ou mais novo** e um banco de dados (o padrão é SQLite, que não precisa de servidor; MySQL e PostgreSQL também serão suportados). Painéis como Hestia/VestaCP, que restringem o PHP à pasta do domínio (`open_basedir`), também funcionam: veja a seção correspondente em [Como instalar](instalar.md).
 
 ## E o meu site feito no Publicare antigo?
 
@@ -47,7 +47,7 @@ Entre em `/_pbl/` com seu login. Você vê os sites e as seções que pode acess
 - **move** um conteúdo, com tudo que está dentro dele, ou o manda para a **lixeira** (editor); da lixeira dá para tirar de volta;
 - vê o **histórico** e volta a uma versão antiga (isso cria uma versão nova; nada se perde).
 
-Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou o mesmo conteúdo enquanto você mexia, aparece um aviso e nada é sobrescrito sem você decidir. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). O administrador também cuida das **contas** e dos **domínios** (veja abaixo). Redirecionamentos de endereços antigos e peles ainda se cuidam por linha de comando.
+Ao salvar, a página no ar já mostra a mudança. Se outra pessoa salvou o mesmo conteúdo enquanto você mexia, aparece um aviso e nada é sobrescrito sem você decidir. O administrador também cuida dos **tipos de conteúdo** (veja abaixo). O administrador também cuida das **contas** e dos **domínios** (veja abaixo) e edita os **redirecionamentos** e as **peles** de cada site (o texto dos moldes, com a sintaxe conferida antes de salvar).
 
 ## Como crio um tipo de conteúdo novo (por exemplo, "Evento")?
 
@@ -59,7 +59,7 @@ Se nenhum conteúdo tem valor nesse campo, sim. Se já tem, o Publicare **não d
 
 ## Posso trocar o domínio do meu site sem perder os links?
 
-Pode. O site pode ter vários domínios: o antigo continua funcionando e leva ao novo (redirecionamento permanente) ou mostra o mesmo conteúdo avisando qual é o oficial. Endereços de sistemas que acabaram também podem ser redirecionados. Quem administra o site faz isso pelo navegador: no painel, ao lado do nome do site, clique em **Domínios**. Dá para adicionar um domínio (como alias, que mostra o mesmo conteúdo, ou como redirecionador, que leva ao principal), escolher qual é o **principal**, trocar um domínio entre alias e redirecionador e remover os que não servem mais. O domínio principal não se remove (escolha outro antes), e o endereço pelo qual você está acessando também não. O DNS e o certificado do domínio novo precisam estar apontados para a hospedagem; isso se faz fora do Publicare. O redirecionamento de endereços antigos que não são páginas ainda é por linha de comando.
+Pode. O site pode ter vários domínios: o antigo continua funcionando e leva ao novo (redirecionamento permanente) ou mostra o mesmo conteúdo avisando qual é o oficial. Endereços de sistemas que acabaram também podem ser redirecionados. Quem administra o site faz isso pelo navegador: no painel, ao lado do nome do site, clique em **Domínios**. Dá para adicionar um domínio (como alias, que mostra o mesmo conteúdo, ou como redirecionador, que leva ao principal), escolher qual é o **principal**, trocar um domínio entre alias e redirecionador e remover os que não servem mais. O domínio principal não se remove (escolha outro antes), e o endereço pelo qual você está acessando também não. O DNS e o certificado do domínio novo precisam estar apontados para a hospedagem; isso se faz fora do Publicare. O redirecionamento de endereços antigos que não são páginas é cadastrado em **Redirecionamentos**, no mesmo painel (ou por linha de comando).
 
 ## Como crio uma conta para alguém da equipe?
 

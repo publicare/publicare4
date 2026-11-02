@@ -13,7 +13,7 @@ Você não precisa criar banco de dados: o Publicare usa um arquivo (SQLite) por
 ## Passo a passo
 
 1. **Envie o Publicare** para a hospedagem (todas as pastas e arquivos).
-2. **Aponte o site para a pasta `public/`.** No painel da hospedagem, procure "raiz do documento" ou "pasta do site" e escolha a pasta `public/` do Publicare. *Se não for possível mudar a raiz*, deixe como está: o Publicare já traz um arquivo `.htaccess` que protege as pastas internas e manda tudo para `public/`.
+2. **Aponte o site para a pasta `public/`.** No painel da hospedagem, procure "raiz do documento" ou "pasta do site" e escolha a pasta `public/` do Publicare. *Se não for possível mudar a raiz*, deixe como está: o Publicare já traz um arquivo `.htaccess` que protege as pastas internas e manda tudo para `public/` (em hospedagens com painel Hestia/VestaCP, veja a seção abaixo).
 3. **Prove que o servidor é seu.** Para ninguém mais poder instalar no seu lugar, crie um arquivo **vazio** chamado `instalar.liberar` dentro da pasta `dados/` (se a pasta não existir, crie-a).
 4. **Abra no navegador** `https://seu-endereco/_pbl/instalar`.
 5. Confira a lista de **requisitos** (tudo deve estar com ✔). Se algo estiver com ✘, a própria página diz o que fazer.
@@ -21,6 +21,19 @@ Você não precisa criar banco de dados: o Publicare usa um arquivo (SQLite) por
 7. Clique em **Instalar**. Pronto: o site já aparece com uma página inicial de exemplo, e você pode **entrar** em `https://seu-endereco/_pbl/entrar`.
 
 O arquivo `instalar.liberar` é apagado sozinho no fim, e o instalador deixa de existir.
+
+## Hestia/VestaCP e hospedagens com open_basedir
+
+Nesses painéis o PHP só enxerga a pasta do seu domínio. O jeito que funciona:
+
+1. Envie o Publicare para a pasta **`private/`** do domínio (fica `private/pbl4/`, com `public/` dentro).
+2. A pasta pública do domínio (`public_html`) deve ser um **atalho (link simbólico)** para `private/pbl4/public`. Por SSH: `mv public_html public_html.orig` e depois `ln -s private/pbl4/public public_html`. Sem SSH, peça ao suporte da hospedagem.
+3. Peça (ou instale) o pacote **`php8.3-sqlite3`** (o número acompanha a versão do PHP do domínio) e reinicie o PHP.
+4. Crie `private/pbl4/dados/instalar.liberar` e siga o passo a passo acima.
+
+Se a lista de requisitos mostrar "Acesso do PHP à pasta dados/ (open_basedir)" com ✘, o projeto está fora da pasta do domínio: mova-o para `private/`.
+
+**Cloudflare na frente:** use o modo SSL **Full** e ative o certificado **Let's Encrypt** no painel (domínio com "SSL" e "Let's Encrypt" ligados). Sem certificado no servidor, o site entra em laço de redirecionamento.
 
 ## Depois de instalar
 
@@ -38,6 +51,10 @@ Depois de instalar, entre em `/_pbl/` com a conta de administrador: já dá para
 | Sintaxe da mensagem | O que fazer |
 |---|---|
 | "Pasta dados/ gravável" com ✘ | Dê permissão de escrita à pasta `dados/` (no gerenciador de arquivos: "permissões" → 755 ou 775). |
-| Falta uma extensão do PHP | Peça à hospedagem para ativá-la (ou ative no painel, em "extensões do PHP"). |
+| Falta `pdo_sqlite` | Peça à hospedagem o pacote `php8.x-sqlite3` e que reinicie o PHP. |
+| "open_basedir" com ✘ | Mova o projeto para dentro da pasta do domínio (veja a seção Hestia/VestaCP acima). |
+| O navegador dá "redirecionamento em laço" atrás da Cloudflare | Ative o certificado (Let's Encrypt) no servidor e use SSL Full. |
+| Erro 500 com o projeto na raiz do site | Aponte a raiz para `public/`; confira que a hospedagem permite `.htaccess` (AllowOverride). |
+| Falta outra extensão do PHP | Peça à hospedagem para ativá-la (ou ative no painel, em "extensões do PHP"). |
 | A página `/_pbl/instalar` dá "não encontrado" | Ou o PBL4 já está instalado, ou a raiz do site não está apontando para a pasta correta. |
 | Erro ao instalar | Nada fica pela metade: corrija o que a mensagem pedir e tente de novo. |

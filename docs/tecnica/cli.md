@@ -43,6 +43,7 @@ make pbl ARGS="redirecionamento remover 3"
 ```
 
 - `--site=N` escolhe o site (padrão: o primeiro). O domínio principal não pode ser removido: defina outro antes.
+- As mesmas regras também se gerenciam pelo navegador (`/_pbl/site/{id}/redirecionamentos`, só administrador), com aviso de laço e de encadeamento.
 - Regras de redirecionamento: origem é um caminho (`/antigo`), destino é um caminho do site ou `https://…`; a regra exata vence a de prefixo, e entre prefixos vence o mais longo. Só valem para endereços que **não** são uma página publicada nem o endereço antigo de um conteúdo. A consulta (`?a=1`) do pedido é mantida.
 
 ## `atualizar`, `migrar`, `empacotar`, `chaves:gerar`

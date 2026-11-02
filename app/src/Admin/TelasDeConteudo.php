@@ -60,6 +60,9 @@ final class TelasDeConteudo
             $dominios = $this->servicos->permissoes->podeAdministrarSite($u, $raiz)
                 ? ' <a class="btn btn-sm btn-outline-secondary ms-2" href="' . Painel::PREFIXO . '/site/' . $site->id . '/dominios">Domínios<span class="visually-hidden"> de ' . Pagina::h($site->nome) . '</span></a>' : '';
             $corpo .= '<section class="mb-4"><h2 class="h5">' . Pagina::h($site->nome) . $dominios . '</h2>';
+            if ($u->administrador) {
+                $corpo .= '<p><a href="' . Painel::PREFIXO . '/site/' . $site->id . '/redirecionamentos">Redirecionamentos</a> · <a href="' . Painel::PREFIXO . '/site/' . $site->id . '/peles">Peles</a></p>';
+            }
             if ($lista === []) {
                 $corpo .= '<p class="text-body-secondary">Este site ainda não tem conteúdo inicial.</p></section>';
                 continue;

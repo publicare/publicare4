@@ -1,12 +1,24 @@
-# PBL4: se o site foi enviado inteiro (e a raiz do servidor é esta pasta, não public/), isto protege o que não pode ser público
-# e manda o resto para public/. O recomendado é apontar a raiz do site para a pasta public/.
-Options -Indexes
+# PBL4: rede de segurança para quando a raiz do site é a pasta inteira do projeto (o recomendado é a raiz ser public/).
+# Se a raiz do site já for public/, este arquivo nem é lido; e, se for, tudo aqui é condicional e inofensivo:
+# não usa Options nem nada que dependa de AllowOverride além de FileInfo/AuthConfig, e cada bloco só vale com o módulo carregado.
+
+# Pastas internas: nunca pelo navegador (403).
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    # Código, dados e ferramentas: nunca pelo navegador.
     RewriteRule ^(app|dados|vendor|bin|tests|docs|docker|\.git|\.github)(/|$) - [F,L]
-    RewriteRule ^(composer\.(json|lock)|Makefile|phpunit\.xml\.dist|phpstan\.neon|docker-compose\.yml|CHANGELOG\.md|\.editorconfig|\.gitignore)$ - [F,L]
-    # O resto é servido a partir de public/.
+    # O resto é servido a partir de public/, mas só se essa pasta existir sob a raiz do site.
+    RewriteCond %{DOCUMENT_ROOT}/public/index.php -f
     RewriteCond %{REQUEST_URI} !^/public/
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
+
+# Arquivos soltos da raiz do projeto (Apache 2.4; o ramo 2.2 só existe por compatibilidade).
+<FilesMatch "^(composer\.(json|lock)|Makefile|phpunit\.xml\.dist|phpstan\.neon|docker-compose\.yml|CHANGELOG\.md|\.editorconfig|\.gitignore)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

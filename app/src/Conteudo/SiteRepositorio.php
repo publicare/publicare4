@@ -30,6 +30,14 @@ final class SiteRepositorio
         $this->conexao->update('site', ['objeto_raiz_id' => $objetoId], ['id' => $siteId]);
     }
 
+    /** Troca a pele ativa do site. Quem chama confere que a pele existe em `dados/peles/`. */
+    public function definirPele(int $siteId, string $pele): void
+    {
+        if ($this->conexao->update('site', ['pele' => $pele], ['id' => $siteId]) === 0 && $this->porId($siteId) === null) {
+            throw new \InvalidArgumentException("Site {$siteId} não existe");
+        }
+    }
+
     public function porId(int $id): ?Site
     {
         $linha = $this->conexao->fetchAssociative('SELECT * FROM site WHERE id = ?', [$id]);
