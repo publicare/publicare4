@@ -177,6 +177,23 @@ final class ObjetoRepositorio
     }
 
     /**
+     * Objetos do site que servem de contêiner (a página inicial e todo objeto que tem filhos), em ordem de caminho: a lista
+     * de onde se concede um papel por subárvore. Limitada; os ancestrais de um contêiner também são contêineres, então o caminho
+     * legível ("Início › Notícias") sai só desta lista.
+     *
+     * @return list<Objeto>
+     */
+    public function conteineresDoSite(int $siteId, int $limite = 500): array
+    {
+        $linhas = $this->conexao->fetchAllAssociative(
+            'SELECT * FROM objeto o WHERE o.site_id = ? AND (o.pai_id IS NULL OR EXISTS (SELECT 1 FROM objeto f WHERE f.pai_id = o.id)) ORDER BY o.caminho LIMIT ' . max(1, $limite),
+            [$siteId],
+        );
+
+        return array_map($this->hidratar(...), $linhas);
+    }
+
+    /**
      * Um lote da subárvore, em ordem de id, a partir do primeiro id maior que `$depoisDoId` (republicação em lotes).
      *
      * @return list<Objeto>
