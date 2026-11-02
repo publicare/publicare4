@@ -196,6 +196,20 @@ final class IntegridadeDeConteudoTest extends TestCase
         self::assertSame('corpo', $e->campo);
     }
 
+    public function testDataImpossivelNaoEhCorrigidaEmSilencio(): void
+    {
+        $o = $this->s->objetos->criar($this->site->id, $this->pagina, $this->inicio->id, 'DI', 'di', []);
+        foreach (['2026-02-31', '2026-13-01', '2026-04-31', '2026-02-30 10:00', '2026-00-10'] as $ruim) {
+            $e = $this->violacao(fn () => $this->s->objetos->atualizar($o->id, ['data_publicacao' => $ruim]));
+            self::assertSame(ViolacaoDeRegra::DATA_INVALIDA, $e->codigo, $ruim);
+            $e = $this->violacao(fn () => $this->s->objetos->criar($this->site->id, $this->pagina, $this->inicio->id, 'DJ', 'dj', [], 'publicado', ['data_validade' => $ruim]));
+            self::assertSame('data_validade', $e->campo, $ruim);
+        }
+        self::assertNull($this->s->objetos->porId($o->id)?->dataPublicacao);
+        self::assertSame('2028-02-29T00:00:00+00:00', $this->s->objetos->atualizar($o->id, ['data_publicacao' => '2028-02-29'])->dataPublicacao, 'bissexto vale');
+        self::assertSame('2026-04-30T12:00:00+00:00', $this->s->objetos->atualizar($o->id, ['data_publicacao' => '2026-04-30 12:00'])->dataPublicacao);
+    }
+
     public function testDatasDeVigenciaSaoNormalizadasParaUtc(): void
     {
         $o = $this->s->objetos->criar($this->site->id, $this->pagina, $this->inicio->id, 'D', 'd', [], 'publicado', ['data_publicacao' => '2030-01-02T10:00:00-03:00', 'data_validade' => '2030-02-01']);

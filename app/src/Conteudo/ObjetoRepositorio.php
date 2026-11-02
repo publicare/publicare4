@@ -499,7 +499,14 @@ final class ObjetoRepositorio
             return null;
         }
         try {
-            return (new \DateTimeImmutable(trim($valor), new \DateTimeZone('UTC')))->setTimezone(new \DateTimeZone('UTC'))->format('c');
+            $data = new \DateTimeImmutable(trim($valor), new \DateTimeZone('UTC'));
+            // Data impossível (2026-02-31) não dá erro no construtor: o PHP "corrige" para 2026-03-03 e deixa só um aviso.
+            $problemas = \DateTimeImmutable::getLastErrors();
+            if ($problemas !== false && ($problemas['warning_count'] > 0 || $problemas['error_count'] > 0)) {
+                throw new \Exception('data impossível');
+            }
+
+            return $data->setTimezone(new \DateTimeZone('UTC'))->format('c');
         } catch (\Exception) {
             throw new ViolacaoDeRegra(ViolacaoDeRegra::DATA_INVALIDA, 'A data de ' . ($campo === 'data_publicacao' ? 'publicação' : 'validade') . ' não é válida.', $campo);
         }
