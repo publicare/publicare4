@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pbl\Atualizacao;
 
-use Pbl\Banco\Conexao;
 use Pbl\Caminhos;
 use Pbl\Versao;
 
@@ -16,7 +15,8 @@ use Pbl\Versao;
  *  3. copia o banco SQLite para `dados/backups/`;
  *  4. liga a manutenção, troca as pastas do código por `rename` (as antigas ficam em `dados/atualizacao/anterior/`);
  *  5. roda as migrações e confere a versão com o código NOVO, num processo à parte;
- *  6. se qualquer passo depois da troca falhar, devolve o código antigo. As migrações só acrescentam (expandir/contrair),
+ *  6. se qualquer passo depois da troca falhar, devolve o código antigo. Concluída, grava `dados/atualizacao/aplicada.json`, que permite
+ *     voltar atrás depois (`Reversor`, `bin/pbl reverter`) enquanto `anterior/` e a cópia do banco existirem. As migrações só acrescentam (expandir/contrair),
  *     então o código antigo continua funcionando com o banco já migrado.
  * `dados/` nunca faz parte da troca.
  */
@@ -72,37 +72,12 @@ final class Atualizador
         if (!$v->disponivel || $v->manifesto === null) {
             throw new ErroDeAtualizacao($v->motivo);
         }
-        $trava = $this->travar();
+        $trava = Trava::obter($this->caminhos);
         try {
             return $this->aplicarTravado($v, $urlDoManifesto);
         } finally {
-            flock($trava, LOCK_UN);
-            fclose($trava);
+            Trava::soltar($trava);
         }
-    }
-
-    /**
-     * Exclusão mútua entre qualquer origem (linha de comando, painel, cron): `flock` em `dados/atualizacao.lock`, fora de
-     * `dados/atualizacao/` (que cada execução apaga). O sistema solta a trava sozinho se o processo morrer.
-     *
-     * @return resource
-     */
-    private function travar()
-    {
-        $dados = $this->caminhos->dados();
-        if (!is_dir($dados) && !@mkdir($dados, 0750, true) && !is_dir($dados)) {
-            throw new ErroDeAtualizacao('Não foi possível criar a pasta dados/.');
-        }
-        $f = @fopen($dados . '/atualizacao.lock', 'c');
-        if ($f === false) {
-            throw new ErroDeAtualizacao('Não foi possível criar dados/atualizacao.lock (falta permissão de escrita em dados/).');
-        }
-        if (!flock($f, LOCK_EX | LOCK_NB)) {
-            fclose($f);
-            throw new ErroDeAtualizacao('Outra atualização em andamento: espere terminar antes de tentar de novo.');
-        }
-
-        return $f;
     }
 
     private function aplicarTravado(Verificacao $v, string $urlDoManifesto): Aplicada
@@ -135,10 +110,34 @@ final class Atualizador
             Manutencao::desligar($this->caminhos);
             throw new ErroDeAtualizacao('A atualização falhou e o código anterior foi restaurado: ' . $e->getMessage(), 0, $e);
         }
+        $this->registrar($trabalho, $m->versao, $backup, $trocados);
         Manutencao::desligar($this->caminhos);
         $this->limpar($trabalho . '/novo');
 
         return new Aplicada($this->versaoAtual, $m->versao, $backup);
+    }
+
+    /**
+     * Guarda o que a volta atrás (`Reversor`) precisa conferir. Falhar aqui não desfaz uma atualização que deu certo: só deixa de
+     * haver como voltar atrás pelo comando (o código anterior continua em `anterior/`).
+     *
+     * @param list<string> $trocados
+     */
+    private function registrar(string $trabalho, string $para, string $backup, array $trocados): void
+    {
+        try {
+            RegistroDaAtualizacao::gravar($this->caminhos, [
+                'de' => $this->versaoAtual, 'para' => $para, 'em' => time(),
+                'backup' => $backup === '' ? '' : basename($backup),
+                'backup_sha256' => $backup === '' ? '' : (string) hash_file('sha256', $backup),
+                'schema_antes' => $backup === '' ? null : CopiaDeBanco::versaoDoEsquema($backup),
+                'schema_depois' => CopiaDeBanco::versaoDoEsquema($this->caminhos->banco()),
+                'itens' => $trocados,
+                'sem_anterior' => array_values(array_filter($trocados, static fn (string $i): bool => !file_exists("{$trabalho}/anterior/{$i}") && !is_link("{$trabalho}/anterior/{$i}"))),
+                'revertida' => false, 'revertida_em' => 0,
+            ]);
+        } catch (\Throwable) {
+        }
     }
 
     /** @return list<string> itens trocados */
@@ -191,16 +190,10 @@ final class Atualizador
         }
         $destino = $pasta . '/pbl4-' . $this->versaoAtual . '-antes-de-' . $versao . '-' . gmdate('Ymd-His') . '.sqlite';
         try {
-            // VACUUM INTO gera uma cópia consistente mesmo com o arquivo aberto por outro processo (SQLite 3.27+).
-            Conexao::sqlite($banco)->executeStatement('VACUUM INTO ' . "'" . str_replace("'", "''", $destino) . "'");
-        } catch (\Throwable) {
-            @unlink($destino);
-            if (!@copy($banco, $destino)) {
-                throw new ErroDeAtualizacao('Não foi possível copiar o banco: a atualização não começou.');
-            }
+            CopiaDeBanco::copiar($banco, $destino);
+        } catch (ErroDeAtualizacao) {
+            throw new ErroDeAtualizacao('Não foi possível copiar o banco: a atualização não começou.');
         }
-        @chmod($destino, 0600);
-
         return $destino;
     }
 

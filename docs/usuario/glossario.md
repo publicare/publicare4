@@ -48,5 +48,6 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Migração (de banco)** | Ajuste interno nos dados guardados, feito ao instalar ou atualizar. |
 | **Manifesto (de atualização)** | Pequeno arquivo assinado que diz qual é a versão mais nova, o que mudou e como baixá-la. O PBL4 só confia nele se a assinatura conferir. |
 | **Cópia de segurança (backup)** | Cópia dos arquivos e dados para voltar atrás em caso de problema. |
+| **Voltar atrás (de uma atualização)** | Desfazer uma atualização que já terminou: o código e o banco voltam a como eram antes dela. Diferente da volta atrás **automática** (quando a própria atualização falha no meio), esta é pedida pela pessoa (`bin/pbl reverter` ou o botão na tela Atualização) e perde o que foi criado no site depois da atualização, por isso pede confirmação explícita. |
 | **Software livre / MIT** | Licença que permite usar, estudar, modificar e distribuir o programa gratuitamente. |
 | **PBL3** | A versão anterior do Publicare. |

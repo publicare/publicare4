@@ -7,10 +7,11 @@ namespace Pbl\Atualizacao;
 use Pbl\Caminhos;
 
 /**
- * Roda o MESMO comando da linha de comando (`php bin/pbl atualizar`) num processo separado, em segundo plano. Nunca no processo da
- * requisição: a atualização demora e troca o código que está rodando. O shell só serve para soltar o processo (`&`, sem esperar) e
- * para gravar o código de saída; nenhum dado da requisição entra na linha de comando (só caminhos montados aqui, passados como
- * argumentos do shell, nunca concatenados).
+ * Roda o MESMO comando da linha de comando (`php bin/pbl atualizar` ou `php bin/pbl reverter --confirmar`) num processo separado,
+ * em segundo plano. Nunca no processo da requisição: a atualização (ou a volta atrás) demora e troca o código que está rodando. O
+ * shell só serve para soltar o processo (`&`, sem esperar) e para gravar o código de saída; nenhum dado da requisição entra na
+ * linha de comando (só caminhos e o nome do comando montados aqui, passados como argumentos do shell, nunca concatenados). O
+ * painel já exigiu senha e confirmação antes de chamar `iniciar`, então `--confirmar` aqui não é um atalho sem confirmação.
  */
 final class LancadorDeProcesso implements Lancador
 {
@@ -39,27 +40,32 @@ final class LancadorDeProcesso implements Lancador
         return function_exists('proc_open') && !in_array('proc_open', array_map('trim', explode(',', (string) ini_get('disable_functions'))), true);
     }
 
-    public function iniciar(string $arquivoDeSaida, string $arquivoDeCodigo): void
+    public function iniciar(string $arquivoDeSaida, string $arquivoDeCodigo, string $comando = 'atualizar'): void
     {
+        if (!in_array($comando, ['atualizar', 'reverter'], true)) {
+            throw new ErroDeAtualizacao('Comando desconhecido.');
+        }
         $php = $this->php ?? self::descobrirPhp();
         if ($php === null) {
             throw new ErroDeAtualizacao('Não achei o PHP de linha de comando neste servidor. Indique o caminho em "php" no arquivo dados/config/atualizacao.json ou atualize pelo terminal.');
         }
         if (!self::disponivel()) {
-            throw new ErroDeAtualizacao('Este servidor não permite iniciar processos (proc_open desligado). Atualize pelo terminal: php bin/pbl atualizar');
+            throw new ErroDeAtualizacao('Este servidor não permite iniciar processos (proc_open desligado). Atualize pelo terminal: php bin/pbl ' . $comando);
         }
         $script = $this->caminhos->raiz . '/bin/pbl';
         if (!is_file($script)) {
             throw new ErroDeAtualizacao('Não achei bin/pbl nesta instalação.');
         }
-        // $0 = php, $1 = script, $2 = saída, $3 = código. O código só aparece depois de completo (mv é atômico).
-        $interno = '"$0" "$1" atualizar >"$2" 2>&1 </dev/null; c=$?; echo "$c" >"$3.tmp" && mv "$3.tmp" "$3"';
-        $comando = 'nohup sh -c ' . escapeshellarg($interno) . ' '
-            . escapeshellarg($php) . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($arquivoDeSaida) . ' ' . escapeshellarg($arquivoDeCodigo)
+        // $0 = php, $1 = script, $2 = saída, $3 = código, $4 = comando (atualizar ou reverter, nunca dado da requisição).
+        // reverter precisa de --confirmar: quem chamou (o painel) já exigiu senha e confirmação antes de disparar o processo.
+        $argumentoExtra = $comando === 'reverter' ? ' --confirmar' : '';
+        $interno = '"$0" "$1" "$4"' . $argumentoExtra . ' >"$2" 2>&1 </dev/null; c=$?; echo "$c" >"$3.tmp" && mv "$3.tmp" "$3"';
+        $shell = 'nohup sh -c ' . escapeshellarg($interno) . ' '
+            . escapeshellarg($php) . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($arquivoDeSaida) . ' ' . escapeshellarg($arquivoDeCodigo) . ' ' . escapeshellarg($comando)
             . ' >/dev/null 2>&1 &';
-        $proc = @proc_open(['sh', '-c', $comando], [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes, $this->caminhos->raiz);
+        $proc = @proc_open(['sh', '-c', $shell], [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes, $this->caminhos->raiz);
         if (!is_resource($proc)) {
-            throw new ErroDeAtualizacao('Não foi possível iniciar o processo da atualização.');
+            throw new ErroDeAtualizacao('Não foi possível iniciar o processo da ' . ($comando === 'reverter' ? 'volta atrás' : 'atualização') . '.');
         }
         proc_close($proc); // o shell já voltou (o comando ficou em segundo plano)
     }

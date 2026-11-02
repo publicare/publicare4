@@ -11,7 +11,7 @@ use Pbl\Caminhos;
  * apaga `dados/atualizacao/` a cada execução, então o estado não pode ficar lá):
  *
  *  - `verificacao.json`: resultado da última consulta ao canal (cache de 24 h; falha, 1 h);
- *  - `estado.json`: a atualização iniciada pelo painel (de, para, quando); a existência dele sem `codigo` é a **trava**;
+ *  - `estado.json`: a atualização OU a volta atrás iniciada pelo painel (tipo, de, para, quando); a existência dele sem `codigo` é a **trava**;
  *  - `saida.txt` e `codigo`: o que o processo de segundo plano escreveu e o código de saída (o arquivo `codigo` só aparece quando acabou);
  *  - `trava.lock`: `flock` curto, só para duas pessoas clicando juntas não iniciarem duas atualizações.
  *
@@ -92,17 +92,18 @@ final class EstadoDoPainel
     // ---------------------------------------------------------------- execução em segundo plano
 
     /**
-     * @return array{estado: string, de: string, para: string, iniciado: int, saida: string, codigo: int|null, auditado: bool}
-     *         `estado`: `ociosa`, `andamento`, `concluida`, `falhou` ou `sem_resposta` (passou do limite sem terminar)
+     * @return array{estado: string, tipo: string, de: string, para: string, iniciado: int, saida: string, codigo: int|null, auditado: bool}
+     *         `estado`: `ociosa`, `andamento`, `concluida`, `falhou` ou `sem_resposta` (passou do limite sem terminar); `tipo`: `atualizar` ou `reverter`
      */
     public function situacao(): array
     {
         $e = $this->ler('estado.json');
-        $vazio = ['estado' => 'ociosa', 'de' => '', 'para' => '', 'iniciado' => 0, 'saida' => '', 'codigo' => null, 'auditado' => false];
+        $vazio = ['estado' => 'ociosa', 'tipo' => 'atualizar', 'de' => '', 'para' => '', 'iniciado' => 0, 'saida' => '', 'codigo' => null, 'auditado' => false];
         if ($e === null || !is_int($e['iniciado'] ?? null)) {
             return $vazio;
         }
-        $r = ['de' => is_string($e['de'] ?? null) ? $e['de'] : '', 'para' => is_string($e['para'] ?? null) ? $e['para'] : '',
+        $tipo = ($e['tipo'] ?? null) === 'reverter' ? 'reverter' : 'atualizar';
+        $r = ['tipo' => $tipo, 'de' => is_string($e['de'] ?? null) ? $e['de'] : '', 'para' => is_string($e['para'] ?? null) ? $e['para'] : '',
             'iniciado' => $e['iniciado'], 'auditado' => ($e['auditado'] ?? false) === true, 'saida' => $this->saida(), 'codigo' => null];
         $codigo = is_file($this->pasta() . '/codigo') ? trim((string) file_get_contents($this->pasta() . '/codigo')) : null;
         if ($codigo !== null && preg_match('/^[0-9]{1,3}$/D', $codigo) === 1) {
@@ -115,11 +116,12 @@ final class EstadoDoPainel
     }
 
     /**
-     * Tenta iniciar a atualização, uma de cada vez. Devolve false se já há uma em andamento (a trava).
+     * Tenta iniciar a atualização (ou a volta atrás), uma de cada vez. Devolve false se já há uma em andamento (a trava).
      *
+     * @param string $tipo `atualizar` ou `reverter`
      * @throws ErroDeAtualizacao se o processo não pôde ser iniciado (a trava não fica presa)
      */
-    public function iniciar(string $de, string $para, Lancador $lancador): bool
+    public function iniciar(string $de, string $para, Lancador $lancador, string $tipo = 'atualizar'): bool
     {
         $this->garantirPasta();
         $trava = @fopen($this->pasta() . '/trava.lock', 'c');
@@ -133,9 +135,9 @@ final class EstadoDoPainel
             foreach (['estado.json', 'saida.txt', 'codigo', 'codigo.tmp'] as $arquivo) {
                 @unlink($this->pasta() . '/' . $arquivo);
             }
-            $this->gravar('estado.json', ['de' => $de, 'para' => $para, 'iniciado' => $this->agora(), 'auditado' => false]);
+            $this->gravar('estado.json', ['tipo' => $tipo, 'de' => $de, 'para' => $para, 'iniciado' => $this->agora(), 'auditado' => false]);
             try {
-                $lancador->iniciar($this->pasta() . '/saida.txt', $this->pasta() . '/codigo');
+                $lancador->iniciar($this->pasta() . '/saida.txt', $this->pasta() . '/codigo', $tipo);
             } catch (\Throwable $e) {
                 @unlink($this->pasta() . '/estado.json');
                 throw $e;
