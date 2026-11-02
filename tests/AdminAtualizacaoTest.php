@@ -8,11 +8,13 @@ use Pbl\Admin\TelasDeAtualizacao;
 use Pbl\Atualizacao\Assinatura;
 use Pbl\Atualizacao\Baixador;
 use Pbl\Atualizacao\BaixadorLocal;
+use Pbl\Atualizacao\CopiaDeBanco;
 use Pbl\Atualizacao\Empacotador;
 use Pbl\Atualizacao\ErroDeAtualizacao;
 use Pbl\Atualizacao\EstadoDoPainel;
 use Pbl\Atualizacao\Lancador;
 use Pbl\Atualizacao\LancadorDeProcesso;
+use Pbl\Atualizacao\RegistroDaAtualizacao;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -55,8 +57,10 @@ final class LancadorFalso implements Lancador
     public bool $falhar = false;
     public string $saida = '';
     public string $codigo = '';
+    /** @var list<string> */
+    public array $comandos = [];
 
-    public function iniciar(string $arquivoDeSaida, string $arquivoDeCodigo): void
+    public function iniciar(string $arquivoDeSaida, string $arquivoDeCodigo, string $comando = 'atualizar'): void
     {
         if ($this->falhar) {
             throw new ErroDeAtualizacao('Não achei o PHP de linha de comando.');
@@ -64,6 +68,7 @@ final class LancadorFalso implements Lancador
         $this->chamadas++;
         $this->saida = $arquivoDeSaida;
         $this->codigo = $arquivoDeCodigo;
+        $this->comandos[] = $comando;
     }
 }
 
@@ -168,6 +173,30 @@ final class AdminAtualizacaoTest extends TestCase
         return $r;
     }
 
+    /**
+     * Fabrica o estado que uma atualização concluída deixa (`dados/atualizacao/anterior/` + `aplicada.json` + cópia do banco),
+     * sem rodar uma atualização real: o suficiente para o `Reversor` dizer que dá para voltar. A versão restaurada ("anterior")
+     * só tem `app`, o bastante para `Reversor::avaliar` conferir o código guardado.
+     */
+    private function fabricarAtualizacaoConcluida(string $de = '0.1.0', string $para = self::VERSAO, int $em = 0): void
+    {
+        $this->caminhos->garantirDados();
+        $pasta = $this->caminhos->dados() . '/atualizacao';
+        mkdir($pasta . '/anterior/app/src', 0775, true);
+        file_put_contents($pasta . '/anterior/app/src/Versao.php', "<?php\nfinal class Versao { public const ATUAL = '{$de}'; }\n");
+        $backups = $this->caminhos->dados() . '/backups';
+        mkdir($backups, 0775, true);
+        $backup = $backups . '/pbl4-' . $de . '-antes-de-' . $para . '.sqlite';
+        file_put_contents($backup, 'BANCO-ANTERIOR-A-' . $para);
+        RegistroDaAtualizacao::gravar($this->caminhos, [
+            'de' => $de, 'para' => $para, 'em' => $em === 0 ? $this->agora - 100 : $em,
+            'backup' => basename($backup), 'backup_sha256' => (string) hash_file('sha256', $backup),
+            'schema_antes' => null, 'schema_depois' => CopiaDeBanco::versaoDoEsquema($this->caminhos->banco()),
+            'itens' => ['app'], 'sem_anterior' => [],
+            'revertida' => false, 'revertida_em' => 0,
+        ]);
+    }
+
     // ------------------------------------------------------------------ acesso
 
     public function testSemLoginVaiParaEntrarEOPostNaoFazNada(): void
@@ -176,7 +205,7 @@ final class AdminAtualizacaoTest extends TestCase
         $r = $this->req('GET', '/_pbl/atualizacao');
         self::assertSame(303, $r->getStatusCode());
         self::assertSame('/_pbl/entrar', $r->headers->get('Location'));
-        foreach (['verificar', 'aplicar'] as $a) {
+        foreach (['verificar', 'aplicar', 'reverter'] as $a) {
             self::assertSame(303, $this->req('POST', "/_pbl/atualizacao/{$a}", null, $this->aplicarCampos(), self::ORIGEM)->getStatusCode());
         }
         self::assertSame(0, $this->lancador->chamadas);
@@ -221,6 +250,8 @@ final class AdminAtualizacaoTest extends TestCase
         self::assertNull(TelasDeAtualizacao::rota('/_pbl', '/_pbl/atualizacao/aplicar', 'GET'));
         self::assertNull(TelasDeAtualizacao::rota('/_pbl', '/_pbl/atualizacao/outra', 'POST'));
         self::assertNull(TelasDeAtualizacao::rota('/_pbl', '/_pbl/atualizacao/aplicar/x', 'POST'));
+        self::assertNull(TelasDeAtualizacao::rota('/_pbl', '/_pbl/atualizacao/reverter', 'GET'));
+        self::assertSame('reverter', TelasDeAtualizacao::rota('/_pbl', '/_pbl/atualizacao/reverter', 'POST'));
     }
 
     // ------------------------------------------------------------------ consulta
@@ -484,12 +515,144 @@ final class AdminAtualizacaoTest extends TestCase
         self::assertSame(303, $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos())->getStatusCode());
     }
 
-    public function testMostraComoVoltarAtras(): void
+    public function testSemAtualizacaoConcluidaNaoMostraOBotaoDeVoltarAtras(): void
     {
         $this->preparar();
         $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
-        self::assertStringContainsString('dados/atualizacao/anterior/', $h);
-        self::assertStringContainsString('dados/backups/', $h);
+        self::assertStringContainsString('Se algo der errado', $h);
+        self::assertStringContainsString('Não há atualização concluída para desfazer', $h);
+        self::assertStringNotContainsString('name="senha-reverter"', $h);
+        self::assertStringNotContainsString('action="/_pbl/atualizacao/reverter"', $h);
+    }
+
+    // ------------------------------------------------------------------ reverter
+
+    public function testBotaoDeReverterApareceEFuncionaComSenhaEConfirmacao(): void
+    {
+        $this->preparar();
+        $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringContainsString('Voltar para a 0.1.0', $h);
+        self::assertStringContainsString('id="campo-senha-reverter"', $h);
+        self::assertStringContainsString('action="/_pbl/atualizacao/reverter"', $h);
+
+        $antes = $this->foraDeDados();
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1']);
+        self::assertSame(303, $r->getStatusCode());
+        self::assertSame('/_pbl/atualizacao?ok=reversao_iniciada', $r->headers->get('Location'));
+        self::assertSame(['reverter'], $this->lancador->comandos);
+        self::assertSame($antes, $this->foraDeDados(), 'a requisição web só escreve em dados/');
+        $s = $this->estado()->situacao();
+        self::assertSame('andamento', $s['estado']);
+        self::assertSame('reverter', $s['tipo']);
+        $a = $this->auditoria('atualizacao.reverter_iniciar');
+        self::assertCount(1, $a);
+        self::assertSame(['de' => self::VERSAO, 'para' => '0.1.0'], json_decode((string) $a[0]['detalhe'], true));
+        self::assertStringNotContainsString(self::SENHA, (string) json_encode($this->s->auditoria->recentes(500)));
+
+        // trava: um segundo clique não inicia outra
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1']);
+        self::assertSame(409, $r->getStatusCode());
+        self::assertSame(1, $this->lancador->chamadas);
+    }
+
+    public function testReverterConcluidoMostraResultadoEAuditaUmaVezComPrefixoProprio(): void
+    {
+        $this->preparar();
+        $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
+        $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1']);
+        file_put_contents($this->lancador->saida, "Revertido de 0.2.0 para 0.1.0.\n");
+        file_put_contents($this->lancador->codigo, "0\n");
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringContainsString('Última volta atrás iniciada pelo painel', $h);
+        self::assertStringContainsString('Terminou sem erro', $h);
+        $this->tela('admin', 'GET', '/_pbl/atualizacao');
+        self::assertCount(1, $this->auditoria('atualizacao.reverter_concluida'), 'só uma vez');
+        self::assertSame([], $this->auditoria('atualizacao.concluida'), 'não usa a ação de uma atualização comum');
+    }
+
+    public function testReverterSenhaErradaNaoIniciaNadaERegistraNaAuditoria(): void
+    {
+        $this->preparar();
+        $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => 'senha errada qualquer', 'confirmar' => '1']);
+        self::assertSame(401, $r->getStatusCode());
+        self::assertStringContainsString('Senha incorreta.', $this->html($r));
+        self::assertSame(0, $this->lancador->chamadas);
+        self::assertCount(1, $this->auditoria('atualizacao.senha_errada'));
+        self::assertSame('ociosa', $this->estado()->situacao()['estado']);
+    }
+
+    public function testReverterSemConfirmacaoOuSemSenhaNaoInicia(): void
+    {
+        $this->preparar();
+        $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA]);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertStringContainsString('Marque a confirmação', $this->html($r));
+        self::assertSame(400, $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['confirmar' => '1'])->getStatusCode());
+        self::assertSame(0, $this->lancador->chamadas);
+    }
+
+    public function testReverterSemCsrfOuOrigemErradaERecusado(): void
+    {
+        $this->preparar();
+        $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1'], null, false);
+        self::assertSame(403, $r->getStatusCode());
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1'], null, true, ['HTTP_ORIGIN' => 'https://outro.example']);
+        self::assertSame(403, $r->getStatusCode());
+        self::assertSame(0, $this->lancador->chamadas);
+    }
+
+    public function testReverterSoParaAdministradorGeral(): void
+    {
+        $this->preparar();
+        $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
+        foreach (['editor', 'leitor'] as $login) {
+            self::assertSame(403, $this->post($this->token($login), '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1'])->getStatusCode(), $login);
+        }
+        self::assertSame(0, $this->lancador->chamadas);
+    }
+
+    public function testReverterRecusadoQuandoJaHaOperacaoEmAndamento(): void
+    {
+        $this->preparar();
+        $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
+        $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos());
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1']);
+        self::assertSame(409, $r->getStatusCode());
+        self::assertStringContainsString('Já existe uma atualização em andamento', $this->html($r));
+        self::assertSame(1, $this->lancador->chamadas, 'só a atualização chamou o lançador');
+    }
+
+    public function testReverterRecusaQuandoOBancoMudouDeFormaIncompativelDepoisDaAtualizacao(): void
+    {
+        $this->preparar();
+        $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
+        // Simula um esquema de banco diferente do registrado (migração ou alteração posterior): avaliar() deve recusar.
+        $r = RegistroDaAtualizacao::ler($this->caminhos) ?? self::fail();
+        $r['schema_depois'] = ($r['schema_depois'] ?? 0) + 1000;
+        RegistroDaAtualizacao::gravar($this->caminhos, $r);
+
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringContainsString('O banco mudou de forma incompatível', $h);
+        self::assertStringNotContainsString('action="/_pbl/atualizacao/reverter"', $h);
+
+        $resp = $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1']);
+        self::assertSame(409, $resp->getStatusCode());
+        self::assertStringContainsString('O banco mudou de forma incompatível', $this->html($resp));
+        self::assertSame(0, $this->lancador->chamadas);
+    }
+
+    public function testReverterRecusaQuandoAVersaoInstaladaNaoEADaUltimaAtualizacaoRegistrada(): void
+    {
+        $this->preparar();
+        $this->fabricarAtualizacaoConcluida('0.1.0', '0.9.9'); // registro de uma transição diferente da versão instalada (self::VERSAO)
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringContainsString('não é a da última atualização registrada', $h);
+        self::assertSame(409, $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1'])->getStatusCode());
+        self::assertSame(0, $this->lancador->chamadas);
     }
 
     // ------------------------------------------------------------------ processo real

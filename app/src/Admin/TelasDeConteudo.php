@@ -78,8 +78,9 @@ final class TelasDeConteudo
             $corpo = '<div class="alert alert-info" role="status">Você ainda não recebeu acesso a nenhuma seção. Peça a um administrador.</div>';
         }
         $saudacao = '<p>Olá, <strong>' . Pagina::h($u->nome) . '</strong>.' . ($u->administrador ? ' Você é administrador.' : '') . '</p>';
+        $avisoDeVersao = TelasDeAtualizacao::avisoHomePage($this->servicos, $u);
 
-        return Pagina::resposta('Administração', $saudacao . $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Administração', $saudacao . $avisoDeVersao . $corpo, Response::HTTP_OK, false, $this->barra($sessao));
     }
 
     private function barra(SessaoAtiva $sessao): string
