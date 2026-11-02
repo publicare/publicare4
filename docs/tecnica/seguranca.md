@@ -49,9 +49,20 @@ Como reportar uma vulnerabilidade: [SECURITY.md](../../SECURITY.md). Esta págin
 - **Limpeza na gravação, por lista de permissões** ([ADR 0012](../adr/0012-administracao-web.md) §10). `HtmlSeguro::limpar` lê o HTML com `DOMDocument` e **reescreve** a saída a partir da árvore (texto e atributos sempre escapados), em vez de filtrar por regex; o que o parser e o navegador entendam diferente vira, no pior caso, texto escapado. Roda em `ObjetoRepositorio::validar`, então vale para tela, linha de comando, importador e restauração de versão.
 - Permitido: parágrafos, títulos, ênfase, listas, tabelas, citações, código, `a[href]`, `img[src alt width height]` e `title`/`lang`/`dir`. Proibido: `script`, `style`, `iframe`, `object`, `embed`, `svg`, `math`, `form` e controles, `template`, `meta`/`link`/`base`, **qualquer** `on*`, `style`, `class`, `id`, `target`, `srcset`; comentários, CDATA e instruções.
 - Endereços: caracteres de controle e espaços são removidos antes de olhar o esquema (`java<TAB>script:`), entidades já vêm decodificadas pelo parser; links `http`/`https`/`mailto`/`tel`/relativo; imagens `http`/`https`/relativo; `javascript:`, `vbscript:`, `data:`, `file:` e qualquer outro são descartados. Todo link ganha `rel="noopener noreferrer"`. Profundidade e tamanho limitados (1 MB).
-- Os moldes continuam escapando por padrão; `ecocru` de um campo `html` agora imprime HTML já limpo. O HTML gravado **antes** da fase 5g só é limpo quando o campo for gravado de novo; a administração nunca o interpreta (mostra como texto).
+- Os moldes continuam escapando por padrão; `ecocru` de um campo `html` agora imprime HTML já limpo. O HTML gravado **antes** da fase 5g só era limpo quando o campo fosse gravado de novo (a administração nunca o interpreta, mostra como texto); a fase 5i fechou essa lacuna com uma varredura (abaixo).
 - Testes: `tests/HtmlSeguroTest.php` (mais de 60 vetores de XSS, mutação, idempotência), `tests/IntegridadeDeConteudoTest.php` e `tests/AdminIntegridadeTest.php`.
 - Regras de tipos aceitos e campos obrigatórios no repositório (`ViolacaoDeRegra`): um formulário forjado, um script de importação ou a linha de comando não contornam o que a tela exige.
+
+### Varredura do HTML antigo (fase 5i)
+
+`bin/pbl sanitizar-html [--simular] [--site=ID] [--limite=N]` lê, em lotes (`ObjetoRepositorio::loteOrdenadoPorId`, sem carregar tudo na memória), toda propriedade `html` de todo objeto — de qualquer site e **qualquer estado**, inclusive a lixeira e o que nunca foi publicado (o valor continua gravado e um dia pode ser restaurado ou publicado) — e aplica `HtmlSeguro::limpar`. Quando o resultado é diferente do gravado, grava uma **nova versão** pelo caminho normal (`ObjetoRepositorio::atualizar`): nunca sobrescreve sem histórico, e dá para voltar pela tela de versões.
+
+- Autoria **sistema** (sem usuário) e auditoria `objeto.atualizar` só com os nomes dos campos tocados e o id do objeto, igual a qualquer outra gravação pelo repositório — o HTML em si nunca é auditado.
+- `--simular` não grava nada; mostra, por objeto e campo, um **resumo** do que seria tirado (tags e atributos removidos, por nome, e o tamanho antes/depois em bytes) — nunca o HTML inteiro.
+- Páginas afetadas que estão no ar são republicadas pelo mesmo mecanismo da edição pelo painel (regrava se visível, tira do cache se não; o pai também é refeito, por poder listar o conteúdo).
+- Idempotente: como `HtmlSeguro::limpar` já é idempotente, rodar de novo não encontra nada para mudar.
+- Exclusão mútua com `atualizar`/`reverter` pela mesma trava (`Trava`, `dados/atualizacao.lock`): não roda durante uma atualização do PBL4.
+- Testes: `tests/SanitizarHtmlComandoTest.php`.
 
 ## Formulários públicos (fase 6a)
 
@@ -88,7 +99,6 @@ A edição de peles é a única superfície em que a administração **grava arq
 | Política para quando existir migração **destrutiva** de verdade (hoje nenhuma existe — ADR 0006 §8 —, então `bin/pbl reverter` sempre é seguro quando o registro da atualização confere) | a decidir ([ADR 0006](../adr/0006-atualizador-automatico.md)) |
 | HTTPS forçado na administração (hoje é recomendação) | a decidir |
 | Pele inteira (criar, importar, apagar), arquivos de pele que não sejam `.pbl`, histórico de moldes | com o editor e a galeria de peles ([fluxo 4](../fluxos/04-edicao-peles.md)) |
-| Limpar o HTML antigo já gravado antes da fase 5g (hoje ele é limpo na próxima gravação do campo; a leitura não altera nada) | a decidir (um comando de varredura) |
 | Reautenticar (pedir a senha de novo) antes de ações de conta sensíveis; lista de contas paginada | a decidir |
 
 ## Atrás de um proxy (Cloudflare, nginx)

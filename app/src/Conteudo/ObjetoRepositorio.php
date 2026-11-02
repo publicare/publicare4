@@ -170,6 +170,32 @@ final class ObjetoRepositorio
         return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $texto);
     }
 
+    /**
+     * Um lote de objetos **em qualquer estado** (inclusive a lixeira), de qualquer site ou só de `$siteId`, ordenado por id a
+     * partir de `$apartirDe` (exclusive). Feito para varreduras de todo o conteúdo sem carregar tudo na memória de uma vez: quem
+     * chama guarda o maior id lido e pede o lote seguinte até vir vazio.
+     *
+     * @return list<Objeto>
+     */
+    public function loteOrdenadoPorId(?int $siteId, int $apartirDe, int $tamanho): array
+    {
+        if ($siteId !== null) {
+            $linhas = $this->conexao->fetchAllAssociative(
+                'SELECT * FROM objeto WHERE site_id = ? AND id > ? ORDER BY id LIMIT ?',
+                [$siteId, $apartirDe, $tamanho],
+                [ParameterType::INTEGER, ParameterType::INTEGER, ParameterType::INTEGER],
+            );
+        } else {
+            $linhas = $this->conexao->fetchAllAssociative(
+                'SELECT * FROM objeto WHERE id > ? ORDER BY id LIMIT ?',
+                [$apartirDe, $tamanho],
+                [ParameterType::INTEGER, ParameterType::INTEGER],
+            );
+        }
+
+        return array_map($this->hidratar(...), $linhas);
+    }
+
     /** @return list<Objeto> publicados do site cujo caminho começa com o prefixo (a própria subárvore). */
     public function publicadosDaSubarvore(int $siteId, string $caminhoRaiz): array
     {
