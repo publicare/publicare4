@@ -258,3 +258,8 @@ Os campos `html` ganharam um editor (TinyMCE 6.8.6, MIT, hospedado, carregado s�
 - Pele básica: `bootstrap.bundle.min.js` (5.3.8, local em `assets/`, `defer`), `pbl-pele.js` (`defer`; indicadores do carrossel, botões de submenu, "voltar ao topo", cabeçalho que muda ao rolar, cartões que aparecem ao rolar) e `pbl-js.js` (síncrono, uma linha, no `<head>`: marca `<html class="js">`). O CSS só esconde ou troca algo (menu recolhido, um slide por vez, respostas fechadas) sob `.js`; sem a classe o menu fica aberto, os destaques empilhados e as respostas visíveis. O JS nunca esconde conteúdo por conta própria antes de saber que ele está fora da tela, e `prefers-reduced-motion` desliga o autoplay e as animações.
 - O CSS da pele básica continua próprio (não carrega o CSS do Bootstrap): as classes `collapse`, `carousel-*` e `accordion-*` são só o contrato com o JS do Bootstrap.
 
+## Adendo: tela Conteúdo e prévia depois de gravar
+
+- `GET /_pbl/conteudo` (pontos de entrada; com um só, redireciona), `GET /_pbl/conteudo/{id}` (um nível; `q`, `estado`, `classe`, `ordem`, `por`, `inicio`) e `POST /_pbl/conteudo/acao` (publicar, despublicar, enviar, excluir; CSRF, origem, versão por id, máx. 200). Exige `Ver` no objeto; "não existe" e "sem acesso" têm a mesma resposta.
+- `GET /_pbl/objeto/{id}/previa?salvo=...` renderiza o objeto com a faixa de resultado; toda gravação redireciona para lá. O CSP relaxado de `MARCA_PREVIA` vale só nessa resposta.
+- A barra do painel usa `navbar-expand-xl`.

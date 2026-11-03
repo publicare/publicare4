@@ -78,7 +78,7 @@ final class Pagina
     public static function resposta(string $titulo, string $corpo, int $status = Response::HTTP_OK, bool $seguro = false, string $navegacao = '', array $migalhas = [], string $descricao = ''): Response
     {
         $editor = str_contains($corpo, self::MARCA_EDITOR);
-        $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+        $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
             . '<meta name="robots" content="noindex"><title>' . self::h($titulo) . ' — PBL4</title>'
             . '<link rel="stylesheet" href="' . self::urlVersionada(self::BOOTSTRAP) . '"><link rel="stylesheet" href="' . self::urlVersionada(self::CSS) . '">'
             . '<script src="' . self::urlVersionada(self::BOOTSTRAP_JS) . '" defer></script><script src="' . self::urlVersionada(self::JS) . '" defer></script>'
@@ -155,6 +155,7 @@ final class Pagina
         $caminho = rtrim(self::$caminhoAtual, '/');
         $secao = match (true) {
             str_starts_with($caminho, '/_pbl/classes'), str_starts_with($caminho, '/_pbl/modelos') => 'classes',
+            str_starts_with($caminho, '/_pbl/conteudo') => 'conteudo',
             str_starts_with($caminho, '/_pbl/contas') => 'contas',
             str_starts_with($caminho, '/_pbl/atualizacao') => 'atualizacao',
             str_starts_with($caminho, '/_pbl/pendencias') => 'pendencias',
@@ -163,6 +164,7 @@ final class Pagina
         };
         [$pendencias, $revisor, $envia] = self::$revisao;
         $itens = ['inicio' => ['/_pbl/', 'Sites e conteúdo']];
+        $itens['conteudo'] = ['/_pbl/conteudo', 'Conteúdo'];
         if ($revisor) {
             $itens['pendencias'] = ['/_pbl/pendencias', 'Pendências' . ($pendencias > 0 ? ' <span class="badge text-bg-warning" title="Aguardando revisão">' . $pendencias . '</span>' : '')];
         }
@@ -179,7 +181,7 @@ final class Pagina
             $links .= '<li class="nav-item"><a class="nav-link' . ($chave === $secao ? ' active' : '') . '" href="' . $href . '"' . ($chave === $secao ? ' aria-current="page"' : '') . '>' . $rotulo . '</a></li>';
         }
 
-        return '<nav class="navbar navbar-expand-md bg-dark pbl-barra" data-bs-theme="dark" aria-label="Administração"><div class="container">'
+        return '<nav class="navbar navbar-expand-xl bg-dark pbl-barra" data-bs-theme="dark" aria-label="Administração"><div class="container">'
             . '<a class="navbar-brand" href="/_pbl/">PBL4</a>'
             . '<div class="pbl-usuario d-flex align-items-center gap-2 ms-auto"><span class="navbar-text pbl-nome">' . self::h($nome) . '</span>'
             . '<form method="post" action="/_pbl/sair"><input type="hidden" name="_csrf" value="' . self::h($tokenCsrf) . '">'

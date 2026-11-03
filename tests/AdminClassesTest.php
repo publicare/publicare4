@@ -637,7 +637,7 @@ final class AdminClassesTest extends TestCase
         $html = (string) $this->req('GET', '/_pbl/classes/nova', $this->token('admin'))->getContent();
         self::assertMatchesRegularExpression('/<div id="painel-filhos" class="accordion-collapse collapse">/', $html, 'filhos aceitos começam recolhidos');
         self::assertStringContainsString('name="aceita_filhos"', $html, 'o campo continua no formulário (envia mesmo recolhido)');
-        self::assertStringContainsString('navbar-expand-md', $html);
+        self::assertStringContainsString('navbar-expand-xl', $html);
         self::assertStringContainsString('data-bs-toggle="collapse" data-bs-target="#menu-principal"', $html);
         self::assertStringNotContainsString('<details', $html);
     }
