@@ -1,0 +1,8 @@
+<@incluir arquivo="bloco_aviso"@>
+<header class="pt-topo">
+<div class="container py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+<a class="d-flex align-items-center gap-2 text-decoration-none text-body" href="<@eco #raiz_pele_url@>"><@se %SITE.config.logo != ""@><img class="pt-logo" src="<@arquivo valor=%SITE.config.logo info="url"@>" alt=""><@/se@><span class="h4 mb-0"><@eco #site_nome@></span></a>
+<@se %SITE.config.busca_ligada == 1@><form class="d-flex gap-2" action="/busca" method="get" role="search"><label class="visually-hidden" for="busca-q">Buscar no site</label><input id="busca-q" class="form-control" type="search" name="q" value="<@eco $q@>" maxlength="200"> <button class="btn btn-outline-primary" type="submit">Buscar</button></form>
+<@/se@></div>
+<nav class="pt-menu container pb-2" aria-label="Menu principal"><@menu profundidade=3 inicio="Início"@></nav>
+</header>

@@ -119,13 +119,28 @@ final class FonteRepositorio implements FonteDeDados
             return '';
         }
 
+        $arvore = $this->menus->arvore($site);
+        $raizId = $site->objetoRaizId;
+        $urlInicio = '/';
+        // Pele própria (ADR 0022): o menu parte da raiz da pele, não da raiz do site.
+        $raizDaPele = $objeto['raiz_pele'] ?? null;
+        if (is_int($raizDaPele) && $raizDaPele !== $site->objetoRaizId) {
+            $sub = $this->menus->subarvore($site, $raizDaPele);
+            if ($sub !== null) {
+                $arvore = $sub['arvore'];
+                $raizId = $raizDaPele;
+                $urlInicio = $sub['url'];
+            }
+        }
+
         return MenuHtml::gerar(
-            $this->menus->arvore($site),
+            $arvore,
             min($profundidade, $this->menus->profundidadeDe($site)),
             $inicio,
             is_int($objeto['id'] ?? null) ? $objeto['id'] : 0,
             is_string($objeto['caminho'] ?? null) ? $objeto['caminho'] : '',
-            $site->objetoRaizId,
+            $raizId,
+            $urlInicio,
         );
     }
 

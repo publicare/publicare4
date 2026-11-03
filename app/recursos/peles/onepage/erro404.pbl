@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="<@eco %SITE.config.idioma@>">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Página não encontrada - <@eco #site_nome@></title>
+<link rel="stylesheet" href="<@eco #pele_url@>/assets/bootstrap.min.css?v=<@eco #pele_v@>">
+</head>
+<body>
+<main class="container py-5">
+<h1>Página não encontrada</h1>
+<p>O endereço que você abriu não existe ou saiu do ar. <a href="/">Volte à página inicial</a>.</p>
+</main>
+</body>
+</html>

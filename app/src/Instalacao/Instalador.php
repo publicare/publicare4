@@ -132,13 +132,14 @@ final class Instalador
 
     private function copiarPeleBasica(): void
     {
-        $origem = $this->caminhos->app() . '/recursos/peles/basica';
+        // Todas as peles distribuídas (basica, onepage, portal: moldes e assets); ADR 0022.
         $destino = $this->caminhos->peles() . '/basica';
         if (!is_dir($destino) && !mkdir($destino, 0775, true) && !is_dir($destino)) {
             throw new \RuntimeException("Não foi possível criar {$destino}");
         }
-        foreach (glob($origem . '/*.pbl') ?: [] as $arquivo) {
-            copy($arquivo, $destino . '/' . basename($arquivo));
+        $r = (new PelesDistribuidas($this->caminhos))->sincronizar();
+        if (!is_file($destino . '/padrao.pbl')) {
+            throw new \RuntimeException('Não foi possível copiar a pele básica: ' . implode(' ', $r['avisos']));
         }
     }
 }

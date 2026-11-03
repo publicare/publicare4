@@ -21,6 +21,12 @@ body{font-family:system-ui,sans-serif;max-width:46rem;margin:0 auto;padding:0 1r
 .destaque img{display:block;width:100%;height:auto}
 .destaque h2{font-size:1.1rem;margin:.75rem .75rem .25rem}
 .destaque p,.destaque>a{margin:.25rem .75rem .75rem;display:block}
+.destaque-principal{border:1px solid #ddd;border-radius:.5rem;overflow:hidden;background:#f3f6fb;margin:0 0 1.5rem}
+.destaque-principal img{display:block;width:100%;height:auto}
+.destaque-principal h2{margin:.75rem 1rem .25rem}
+.destaque-principal p{margin:.25rem 1rem .75rem}
+.links-rapidos ul{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;list-style:none;padding:0}
+.ultimas h2,.links-rapidos h2{font-size:1.25rem;margin-top:1.5rem}
 .evento-quando{font-weight:600}
 .agenda h2{margin-top:1.5rem}
 details{border:1px solid #ddd;border-radius:.4rem;margin:.5rem 0;padding:.5rem .75rem}

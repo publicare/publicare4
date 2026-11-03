@@ -36,3 +36,9 @@ make pbl ARGS="demo-popular --site=2"        # outro site
 ```
 
 Ele cria página inicial com texto formatado, 3 destaques, a seção Institucional (com subpáginas), 8 notícias (uma agendada para o futuro e um rascunho), agenda, perguntas frequentes, documentos, galeria de fotos e links úteis. Também cria as contas `autor` e `editor` (senha de demonstração `demo-2026-pbl4`, **só para demo**: nunca use em site de verdade), cada uma com a seção Institucional, e dois envios de exemplo: um **em revisão** e um **devolvido com motivo**, para testar o fluxo de revisão. Pode ser repetido sem duplicar nada. **Só para desenvolvimento e demonstração**: se o site já tiver mais de 30 conteúdos, o comando recusa; `--forcar` ignora a trava, e `--sem-publicar` só cria o conteúdo.
+
+## Peles por conteúdo e as duas versões do demo
+
+Na edição de um conteúdo (cartão **Publicação**, só para quem pode publicar) há os campos **Pele** e **Aparência (molde)**. "Herdar" (o padrão) usa a do conteúdo-pai ou, no topo, a do site; escolhendo uma, tudo abaixo dele passa a usá-la e as páginas são republicadas. O molde, se existir na pele efetiva, vale para aquele conteúdo; a página inicial do site usa o molde `home` quando a pele o tem.
+
+O `demo-popular` cria duas versões do mesmo site, no ar ao mesmo tempo: **/onepage** (pele `onepage`: uma página com seções vindas dos filhos) e **/portal** (pele `portal`: várias páginas, carrossel e notícias). O endereço de cada conteúdo é único no site, por isso os do demo levam prefixo (`op-`, `pt-`). A pele básica continua sem JavaScript; `onepage` e `portal` usam o do Bootstrap, hospedado no próprio site.

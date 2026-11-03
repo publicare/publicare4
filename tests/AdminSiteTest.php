@@ -299,7 +299,7 @@ final class AdminSiteTest extends TestCase
         self::assertSame($novo, file_get_contents($this->caminhos->peles() . '/basica/padrao.pbl'));
         // Republicou: a página inicial no cache usa o molde novo.
         $site = $this->s->sites->porId($this->siteId) ?? self::fail();
-        $pagina = (string) file_get_contents($this->caminhos->pagina($site->id, ''));
+        $pagina = (string) file_get_contents($this->caminhos->pagina($site->id, 'sobre'));
         self::assertStringContainsString('<h1>Olá ', $pagina);
         self::assertSame([], glob($this->caminhos->peles() . '/basica/.*.tmp') ?: []);
         self::assertContains('pele.molde.salvar', array_column($this->s->auditoria->recentes(), 'acao'));
@@ -343,7 +343,7 @@ final class AdminSiteTest extends TestCase
             $r = $this->post($t, "{$b}/novo", ['nome' => $nome, 'conteudo' => '<p>x</p>']);
             self::assertSame(422, $r->getStatusCode(), $nome);
         }
-        self::assertSame(['agenda.pbl', 'bloco.pbl', 'bloco_aviso.pbl', 'bloco_rodape.pbl', 'busca.pbl', 'cabeca.pbl', 'destaque.pbl', 'erro404.pbl', 'estilo.pbl', 'evento.pbl', 'faixa_destaques.pbl', 'faq.pbl', 'formulario.pbl', 'item.pbl', 'link.pbl', 'link_a.pbl', 'noticia.pbl', 'padrao.pbl', 'paginacao.pbl', 'pasta.pbl', 'perguntas.pbl', 'topo.pbl'], array_values(array_diff(scandir($this->caminhos->peles() . '/basica') ?: [], ['.', '..'])));
+        self::assertSame(['agenda.pbl', 'bloco.pbl', 'bloco_aviso.pbl', 'bloco_rodape.pbl', 'busca.pbl', 'cabeca.pbl', 'destaque.pbl', 'erro404.pbl', 'estilo.pbl', 'evento.pbl', 'faixa_destaques.pbl', 'faq.pbl', 'formulario.pbl', 'home.pbl', 'item.pbl', 'link.pbl', 'link_a.pbl', 'noticia.pbl', 'padrao.pbl', 'paginacao.pbl', 'pasta.pbl', 'perguntas.pbl', 'topo.pbl'], array_values(array_diff(scandir($this->caminhos->peles() . '/basica') ?: [], ['.', '..'])));
         self::assertFileDoesNotExist($this->caminhos->peles() . '/x.pbl');
         self::assertFileDoesNotExist($this->raiz . '/x.pbl');
         // Leitura, edição e apagar com nomes maus não encontram nada (404) e não apagam.

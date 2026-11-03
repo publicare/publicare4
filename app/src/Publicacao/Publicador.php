@@ -94,6 +94,46 @@ final class Publicador
         $this->republicarPorMenu($site);
     }
 
+    /**
+     * Pele ou molde de um objeto mudou (ADR 0022): refaz as páginas visíveis da subárvore dele. Se o menu também mudou (a pele
+     * troca a árvore do menu), vale a regra do menu: site pequeno é refeito na hora, grande fica pendente. Subárvore acima de
+     * `LIMITE_SINCRONO` também fica pendente para `bin/pbl publicar`/`agendados`.
+     *
+     * @return bool true se republicou agora; false se ficou pendente
+     */
+    public function republicarSubarvore(Site $site, Objeto $raiz): bool
+    {
+        if ($this->menu?->verificar($site, 'publicacao') === true) {
+            $this->republicarPorMenu($site);
+
+            return !$this->menuPendente($site);
+        }
+        $lista = $this->objetos->todosDaSubarvore($site->id, $raiz->caminho);
+        if (count($lista) > self::LIMITE_SINCRONO) {
+            $this->menu?->marcarPendente($site->id);
+
+            return false;
+        }
+        $agora = gmdate('c');
+        $anterior = $this->emLote;
+        $this->emLote = true;
+        try {
+            foreach ($lista as $objeto) {
+                if ($objeto->visivel($agora)) {
+                    try {
+                        $this->publicar($site, $objeto);
+                    } catch (\InvalidArgumentException) {
+                        continue;
+                    }
+                }
+            }
+        } finally {
+            $this->emLote = $anterior;
+        }
+
+        return true;
+    }
+
     /** @return int quantidade de páginas publicadas */
     public function publicarSite(Site $site): int
     {
