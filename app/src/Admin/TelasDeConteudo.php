@@ -94,7 +94,8 @@ final class TelasDeConteudo
         if ($corpo === '') {
             $corpo = Pagina::alerta('info', 'Você ainda não recebeu acesso a nenhuma seção. Peça a um administrador.');
         }
-        $saudacao = $this->avisosDeRevisao($sessao);
+        $saudacao = $this->avisosDeRevisao($sessao)
+            . '<p><a class="btn btn-primary bg-gradient" href="' . Painel::PREFIXO . '/conteudo">Navegar no conteúdo</a></p>';
         $avisoDeVersao = TelasDeAtualizacao::avisoHomePage($this->servicos, $u);
 
         return Pagina::resposta('Sites e conteúdo', $saudacao . $avisoDeVersao . $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Olá, <strong>' . Pagina::h($u->nome) . '</strong>. ' . ($u->administrador ? 'Você é administrador: escolha um site para cuidar dele ou abra uma seção para editar conteúdo.' : 'Abra uma seção para editar o conteúdo.'));
