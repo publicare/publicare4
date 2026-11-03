@@ -51,7 +51,11 @@ final class AssetsDePele
         }
         $extensao = strtolower(pathinfo($m[2], PATHINFO_EXTENSION));
         $base = realpath($this->caminhos->peles() . '/' . $m[1] . '/assets');
-        $caminho = $this->caminhos->peles() . '/' . $m[1] . '/assets/' . $m[2];
+        if (!str_starts_with($m[2], 'assets/')) {
+            return $this->resposta('Não encontrado', Response::HTTP_NOT_FOUND);
+        }
+        $relativo = substr($m[2], strlen('assets/'));
+        $caminho = $this->caminhos->peles() . '/' . $m[1] . '/assets/' . $relativo;
         $real = $base === false || !isset(self::TIPOS[$extensao]) || is_link($caminho) ? false : realpath($caminho);
         if ($base === false || $real === false || !str_starts_with($real, $base . DIRECTORY_SEPARATOR) || !is_file($real)) {
             return $this->resposta('Não encontrado', Response::HTTP_NOT_FOUND);

@@ -222,7 +222,7 @@ final class PeleEMoldePorObjetoTest extends TestCase
     {
         $this->sincronizarPeles();
         $p = $this->criar('pagina', $this->inicioId, 'Pagina', 'pagina');
-        $base = ['titulo' => 'Pagina', 'versao' => (string) $p->versao, 'estado' => 'publicado', 'corpo' => '<p>x</p>', 'molde' => ''];
+        $base = ['titulo' => 'Pagina', 'versao' => (string) $p->versao, 'estado' => 'publicado', 'corpo' => '<p>x</p>', 'molde' => '', 'descricao' => '', 'url' => $p->urlAmigavel, 'peso' => '0'];
 
         $ruim = $this->post($this->token('admin'), '/_pbl/objeto/' . $p->id . '/editar', ['pele' => '../x'] + $base);
         self::assertSame(422, $ruim->getStatusCode());
@@ -247,7 +247,7 @@ final class PeleEMoldePorObjetoTest extends TestCase
         self::assertStringContainsString('btn btn-success bg-gradient', $tela);
         self::assertStringContainsString('Gravar e publicar', $tela);
 
-        $r = $this->post($this->token('admin'), '/_pbl/objeto/' . $p->id . '/editar', ['titulo' => 'Pagina', 'versao' => (string) $p->versao, 'estado' => 'privado', 'corpo' => '<p>x</p>', 'acao' => 'publicar']);
+        $r = $this->post($this->token('admin'), '/_pbl/objeto/' . $p->id . '/editar', ['titulo' => 'Pagina', 'versao' => (string) $p->versao, 'estado' => 'privado', 'corpo' => '<p>x</p>', 'acao' => 'publicar', 'descricao' => '', 'url' => $p->urlAmigavel, 'peso' => '0']);
         self::assertContains($r->getStatusCode(), [302, 303]);
         self::assertSame('publicado', $this->s->objetos->porId($p->id)?->status);
     }

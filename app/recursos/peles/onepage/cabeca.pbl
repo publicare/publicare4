@@ -22,7 +22,7 @@
 <@/se@><meta property="og:type" content="<@se #classe == "noticia"@>article<@senao@>website<@/se@>">
 <meta property="og:url" content="<@eco #base_url@><@eco #url@>">
 <@se $imagem_seo != ""@><meta property="og:image" content="<@eco #base_url@><@arquivo valor=$imagem_seo info="url"@>">
-<@/se@><@se $icone_site != ""@><link rel="icon" href="<@arquivo valor=$icone_site info="url"@>">
+<@/se@><@se $icone_site != ""@><link rel="icon" href="<@arquivo valor=$icone_site info="url"@>"><@/se@>
 <link rel="stylesheet" href="<@eco #pele_url@>/assets/bootstrap.min.css?v=<@eco #pele_v@>">
 <link rel="stylesheet" href="<@eco #pele_url@>/assets/pele.css?v=<@eco #pele_v@>">
 <script src="<@eco #pele_url@>/assets/bootstrap.bundle.min.js?v=<@eco #pele_v@>" defer></script>
