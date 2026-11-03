@@ -168,6 +168,47 @@ final class PeleEMoldePorObjetoTest extends TestCase
         self::assertSame(404, $this->req('GET', '/_pbl/api/acoes?objeto=abc', $this->token('admin'))->getStatusCode());
     }
 
+    public function testApiDeAcoesEmLote(): void
+    {
+        $a = $this->criar('pagina', $this->inicioId, 'Pagina A', 'pagina-a');
+        $b = $this->criar('pagina', $this->inicioId, 'Pagina B', 'pagina-b');
+        $url = '/_pbl/api/acoes?objetos=' . $a->id . ',' . $b->id . ',999999';
+
+        self::assertSame(401, $this->req('GET', $url)->getStatusCode());
+
+        $admin = json_decode($this->html($this->req('GET', $url, $this->token('admin'))), true);
+        self::assertIsArray($admin);
+        self::assertSame([$a->id, $b->id], array_keys($admin['objetos']), 'inexistente é omitido, sem erro');
+        self::assertSame(['editar', 'despublicar', 'mover', 'excluir'], array_keys($admin['objetos'][$a->id]['acoes']));
+        self::assertSame($a->versao, $admin['objetos'][$a->id]['versao']);
+        self::assertNotSame('', $admin['csrf'], 'token uma vez só, no lote');
+
+        $leitor = json_decode($this->html($this->req('GET', $url, $this->token('leitor'))), true);
+        self::assertSame([], $leitor['objetos'][$a->id]['acoes']);
+        self::assertSame('', $leitor['csrf']);
+
+        $this->s->objetos->atualizar($b->id, ['status' => 'apagado']);
+        $depois = json_decode($this->html($this->req('GET', $url, $this->token('admin'))), true);
+        self::assertSame([$a->id], array_keys($depois['objetos']), 'apagado não aparece');
+
+        // O pedido de um objeto só continua igual.
+        self::assertArrayHasKey('acoes', json_decode($this->html($this->req('GET', '/_pbl/api/acoes?objeto=' . $a->id, $this->token('admin'))), true));
+    }
+
+    public function testApiDeAcoesEmLoteValidaEntradaELimite(): void
+    {
+        $tk = $this->token('admin');
+        foreach (['', 'abc', '1,,2', '0', '1,x', '1;2'] as $ruim) {
+            self::assertSame(400, $this->req('GET', '/_pbl/api/acoes?objetos=' . rawurlencode($ruim), $tk)->getStatusCode(), $ruim);
+        }
+        $cem = implode(',', range(1, 100));
+        self::assertSame(200, $this->req('GET', '/_pbl/api/acoes?objetos=' . $cem, $tk)->getStatusCode());
+        $maisUm = implode(',', range(1, 101));
+        $r = $this->req('GET', '/_pbl/api/acoes?objetos=' . $maisUm, $tk);
+        self::assertSame(400, $r->getStatusCode());
+        self::assertSame('muitos_objetos', json_decode($this->html($r), true)['erro']);
+    }
+
     public function testApiDeEstadoPublicaExigeCsrfEPermissao(): void
     {
         $p = $this->criar('pagina', $this->inicioId, 'Pagina', 'pagina');

@@ -138,7 +138,7 @@ final class DemoPopularComando extends Command
                 'corpo' => '<p>' . $r . ' O instituto convida toda a comunidade a participar e a acompanhar as próximas novidades por aqui.</p><h2>Como participar</h2><p>As informações completas estão na <a href="/agenda">agenda</a>. Em caso de dúvida, fale conosco pelo <a href="/contato">formulário de contato</a>.</p>',
                 ...($i === 0 ? ['seo_titulo' => $t . ' | Instituto Exemplo', 'seo_descricao' => $r] : []),
             ], 'publicado', ['peso' => 0, 'data_publicacao' => $dia(-$atras, '09:00:00')],
-                $this->imagem('imagem_destaque', $t, $cor, $u . '.png', 960, 540, (string) $i));
+                $this->imagem('imagem_destaque', $t, $cor, $u . '.png', 1200, 630, (string) $i));
         }
         $criar('noticia', $noticias->id, 'Balanço do semestre (em breve)', 'balanco-do-semestre', ['resumo' => 'Será publicada na data programada.', 'corpo' => '<p>Esta notícia está agendada e só aparece depois da data de publicação.</p>'], 'publicado', ['data_publicacao' => $dia(20, '08:00:00')]);
         $criar('noticia', $noticias->id, 'Rascunho: regimento interno', 'rascunho-regimento-interno', ['resumo' => 'Texto ainda em revisão.', 'corpo' => '<p>Rascunho não publicado (estado privado).</p>'], 'privado');
@@ -157,7 +157,7 @@ final class DemoPopularComando extends Command
                 'resumo' => $t . ': atividade aberta ao público, com entrada gratuita.',
                 'corpo' => '<p>Participe! Leve um documento com foto. Há acessibilidade para pessoas com deficiência.</p>',
                 'inicio' => $dia($d, $ini), 'fim' => $dia($d, $fim), 'local' => $local,
-            ] + ($link === '' ? [] : ['link_inscricao' => $link]), 'publicado', [], $this->imagem('imagem', $t, $cor, $u . '.png', 960, 540, $u));
+            ] + ($link === '' ? [] : ['link_inscricao' => $link]), 'publicado', [], $this->imagem('imagem', $t, $cor, $u . '.png', 1200, 630, $u));
         }
 
         // --- Perguntas frequentes ---------------------------------------------------------------------------------------
@@ -188,7 +188,7 @@ final class DemoPopularComando extends Command
         $galeria = $criar('pasta', $docs->id, 'Galeria de fotos', 'galeria-de-fotos', [], 'publicado', ['peso' => 40, 'descricao' => 'Fotos de atividades (imagens geradas)']);
         foreach ([[34, 112, 87], [52, 95, 140], [150, 82, 40], [140, 60, 90], [70, 70, 70], [160, 90, 50]] as $i => $cor) {
             $criar('imagem', $galeria->id, 'Foto ' . ($i + 1), 'galeria-foto-' . ($i + 1), ['legenda' => 'Atividade ' . ($i + 1), 'texto_alternativo' => 'Imagem ilustrativa colorida número ' . ($i + 1)], 'publicado', ['peso' => ($i + 1) * 10],
-                $this->imagem('imagem', 'Foto ' . ($i + 1), $cor, 'galeria-' . ($i + 1) . '.png', 800, 600, 'g' . $i));
+                $this->imagem('imagem', 'Foto ' . ($i + 1), $cor, 'galeria-' . ($i + 1) . '.png', 1200, 800, 'g' . $i));
         }
 
         // --- Links úteis -----------------------------------------------------------------------------------------------
@@ -240,7 +240,7 @@ final class DemoPopularComando extends Command
         $noticias = $criar('pasta', $pt->id, 'Notícias do portal', 'pt-noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Novidades']);
         foreach ([['inscricoes', 'Inscrições abertas para as oficinas', 2, [34, 112, 87]], ['horario', 'Biblioteca abre aos sábados', 8, [52, 95, 140]], ['feira', 'Feira de livros reúne 800 visitantes', 20, [140, 60, 90]], ['relatorio', 'Relatório anual publicado', 40, [60, 100, 100]]] as $i => [$u, $t, $atras, $cor]) {
             $criar('noticia', $noticias->id, $t, 'pt-noticia-' . $u, ['resumo' => $t . '.', 'corpo' => '<p>' . $t . '. Acompanhe as próximas novidades por aqui.</p>'], 'publicado',
-                ['data_publicacao' => gmdate('Y-m-d', time() - $atras * 86400) . ' 09:00:00'], $this->imagem('imagem_destaque', $t, $cor, 'pt-noticia-' . $u . '.png', 960, 540, $u));
+                ['data_publicacao' => gmdate('Y-m-d', time() - $atras * 86400) . ' 09:00:00'], $this->imagem('imagem_destaque', $t, $cor, 'pt-noticia-' . $u . '.png', 1200, 630, $u));
         }
         $pts = $criar('pasta', $pt->id, 'Serviços do portal', 'pt-servicos', [], 'publicado', ['peso' => 30, 'no_menu' => true, 'descricao' => 'O que oferecemos']);
         $criar('pagina', $pts->id, 'Biblioteca', 'pt-servico-biblioteca', $pagina('Empréstimo gratuito.', '<p>Mais de cinco mil títulos.</p>'), 'publicado', ['peso' => 10, 'no_menu' => true]);
@@ -252,9 +252,17 @@ final class DemoPopularComando extends Command
         }
         $criar('pagina', $pt->id, 'Contato do portal', 'pt-contato', $pagina('Fale com a gente.', '<p>Veja o <a href="/contato">formulário de contato</a>.</p>'), 'publicado', ['peso' => 50, 'no_menu' => true]);
 
-        // Atalhos na página inicial (molde home da pele básica) para as duas versões.
-        $criar('link', $pastaDeLinks, 'Versão onepage do site', 'link-onepage', ['destino_interno' => $op->id], 'publicado', ['peso' => 40, 'descricao' => 'Mesma organização numa página só']);
-        $criar('link', $pastaDeLinks, 'Versão portal do site', 'link-portal', ['destino_interno' => $pt->id], 'publicado', ['peso' => 50, 'descricao' => 'Mesma organização como portal']);
+        // Cartões grandes na página inicial (molde home da pele básica): links publicados direto sob a página inicial.
+        // Em demos criados antes, os dois atalhos moravam em "Links úteis" com outro título: reaproveita e reposiciona.
+        foreach ([['link-onepage', 'Ver versão Onepage', $op, 40, 'Toda a organização numa página só, com seções.'], ['link-portal', 'Ver versão Portal', $pt, 50, 'Notícias, serviços e institucional num portal.']] as [$url, $titulo, $alvo, $peso, $texto]) {
+            $existente = $this->servicos->objetos->porUrl($this->site->id, $url);
+            if ($existente === null) {
+                $criar('link', $this->raiz, $titulo, $url, ['destino_interno' => $alvo->id], 'publicado', ['peso' => $peso, 'descricao' => $texto]);
+            } elseif ($existente->paiId !== $this->raiz) {
+                $this->servicos->objetos->atualizar($existente->id, ['titulo' => $titulo, 'descricao' => $texto, 'peso' => $peso], 'Demo');
+                $this->servicos->objetos->mover($existente->id, $this->raiz, 'Demo');
+            }
+        }
     }
 
     private function slug(string $texto): string
@@ -365,41 +373,53 @@ final class DemoPopularComando extends Command
         };
     }
 
-    /** @param array{0: int, 1: int, 2: int} $cor */
+    /**
+     * PNG de demonstração, nítido e sem texto (a fonte embutida do GD não tem acentos): gradiente da cor dada para uma versão mais
+     * escura, mais formas translúcidas cuja posição vem do `$texto` (mesmo título, mesma imagem). Desenhada no dobro do tamanho e
+     * reduzida, para as bordas ficarem suaves.
+     *
+     * @param array{0: int, 1: int, 2: int} $cor
+     */
     private function png(string $texto, array $cor, int $largura, int $altura): string
     {
         if (!function_exists('imagecreatetruecolor')) {
             throw new \RuntimeException('A extensão GD é necessária para gerar as imagens do demo');
         }
-        $ascii = preg_replace('/[^\x20-\x7e]/', '', (string) iconv('UTF-8', 'ASCII//TRANSLIT', $texto)) ?? '';
         $largura = max(1, $largura);
         $altura = max(1, $altura);
-        $r = max(0, min(255, $cor[0]));
-        $g = max(0, min(255, $cor[1]));
-        $b = max(0, min(255, $cor[2]));
-        $im = imagecreatetruecolor($largura, $altura);
-        $fundo = imagecolorallocate($im, $r, $g, $b);
-        $claro = imagecolorallocate($im, min(255, $r + 60), min(255, $g + 60), min(255, $b + 60));
-        $branco = imagecolorallocate($im, 255, 255, 255);
-        if ($fundo === false || $claro === false || $branco === false) {
-            throw new \RuntimeException('Falha ao alocar cores');
+        $esc = 2;
+        $w = $largura * $esc;
+        $h = $altura * $esc;
+        [$r, $g, $b] = [max(0, min(255, $cor[0])), max(0, min(255, $cor[1])), max(0, min(255, $cor[2]))];
+        $im = imagecreatetruecolor($w, $h);
+        imagealphablending($im, true);
+        for ($y = 0; $y < $h; ++$y) {
+            $t = $y / max(1, $h - 1);
+            $f = 1.1 - 0.5 * $t;
+            $c = imagecolorallocate($im, max(0, min(255, (int) ($r * $f))), max(0, min(255, (int) ($g * $f))), max(0, min(255, (int) ($b * $f))));
+            if ($c !== false) {
+                imageline($im, 0, $y, $w, $y, $c);
+            }
         }
-        imagefill($im, 0, 0, $fundo);
-        imagefilledellipse($im, (int) ($largura * 0.85), (int) ($altura * 0.2), (int) ($altura * 0.9), (int) ($altura * 0.9), $claro);
-        // Texto pequeno (fonte 5 = 9x15 px) ampliado para ficar legível.
-        $pequena = imagecreatetruecolor(max(1, strlen($ascii) * 9), 15);
-        $f2 = imagecolorallocate($pequena, $r, $g, $b);
-        $b2 = imagecolorallocate($pequena, 255, 255, 255);
-        if ($f2 === false || $b2 === false) {
-            throw new \RuntimeException('Falha ao alocar cores');
+        $estado = crc32($texto) ?: 1;
+        $prox = static function () use (&$estado): float {
+            $estado = ($estado * 1103515245 + 12345) & 0x7fffffff;
+
+            return $estado / 0x7fffffff;
+        };
+        for ($i = 0; $i < 5; ++$i) {
+            $diametro = (int) ($altura * $esc * (0.5 + 0.9 * $prox()));
+            $alfa = max(0, min(127, 95 + (int) (20 * $prox())));
+            $tom = $i % 2 === 0 ? 255 : 0;
+            $forma = imagecolorallocatealpha($im, $tom, $tom, $tom, $alfa);
+            if ($forma !== false) {
+                imagefilledellipse($im, (int) ($w * $prox()), (int) ($h * $prox()), $diametro, $diametro, $forma);
+            }
         }
-        imagefill($pequena, 0, 0, $f2);
-        imagestring($pequena, 5, 0, 0, $ascii, $b2);
-        $escala = max(1, min((int) floor(($largura * 0.8) / imagesx($pequena)), 4));
-        imagecopyresized($im, $pequena, (int) ($largura * 0.08), (int) ($altura * 0.55), 0, 0, imagesx($pequena) * $escala, 15 * $escala, imagesx($pequena), 15);
-        imagestring($im, 3, 10, $altura - 20, 'Instituto Exemplo (imagem de demonstracao)', $branco);
+        $final = imagecreatetruecolor($largura, $altura);
+        imagecopyresampled($final, $im, 0, 0, 0, 0, $largura, $altura, $w, $h);
         ob_start();
-        imagepng($im);
+        imagepng($final);
 
         return (string) ob_get_clean();
     }

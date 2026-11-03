@@ -1,0 +1,2 @@
+bootstrap.bundle.min.js: Bootstrap 5.3.8 (MIT), so o JavaScript (collapse, carrossel, dropdown); copiado de public/_pbl/assets/bootstrap-5.3.8 (ver PROVENIENCIA.md ali). Sem CDN. O CSS da pele e proprio (pele.css).
+pbl-js.js: marca <html class="js"> (melhoria progressiva). pbl-pele.js: efeitos leves (menu, carrossel, rolagem). Sem eles o site continua legivel e navegavel.

@@ -12,7 +12,7 @@
 <@se %INDICE == 1@><section class="pt-hero carousel slide" id="pt-carrossel" data-bs-ride="carousel" aria-label="Destaques"><div class="carousel-inner">
 <@/se@><div class="carousel-item<@se %INDICE == 1@> active<@/se@>">
 <@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=1200@>" alt=""><@/se@>
-<div class="carousel-caption"><h2 class="h3"><@eco #titulo@></h2>
+<div class="carousel-caption"><h2 class="h3" data-pbl-objeto="<@eco #id@>"><@eco #titulo@><span class="pbl-acoes" hidden></span></h2>
 <@se #texto != ""@><p><@eco #texto@></p><@/se@>
 <@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
 <@se $dest != ""@><a class="btn btn-light" href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@>>Saiba mais<span class="visually-hidden"> sobre <@eco #titulo@></span></a><@/se@>
@@ -22,7 +22,7 @@
 <button class="carousel-control-next" type="button" data-bs-target="#pt-carrossel" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Próximo</span></button>
 </section>
 <@/se@><@var $slides = %QUANTIDADE@><@/localizar@>
-<@se $slides == 0@><@se %SITE.config.imagem_hero != ""@><section class="pt-hero"><img class="w-100" style="max-height:24rem;object-fit:cover" src="<@miniatura valor=%SITE.config.imagem_hero tamanho=1200@>" alt=""></section>
+<@se $slides == 0@><@se %SITE.config.imagem_hero != ""@><section class="pt-hero"><img class="w-100 pt-hero-img" src="<@miniatura valor=%SITE.config.imagem_hero tamanho=1200@>" alt=""></section>
 <@/se@><@/se@>
 <main id="conteudo" class="container py-4">
 <h1><@eco #titulo@></h1>
@@ -37,7 +37,7 @@
 </div>
 <@filhos classes="pasta,pagina" ordem="peso, titulo" limite=12@>
 <@se %INDICE == 1@><section aria-label="Seções" class="mt-4"><h2 class="h4">Seções</h2><div class="row row-cols-1 row-cols-md-3 g-3">
-<@/se@><div class="col"><div class="card h-100"><div class="card-body"><h3 class="h5 card-title"><a class="stretched-link" href="<@eco #url@>"><@eco #titulo@></a></h3>
+<@/se@><div class="col"><div class="card h-100"><div class="card-body"><h3 class="h5 card-title" data-pbl-objeto="<@eco #id@>"><a class="stretched-link" href="<@eco #url@>"><@eco #titulo@></a><span class="pbl-acoes" hidden></span></h3>
 <@se #resumo != ""@><p class="card-text"><@eco #resumo@></p><@senao@><@se #descricao != ""@><p class="card-text"><@eco #descricao@></p><@/se@><@/se@></div></div></div>
 <@se %INDICE == %QUANTIDADE@></div></section>
 <@/se@><@/filhos@>

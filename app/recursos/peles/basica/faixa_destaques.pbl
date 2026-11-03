@@ -2,11 +2,11 @@
 <@localizar classes="destaque" ordem="peso, titulo" limite=3 expandir="destino_interno"@>
 <@se %INDICE == 1@><section class="destaques" aria-label="Destaques">
 <@/se@><article class="destaque">
-<@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=400@>" alt=""><@/se@>
-<h2><@eco #titulo@></h2>
+<@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=800@>" alt="" loading="lazy" decoding="async"><@/se@>
+<h2 data-pbl-objeto="<@eco #id@>"><@eco #titulo@><span class="pbl-acoes" hidden></span></h2>
 <@se #texto != ""@><p><@eco #texto@></p><@/se@>
 <@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
-<@se $dest != ""@><a href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span style="position:absolute;left:-9999px"> sobre <@eco #titulo@></span></a><@/se@>
+<@se $dest != ""@><a href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span class="so-leitor"> sobre <@eco #titulo@></span></a><@/se@>
 </article>
 <@se %INDICE == %QUANTIDADE@></section>
 <@/se@><@/localizar@>

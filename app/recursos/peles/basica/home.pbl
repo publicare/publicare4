@@ -1,4 +1,4 @@
-<@-- Modelo "home": página inicial do site (ou da subárvore que usa esta pele). Destaque principal, faixa de destaques, links rápidos e últimas notícias. Cada bloco só aparece se houver conteúdo. --@>
+<@-- Modelo "home": página inicial do site (ou da subárvore que usa esta pele). Ordem: cabeçalho, hero (título, slogan e carrossel dos destaques; sem JavaScript os destaques aparecem empilhados), atalhos em cartões grandes (links publicados diretamente sob a página inicial), corpo, últimas notícias e links rápidos. Cada bloco só aparece se houver conteúdo. --@>
 <!doctype html>
 <html lang="<@eco %SITE.config.idioma@>">
 <head>
@@ -8,40 +8,51 @@
 <body data-pbl-objeto="<@eco #id@>">
 <@incluir arquivo="topo"@>
 <main>
+<@var $home = #id@>
+<section class="hero" aria-label="Apresentação">
 <h1><@eco #titulo@></h1>
-<@se #resumo@><p><em><@eco #resumo@></em></p><@/se@>
-<@localizar classes="destaque" ordem="peso, titulo" limite=1 expandir="destino_interno"@>
-<section class="destaque-principal" aria-label="Destaque principal">
-<@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=800@>" alt=""><@/se@>
-<h2><@eco #titulo@></h2>
+<@var $slogan = #resumo@><@se $slogan == ""@><@var $slogan = %SITE.config.slogan@><@/se@>
+<@se $slogan != ""@><p class="resumo"><@eco $slogan@></p><@/se@>
+<@var $tem_principal = 0@>
+<@localizar classes="destaque" pai=$home niveis=2 ordem="peso, titulo" limite=5 expandir="destino_interno"@>
+<@se %INDICE == 1@><div class="carrossel carousel slide" id="hero-carrossel" data-bs-ride="carousel" aria-roledescription="carrossel" aria-label="Destaques">
+<div class="carousel-inner">
+<@/se@><@var $tem_principal = 1@><div class="carousel-item destaque-principal<@se %INDICE == 1@> active<@/se@>">
+<@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=1200@>" alt=""<@se %INDICE == 1@> fetchpriority="high"<@senao@> loading="lazy"<@/se@>><@/se@>
+<div class="destaque-texto">
+<h2 data-pbl-objeto="<@eco #id@>"><@eco #titulo@><span class="pbl-acoes" hidden></span></h2>
 <@se #texto != ""@><p><@eco #texto@></p><@/se@>
 <@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
-<@se $dest != ""@><p><a href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span style="position:absolute;left:-9999px"> sobre <@eco #titulo@></span></a></p><@/se@>
-</section>
-<@/localizar@>
-<@localizar classes="destaque" ordem="peso, titulo" inicio=1 limite=3 expandir="destino_interno"@>
-<@se %INDICE == 1@><section class="destaques" aria-label="Destaques">
-<@/se@><article class="destaque">
-<@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=400@>" alt=""><@/se@>
-<h2><@eco #titulo@></h2>
-<@se #texto != ""@><p><@eco #texto@></p><@/se@>
+<@se $dest != ""@><p><a href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span class="so-leitor"> sobre <@eco #titulo@></span></a></p><@/se@>
+</div>
+</div>
+<@se %INDICE == %QUANTIDADE@></div>
+<@se %QUANTIDADE > 1@><button class="carousel-control-prev" type="button" data-bs-target="#hero-carrossel" data-bs-slide="prev"><span aria-hidden="true">&lsaquo;</span><span class="so-leitor">Destaque anterior</span></button>
+<button class="carousel-control-next" type="button" data-bs-target="#hero-carrossel" data-bs-slide="next"><span aria-hidden="true">&rsaquo;</span><span class="so-leitor">Próximo destaque</span></button>
+<@/se@></div>
+<@/se@><@/localizar@>
+<@se $tem_principal == 0@><@se %SITE.config.imagem_hero != ""@><div class="destaque-principal"><img src="<@miniatura valor=%SITE.config.imagem_hero tamanho=1200@>" alt="" fetchpriority="high"></div>
+<@/se@><@/se@></section>
+<@var $atalhos = 0@>
+<@filhos classes="link" ordem="peso, titulo" limite=4@>
 <@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
-<@se $dest != ""@><a href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span style="position:absolute;left:-9999px"> sobre <@eco #titulo@></span></a><@/se@>
-</article>
-<@se %INDICE == %QUANTIDADE@></section>
-<@/se@><@/localizar@>
-<div><@ecocru #corpo@></div>
-<@localizar classes="link" ordem="peso, titulo" limite=8@>
-<@se %INDICE == 1@><section class="links-rapidos" aria-label="Links rápidos"><h2>Links rápidos</h2><ul>
-<@/se@><li><@incluir arquivo="link_a"@></li>
-<@se %INDICE == %QUANTIDADE@></ul></section>
-<@/se@><@/localizar@>
-<@localizar classes="noticia" ordem="-data_publicacao, titulo" limite=5@>
+<@se $dest != ""@><@se $atalhos == 0@><section class="atalhos" aria-label="Em destaque"><ul>
+<@var $atalhos = 1@><@/se@><li data-pbl-objeto="<@eco #id@>"><a class="cartao-atalho" href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>><span class="titulo"><@eco #titulo@></span><@se #descricao != ""@><span class="texto"><@eco #descricao@></span><@/se@><span class="seta" aria-hidden="true">Abrir &rarr;</span></a><span class="pbl-acoes" hidden></span></li>
+<@/se@><@/filhos@>
+<@se $atalhos == 1@></ul></section>
+<@/se@><@se #corpo != ""@><div class="corpo"><@ecocru #corpo@></div>
+<@/se@><@localizar classes="noticia" ordem="-data_publicacao, titulo" limite=5@>
 <@se %INDICE == 1@><section class="ultimas" aria-label="Últimas notícias"><h2>Últimas notícias</h2>
 <@/se@><@incluir arquivo="item"@>
 <@se %INDICE == %QUANTIDADE@></section>
 <@/se@><@/localizar@>
-</main>
+<@var $rapidos = 0@><@var $puladas = 0@>
+<@localizar classes="link" ordem="peso, titulo" limite=16@>
+<@var $mostrar = 1@><@se #pai == $home@><@se $puladas < 4@><@var $mostrar = 0@><@var $puladas = $puladas + 1@><@/se@><@/se@><@se $mostrar == 1@><@se $rapidos < 12@><@se $rapidos == 0@><section class="links-rapidos" aria-label="Links rápidos"><h2><button class="recolher" type="button" data-bs-toggle="collapse" data-bs-target="#links-rapidos-lista" aria-controls="links-rapidos-lista" aria-expanded="true">Links rápidos</button></h2><div class="collapse show" id="links-rapidos-lista"><ul>
+<@/se@><@var $rapidos = $rapidos + 1@><li><@incluir arquivo="link_a"@></li>
+<@/se@><@/se@><@/localizar@>
+<@se $rapidos > 0@></ul></div></section>
+<@/se@></main>
 <@se %SITE.config.rodape != ""@><footer><@ecocru %SITE.config.rodape@></footer>
 <@/se@><@incluir arquivo="bloco_rodape"@>
 </body>

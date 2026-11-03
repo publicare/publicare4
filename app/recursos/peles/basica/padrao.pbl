@@ -9,10 +9,10 @@
 <main>
 <@se #id == #raiz@><@incluir arquivo="faixa_destaques"@><@/se@>
 <h1><@eco #titulo@></h1>
-<@se #resumo@><p><em><@eco #resumo@></em></p><@/se@>
-<div><@ecocru #corpo@></div>
-<nav>
-<@filhos@><@se #classe == "link"@><@incluir arquivo="link_a"@><@senao@><a href="<@eco #url@>"><@eco #titulo@></a><@/se@> <@/filhos@>
+<@se #resumo@><p class="resumo"><@eco #resumo@></p><@/se@>
+<div class="corpo"><@ecocru #corpo@></div>
+<nav class="navegacao-filhos">
+<@filhos@><span class="filho" data-pbl-objeto="<@eco #id@>"><@se #classe == "link"@><@incluir arquivo="link_a"@><@senao@><a href="<@eco #url@>"><@eco #titulo@></a><@/se@><span class="pbl-acoes" hidden></span></span> <@/filhos@>
 </nav>
 </main>
 <@se %SITE.config.rodape != ""@><footer><@ecocru %SITE.config.rodape@></footer>

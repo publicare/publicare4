@@ -8,7 +8,7 @@
 <@incluir arquivo="topo"@>
 <main>
 <h1><@eco #titulo@></h1>
-<@se #imagem != ""@><p><img src="<@miniatura valor=#imagem tamanho=800@>" alt="" style="max-width:100%;height:auto"></p><@/se@>
+<@se #imagem != ""@><p class="foto-noticia"><img src="<@miniatura valor=#imagem tamanho=800@>" alt=""></p><@/se@>
 <@se #texto != ""@><p><@eco #texto@></p><@/se@>
 <@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
 <@se $dest != ""@><p><a href="<@eco $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@>>Saiba mais</a></p><@/se@>

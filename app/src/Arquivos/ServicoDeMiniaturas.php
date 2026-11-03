@@ -14,7 +14,7 @@ use Pbl\Caminhos;
 final class ServicoDeMiniaturas
 {
     /** @var list<int> */
-    public const TAMANHOS = [64, 150, 400, 800];
+    public const TAMANHOS = [64, 150, 400, 800, 1200];
 
     public function __construct(private readonly Caminhos $caminhos, private readonly ArmazenamentoDeArquivos $armazenamento)
     {

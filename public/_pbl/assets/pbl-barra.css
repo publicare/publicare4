@@ -1,12 +1,15 @@
-/* PBL4 — barra de edição das páginas públicas (ADR 0022). Escopo próprio: não depende do CSS da pele. Cores iguais às do Bootstrap 5.3. */
-.pbl-barra{display:inline-flex;flex-wrap:wrap;gap:.35rem;margin:.25rem .5rem;vertical-align:middle;font:400 .875rem/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.pbl-barra .btn{display:inline-block;padding:.25rem .6rem;border:1px solid transparent;border-radius:.375rem;font:inherit;text-decoration:none;cursor:pointer;color:#fff}
-.pbl-barra .btn[disabled]{opacity:.65;cursor:progress}
-.pbl-barra .btn-primary{background:#0d6efd;border-color:#0d6efd}
-.pbl-barra .btn-success{background:#198754;border-color:#198754}
-.pbl-barra .btn-warning{background:#ffc107;border-color:#ffc107;color:#000}
-.pbl-barra .btn-danger{background:#dc3545;border-color:#dc3545}
-.pbl-barra .btn-outline-secondary{background:#fff;border-color:#6c757d;color:#6c757d}
-.pbl-barra .bg-gradient{background-image:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,0))}
-.pbl-barra .btn:focus-visible{outline:3px solid #0a58ca;outline-offset:2px}
-.pbl-barra-aviso{font-size:.8rem;color:#842029}
+/* PBL4 — ações de edição das páginas públicas (ADR 0022). Escopo próprio: não depende do CSS da pele. Cores iguais às do Bootstrap 5.3. */
+.pbl-acoes{display:inline-flex;flex-wrap:wrap;gap:.25rem;margin:0 0 0 .5rem;vertical-align:middle;position:relative;z-index:3;font:400 .875rem/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:normal;text-transform:none}
+.pbl-acoes[hidden]{display:none}
+.pbl-acoes .btn{display:inline-flex;align-items:center;justify-content:center;width:1.9rem;height:1.9rem;padding:0;border:1px solid transparent;border-radius:.375rem;font:inherit;text-decoration:none;cursor:pointer;color:#fff;box-sizing:border-box}
+.pbl-acoes .btn[disabled]{opacity:.65;cursor:progress}
+.pbl-acoes .btn-primary{background:#0d6efd;border-color:#0d6efd}
+.pbl-acoes .btn-success{background:#198754;border-color:#198754}
+.pbl-acoes .btn-warning{background:#ffc107;border-color:#ffc107;color:#000}
+.pbl-acoes .btn-danger{background:#dc3545;border-color:#dc3545}
+.pbl-acoes .btn-outline-secondary{background:#fff;border-color:#6c757d;color:#6c757d}
+.pbl-acoes .bg-gradient{background-image:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,0))}
+.pbl-acoes .btn:focus-visible{outline:3px solid #0a58ca;outline-offset:2px}
+.pbl-acoes svg{display:block;pointer-events:none}
+.pbl-aviso{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:1080;max-width:90vw;padding:.4rem .8rem;border-radius:.375rem;background:#212529;color:#fff;font:400 .875rem/1.4 system-ui,sans-serif}
+.pbl-aviso:empty{display:none}

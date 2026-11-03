@@ -1,34 +1,5 @@
-<style>
-body{font-family:system-ui,sans-serif;max-width:46rem;margin:0 auto;padding:0 1rem 2rem;line-height:1.6;color:#222}
-.topo{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;align-items:center;justify-content:space-between;padding:1rem 0;border-bottom:1px solid #ddd;margin-bottom:1.5rem}
-.topo .marca{font-weight:700;text-decoration:none;color:#222}
-.menu ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.25rem 1rem}
-.menu li{position:relative}
-.menu li ul{display:none;position:absolute;left:0;top:100%;flex-direction:column;background:#fff;border:1px solid #ddd;padding:.5rem;z-index:1;min-width:10rem}
-.menu li:hover>ul,.menu li:focus-within>ul{display:flex}
-.menu li ul ul{left:100%;top:0}
-.menu .ativo>a{font-weight:700;text-decoration:none}
-.menu .ancestral>a{text-decoration:underline}
-.busca input[type=search]{padding:.25rem}
-.paginacao{display:flex;justify-content:space-between;margin:1.5rem 0}
-.item{margin:1rem 0;display:flex;gap:1rem}
-.item img{max-width:150px;height:auto}
-.pbl-campo{margin:.75rem 0}label{display:block}input[type=text],input[type=date],textarea{width:100%;box-sizing:border-box}
-.aviso-do-site{background:#fff7d6;border-bottom:1px solid #e5d48a;padding:.5rem 1rem;margin:0 -1rem}
-.aviso-do-site p{margin:.25rem 0}
-.destaques{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:1rem;margin:0 0 1.5rem}
-.destaque{border:1px solid #ddd;border-radius:.5rem;overflow:hidden;background:#fafafa}
-.destaque img{display:block;width:100%;height:auto}
-.destaque h2{font-size:1.1rem;margin:.75rem .75rem .25rem}
-.destaque p,.destaque>a{margin:.25rem .75rem .75rem;display:block}
-.destaque-principal{border:1px solid #ddd;border-radius:.5rem;overflow:hidden;background:#f3f6fb;margin:0 0 1.5rem}
-.destaque-principal img{display:block;width:100%;height:auto}
-.destaque-principal h2{margin:.75rem 1rem .25rem}
-.destaque-principal p{margin:.25rem 1rem .75rem}
-.links-rapidos ul{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;list-style:none;padding:0}
-.ultimas h2,.links-rapidos h2{font-size:1.25rem;margin-top:1.5rem}
-.evento-quando{font-weight:600}
-.agenda h2{margin-top:1.5rem}
-details{border:1px solid #ddd;border-radius:.4rem;margin:.5rem 0;padding:.5rem .75rem}
-details summary{cursor:pointer;font-weight:600}
-</style>
+<@-- Pele básica: folha de estilos e scripts do próprio site (assets/), todos com ?v= da pele (cache longo, renova quando muda) e sem nada embutido na página. pbl-js.js (síncrono, minúsculo) marca html.js; o resto é defer e opcional: sem JavaScript o site continua legível e navegável. --@>
+<link rel="stylesheet" href="<@eco #pele_url@>/assets/pele.css?v=<@eco #pele_v@>">
+<script src="<@eco #pele_url@>/assets/pbl-js.js?v=<@eco #pele_v@>"></script>
+<script src="<@eco #pele_url@>/assets/bootstrap.bundle.min.js?v=<@eco #pele_v@>" defer></script>
+<script src="<@eco #pele_url@>/assets/pbl-pele.js?v=<@eco #pele_v@>" defer></script>

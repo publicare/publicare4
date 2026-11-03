@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * API mínima da barra de edição das páginas públicas (ADR 0022): `GET /_pbl/api/acoes?objeto=ID` diz o que a pessoa logada pode fazer
+ * API mínima da barra de edição das páginas públicas (ADR 0022): `GET /_pbl/api/acoes?objeto=ID` (ou `?objetos=1,2,3`, em lote) diz o que a pessoa logada pode fazer
  * naquele conteúdo (só as ações permitidas, mais o token CSRF), e `POST /_pbl/api/estado` publica ou despublica. Sem sessão: 401 em JSON
  * (o `Painel` só chama aqui com sessão válida ou devolve 401 antes). A autorização é sempre refeita no servidor.
  */
@@ -24,6 +24,7 @@ final class ApiDeAcoes
 {
     public const ROTA_ACOES = '/_pbl/api/acoes';
     public const ROTA_ESTADO = '/_pbl/api/estado';
+    public const LIMITE_LOTE = 100;
 
     public function __construct(private readonly Servicos $servicos, private readonly Rede $rede, private readonly Csrf $csrf)
     {
@@ -46,6 +47,9 @@ final class ApiDeAcoes
 
     private function acoes(SessaoAtiva $sessao, Request $r): JsonResponse
     {
+        if ($r->query->has('objetos')) {
+            return $this->emLote($sessao, $r->query->get('objetos'));
+        }
         $id = $this->id($r->query->get('objeto'));
         $o = $id === null ? null : $this->servicos->objetos->porId($id);
         if ($o === null) {
@@ -54,6 +58,49 @@ final class ApiDeAcoes
         if (!$this->pode($sessao, Acao::Ver, $o) || $o->status === 'apagado') {
             return self::json(['erro' => 'sem_permissao'], Response::HTTP_FORBIDDEN);
         }
+        $acoes = $this->acoesDe($sessao, $o);
+
+        return self::json([
+            'objeto' => $o->id, 'estado' => $o->status, 'versao' => $o->versao, 'acoes' => $acoes,
+            'csrf' => $this->csrfSe($sessao, [$acoes]),
+        ]);
+    }
+
+    /**
+     * `GET /_pbl/api/acoes?objetos=1,2,3`: ações permitidas de vários objetos de uma vez (até LIMITE_LOTE). Objeto inexistente, apagado ou
+     * fora do que a conta pode ver simplesmente não aparece na resposta (não distingue os casos, para não revelar que o id existe).
+     */
+    private function emLote(SessaoAtiva $sessao, mixed $bruto): JsonResponse
+    {
+        $ids = [];
+        foreach (explode(',', is_string($bruto) ? $bruto : '') as $parte) {
+            $id = $this->id(trim($parte));
+            if ($id === null) {
+                return self::json(['erro' => 'pedido_invalido'], Response::HTTP_BAD_REQUEST);
+            }
+            $ids[$id] = true;
+        }
+        if (count($ids) > self::LIMITE_LOTE) {
+            return self::json(['erro' => 'muitos_objetos', 'limite' => self::LIMITE_LOTE], Response::HTTP_BAD_REQUEST);
+        }
+        $saida = [];
+        $todas = [];
+        foreach (array_keys($ids) as $id) {
+            $o = $this->servicos->objetos->porId($id);
+            if ($o === null || $o->status === 'apagado' || !$this->pode($sessao, Acao::Ver, $o)) {
+                continue;
+            }
+            $acoes = $this->acoesDe($sessao, $o);
+            $todas[] = $acoes;
+            $saida[(string) $o->id] = ['estado' => $o->status, 'versao' => $o->versao, 'acoes' => $acoes];
+        }
+
+        return self::json(['objetos' => (object) $saida, 'csrf' => $this->csrfSe($sessao, $todas)]);
+    }
+
+    /** @return array<string, array{url: string}> */
+    private function acoesDe(SessaoAtiva $sessao, Objeto $o): array
+    {
         $base = Painel::PREFIXO . '/objeto/' . $o->id;
         $acoes = [];
         if ($this->pode($sessao, Acao::Editar, $o)) {
@@ -67,10 +114,23 @@ final class ApiDeAcoes
             $acoes['excluir'] = ['url' => $base . '/apagar'];
         }
 
-        return self::json([
-            'objeto' => $o->id, 'estado' => $o->status, 'versao' => $o->versao, 'acoes' => $acoes,
-            'csrf' => isset($acoes['publicar']) || isset($acoes['despublicar']) ? $this->csrf->daSessao($sessao->idHash) : '',
-        ]);
+        return $acoes;
+    }
+
+    /**
+     * Token CSRF da sessão só se alguma das listas tem publicar/despublicar (as únicas ações que o JS envia por POST).
+     *
+     * @param list<array<string, mixed>> $listas
+     */
+    private function csrfSe(SessaoAtiva $sessao, array $listas): string
+    {
+        foreach ($listas as $acoes) {
+            if (isset($acoes['publicar']) || isset($acoes['despublicar'])) {
+                return $this->csrf->daSessao($sessao->idHash);
+            }
+        }
+
+        return '';
     }
 
     private function estado(SessaoAtiva $sessao, Request $r): JsonResponse
