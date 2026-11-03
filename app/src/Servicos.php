@@ -23,6 +23,7 @@ use Pbl\Consulta\MotorDeConsulta;
 use Pbl\Conteudo\ClasseRepositorio;
 use Pbl\Conteudo\ConfigDoSiteRepositorio;
 use Pbl\Conteudo\DominioRepositorio;
+use Pbl\Conteudo\FluxoDeRevisao;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\RedirecionamentoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
@@ -57,6 +58,8 @@ final class Servicos
     public readonly GerenciadorDePeles $peles;
     public readonly FormularioRepositorio $formularios;
     public readonly ArquivoRepositorio $arquivos;
+    /** Fluxo de revisão (fase 6): enviar, retirar, aprovar, devolver e a fila de quem revisa. */
+    public readonly FluxoDeRevisao $revisao;
 
     private ?string $segredo = null;
 
@@ -72,6 +75,7 @@ final class Servicos
         $this->redirecionamentos = new RedirecionamentoRepositorio($conexao);
         $this->usuarios = new UsuarioRepositorio($conexao, $this->auditoria);
         $this->permissoes = new Permissoes($conexao);
+        $this->revisao = new FluxoDeRevisao($conexao, $this->objetos, $this->permissoes, $this->auditoria, $this->usuarios);
         $this->formularios = new FormularioRepositorio($this->objetos, $this->classes);
         $this->configs = new ConfigDoSiteRepositorio($conexao, $this->arquivos);
         $this->menu = new MenuDoSite($conexao, $caminhos, $this->auditoria, (int) (getenv('PBL_MENU_PROFUNDIDADE') ?: MenuDoSite::PROFUNDIDADE_PADRAO), $this->configs);

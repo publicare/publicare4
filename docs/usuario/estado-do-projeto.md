@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Última atualização: **novembro de 2026** (editor de texto rico nos campos de texto formatado; licença Apache-2.0 e custódia da chave de assinatura decididas; painel mais legível no celular: menu hambúrguer, campos com destaque, campos de tipo em painéis recolhíveis e tabelas em cartões; voltar atrás de uma atualização concluída e aviso de versão nova na página inicial; tela de atualização no painel; contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, varredura do HTML gravado antes dessa limpeza, publicação agendada, mover pela árvore e formulários públicos simples; modo elevado nas ações sensíveis do painel e lista de contas paginada/com busca; histórico, rascunho/pré-visualização e realce de leitura no editor de peles). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
+Última atualização: **novembro de 2026** (fluxo de revisão: autor envia, editor aprova ou devolve com motivo; editor de texto rico nos campos de texto formatado; licença Apache-2.0 e custódia da chave de assinatura decididas; painel mais legível no celular: menu hambúrguer, campos com destaque, campos de tipo em painéis recolhíveis e tabelas em cartões; voltar atrás de uma atualização concluída e aviso de versão nova na página inicial; tela de atualização no painel; contas, domínios, redirecionamentos e peles na administração; integridade do conteúdo, HTML limpo, varredura do HTML gravado antes dessa limpeza, publicação agendada, mover pela árvore e formulários públicos simples; modo elevado nas ações sensíveis do painel e lista de contas paginada/com busca; histórico, rascunho/pré-visualização e realce de leitura no editor de peles). Versão atual: **em desenvolvimento** (a primeira versão pública prevista é a `0.1.0`).
 
 ## Legenda
 
@@ -17,6 +17,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Instalar (por linha de comando) com um site de exemplo | ✅ |
 | Criar conteúdos em árvore | ✅ (por código; sem tela ainda) |
 | Tipos de conteúdo pelo navegador (só administrador): criar, descrever, dizer que tipos podem ficar dentro, adicionar campos, mudar rótulo, ordem e obrigatório, arquivar campo e apagar tipo sem uso, sem nunca apagar dado guardado | ✅ (e a exigência de "obrigatório" e de "tipos que podem ficar dentro" vale ao salvar qualquer conteúdo, pelo navegador ou pela linha de comando) |
+| Fluxo de revisão: o autor envia o texto para revisão, o editor da seção (ou o administrador) aprova e publica ou devolve com o motivo; telas **Pendências** e **Meus envios**, contador no menu e histórico de cada passo (sem aviso por e-mail ainda) | ✅ |
 | Site novo já nasce com exemplos (Sobre, Notícias com uma notícia, Contato com formulário) e os tipos básicos: pasta, página, formulário, arquivo, imagem, link e notícia. Os seis primeiros são **fixos** (não se apagam) | ✅ |
 | Link para outra página do site (acompanha o endereço dela) ou para um endereço externo, com a opção de abrir em nova aba | ✅ |
 | Título, descrição e imagem para buscadores e redes sociais (opcionais) em páginas, pastas e notícias | ✅ (o endereço completo e o `sitemap.xml` ainda não) |
@@ -67,7 +68,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Atualização automática com cópia de segurança e volta atrás | 🔨 (funciona por linha de comando e pelo painel — tela **Atualização**, só administrador, pede a senha de novo —, com assinatura, cópia do banco, volta atrás automática se a atualização falhar, aviso de versão nova na página inicial (lendo o cache; sem chamada de rede ao abrir a página) e `bin/pbl verificar-atualizacao` para o cron atualizar esse cache; `bin/pbl reverter` (e o botão correspondente) desfaz uma atualização **já concluída**, devolvendo código e banco de antes dela, com as mesmas conferências de segurança; o suporte a duas chaves de produção (uso e recuperação), revogação e canal de teste já existe; falta o dono gerar as chaves de produção e publicar a primeira versão, então ainda não há o que baixar). Licença: Apache-2.0 |
 | Editor de peles completo (hoje tem histórico, rascunho/pré-visualização e realce só leitura; faltam arquivos de CSS e imagens, importar/exportar pele, pele filha) | 🔨 |
 | Galeria de peles prontas para instalar | 🗓️ |
-| Formulários com aprovação em etapas, aviso por e-mail, anexos, captcha, prazos, vagas e participante identificado; editor visual de formulários | 🗓️ |
+| Formulários com aprovação em etapas, aviso por e-mail do fluxo de revisão, anexos, captcha, prazos, vagas e participante identificado; editor visual de formulários | 🗓️ |
 | Importar um site feito no Publicare antigo | 🗓️ |
 | Inscrição paga e outros pagamentos | 💡 |
 | Peles avançadas e comunidade de autores | 💡 |

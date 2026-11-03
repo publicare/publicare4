@@ -135,7 +135,7 @@ final class TelasDeObjetos
                 ? '<form method="post" action="' . $this->link($o->id) . '/recuperar" class="d-inline">' . $this->camposOcultos($sessao, $o->versao)
                     . '<button type="submit" class="btn btn-sm btn-outline-dark">Tirar da lixeira</button></form>' : ''), '', true);
         }
-        $corpo .= $this->selos($o, $agora) . $this->botoes($sessao, $o) . $this->tabelaDeDados($sessao, $o, $agora);
+        $corpo .= $this->selos($o, $agora) . $this->botoes($sessao, $o) . TelasDeRevisao::bloco($this->servicos, $this->csrf, $sessao, $o) . $this->tabelaDeDados($sessao, $o, $agora);
 
         $corpo .= '<h2 class="h5 mt-4">Conteúdo dentro desta página</h2>' . $this->filtrosDaLista($o, $classes, $ordem, $classeId, $estado);
         if ($filhos === []) {
@@ -239,6 +239,11 @@ final class TelasDeObjetos
             'apagado' => ['success', 'Conteúdo enviado para a lixeira. Para ver a lixeira, filtre a lista pelo estado "Na lixeira".'],
             'recuperado' => ['success', 'Conteúdo tirado da lixeira. Ele volta fora do ar (privado).'],
             'restaurado' => ['success', 'Versão restaurada (gravada como uma versão nova).'],
+            'enviado' => ['success', 'Enviado para revisão. Ele continua fora do ar até alguém da revisão aprovar.'],
+            'reenviado' => ['success', 'Reenviado para revisão.'],
+            'retirado' => ['info', 'Envio retirado: o conteúdo voltou a ser privado.'],
+            'aprovado' => ['success', 'Aprovado e publicado.'],
+            'devolvido' => ['info', 'Devolvido ao autor com o motivo informado.'],
             default => null,
         };
 
@@ -1791,6 +1796,11 @@ final class TelasDeObjetos
 
     private function pode(SessaoAtiva $sessao, Acao $acao, Objeto $o): bool
     {
+        // Enquanto o envio espera revisão, quem não revisa não edita (retira o envio para mexer): o revisor aprova o que viu.
+        if ($acao === Acao::Editar && $o->status === 'submetido' && !$this->servicos->permissoes->pode($sessao->usuario, Acao::Publicar, $o)) {
+            return false;
+        }
+
         return $this->servicos->permissoes->pode($sessao->usuario, $acao, $o);
     }
 

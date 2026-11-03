@@ -94,10 +94,28 @@ final class TelasDeConteudo
         if ($corpo === '') {
             $corpo = Pagina::alerta('info', 'Você ainda não recebeu acesso a nenhuma seção. Peça a um administrador.');
         }
-        $saudacao = '';
+        $saudacao = $this->avisosDeRevisao($sessao);
         $avisoDeVersao = TelasDeAtualizacao::avisoHomePage($this->servicos, $u);
 
         return Pagina::resposta('Sites e conteúdo', $saudacao . $avisoDeVersao . $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Olá, <strong>' . Pagina::h($u->nome) . '</strong>. ' . ($u->administrador ? 'Você é administrador: escolha um site para cuidar dele ou abra uma seção para editar conteúdo.' : 'Abra uma seção para editar o conteúdo.'));
+    }
+
+    /** Avisos da tela inicial: envios esperando a revisão desta conta e conteúdos dela que voltaram devolvidos. */
+    private function avisosDeRevisao(SessaoAtiva $sessao): string
+    {
+        $u = $sessao->usuario;
+        $revisao = $this->servicos->revisao;
+        $html = '';
+        $pendentes = $revisao->ehRevisor($u) ? $revisao->contarPendencias($u) : 0;
+        if ($pendentes > 0) {
+            $html .= Pagina::alerta('warning', '<strong>' . $pendentes . '</strong> ' . ($pendentes === 1 ? 'envio aguarda' : 'envios aguardam') . ' a sua revisão. <a class="alert-link" href="' . Painel::PREFIXO . '/pendencias">Abrir as pendências</a>', '', true);
+        }
+        $devolvidos = $revisao->podeEnviar($u) ? $revisao->contarDevolvidos($u) : 0;
+        if ($devolvidos > 0) {
+            $html .= Pagina::alerta('warning', '<strong>' . $devolvidos . '</strong> ' . ($devolvidos === 1 ? 'conteúdo seu foi devolvido' : 'conteúdos seus foram devolvidos') . ' com ajustes pedidos. <a class="alert-link" href="' . Painel::PREFIXO . '/meus-envios?estado=devolvidos">Ver em Meus envios</a>', '', true);
+        }
+
+        return $html;
     }
 
     private function barra(SessaoAtiva $sessao): string

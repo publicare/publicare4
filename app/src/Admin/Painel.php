@@ -56,6 +56,7 @@ final class Painel
         $rotaDeDominio = TelasDeDominios::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeSite = TelasDeSite::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeAtualizacao = TelasDeAtualizacao::rota(self::PREFIXO, $caminho, $metodo);
+        $rotaDeRevisao = TelasDeRevisao::rota(self::PREFIXO, $caminho, $metodo);
         $resposta = match (true) {
             $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s)),
             $objeto !== null && TelasDeObjetos::atende($subrota, $metodo) => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->objetos()->tratar($s, $objeto, $subrota, $requisicao)),
@@ -65,6 +66,7 @@ final class Painel
             $rotaDeDominio !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeDominios($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeDominio, $requisicao)),
             $rotaDeSite !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeSite($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeSite, $requisicao)),
             $rotaDeAtualizacao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeAtualizacao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeAtualizacao, $requisicao)),
+            $rotaDeRevisao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeRevisao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeRevisao, $requisicao)),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'GET' => $this->formularioDeEntrar($requisicao),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'POST' => $this->entrar($requisicao),
             $caminho === self::PREFIXO . '/sair' && $metodo === 'POST' => $this->sair($requisicao),
@@ -83,7 +85,24 @@ final class Painel
     {
         $sessao = $this->sessaoDe($requisicao);
 
-        return $sessao === null ? new RedirectResponse(self::PREFIXO . '/entrar', Response::HTTP_SEE_OTHER) : $tela($sessao);
+        if ($sessao === null) {
+            return new RedirectResponse(self::PREFIXO . '/entrar', Response::HTTP_SEE_OTHER);
+        }
+        $this->prepararBarra($sessao);
+
+        return $tela($sessao);
+    }
+
+    /** Contador de pendências e links de revisão da barra; uma falha aqui nunca derruba a tela. */
+    private function prepararBarra(SessaoAtiva $sessao): void
+    {
+        try {
+            $u = $sessao->usuario;
+            $revisor = $this->servicos->revisao->ehRevisor($u);
+            Pagina::definirRevisao($revisor ? $this->servicos->revisao->contarPendencias($u) : 0, $revisor, $this->servicos->revisao->podeEnviar($u));
+        } catch (\Throwable) {
+            Pagina::definirRevisao(0, false, false);
+        }
     }
 
     private function telas(): TelasDeConteudo
