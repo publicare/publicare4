@@ -46,12 +46,12 @@
 <@/se@><@incluir arquivo="item"@>
 <@se %INDICE == %QUANTIDADE@></section>
 <@/se@><@/localizar@>
-<@var $rapidos = 0@>
-<@localizar classes="link" ordem="peso, titulo" limite=12@>
-<@se #pai != $home@><@se $rapidos == 0@><section class="links-rapidos" aria-label="Links rápidos"><h2><button class="recolher" type="button" data-bs-toggle="collapse" data-bs-target="#links-rapidos-lista" aria-controls="links-rapidos-lista" aria-expanded="true">Links rápidos</button></h2><div class="collapse show" id="links-rapidos-lista"><ul>
-<@var $rapidos = 1@><@/se@><li><@incluir arquivo="link_a"@></li>
-<@/se@><@/localizar@>
-<@se $rapidos == 1@></ul></div></section>
+<@var $rapidos = 0@><@var $puladas = 0@>
+<@localizar classes="link" ordem="peso, titulo" limite=16@>
+<@var $mostrar = 1@><@se #pai == $home@><@se $puladas < 4@><@var $mostrar = 0@><@var $puladas = $puladas + 1@><@/se@><@/se@><@se $mostrar == 1@><@se $rapidos < 12@><@se $rapidos == 0@><section class="links-rapidos" aria-label="Links rápidos"><h2><button class="recolher" type="button" data-bs-toggle="collapse" data-bs-target="#links-rapidos-lista" aria-controls="links-rapidos-lista" aria-expanded="true">Links rápidos</button></h2><div class="collapse show" id="links-rapidos-lista"><ul>
+<@/se@><@var $rapidos = $rapidos + 1@><li><@incluir arquivo="link_a"@></li>
+<@/se@><@/se@><@/localizar@>
+<@se $rapidos > 0@></ul></div></section>
 <@/se@></main>
 <@se %SITE.config.rodape != ""@><footer><@ecocru %SITE.config.rodape@></footer>
 <@/se@><@incluir arquivo="bloco_rodape"@>
