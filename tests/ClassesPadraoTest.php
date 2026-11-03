@@ -178,11 +178,11 @@ final class ClassesPadraoTest extends TestCase
         $this->s->objetos->criar($this->site->id, $this->classe('link'), (int) $this->site->objetoRaizId, 'Quem somos', 'quem-somos', [
             'destino_interno' => $this->obj('sobre')->id,
         ]);
-        self::assertStringContainsString('<a href="/sobre">Quem somos</a>', $this->pagina('/'));
+        self::assertMatchesRegularExpression('~<a class="cartao-atalho" href="/sobre"><span class="titulo">Quem somos</span>~', $this->pagina('/'));
 
         $this->s->objetos->atualizar($this->obj('sobre')->id, ['url_amigavel' => 'a-empresa']);
         $depois = $this->pagina('/');
-        self::assertStringContainsString('<a href="/a-empresa">Quem somos</a>', $depois);
+        self::assertMatchesRegularExpression('~<a class="cartao-atalho" href="/a-empresa"><span class="titulo">Quem somos</span>~', $depois);
         self::assertStringNotContainsString('href="/sobre"', $depois);
     }
 

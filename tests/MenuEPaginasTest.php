@@ -342,7 +342,7 @@ final class MenuEPaginasTest extends TestCase
         $p2 = $this->get('/noticias?pagina=2');
         self::assertSame(200, $p2->getStatusCode());
         $c2 = (string) $p2->getContent();
-        self::assertSame(5, substr_count($c2, '<div class="item">'), '15 notícias: 10 na primeira página, 5 na segunda');
+        self::assertSame(5, substr_count($c2, '<article class="item">'), '15 notícias: 10 na primeira página, 5 na segunda');
         self::assertStringNotContainsString('pagina=3', $c2);
         self::assertSame(200, $this->get('/noticias?pagina=99999')->getStatusCode());
     }
