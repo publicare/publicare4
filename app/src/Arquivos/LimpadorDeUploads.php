@@ -6,6 +6,7 @@ namespace Pbl\Arquivos;
 
 use Doctrine\DBAL\Connection;
 use Pbl\Conteudo\ClasseRepositorio;
+use Pbl\Conteudo\ConfigDoSite;
 
 /**
  * `bin/pbl limpar-uploads`: apaga arquivos que nenhum objeto (nem versão antiga) referencia mais. Nunca roda na requisição
@@ -80,6 +81,29 @@ final class LimpadorDeUploads
         return ['examinados' => $examinados, 'orfaos' => $apagados, 'apagados' => $simular ? 0 : $apagados, 'bytes' => $bytes, 'nomes' => $nomes];
     }
 
+    /**
+     * Imagens da configuração do site (logo, ícone, imagem padrão, abertura): o número do arquivo fica em `site_config`, não
+     * numa propriedade de objeto, e não pode ser tratado como órfão.
+     *
+     * @return array<int, true>
+     */
+    private function idsDasConfiguracoes(): array
+    {
+        $chaves = array_keys(array_filter(ConfigDoSite::catalogo(), static fn (array $d): bool => $d['tipo'] === ConfigDoSite::ARQUIVO));
+        $ids = [];
+        foreach ($this->conexao->fetchAllAssociative('SELECT chave, valor FROM site_config') as $linha) {
+            if (!in_array((string) $linha['chave'], $chaves, true)) {
+                continue;
+            }
+            $valor = json_decode((string) $linha['valor'], true);
+            if (is_int($valor) || (is_string($valor) && ctype_digit($valor))) {
+                $ids[(int) $valor] = true;
+            }
+        }
+
+        return $ids;
+    }
+
     /** @return list<int> todo id de `arquivo` que ainda aparece em algum `objeto` ou `objeto_versao`, hoje ou em qualquer versão antiga */
     private function idsReferenciados(): array
     {
@@ -91,10 +115,10 @@ final class LimpadorDeUploads
                 }
             }
         }
+        $ids = $this->idsDasConfiguracoes();
         if ($nomesDeArquivo === []) {
-            return [];
+            return array_keys($ids);
         }
-        $ids = [];
         foreach (['objeto', 'objeto_versao'] as $tabela) {
             $cursor = 0;
             while (($linhas = $this->conexao->fetchAllAssociative("SELECT id, dados FROM {$tabela} WHERE id > ? ORDER BY id LIMIT 1000", [$cursor])) !== []) {

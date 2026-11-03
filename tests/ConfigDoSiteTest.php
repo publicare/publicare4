@@ -8,6 +8,8 @@ use Doctrine\DBAL\Connection;
 use Pbl\Acesso\Perfil;
 use Pbl\Acesso\SessaoRepositorio;
 use Pbl\Aplicacao;
+use Pbl\Arquivos\ArmazenamentoDeArquivos;
+use Pbl\Arquivos\LimpadorDeUploads;
 use Pbl\Banco\Conexao;
 use Pbl\Banco\Migracoes\M017ConfigDoSite;
 use Pbl\Caminhos;
@@ -21,6 +23,7 @@ use Pbl\Linguagem\ExprMacro;
 use Pbl\Linguagem\ExpressaoParser;
 use Pbl\Servicos;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -238,34 +241,182 @@ final class ConfigDoSiteTest extends TestCase
     public function testTelaSalvaAuditaSoNomesERepublica(): void
     {
         $t = $this->token('admin');
-        $campos = ['nome' => 'Meu Site', 'idioma' => 'pt-BR', 'slogan' => 'Segredo-de-teste-XYZ', 'itens_por_pagina' => '10', 'busca_ligada' => '1', 'robots_indexar' => '1', 'titulo_sufixo' => '| Meu Site', 'versao' => $this->versao()];
-        $res = $this->post($t, $campos);
+        $res = $this->post($t, ['aba' => 'identidade', 'nome' => 'Meu Site', 'idioma' => 'pt-BR', 'slogan' => 'Segredo-de-teste-XYZ', 'versao' => $this->versao()]);
         self::assertSame(303, $res->getStatusCode());
         self::assertStringContainsString('ok=salvo', (string) $res->headers->get('Location'));
+        self::assertStringContainsString('aba=identidade', (string) $res->headers->get('Location'));
+        $res = $this->post($t, ['aba' => 'busca', 'titulo_sufixo' => '| Meu Site', 'robots_indexar' => '1', 'versao' => $this->versao()]);
+        self::assertSame(303, $res->getStatusCode());
         $this->s = Servicos::doBancoInstalado($this->caminhos);
         self::assertSame('Segredo-de-teste-XYZ', $this->s->configs->valor($this->siteId, 'slogan'));
         self::assertStringContainsString('<title>Sobre | Meu Site</title>', $this->pagina('/sobre'));
 
         $log = array_values(array_filter($this->s->auditoria->recentes(500), static fn (array $l): bool => $l['acao'] === 'site.config'));
-        self::assertCount(1, $log);
-        self::assertStringContainsString('slogan', (string) $log[0]['detalhe']);
-        self::assertStringNotContainsString('Segredo-de-teste-XYZ', (string) $log[0]['detalhe']);
+        self::assertCount(2, $log);
+        $detalhes = implode(' ', array_map(static fn (array $l): string => (string) $l['detalhe'], $log));
+        self::assertStringContainsString('slogan', $detalhes);
+        self::assertStringNotContainsString('Segredo-de-teste-XYZ', $detalhes);
     }
 
     public function testTelaMostraErroPorCampoEConflitoDeVersao(): void
     {
         $t = $this->token('admin');
-        $res = $this->post($t, ['itens_por_pagina' => '999', 'analytics' => '<script>x</script>', 'versao' => $this->versao()]);
+        $res = $this->post($t, ['aba' => 'comportamento', 'itens_por_pagina' => '999', 'versao' => $this->versao()]);
         self::assertSame(422, $res->getStatusCode());
         self::assertStringContainsString('cfg-itens_por_pagina-erro', (string) $res->getContent());
+        $res = $this->post($t, ['aba' => 'rodape', 'analytics' => '<script>x</script>', 'versao' => $this->versao()]);
+        self::assertSame(422, $res->getStatusCode());
         self::assertStringNotContainsString('<script>x</script>', (string) $res->getContent());
 
         $velha = $this->versao();
         $this->s->configs->definir($this->siteId, ['slogan' => 'Mudou por outra pessoa']);
-        $res = $this->post($t, ['slogan' => 'Minha', 'versao' => $velha]);
+        $res = $this->post($t, ['aba' => 'identidade', 'slogan' => 'Minha', 'versao' => $velha]);
         self::assertSame(409, $res->getStatusCode());
         $this->s = Servicos::doBancoInstalado($this->caminhos);
         self::assertSame('Mudou por outra pessoa', $this->s->configs->valor($this->siteId, 'slogan'));
+    }
+
+    public function testAbasEGravacaoSoDoProprioGrupo(): void
+    {
+        $t = $this->token('admin');
+        $html = (string) $this->req('GET', $this->url() . '?aba=contato', $t)->getContent();
+        foreach (['identidade', 'busca', 'contato', 'rodape', 'comportamento'] as $aba) {
+            self::assertStringContainsString('id="painel-' . $aba . '"', $html);
+        }
+        self::assertStringContainsString('id="painel-contato" class="pbl-aba-painel mb-4 active show"', $html);
+        self::assertSame(5, substr_count($html, 'name="versao"'), 'cada aba é um formulário próprio');
+        self::assertSame(5, substr_count($html, 'name="aba"'));
+        self::assertStringContainsString('enctype="multipart/form-data"', $html);
+        self::assertStringContainsString('id="painel-raros-identidade"', $html, 'imagem de abertura num bloco recolhido');
+        self::assertStringContainsString('aria-controls="cfg-nome-ajuda"', $html);
+        self::assertSame(0, preg_match('/<script(?![^>]*\\ssrc=)/', $html), 'nenhum script inline');
+        self::assertStringNotContainsString('onclick=', $html);
+
+        // Gravar a aba Contato com um valor que pertence a outra aba não o grava.
+        $res = $this->post($t, ['aba' => 'contato', 'telefone' => '(61) 99999-0000', 'slogan' => 'Intruso', 'versao' => $this->versao()]);
+        self::assertSame(303, $res->getStatusCode());
+        $this->s = Servicos::doBancoInstalado($this->caminhos);
+        self::assertSame('(61) 99999-0000', $this->s->configs->valor($this->siteId, 'telefone'));
+        self::assertSame('', $this->s->configs->valor($this->siteId, 'slogan'));
+        // E gravar uma aba não zera o que é das outras.
+        $this->s->configs->definir($this->siteId, ['rodape' => '<p>Rodapé</p>']);
+        $this->post($t, ['aba' => 'contato', 'telefone' => '(61) 3333-0000', 'versao' => $this->versao()]);
+        $this->s = Servicos::doBancoInstalado($this->caminhos);
+        self::assertSame('<p>Rodapé</p>', $this->s->configs->valor($this->siteId, 'rodape'));
+
+        self::assertSame(400, $this->post($t, ['aba' => 'inexistente', 'versao' => $this->versao()])->getStatusCode());
+        self::assertSame(400, $this->post($t, ['versao' => $this->versao()])->getStatusCode());
+    }
+
+    public function testCheckboxDesmarcadoGravaFalsoSoNaAbaDele(): void
+    {
+        $t = $this->token('admin');
+        $this->post($t, ['aba' => 'comportamento', 'itens_por_pagina' => '10', 'menu_profundidade' => '0', 'versao' => $this->versao()]);
+        $this->s = Servicos::doBancoInstalado($this->caminhos);
+        self::assertFalse($this->s->configs->valor($this->siteId, 'busca_ligada'));
+        self::assertTrue($this->s->configs->valor($this->siteId, 'robots_indexar'), 'robots é da aba Busca e compartilhamento');
+    }
+
+    /** @param array<string, mixed> $campos */
+    private function postComArquivo(string $token, array $campos, ?string $nomeDoCampo, ?string $conteudo, string $nomeEnviado = 'logo.png'): Response
+    {
+        $arquivos = [];
+        if ($nomeDoCampo !== null && $conteudo !== null) {
+            $tmp = tempnam(sys_get_temp_dir(), 'pbl4up');
+            file_put_contents($tmp, $conteudo);
+            $arquivos[$nomeDoCampo] = new UploadedFile($tmp, $nomeEnviado, null, \UPLOAD_ERR_OK, true);
+        }
+        $csrf = $this->s->csrf()->daSessao(SessaoRepositorio::hash($token));
+        $r = Request::create('https://www.exemplo.org' . $this->url(), 'POST', ['_csrf' => $csrf] + $campos, ['__Host-pbl4' => $token], $arquivos, ['REMOTE_ADDR' => '198.51.100.7'] + self::ORIGEM);
+
+        return (new Aplicacao($this->caminhos))->tratar($r);
+    }
+
+    /** PNG 1x1 válido (fixo, para não depender do GD no teste). */
+    private function png(): string
+    {
+        return (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==', true);
+    }
+
+    public function testEnvioDeLogoGuardaImagemMostraMiniaturaERemove(): void
+    {
+        $t = $this->token('admin');
+        $res = $this->postComArquivo($t, ['aba' => 'identidade', 'versao' => $this->versao()], 'arquivo_logo', $this->png());
+        self::assertSame(303, $res->getStatusCode(), (string) $res->getContent());
+        $this->s = Servicos::doBancoInstalado($this->caminhos);
+        $id = $this->s->configs->valor($this->siteId, 'logo');
+        self::assertIsInt($id);
+        $arq = $this->s->arquivos->porId($id) ?? self::fail();
+        self::assertSame('png', $arq->extensao);
+        self::assertSame($this->siteId, $arq->siteId);
+        self::assertSame('config_logo', $arq->propriedade);
+
+        $html = (string) $this->req('GET', $this->url(), $t)->getContent();
+        self::assertStringContainsString('/_pbl/arquivo/' . $id . '/miniatura/150', $html);
+        self::assertStringContainsString('name="remover_logo"', $html);
+        self::assertStringNotContainsString('dados/uploads', $html, 'o caminho em disco não vaza');
+        self::assertStringNotContainsString($arq->chave, $html);
+
+        // Salvar de novo sem escolher arquivo mantém a imagem.
+        $this->post($t, ['aba' => 'identidade', 'slogan' => 'x', 'versao' => $this->versao()]);
+        $this->s = Servicos::doBancoInstalado($this->caminhos);
+        self::assertSame($id, $this->s->configs->valor($this->siteId, 'logo'));
+
+        // Remover.
+        $this->post($t, ['aba' => 'identidade', 'remover_logo' => '1', 'versao' => $this->versao()]);
+        $this->s = Servicos::doBancoInstalado($this->caminhos);
+        self::assertSame('', $this->s->configs->valor($this->siteId, 'logo'));
+    }
+
+    public function testEnvioRecusaTipoFalsoPorConteudoEMaiorQueOLimite(): void
+    {
+        $t = $this->token('admin');
+        // Extensão .png, conteúdo PHP/HTML.
+        $res = $this->postComArquivo($t, ['aba' => 'identidade', 'versao' => $this->versao()], 'arquivo_logo', '<?php echo 1;', 'logo.png');
+        self::assertSame(422, $res->getStatusCode());
+        self::assertStringContainsString('cfg-logo-erro', (string) $res->getContent());
+        // GIF verdadeiro: o formato existe no PBL4, mas a configuração aceita só PNG, JPG e WebP.
+        $gif = (string) base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', true);
+        $res = $this->postComArquivo($t, ['aba' => 'identidade', 'versao' => $this->versao()], 'arquivo_icone', $gif, 'icone.png');
+        self::assertSame(422, $res->getStatusCode());
+        // SVG não é aceito.
+        $res = $this->postComArquivo($t, ['aba' => 'identidade', 'versao' => $this->versao()], 'arquivo_logo', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', 'logo.svg');
+        self::assertSame(422, $res->getStatusCode());
+        // Acima do limite do campo (ícone: 1 MB): PNG válido com enchimento no fim.
+        $res = $this->postComArquivo($t, ['aba' => 'identidade', 'versao' => $this->versao()], 'arquivo_icone', $this->png() . str_repeat("\0", 1024 * 1024 + 10), 'icone.png');
+        self::assertSame(422, $res->getStatusCode());
+        self::assertStringContainsString('MB', (string) $res->getContent());
+        $html = (string) $res->getContent();
+        self::assertStringNotContainsString(sys_get_temp_dir(), $html, 'o caminho temporário não vaza');
+        $this->s = Servicos::doBancoInstalado($this->caminhos);
+        self::assertSame('', $this->s->configs->valor($this->siteId, 'logo'));
+        self::assertSame('', $this->s->configs->valor($this->siteId, 'icone'));
+    }
+
+    public function testEnvioComVersaoVelhaConflitaSemGuardarArquivo(): void
+    {
+        $t = $this->token('admin');
+        $velha = $this->versao();
+        $this->s->configs->definir($this->siteId, ['slogan' => 'Mudou']);
+        $antes = (int) $this->conexao()->fetchOne('SELECT COUNT(*) FROM arquivo');
+        $res = $this->postComArquivo($t, ['aba' => 'identidade', 'versao' => $velha], 'arquivo_logo', $this->png());
+        self::assertSame(409, $res->getStatusCode());
+        self::assertSame($antes, (int) $this->conexao()->fetchOne('SELECT COUNT(*) FROM arquivo'));
+    }
+
+    public function testLimpadorNaoApagaImagemUsadaPelaConfiguracao(): void
+    {
+        $t = $this->token('admin');
+        $this->postComArquivo($t, ['aba' => 'identidade', 'versao' => $this->versao()], 'arquivo_logo', $this->png());
+        $this->s = Servicos::doBancoInstalado($this->caminhos);
+        $id = $this->s->configs->valor($this->siteId, 'logo');
+        self::assertIsInt($id);
+        $this->s->conexao()->executeStatement('UPDATE arquivo SET criado_em = ? WHERE id = ?', [gmdate('c', time() - 7200), $id]);
+        $l = new LimpadorDeUploads($this->s->conexao(), $this->s->classes, $this->s->arquivos, new ArmazenamentoDeArquivos($this->caminhos));
+        self::assertSame(0, $l->executar(true)['orfaos']);
+        // Sem a referência na configuração, passa a ser órfã.
+        $this->s->configs->definir($this->siteId, ['logo' => '']);
+        self::assertSame(1, $l->executar(true)['orfaos']);
     }
 
     public function testConversorMapeiaConfigDoCatalogo(): void

@@ -444,7 +444,7 @@ final class TelasDeAtualizacao
     /** @param array{situacao: string, texto: string, quando: int, disponivel: bool, motivo: string, manifesto: array{versao: string, data: string, resumo: string, notas: string, seguranca: bool, migracoes: bool, php_minimo: string}|null} $k */
     private function resultado(array $k): string
     {
-        $quando = '<p class="form-text">Consultado em ' . gmdate('d/m/Y H:i', $k['quando']) . ' UTC; a consulta se repete no máximo uma vez por dia.</p>';
+        $quando = '<p class="small text-body-secondary">Consultado em ' . gmdate('d/m/Y H:i', $k['quando']) . ' UTC; a consulta se repete no máximo uma vez por dia.</p>';
         $m = $k['manifesto'];
         if (!$k['disponivel'] || $m === null) {
             return '<div class="alert alert-secondary" role="status">' . Pagina::h($k['motivo']) . '</div>' . $quando;

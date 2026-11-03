@@ -148,7 +148,7 @@ final class TelasDeNavegacao
                 . '<span class="badge text-bg-secondary" title="Seu papel nesta seção">' . Pagina::h($perfil) . '</span></li>';
         }
 
-        return Pagina::resposta('Conteúdo', '<p class="form-text mb-2">Escolha por onde começar:</p><ul class="list-group">' . $itens . '</ul>', Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Conteúdo', null]]);
+        return Pagina::resposta('Conteúdo', '<p class="text-body-secondary mb-2">Escolha por onde começar:</p><ul class="list-group">' . $itens . '</ul>', Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Conteúdo', null]]);
     }
 
     // ---------------------------------------------------------------- um nível
@@ -173,7 +173,7 @@ final class TelasDeNavegacao
             $corpo .= $this->tabela($sessao, $o, $lista, $resumos, $agora, $f) . $this->paginacao($o, $f, $total, count($lista));
         }
 
-        return Pagina::resposta($o->titulo, $corpo, Response::HTTP_OK, false, $this->barra($sessao), $this->trilha($sessao, $o), $this->ajuda());
+        return Pagina::resposta($o->titulo, $corpo, Response::HTTP_OK, false, $this->barra($sessao), $this->trilha($sessao, $o), $this->ajuda(), $this->ajudaDaTela());
     }
 
     /**
@@ -223,14 +223,15 @@ final class TelasDeNavegacao
 
     private function ajuda(): string
     {
-        return 'Clique no título para descer um nível; use as migalhas ou "Subir um nível" para voltar. '
-            . '<button class="btn btn-sm btn-outline-secondary py-0" type="button" data-bs-toggle="collapse" data-bs-target="#ajuda-conteudo" aria-expanded="false" aria-controls="ajuda-conteudo" aria-label="Ajuda desta tela">?</button>'
-            . '<span class="collapse d-block mt-2" id="ajuda-conteudo"><span class="d-block small">'
-            . '<strong>Posição</strong> é o peso do conteúdo (menor primeiro); para mudar, edite o conteúdo. '
+        return 'Clique no título para descer um nível; use as migalhas ou "Subir um nível" para voltar.';
+    }
+
+    private function ajudaDaTela(): string
+    {
+        return '<strong>Posição</strong> é o peso do conteúdo (menor primeiro); para mudar, edite o conteúdo. '
             . '<strong>Publicar</strong> e <strong>Despublicar</strong> exigem papel de editor; quem é autor usa <strong>Enviar para revisão</strong>. '
             . '<strong>Mover</strong> e <strong>Excluir</strong> (vai para a lixeira, com histórico) abrem uma tela de confirmação. '
-            . 'Marque várias linhas para publicar, despublicar, enviar ou excluir de uma vez. A lixeira aparece no filtro de estado.'
-            . '</span></span>';
+            . 'Marque várias linhas para publicar, despublicar, enviar ou excluir de uma vez. A lixeira aparece no filtro de estado.';
     }
 
     /** @return list<array{0: string, 1: string|null}> */
@@ -375,7 +376,7 @@ final class TelasDeNavegacao
             . '<div><label for="campo-lote" class="form-label mb-0">Com os selecionados</label><select id="campo-lote" name="acao" class="form-select form-select-sm">'
             . '<option value="publicar">Publicar</option><option value="despublicar">Despublicar</option><option value="enviar">Enviar para revisão</option><option value="excluir">Mandar para a lixeira</option></select></div>'
             . '<button type="submit" class="btn btn-sm btn-outline-primary">Aplicar aos selecionados</button>'
-            . '<span class="form-text">Para mover, abra "Mais" na linha.</span></form>';
+            . '<span class="small text-body-secondary">Para mover, abra "Mais" na linha.</span></form>';
     }
 
     private function acoesDaLinha(SessaoAtiva $sessao, Objeto $x, int $filhos, int $nivel, string $volta, string $csrf): string

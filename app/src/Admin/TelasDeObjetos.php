@@ -478,7 +478,7 @@ final class TelasDeObjetos
             $html .= '<br><img src="' . Pagina::h($link . '/miniatura/150') . '" alt="" width="150" loading="lazy">';
         }
 
-        return $html . '<div class="form-text">O link só funciona se este conteúdo estiver publicado e vigente.</div>';
+        return $html . '<div class="small text-body-secondary">O link só funciona se este conteúdo estiver publicado e vigente.</div>';
     }
 
     /**
@@ -736,12 +736,12 @@ final class TelasDeObjetos
             $opcoes .= $this->opcao((string) $c->id, $c->nome, false);
         }
         $corpo = $this->migalhas($sessao, $pai)
-            . '<p>O novo conteúdo vai ficar dentro de <strong>' . Pagina::h($pai->titulo) . '</strong>. Primeiro escolha o tipo: os campos do formulário dependem dele.</p>'
+            . '<p>O novo conteúdo vai ficar dentro de <strong>' . Pagina::h($pai->titulo) . '</strong>.</p>'
             . '<form method="get" action="' . $this->link($pai->id) . '/novo">'
             . '<div class="mb-3"><label for="campo-tipo" class="form-label">Tipo de conteúdo</label><select id="campo-tipo" name="classe" class="form-select" required>' . $opcoes . '</select></div>'
             . Pagina::acoes('Continuar', [['Cancelar', $this->link($pai->id)]]) . '</form>';
 
-        return Pagina::resposta('Criar conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Criar conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', 'Primeiro escolha o tipo: os campos do formulário dependem dele.');
     }
 
     private function criar(SessaoAtiva $sessao, int $paiId, Request $r): Response
@@ -1140,7 +1140,7 @@ final class TelasDeObjetos
             . $this->campo('descricao', 'Descrição', '<textarea id="campo-descricao" class="form-control' . $this->invalido($erros, 'descricao') . '" name="descricao" rows="3" maxlength="' . self::MAX_DESCRICAO . '"' . $this->descrito($erros, 'descricao', true) . '>' . Pagina::h($digitado['descricao'] ?? '') . '</textarea>', $erros, 'Opcional, até ' . self::MAX_DESCRICAO . ' caracteres.');
         if (!$raiz) {
             $identificacao .= $this->campo('url', 'Endereço (URL amigável)', '<div class="input-group"><span class="input-group-text">/</span><input id="campo-url" class="form-control' . $this->invalido($erros, 'url') . '" name="url" maxlength="' . Caminhos::URL_TAMANHO_MAXIMO . '" value="' . Pagina::h($digitado['url'] ?? '') . '"' . $this->descrito($erros, 'url', true) . '></div>', $erros,
-                ($criando ? 'Opcional: se vazio, vem do título.' : 'Se mudar, o endereço antigo leva ao novo.') . $this->ajudaDetalhada('Letras minúsculas sem acento, números, hífen e "/".'));
+                ($criando ? 'Opcional: se vazio, vem do título.' : 'Se mudar, o endereço antigo leva ao novo.') . ' ' . 'Letras minúsculas sem acento, números, hífen e "/".');
         }
         $html = Pagina::card('Identificação', $identificacao);
 
@@ -1196,18 +1196,12 @@ final class TelasDeObjetos
             'numero' => ['<input class="form-control' . $classe . '"' . $comum . ' inputmode="decimal" value="' . Pagina::h($valor) . '">', 'Número (use vírgula ou ponto para decimais).'],
             'data' => ['<input class="form-control' . $classe . '"' . $comum . ' maxlength="25" value="' . Pagina::h($valor) . '">', 'Data no formato aaaa-mm-dd, com hora opcional (2026-12-31 18:30).'],
             'booleano' => ['<select class="form-select' . $classe . '"' . $comum . '>' . $this->opcao('', '(sem valor)', $valor === '') . $this->opcao('1', 'Sim', $valor === '1') . $this->opcao('0', 'Não', $valor === '0') . '</select>', 'Sim ou não.'],
-            'ref' => ['<input class="form-control' . $classe . '"' . $comum . ' type="number" min="1" step="1" value="' . Pagina::h($valor) . '">', 'Número de outro conteúdo deste site' . (isset($p['classe']) ? ' (do tipo ' . Pagina::h($p['classe']) . ')' : '') . '.' . $this->ajudaDetalhada('O número aparece na página de cada conteúdo.')],
-            'html' => ['<textarea class="form-control font-monospace' . $classe . '"' . $comum . ' rows="10" maxlength="' . self::MAX_HTML . '" ' . Pagina::MARCA_EDITOR . 'html" data-pbl-editor-base="' . Pagina::h(Pagina::TINYMCE) . '">' . Pagina::h($valor) . '</textarea>', 'Use os botões acima para formatar. Até ' . self::MAX_HTML . ' caracteres.' . $this->ajudaDetalhada('Dá para colar do Word, do Google Docs ou de uma página. Títulos, negrito, listas, links, tabelas e imagens por endereço funcionam; o botão de código-fonte mostra o HTML. Ao salvar, o HTML é limpo: ficam só marcações comuns; scripts, formulários, eventos e estilos além de alinhamento e tamanho do texto são removidos. Sem JavaScript, o campo aceita HTML direto.')],
+            'ref' => ['<input class="form-control' . $classe . '"' . $comum . ' type="number" min="1" step="1" value="' . Pagina::h($valor) . '">', 'Número de outro conteúdo deste site' . (isset($p['classe']) ? ' (do tipo ' . Pagina::h($p['classe']) . ')' : '') . '.' . ' ' . 'O número aparece na página de cada conteúdo.'],
+            'html' => ['<textarea class="form-control font-monospace' . $classe . '"' . $comum . ' rows="10" maxlength="' . self::MAX_HTML . '" ' . Pagina::MARCA_EDITOR . 'html" data-pbl-editor-base="' . Pagina::h(Pagina::TINYMCE) . '">' . Pagina::h($valor) . '</textarea>', 'Use os botões acima para formatar. Até ' . self::MAX_HTML . ' caracteres.' . ' ' . 'Dá para colar do Word, do Google Docs ou de uma página. Títulos, negrito, listas, links, tabelas e imagens por endereço funcionam; o botão de código-fonte mostra o HTML. Ao salvar, o HTML é limpo: ficam só marcações comuns; scripts, formulários, eventos e estilos além de alinhamento e tamanho do texto são removidos. Sem JavaScript, o campo aceita HTML direto.'],
             default => ['<textarea class="form-control' . $classe . '"' . $comum . ' rows="3" maxlength="' . self::MAX_TEXTO . '">' . Pagina::h($valor) . '</textarea>', 'Texto, até ' . self::MAX_TEXTO . ' caracteres.'],
         };
 
         return '<div class="pbl-card pbl-campo-tipo">' . $this->campo($chave, Classe::rotuloDe($p) . (($p['obrigatorio'] ?? false) ? ' (obrigatório)' : ''), $controle, $erros, $ajuda, $id) . '</div>';
-    }
-
-    /** Detalhe de ajuda recolhido atrás de um "?" (sem JavaScript: `<details>`); `$texto` já escapado. */
-    private function ajudaDetalhada(string $texto): string
-    {
-        return ' <details class="pbl-ajuda"><summary aria-label="Mais ajuda">?</summary><span>' . $texto . '</span></details>';
     }
 
     /**
@@ -1308,8 +1302,7 @@ final class TelasDeObjetos
         $id ??= 'campo-' . $this->idDe($chave);
         $base = Pagina::h($this->idDe($chave));
 
-        return '<div class="mb-3"><label for="' . Pagina::h($id) . '" class="form-label">' . Pagina::h($rotulo) . '</label>' . $controle
-            . ($ajuda === '' ? '' : '<div id="ajuda-' . $base . '" class="form-text">' . $ajuda . '</div>')
+        return '<div class="mb-3">' . Pagina::rotulo($id, Pagina::h($rotulo), Pagina::ajuda('ajuda-' . $base, $rotulo, $ajuda)) . $controle
             . (isset($erros[$chave]) ? '<div id="erro-' . $base . '" class="invalid-feedback d-block">' . Pagina::h($erros[$chave]) . '</div>' : '') . '</div>';
     }
 
@@ -1485,15 +1478,14 @@ final class TelasDeObjetos
         }
         $ajudaData = 'Opcional. Horário de Brasília.';
         $corpo = $this->migalhas($sessao, $o) . $this->resumoDeErros($erros)
-            . '<p>Hoje: <strong>' . Pagina::h($this->estadoLegivel($o, gmdate('c'))) . '</strong>. Só o estado "Publicado", dentro das datas, aparece no site. '
-            . 'Datas futuras dependem do agendamento do servidor (<code>bin/pbl agendados</code>).</p>'
+            . '<p>Hoje: <strong>' . Pagina::h($this->estadoLegivel($o, gmdate('c'))) . '</strong>.</p>'
             . '<form method="post" action="' . $this->link($o->id) . '/estado" novalidate>' . $this->camposOcultos($sessao, $versao)
             . $this->campo('estado', 'Estado', '<select id="campo-estado" name="estado" class="form-select' . $this->invalido($erros, 'estado') . '"' . $this->descrito($erros, 'estado') . '>' . $opcoes . '</select>', $erros)
             . $this->campo('data_publicacao', 'Publicar a partir de', '<input id="campo-data_publicacao" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_publicacao') . '" name="data_publicacao" value="' . Pagina::h($inicio) . '"' . $this->descrito($erros, 'data_publicacao', true) . '>', $erros, $ajudaData . ' Vazio = assim que publicado.')
             . $this->campo('data_validade', 'Tirar do ar a partir de', '<input id="campo-data_validade" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_validade') . '" name="data_validade" value="' . Pagina::h($fim) . '"' . $this->descrito($erros, 'data_validade', true) . '>', $erros, $ajudaData . ' Vazio = sem prazo.')
             . Pagina::acoes('Salvar', [['Cancelar', $this->link($o->id)]], null, 'btn-primary', 'pbl-acoes-fixas') . '</form>';
 
-        return Pagina::resposta('Publicar ou tirar do ar: ' . $o->titulo, $corpo, $status, false, $this->barra($sessao));
+        return Pagina::resposta('Publicar ou tirar do ar: ' . $o->titulo, $corpo, $status, false, $this->barra($sessao), [], '', 'Só o estado "Publicado", dentro das datas, aparece no site. Datas futuras dependem do agendamento do servidor (<code>bin/pbl agendados</code>).');
     }
 
     /** Texto do campo (`2026-12-31T18:30`, no fuso da administração) → ISO 8601 em UTC; '' → null; inválido → false. */
@@ -1651,8 +1643,7 @@ final class TelasDeObjetos
         $aqui = $this->lugarNavegavel($sessao, $o, $em) ?? $this->lugarNavegavel($sessao, $o, $o->paiId) ?? $this->primeiroLugarVisivel($sessao, $o);
         $pai = $this->pai($o);
         $corpo = $this->migalhas($sessao, $o) . ($erro === null ? '' : Pagina::alerta('danger', $erro))
-            . '<p>Hoje está dentro de <strong>' . ($pai === null ? '?' : Pagina::h($pai->titulo)) . '</strong>. '
-            . 'Tudo o que está dentro dele vai junto. O endereço não muda.</p>';
+            . '<p>Hoje está dentro de <strong>' . ($pai === null ? '?' : Pagina::h($pai->titulo)) . '</strong>.</p>';
         if ($aqui === null) {
             return Pagina::resposta('Mover: ' . $o->titulo, $corpo . Pagina::alerta('warning', 'Não há onde navegar a partir da sua permissão.'), $status, false, $this->barra($sessao));
         }
@@ -1687,7 +1678,7 @@ final class TelasDeObjetos
         }
         $corpo .= '<p class="mt-3"><a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '">Cancelar</a></p>';
 
-        return Pagina::resposta('Mover: ' . $o->titulo, $corpo, $status, false, $this->barra($sessao));
+        return Pagina::resposta('Mover: ' . $o->titulo, $corpo, $status, false, $this->barra($sessao), [], '', 'Tudo o que está dentro dele vai junto. O endereço não muda.');
     }
 
     /** Endereço da tela de mover olhando para `$em` (já escapado para atributo). */
@@ -1910,8 +1901,6 @@ final class TelasDeObjetos
         $podeRestaurar = $o->status !== self::LIXEIRA && $this->pode($sessao, Acao::Editar, $o);
         $nomes = [];
         $corpo = $this->migalhas($sessao, $o)
-            . '<p>Cada vez que o conteúdo é salvo, a versão anterior fica guardada. Restaurar traz de volta o título, a descrição, o endereço, '
-            . 'o peso e os campos daquela versão, gravados como uma versão nova; o estado e as datas de publicação continuam como estão.</p>'
             . '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Versões guardadas</caption>'
             . '<thead><tr><th scope="col">Versão</th><th scope="col">Quando</th><th scope="col">Quem</th><th scope="col">Título</th><th scope="col">Estado</th><th scope="col">Motivo</th><th scope="col"><span class="visually-hidden">Ação</span></th></tr></thead><tbody>';
         foreach (array_slice($todas, 0, self::MAX_VERSOES) as $v) {
@@ -1934,7 +1923,7 @@ final class TelasDeObjetos
         }
         $corpo .= Pagina::acoes('', [['Voltar', $this->link($o->id)]]);
 
-        return Pagina::resposta('Histórico: ' . $o->titulo, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Histórico: ' . $o->titulo, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', 'Cada vez que o conteúdo é salvo, a versão anterior fica guardada. Restaurar traz de volta o título, a descrição, o endereço, o peso e os campos daquela versão, gravados como uma versão nova; o estado e as datas de publicação continuam como estão.');
     }
 
     private function restaurar(SessaoAtiva $sessao, int $id, Request $r): Response

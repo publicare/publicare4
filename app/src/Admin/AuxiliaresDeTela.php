@@ -165,7 +165,7 @@ trait AuxiliaresDeTela
     private function campoSenha(SessaoAtiva $sessao, string $id = 'campo-senha', string $campo = 'senha'): string
     {
         if ($this->servicos->modoElevado()->ativo($sessao)) {
-            return '<p class="form-text">Confirmado há pouco: não precisa da senha de novo por alguns minutos.</p>';
+            return '<p class="small text-body-secondary">Confirmado há pouco: não precisa da senha de novo por alguns minutos.</p>';
         }
 
         return '<div class="mb-3"><label for="' . $id . '" class="form-label">Sua senha, para confirmar</label>'
