@@ -251,3 +251,10 @@ Os campos `html` ganharam um editor (TinyMCE 6.8.6, MIT, hospedado, carregado s�
 ### Adendo (ADR 0022): JavaScript opcional por pele
 
 - "Páginas públicas sem JavaScript" passa a ser **o padrão da pele básica**, não uma regra absoluta: uma pele pode declarar JS próprio **local** (mesmo domínio, sem inline, sem CDN). `onepage` e `portal` usam o Bootstrap 5.3.8 local; todas as peles, inclusive a básica, carregam o `pbl-barra.js` (só age para quem tem o cookie indicador de sessão do painel).
+
+### Adendo (2026-11, visual da home): JavaScript próprio em todas as peles, inclusive a básica
+
+- **Substitui** a regra "pele básica sem JavaScript". Decisão do dono: todas as peles podem usar **JS próprio do domínio, sem script inline, sem manipulador no HTML (`onclick`...) e sem CDN**, sempre como `<script src>` com `?v=hash` (cache longo que renova quando o arquivo muda; a CSP segue `script-src 'self'`). Regra de ouro: **melhoria progressiva**, a página tem de continuar legível e navegável sem JS.
+- Pele básica: `bootstrap.bundle.min.js` (5.3.8, local em `assets/`, `defer`), `pbl-pele.js` (`defer`; indicadores do carrossel, botões de submenu, "voltar ao topo", cabeçalho que muda ao rolar, cartões que aparecem ao rolar) e `pbl-js.js` (síncrono, uma linha, no `<head>`: marca `<html class="js">`). O CSS só esconde ou troca algo (menu recolhido, um slide por vez, respostas fechadas) sob `.js`; sem a classe o menu fica aberto, os destaques empilhados e as respostas visíveis. O JS nunca esconde conteúdo por conta própria antes de saber que ele está fora da tela, e `prefers-reduced-motion` desliga o autoplay e as animações.
+- O CSS da pele básica continua próprio (não carrega o CSS do Bootstrap): as classes `collapse`, `carousel-*` e `accordion-*` são só o contrato com o JS do Bootstrap.
+

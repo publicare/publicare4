@@ -178,18 +178,18 @@ final class PeleEMoldePorObjetoTest extends TestCase
 
         $admin = json_decode($this->html($this->req('GET', $url, $this->token('admin'))), true);
         self::assertIsArray($admin);
-        self::assertSame([(string) $a->id, (string) $b->id], array_keys($admin['objetos']), 'inexistente é omitido, sem erro');
-        self::assertSame(['editar', 'despublicar', 'mover', 'excluir'], array_keys($admin['objetos'][(string) $a->id]['acoes']));
-        self::assertSame($a->versao, $admin['objetos'][(string) $a->id]['versao']);
+        self::assertSame([$a->id, $b->id], array_keys($admin['objetos']), 'inexistente é omitido, sem erro');
+        self::assertSame(['editar', 'despublicar', 'mover', 'excluir'], array_keys($admin['objetos'][$a->id]['acoes']));
+        self::assertSame($a->versao, $admin['objetos'][$a->id]['versao']);
         self::assertNotSame('', $admin['csrf'], 'token uma vez só, no lote');
 
         $leitor = json_decode($this->html($this->req('GET', $url, $this->token('leitor'))), true);
-        self::assertSame([], $leitor['objetos'][(string) $a->id]['acoes']);
+        self::assertSame([], $leitor['objetos'][$a->id]['acoes']);
         self::assertSame('', $leitor['csrf']);
 
         $this->s->objetos->atualizar($b->id, ['status' => 'apagado']);
         $depois = json_decode($this->html($this->req('GET', $url, $this->token('admin'))), true);
-        self::assertSame([(string) $a->id], array_keys($depois['objetos']), 'apagado não aparece');
+        self::assertSame([$a->id], array_keys($depois['objetos']), 'apagado não aparece');
 
         // O pedido de um objeto só continua igual.
         self::assertArrayHasKey('acoes', json_decode($this->html($this->req('GET', '/_pbl/api/acoes?objeto=' . $a->id, $this->token('admin'))), true));

@@ -14,7 +14,7 @@
 <@var $slogan = #resumo@><@se $slogan == ""@><@var $slogan = %SITE.config.slogan@><@/se@>
 <@se $slogan != ""@><p class="resumo"><@eco $slogan@></p><@/se@>
 <@var $tem_principal = 0@>
-<@localizar classes="destaque" ordem="peso, titulo" limite=5 expandir="destino_interno"@>
+<@localizar classes="destaque" pai=$home niveis=2 ordem="peso, titulo" limite=5 expandir="destino_interno"@>
 <@se %INDICE == 1@><div class="carrossel carousel slide" id="hero-carrossel" data-bs-ride="carousel" aria-roledescription="carrossel" aria-label="Destaques">
 <div class="carousel-inner">
 <@/se@><@var $tem_principal = 1@><div class="carousel-item destaque-principal<@se %INDICE == 1@> active<@/se@>">
