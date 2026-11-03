@@ -30,8 +30,9 @@ final class RepublicacaoEmLotesTest extends TestCase
     private function resumoComAte(string $saida, int $criados): void
     {
         self::assertSame(1, preg_match('/Meu Site: (\d+) página\(s\) publicada\(s\)/', $saida, $m), $saida);
-        self::assertGreaterThanOrEqual($criados, (int) $m[1]);
-        self::assertLessThanOrEqual($this->base + $criados, (int) $m[1]);
+        $n = (int) ($m[1] ?? 0);
+        self::assertGreaterThanOrEqual($criados, $n);
+        self::assertLessThanOrEqual($this->base + $criados, $n);
     }
 
     private function site(): \Pbl\Conteudo\Site
@@ -39,6 +40,7 @@ final class RepublicacaoEmLotesTest extends TestCase
         return $this->s->sites->porId($this->siteId) ?? self::fail();
     }
 
+    /** @return array<string, mixed> */
     private function json(\Symfony\Component\HttpFoundation\Response $r): array
     {
         $j = json_decode($this->html($r), true);
@@ -64,7 +66,7 @@ final class RepublicacaoEmLotesTest extends TestCase
         $r = $outra->processar($this->site(), 100);
         self::assertTrue($r['terminou_agora']);
         self::assertSame('concluido', $r['estado']['status'] ?? '');
-        self::assertSame($this->base + 30, $r['estado']['feitas'] ?? -1);
+        self::assertSame($this->base + 30, $r['estado']['feitas']);
         self::assertFalse($fila->ativa($this->siteId));
         self::assertFileExists($this->caminhos->pagina($this->siteId, 'pasta-30'));
     }

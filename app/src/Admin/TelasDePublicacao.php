@@ -21,6 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
  * lotes até acabar ou até o limite de tempo da requisição, e a tela oferece "Continuar". A fila é a mesma de `bin/pbl publicar` e
  * do cron: retomável e com trava contra duas republicações do mesmo site. Quem chega aqui já passou pelo CSRF e pela conferência
  * de permissão de `TelasDeSite::tratar`.
+ *
+ * @phpstan-import-type Estado from FilaDeRepublicacao
  */
 final class TelasDePublicacao
 {
@@ -140,7 +142,11 @@ final class TelasDePublicacao
         $this->servicos->auditoria->registrar('site.republicar', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['site_id' => $site->id, 'objetos' => $estado['feitas'], 'falhas' => $estado['falhas']]);
     }
 
-    /** Resumo da última republicação concluída ou interrompida (para quem volta à tela depois). */
+    /**
+     * Resumo da última republicação concluída ou interrompida (para quem volta à tela depois).
+     *
+     * @param Estado $e
+     */
     private function resumo(array $e): string
     {
         $dur = $this->servicos->republicacao->duracao($e);

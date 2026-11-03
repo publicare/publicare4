@@ -27,7 +27,11 @@ final class CronCentralTest extends TestCase
         return new EstadoDoCron($this->caminhos, fn (): int => $this->relogio);
     }
 
-    /** Tarefa de brinquedo que conta quantas vezes executou. */
+    /**
+     * Tarefa de brinquedo que conta quantas vezes executou.
+     *
+     * @return Tarefa&object{execucoes: int, consultas: int}
+     */
     private function falsa(string $id, int $intervalo, bool $trabalho, bool $leve = true, ?\Throwable $erro = null): Tarefa
     {
         return new class ($id, $intervalo, $trabalho, $leve, $erro) implements Tarefa {
