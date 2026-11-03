@@ -15,6 +15,8 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Recurso | Estado |
 |---|---|
 | Instalar (por linha de comando) com um site de exemplo | ✅ |
+| **Cron central**: uma linha de cron por minuto (`bin/pbl cron`) cuida da publicação por data, da republicação pendente, das limpezas e da checagem de atualização; tela **Tarefas agendadas** (última/próxima execução, resultado, "Executar agora"), aviso se o cron parou e pseudo-cron opcional para hospedagem sem cron | ✅ ([guia](../tecnica/cron.md)) |
+| **Republicar com barra de progresso** ("42 de 92 páginas"), em lotes, retomável e sem republicações simultâneas; também no `bin/pbl publicar` | ✅ |
 | Criar conteúdos em árvore | ✅ (por código; sem tela ainda) |
 | Tipos de conteúdo pelo navegador (só administrador): criar, descrever, dizer que tipos podem ficar dentro, adicionar campos, mudar rótulo, ordem e obrigatório, arquivar campo e apagar tipo sem uso, sem nunca apagar dado guardado | ✅ (e a exigência de "obrigatório" e de "tipos que podem ficar dentro" vale ao salvar qualquer conteúdo, pelo navegador ou pela linha de comando) |
 | Tela **Conteúdo**: navegar pela árvore por níveis, filtrar, buscar e ordenar, e publicar, despublicar, enviar para revisão ou mandar para a lixeira, um a um ou em lote; depois de gravar, o painel mostra a página renderizada com uma faixa dizendo o que aconteceu (mover em lote e reordenar por setas ficam para depois) | ✅ |

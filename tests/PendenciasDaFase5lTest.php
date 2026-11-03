@@ -202,7 +202,7 @@ final class PendenciasDaFase5lTest extends TestCase
         self::assertStringContainsString('Site republicado', $this->html($this->req('GET', $url . '?ok=republicado', $token)));
     }
 
-    public function testPainelContinuaOLoteQuandoHaMaisObjetos(): void
+    public function testPainelRepublicaSiteGrandeEmLotesAteTerminar(): void
     {
         $pasta = $this->s->classes->porNome('pasta') ?? self::fail();
         for ($i = 1; $i <= 105; $i++) {
@@ -211,17 +211,9 @@ final class PendenciasDaFase5lTest extends TestCase
         $token = $this->token('admin');
         $url = "/_pbl/site/{$this->siteId}/publicacao";
 
-        $r = $this->post($token, $url, ['depois' => '0']);
-        self::assertSame(200, $r->getStatusCode());
-        $html = $this->html($r);
-        self::assertStringContainsString('Continuar', $html);
-        if (preg_match('#name="depois" value="(\d+)"><input type="hidden" name="feitas" value="(\d+)"#', $html, $m) !== 1) {
-            self::fail('sem o formulário de continuação');
-        }
-        self::assertGreaterThan(0, (int) $m[1]);
+        $r = $this->post($token, $url, []);
 
-        $fim = $this->post($token, $url, ['depois' => $m[1], 'feitas' => $m[2]]);
-        self::assertSame(303, $fim->getStatusCode(), $this->html($fim));
+        self::assertSame(303, $r->getStatusCode(), $this->html($r));
         self::assertFileExists($this->caminhos->pagina($this->siteId, 'pasta-105'));
     }
 
