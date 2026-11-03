@@ -204,11 +204,13 @@ body>footer p{margin:.3rem 0}
 .js .topo-nav .menu a{border-bottom:0;border-left:3px solid transparent}
 .js .topo-nav .menu .ativo>a{border-left-color:var(--cor-enfase)}
 .menu li.tem-sub{display:flex;flex-wrap:wrap;align-items:stretch}
-.menu li.tem-sub>a{flex:1 1 auto}
+.menu li.tem-sub>a{flex:1 1 0;min-width:0}
+.menu li.tem-sub>.sub-toggle{flex:0 0 auto}
+.menu li.tem-sub>ul{flex:0 0 100%}
 .sub-toggle{display:inline-flex;align-items:center;justify-content:center;width:2.75rem;padding:0;color:var(--cor-texto);background:transparent;border:0;cursor:pointer;font:inherit}
 .sub-toggle::before{content:"";width:.5rem;height:.5rem;border:solid currentColor;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s}
 .sub-toggle[aria-expanded=true]::before{transform:rotate(225deg)}
-.menu li ul.show{display:flex;flex:1 1 100%;flex-direction:column;padding-left:1rem}
+.menu li ul.show{display:flex;flex:0 0 100%;flex-direction:column;padding-left:1rem}
 
 @media (min-width:48rem){
   .js .topo-toggle{display:none}
@@ -218,6 +220,7 @@ body>footer p{margin:.3rem 0}
   .js .topo-nav .menu .ativo>a{border-bottom-color:var(--cor-enfase)}
   .menu li.tem-sub{flex-wrap:nowrap}
   .menu li.tem-sub>a{flex:0 1 auto}
+  .menu li.tem-sub>ul{flex:none}
   .sub-toggle{width:1.6rem}
   .menu li ul.show{position:absolute;flex:none;padding:.35rem}
   .js .topo{position:sticky;top:0;z-index:30;transition:box-shadow .2s}
