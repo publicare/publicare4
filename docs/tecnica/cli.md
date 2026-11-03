@@ -6,7 +6,8 @@ No ambiente de desenvolvimento: `make pbl ARGS="<comando> …"`. Em um servidor:
 |---|---|
 | `versao` | mostra a versão do PBL4 (`Pbl\Versao::ATUAL`) |
 | `instalar [--nome=…] [--host=…]` | cria `dados/`, o banco SQLite, copia a pele básica e cria um site de exemplo. Recusa rodar duas vezes (trava `dados/config/instalado.lock`) |
-| `publicar` | renderiza todas as páginas visíveis de todos os sites para o cache e **remove do cache** o que deixou de estar visível (despublicado, vencido, rascunho) ou ficou órfão (a página de um endereço que mudou) |
+| `publicar` | (em lotes, com progresso, pela mesma fila do painel e do cron; retoma uma republicação já começada) renderiza todas as páginas visíveis de todos os sites para o cache e **remove do cache** o que deixou de estar visível (despublicado, vencido, rascunho) ou ficou órfão (a página de um endereço que mudou) |
+| `cron [--listar] [--tarefa=ID] [--orcamento=S]` | **a única linha de cron** (a cada minuto): roda as tarefas do catálogo que venceram e têm trabalho; silencioso se não há nada; sem sobreposição. Veja [cron.md](cron.md) |
 | `agendados [--simular]` | aplica a passagem do tempo no cache: põe no ar o que teve a `data_publicacao` liberada e tira o que passou da `data_validade`, republicando o site só se houve mudança. **Idempotente e silencioso** quando não há nada a fazer, feito para o cron (veja abaixo). `--simular` só mostra quantos entrariam e sairiam |
 | `sanitizar-html [--simular] [--site=ID] [--limite=N]` | varre e limpa (`HtmlSeguro`) o HTML gravado antes da fase 5g, de qualquer site e qualquer estado (inclusive a lixeira). **Idempotente**; `--simular` só mostra um resumo do que mudaria, sem gravar |
 | `modelos [listar\|ativar <nome\|todos>] [--site=ID] [--sem-exemplos]` | lista ou ativa os modelos opcionais (`evento`, `faq`, `destaque`, `bloco`): cria as classes que faltam, os exemplos e os moldes da pele básica. Idempotente ([ADR 0021](../adr/0021-modelos-opcionais.md)) |
@@ -79,6 +80,8 @@ Regras completas de conversão: [linguagem-pbl4.md](../linguagem-pbl4.md#convers
 `publicar` é o que grava as páginas no cache. Páginas com `data_validade` ganham um arquivo `.expira` ao lado e deixam de ser servidas quando a data passa, mesmo sem nova publicação. Para algo entrar no ar numa data futura (`data_publicacao`), é preciso rodar `publicar` ou **`agendados`** depois dessa data.
 
 ## `agendados` (publicação por data)
+
+> Desde o [ADR 0023](../adr/0023-cron-central-e-republicacao-em-lotes.md), prefira a linha única `bin/pbl cron` ([cron.md](cron.md)), que inclui esta tarefa. O comando abaixo continua funcionando.
 
 Datas de publicação e de validade são sempre gravadas em UTC (ISO 8601). A consulta pública e os moldes só enxergam o que está dentro da vigência, mas a **página pronta** só existe no cache depois de publicada; `agendados` fecha essa lacuna: compara o banco com o cache (`Publicador::pendentes`) e, se algo deveria estar no ar e não está (ou o contrário), republica o site inteiro (assim as listas dos pais também mudam). Sem pendências não grava nada, então pode rodar com frequência. Exemplo de cron a cada 5 minutos, a partir da raiz do projeto:
 

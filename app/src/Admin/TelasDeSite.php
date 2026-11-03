@@ -81,7 +81,11 @@ final class TelasDeSite
                 default => null,
             },
             'configuracoes' => $a !== '' || $b !== '' ? null : match ($metodo) { 'GET' => 'cfgExibir', 'POST' => 'cfgSalvar', default => null },
-            'publicacao' => $a !== '' || $b !== '' ? null : match ($metodo) { 'GET' => 'publicacaoExibir', 'POST' => 'publicacaoRepublicar', default => null },
+            'publicacao' => $b !== '' ? null : match (true) {
+                $a === '' => match ($metodo) { 'GET' => 'publicacaoExibir', 'POST' => 'publicacaoRepublicar', default => null },
+                $a === 'lote' => $metodo === 'POST' ? 'publicacaoLote' : null,
+                default => null,
+            },
             'busca' => $a !== '' || $b !== '' ? null : match ($metodo) { 'GET' => 'buscaExibir', 'POST' => 'buscaSalvar', default => null },
             default => match (true) {
                 $a === '' && $b === '' => $metodo === 'GET' ? 'peleLista' : null,
@@ -135,7 +139,13 @@ final class TelasDeSite
             return (new TelasDeConfiguracoes($this->servicos, $this->rede, $this->csrf))->tratar($sessao, $site, $requisicao);
         }
         if (str_starts_with($tela, 'publicacao')) {
-            return $tela === 'publicacaoRepublicar' ? $this->republicarAgora($sessao, $site, $requisicao) : $this->exibirPublicacao($sessao, $site, $this->avisoDePublicacao($requisicao));
+            $publicacao = new TelasDePublicacao($this->servicos, $this->rede, $this->csrf);
+
+            return match ($tela) {
+                'publicacaoRepublicar' => $publicacao->republicar($sessao, $site),
+                'publicacaoLote' => $publicacao->lote($sessao, $site, $requisicao),
+                default => $publicacao->exibir($sessao, $site, TelasDePublicacao::avisoDaConsulta($requisicao)),
+            };
         }
         if (str_starts_with($tela, 'busca')) {
             return $this->buscaTelas($sessao, $site, $tela, $requisicao);
@@ -390,52 +400,6 @@ final class TelasDeSite
         }
 
         return $html;
-    }
-
-    private function avisoDePublicacao(Request $req): string
-    {
-        return ($req->query->all()['ok'] ?? null) === 'republicado' ? '<div class="alert alert-success" role="status">Site republicado.</div>' : '';
-    }
-
-    private function exibirPublicacao(SessaoAtiva $sessao, Site $site, string $aviso, ?string $progresso = null): Response
-    {
-        $total = $this->servicos->objetos->contarDoSite($site->id);
-        $corpo = $aviso . self::avisosDeMenu($this->servicos, $site) . ($progresso ?? '')
-            . '<p>O site tem ' . $total . ' objeto(s). Republicar refaz o menu e todas as páginas publicadas, em lotes: se o site for grande, '
-            . 'a tela pede para continuar até terminar.</p>'
-            . '<form method="post" action="' . $this->linkPublicacao($site) . '">' . $this->campoCsrf($sessao)
-            . '<input type="hidden" name="depois" value="0"><button type="submit" class="btn btn-primary">Republicar agora</button></form>';
-
-        return Pagina::resposta('Publicação de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Publicação', null]]);
-    }
-
-    private function republicarAgora(SessaoAtiva $sessao, Site $site, Request $req): Response
-    {
-        $c = $req->request->all();
-        $depois = isset($c['depois']) && is_string($c['depois']) && ctype_digit($c['depois']) && strlen($c['depois']) <= 12 ? (int) $c['depois'] : 0;
-        $feitas = isset($c['feitas']) && is_string($c['feitas']) && ctype_digit($c['feitas']) && strlen($c['feitas']) <= 9 ? (int) $c['feitas'] : 0;
-        try {
-            $r = $this->servicos->publicador->republicarLote($site, $depois);
-        } catch (\Throwable) {
-            return $this->exibirPublicacao($sessao, $site, '<div class="alert alert-danger" role="alert">Não foi possível republicar agora. Tente de novo ou use <code>bin/pbl publicar</code>.</div>');
-        }
-        $feitas += $r['processadas'];
-        if ($r['concluido']) {
-            $this->servicos->auditoria->registrar('site.republicar', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['site_id' => $site->id, 'objetos' => $feitas]);
-
-            return new RedirectResponse($this->linkPublicacao($site) . '?ok=republicado', Response::HTTP_SEE_OTHER);
-        }
-        $continuar = '<div class="alert alert-info" role="status">' . $feitas . ' objeto(s) tratados; ainda há mais.'
-            . '<form method="post" class="mt-2" action="' . $this->linkPublicacao($site) . '">' . $this->campoCsrf($sessao)
-            . '<input type="hidden" name="depois" value="' . $r['ultimo'] . '"><input type="hidden" name="feitas" value="' . $feitas . '">'
-            . '<button type="submit" class="btn btn-primary btn-sm">Continuar</button></form></div>';
-
-        return $this->exibirPublicacao($sessao, $site, '', $continuar);
-    }
-
-    private function linkPublicacao(Site $site): string
-    {
-        return Painel::PREFIXO . '/site/' . $site->id . '/publicacao';
     }
 
     // ---------------------------------------------------------------- busca (nível C, ADR 0010)

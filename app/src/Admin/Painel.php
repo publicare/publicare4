@@ -9,6 +9,7 @@ use Pbl\Acesso\LimiteDeTentativas;
 use Pbl\Acesso\Rede;
 use Pbl\Acesso\SessaoAtiva;
 use Pbl\Acesso\SessaoRepositorio;
+use Pbl\Cron\PseudoCron;
 use Pbl\Servicos;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -58,6 +59,7 @@ final class Painel
         $rotaDeDominio = TelasDeDominios::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeSite = TelasDeSite::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeAtualizacao = TelasDeAtualizacao::rota(self::PREFIXO, $caminho, $metodo);
+        $rotaDeCron = TelasDeCron::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeRevisao = TelasDeRevisao::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeNavegacao = TelasDeNavegacao::rota(self::PREFIXO, $caminho, $metodo);
         $resposta = match (true) {
@@ -70,6 +72,7 @@ final class Painel
             $rotaDeDominio !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeDominios($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeDominio, $requisicao)),
             $rotaDeSite !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeSite($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeSite, $requisicao)),
             $rotaDeAtualizacao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeAtualizacao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeAtualizacao, $requisicao)),
+            $rotaDeCron !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeCron($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeCron, $requisicao)),
             $rotaDeRevisao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeRevisao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeRevisao, $requisicao)),
             $rotaDeNavegacao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeNavegacao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeNavegacao, $requisicao)),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'GET' => $this->formularioDeEntrar($requisicao),
@@ -94,6 +97,9 @@ final class Painel
             return new RedirectResponse(self::PREFIXO . '/entrar', Response::HTTP_SEE_OTHER);
         }
         $this->prepararBarra($sessao);
+        if ($requisicao->getMethod() === 'GET') {
+            PseudoCron::talvez($this->servicos); // hospedagem sem cron: só no painel, só GET, nunca lança
+        }
 
         return $tela($sessao);
     }

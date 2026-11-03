@@ -233,6 +233,15 @@ final class ObjetoRepositorio
         ], $linhas);
     }
 
+    /** Quantos objetos tem a subárvore (a raiz e tudo abaixo dela), em qualquer estado: o total que `loteDaSubarvore` percorre. */
+    public function contarDaSubarvore(int $siteId, string $caminhoRaiz): int
+    {
+        return (int) $this->conexao->fetchOne(
+            "SELECT COUNT(*) FROM objeto WHERE site_id = ? AND caminho LIKE ? ESCAPE '!'",
+            [$siteId, $this->escaparLike($caminhoRaiz) . '%'],
+        );
+    }
+
     /** Quantos objetos o site tem (fora da lixeira definitiva). */
     public function contarDoSite(int $siteId): int
     {

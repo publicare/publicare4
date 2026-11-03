@@ -159,6 +159,7 @@ final class Pagina
             str_starts_with($caminho, '/_pbl/conteudo') => 'conteudo',
             str_starts_with($caminho, '/_pbl/contas') => 'contas',
             str_starts_with($caminho, '/_pbl/atualizacao') => 'atualizacao',
+            str_starts_with($caminho, '/_pbl/tarefas') => 'tarefas',
             str_starts_with($caminho, '/_pbl/pendencias') => 'pendencias',
             str_starts_with($caminho, '/_pbl/meus-envios') => 'envios',
             default => 'inicio',
@@ -176,6 +177,7 @@ final class Pagina
         if ($administrador) {
             $itens['contas'] = ['/_pbl/contas', 'Contas'];
             $itens['atualizacao'] = ['/_pbl/atualizacao', 'Atualização'];
+            $itens['tarefas'] = ['/_pbl/tarefas', 'Tarefas agendadas'];
         }
         $links = '';
         foreach ($itens as $chave => [$href, $rotulo]) {

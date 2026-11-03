@@ -177,13 +177,16 @@ final class Publicador
      * `$tamanho` objetos com id maior que `$depoisDoId`, ou para ao passar de `$segundos`. O primeiro lote (`$depoisDoId` = 0)
      * refaz o snapshot do menu; o último remove as páginas órfãs e limpa o pendente. Idempotente: pode ser refeito do zero.
      *
-     * @return array{processadas: int, ultimo: int, concluido: bool}
+     * Uma página que falha (endereço inválido num dado antigo, disco sem espaço) não derruba o lote: entra em `falhas`
+     * (e o id em `ids_com_falha`, no máximo 20) e a republicação segue. `publicadas` conta só as que ficaram no ar.
+     *
+     * @return array{processadas: int, ultimo: int, concluido: bool, publicadas: int, falhas: int, ids_com_falha: list<int>}
      */
     public function republicarLote(Site $site, int $depoisDoId = 0, int $tamanho = 100, float $segundos = 10.0): array
     {
         $raiz = $site->objetoRaizId === null ? null : $this->objetos->porId($site->objetoRaizId);
         if ($raiz === null) {
-            return ['processadas' => 0, 'ultimo' => $depoisDoId, 'concluido' => true];
+            return ['processadas' => 0, 'ultimo' => $depoisDoId, 'concluido' => true, 'publicadas' => 0, 'falhas' => 0, 'ids_com_falha' => []];
         }
         if ($depoisDoId === 0) {
             $this->menu?->reconstruir($site);
@@ -191,6 +194,9 @@ final class Publicador
         $inicio = microtime(true);
         $agora = gmdate('c');
         $processadas = 0;
+        $publicadas = 0;
+        $falhas = 0;
+        $idsComFalha = [];
         $ultimo = $depoisDoId;
         $this->emLote = true;
         try {
@@ -202,11 +208,16 @@ final class Publicador
                 try {
                     if ($objeto->visivel($agora)) {
                         $this->publicar($site, $objeto);
+                        $publicadas++;
                     } else {
                         $this->remover($site, $objeto);
                     }
-                } catch (\InvalidArgumentException) {
-                    // endereço inválido (dado antigo): não derruba a republicação
+                } catch (\InvalidArgumentException | \RuntimeException) {
+                    // endereço inválido (dado antigo) ou falha de gravação: conta como falha e não derruba a republicação
+                    $falhas++;
+                    if (count($idsComFalha) < 20) {
+                        $idsComFalha[] = $objeto->id;
+                    }
                 }
                 $ultimo = $objeto->id;
                 $processadas++;
@@ -216,15 +227,15 @@ final class Publicador
         }
         $concluido = $processadas === count($lote) && count($lote) < $tamanho;
         if ($concluido) {
-            $publicadas = [];
+            $publicadasNoIndice = [];
             foreach ($this->objetos->indicePublicadoDaSubarvore($site->id, $raiz->caminho) as $p) {
-                $publicadas[$p['url']] = true;
+                $publicadasNoIndice[$p['url']] = true;
             }
-            $this->limparOrfas($site, $publicadas);
+            $this->limparOrfas($site, $publicadasNoIndice);
             $this->menu?->limparPendente($site);
         }
 
-        return ['processadas' => $processadas, 'ultimo' => $ultimo, 'concluido' => $concluido];
+        return ['processadas' => $processadas, 'ultimo' => $ultimo, 'concluido' => $concluido, 'publicadas' => $publicadas, 'falhas' => $falhas, 'ids_com_falha' => $idsComFalha];
     }
 
     /**
