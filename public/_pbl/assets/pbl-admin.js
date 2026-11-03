@@ -67,4 +67,18 @@
       window.bootstrap.Tab.getOrCreateInstance(botao).show();
     }
   }, true);
+
+  /* Tela Conteúdo: a caixa do cabeçalho marca ou desmarca todas as linhas da página (data-pbl-marcar-todos="ids[]"). */
+  document.addEventListener('change', function (e) {
+    var alvo = e.target;
+    var nome = alvo && alvo.getAttribute ? alvo.getAttribute('data-pbl-marcar-todos') : null;
+    if (!nome) {
+      return;
+    }
+    document.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
+      if (c.name === nome) {
+        c.checked = alvo.checked;
+      }
+    });
+  });
 })();

@@ -434,6 +434,41 @@ final class ObjetoRepositorio
     }
 
     /**
+     * Dados de apoio da lista do painel, numa consulta por informação (nada por linha): quando foi alterado por último, quem
+     * gravou a versão atual e quantos filhos (fora da lixeira) tem.
+     *
+     * @param list<int> $ids
+     * @return array<int, array{atualizado_em: string, alterado_por: int|null, filhos: int}> indexado pelo id do objeto
+     */
+    public function resumosParaLista(array $ids): array
+    {
+        $ids = array_values(array_unique($ids));
+        if ($ids === []) {
+            return [];
+        }
+        $saida = [];
+        $tipos = [\Doctrine\DBAL\ArrayParameterType::INTEGER];
+        foreach ($this->conexao->executeQuery(
+            'SELECT o.id, o.atualizado_em, v.usuario_id FROM objeto o LEFT JOIN objeto_versao v ON v.objeto_id = o.id AND v.versao = o.versao WHERE o.id IN (?)',
+            [$ids],
+            $tipos,
+        )->fetchAllAssociative() as $l) {
+            $saida[(int) $l['id']] = ['atualizado_em' => (string) $l['atualizado_em'], 'alterado_por' => $l['usuario_id'] === null ? null : (int) $l['usuario_id'], 'filhos' => 0];
+        }
+        foreach ($this->conexao->executeQuery(
+            "SELECT pai_id, COUNT(*) AS n FROM objeto WHERE pai_id IN (?) AND status <> 'apagado' GROUP BY pai_id",
+            [$ids],
+            $tipos,
+        )->fetchAllAssociative() as $l) {
+            if (isset($saida[(int) $l['pai_id']])) {
+                $saida[(int) $l['pai_id']]['filhos'] = (int) $l['n'];
+            }
+        }
+
+        return $saida;
+    }
+
+    /**
      * Histórico do objeto, da versão mais nova para a mais antiga.
      *
      * @return list<array{versao: int, titulo: string, status: string, motivo: string, criado_em: string, usuario_id: int|null}>

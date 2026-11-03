@@ -55,7 +55,7 @@ final class TelasDeObjetos
     /** Sub-rota de `/_pbl/objeto/{id}` => métodos aceitos. O resto é 404. */
     private const ROTAS = [
         '' => ['GET'], 'editar' => ['GET', 'POST'], 'novo' => ['GET', 'POST'], 'estado' => ['GET', 'POST'],
-        'mover' => ['GET', 'POST'], 'apagar' => ['GET', 'POST'], 'recuperar' => ['POST'], 'versoes' => ['GET'], 'restaurar' => ['POST'], 'envios' => ['GET'],
+        'mover' => ['GET', 'POST'], 'apagar' => ['GET', 'POST'], 'recuperar' => ['POST'], 'versoes' => ['GET'], 'restaurar' => ['POST'], 'envios' => ['GET'], 'previa' => ['GET'],
     ];
     /** Ordens da lista de filhos: chave da URL => [rótulo, ordem da Consulta]. Só estas chegam ao motor. */
     private const ORDENS = [
@@ -101,8 +101,105 @@ final class TelasDeObjetos
             'recuperar' => $this->recuperar($sessao, $id, $r),
             'versoes' => $this->versoes($sessao, $id),
             'envios' => $this->envios($sessao, $id, $r),
+            'previa' => $this->previa($sessao, $id, $r),
             default => $this->restaurar($sessao, $id, $r),
         };
+    }
+
+    // ---------------------------------------------------------------- prévia depois de gravar
+
+    /** Para onde toda gravação (gravar, publicar, enviar para revisão, devolver…) leva: a prévia renderizada com a faixa de resultado. */
+    public static function urlDaPrevia(int $id, string $codigo): string
+    {
+        return Painel::PREFIXO . '/objeto/' . $id . '/previa?salvo=' . $codigo;
+    }
+
+    /**
+     * Prévia do objeto como o visitante o veria (pele e molde efetivos), com uma faixa fixa no topo dizendo, em português, o que
+     * aconteceu. A mensagem vem do estado gravado agora, não do botão apertado (`salvo` só afina: aviso, despublicado, retirado).
+     * Quem não pode ver o objeto recebe a mesma resposta de "sem acesso"; se a renderização falhar, ficam só a faixa e os botões.
+     */
+    private function previa(SessaoAtiva $sessao, int $id, Request $r): Response
+    {
+        $o = $this->servicos->objetos->porId($id);
+        if ($o === null || !$this->pode($sessao, Acao::Ver, $o)) {
+            return $this->semAcesso($sessao);
+        }
+        $codigo = $r->query->get('salvo');
+        $codigo = is_string($codigo) ? $codigo : '';
+        if ($o->status === self::LIXEIRA) {
+            return new RedirectResponse($this->link($o->id) . ($codigo === '' ? '' : '?salvo=' . rawurlencode($codigo)), Response::HTTP_SEE_OTHER);
+        }
+        $agora = gmdate('c');
+        [$tipo, $mensagem] = $this->mensagemDaPrevia($o, $agora, $codigo);
+        $faixa = $this->faixaDaPrevia($sessao, $o, $agora, $tipo, $mensagem, $codigo === 'aviso', $codigo === 'agendado');
+        $site = $this->servicos->sites->porId($o->siteId);
+        $pagina = null;
+        if ($site !== null) {
+            try {
+                $pagina = $this->servicos->renderizador->renderizar($site, $o);
+            } catch (\Throwable) {
+                $pagina = null;
+            }
+        }
+        if ($pagina === null || preg_match('/<body\b[^>]*>/i', $pagina, $m, PREG_OFFSET_CAPTURE) !== 1) {
+            return Pagina::resposta('Resultado: ' . $o->titulo, $faixa . '<p class="text-body-secondary">Não foi possível montar a prévia desta página agora.</p>', Response::HTTP_OK, false, $this->barra($sessao));
+        }
+        $fim = $m[0][1] + strlen($m[0][0]);
+
+        return new Response(substr($pagina, 0, $fim) . $faixa . substr($pagina, $fim), Response::HTTP_OK, ['Content-Type' => 'text/html; charset=utf-8']);
+    }
+
+    /** @return array{0: string, 1: string} classe do alerta e texto, pelo estado real do objeto */
+    private function mensagemDaPrevia(Objeto $o, string $agora, string $codigo): array
+    {
+        if ($o->status === 'publicado') {
+            if ($o->dataPublicacao !== null && $o->dataPublicacao > $agora) {
+                return ['info', 'Agendado para ' . $this->dataCurta($o->dataPublicacao)];
+            }
+            if ($o->dataValidade !== null && $o->dataValidade < $agora) {
+                return ['warning', 'Publicado, mas já vencido: está fora do ar'];
+            }
+
+            return ['success', 'Publicado'];
+        }
+
+        return match ($o->status) {
+            'submetido' => ['info', 'Enviado para revisão'],
+            'rejeitado' => ['warning', 'Devolvido'],
+            default => $codigo === 'despublicado' ? ['secondary', 'Despublicado (privado, não está no ar)']
+                : ($codigo === 'retirado' ? ['secondary', 'Envio retirado (privado, não está no ar)'] : ['secondary', 'Gravado como rascunho (privado, não está no ar)']),
+        };
+    }
+
+    private function dataCurta(string $gravada): string
+    {
+        $d = $this->dataGravada($gravada);
+
+        return $d === null ? $gravada : $d->setTimezone(new \DateTimeZone(self::FUSO))->format('d/m H:i');
+    }
+
+    private function faixaDaPrevia(SessaoAtiva $sessao, Objeto $o, string $agora, string $tipo, string $mensagem, bool $aviso, bool $agendado = false): string
+    {
+        $botoes = '';
+        $estilo = 'color:#fff;text-decoration:none;padding:.4rem .8rem;border-radius:.375rem;font-size:15px;';
+        if ($this->pode($sessao, Acao::Editar, $o)) {
+            $botoes .= '<a style="' . $estilo . 'background:#0d6efd" href="' . $this->link($o->id) . '/editar">Voltar a editar</a> ';
+        }
+        $pai = $this->pai($o);
+        $nivel = $pai !== null && $this->pode($sessao, Acao::Ver, $pai) ? $pai : $o;
+        $botoes .= '<a style="' . $estilo . 'background:#495057" href="' . Painel::PREFIXO . '/conteudo/' . $nivel->id . '">Ver na lista</a> ';
+        $publica = $o->visivel($agora) ? $this->servicos->enderecos->base($o->siteId) : '';
+        if ($publica !== '') {
+            $botoes .= '<a style="' . $estilo . 'background:#198754" href="' . Pagina::h($publica . '/' . ltrim($o->urlAmigavel, '/')) . '" target="_blank" rel="noopener">Abrir a página pública</a>';
+        }
+
+        return '<div ' . Pagina::MARCA_PREVIA . '1" id="faixa-previa" role="status" style="position:sticky;top:0;z-index:2147483000;display:flex;flex-wrap:wrap;gap:.5rem .75rem;align-items:center;'
+            . 'padding:.6rem 1rem;background:#212529;color:#fff;font:16px/1.4 system-ui,sans-serif;border-bottom:3px solid #6ea8fe">'
+            . '<strong>' . Pagina::h($mensagem) . '</strong>'
+            . ($aviso ? '<span>A página pública não pôde ser atualizada agora; publique o site de novo.</span>' : '')
+            . ($agendado ? '<span>Ela entra no ar na data marcada, quando o agendamento do servidor rodar (<code>bin/pbl agendados</code>, de preferência no cron).</span>' : '')
+            . '<span style="margin-left:auto;display:flex;flex-wrap:wrap;gap:.5rem">' . $botoes . '</span></div>';
     }
 
     // ---------------------------------------------------------------- ver
@@ -578,7 +675,7 @@ final class TelasDeObjetos
         }
         $agendado = $vigente !== [] && $novo->status === 'publicado' && $novo->dataPublicacao !== null && $novo->dataPublicacao > gmdate('c');
 
-        return new RedirectResponse($this->link($novo->id) . '?salvo=' . (!$ok ? 'aviso' : ($agendado ? 'agendado' : 'sim')), Response::HTTP_SEE_OTHER);
+        return new RedirectResponse(self::urlDaPrevia($novo->id, !$ok ? 'aviso' : ($o->status === 'publicado' && $novo->status !== 'publicado' ? 'despublicado' : ($agendado ? 'agendado' : 'sim'))), Response::HTTP_SEE_OTHER);
     }
 
     /**
@@ -715,7 +812,7 @@ final class TelasDeObjetos
             return $this->naLixeira($sessao, $pai);
         }
 
-        return new RedirectResponse($this->link($novo->id) . '?salvo=criado', Response::HTTP_SEE_OTHER);
+        return new RedirectResponse(self::urlDaPrevia($novo->id, 'criado'), Response::HTTP_SEE_OTHER);
     }
 
     /**
@@ -1307,7 +1404,7 @@ final class TelasDeObjetos
         $ok = $this->sincronizar($novo, $this->pai($novo));
         $agendado = $novo->status === 'publicado' && $novo->dataPublicacao !== null && $novo->dataPublicacao > gmdate('c');
 
-        return new RedirectResponse($this->link($novo->id) . '?salvo=' . (!$ok ? 'aviso' : ($agendado ? 'agendado' : 'estado')), Response::HTTP_SEE_OTHER);
+        return new RedirectResponse(self::urlDaPrevia($novo->id, !$ok ? 'aviso' : ($o->status === 'publicado' && $novo->status !== 'publicado' ? 'despublicado' : ($agendado ? 'agendado' : 'estado'))), Response::HTTP_SEE_OTHER);
     }
 
     /**

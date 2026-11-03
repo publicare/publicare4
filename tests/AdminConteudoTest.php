@@ -217,7 +217,7 @@ final class AdminConteudoTest extends TestCase
         $r = $this->salvar($token, $this->sobre, '  Quem somos  ', "Linha 1\r\nLinha 2");
 
         self::assertSame(303, $r->getStatusCode());
-        self::assertSame('/_pbl/objeto/' . $this->sobre->id . '?salvo=sim', $r->headers->get('Location'));
+        self::assertSame('/_pbl/objeto/' . $this->sobre->id . '/previa?salvo=sim', $r->headers->get('Location'));
         $novo = $this->objeto($this->sobre->id);
         self::assertSame('Quem somos', $novo->titulo);
         self::assertSame("Linha 1\nLinha 2", $novo->descricao);
@@ -225,7 +225,7 @@ final class AdminConteudoTest extends TestCase
         self::assertSame($this->ids['editor'], $this->s->objetos->versoes($novo->id)[0]['usuario_id'] ?? null);
         self::assertStringContainsString('Quem somos', (string) file_get_contents($this->caminhos->pagina($novo->siteId, 'sobre')));
         self::assertStringContainsString('Quem somos', (string) file_get_contents($this->caminhos->pagina($novo->siteId, '')), 'a lista de filhos do pai também foi regravada');
-        self::assertStringContainsString('Alterações salvas', (string) $this->req('GET', (string) $r->headers->get('Location'), $token)->getContent());
+        self::assertStringContainsString('Publicado', (string) $this->req('GET', (string) $r->headers->get('Location'), $token)->getContent());
     }
 
     public function testNadaMudouNaoCriaVersao(): void

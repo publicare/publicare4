@@ -1,5 +1,9 @@
 /* PBL4 — ajustes da administração e do instalador sobre o Bootstrap 5 (ADR 0012). Único CSS próprio: nada inline. */
+html, body { max-width: 100%; overflow-x: hidden; }
 main { max-width: 60rem; overflow-wrap: anywhere; }
+/* Entalhe (notch) em paisagem: viewport-fit=cover pede a tela inteira, então a barra e o conteúdo respeitam a área segura. */
+.pbl-barra { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+main.container { padding-left: calc(var(--bs-gutter-x, 1.5rem) * .5 + env(safe-area-inset-left)); padding-right: calc(var(--bs-gutter-x, 1.5rem) * .5 + env(safe-area-inset-right)); }
 main pre, main textarea { max-width: 100%; }
 
 /* Marcas de texto usadas pelo instalador (contraste AA sobre fundo claro). */
@@ -10,8 +14,8 @@ main pre, main textarea { max-width: 100%; }
 /* Instalador: formulário em coluna única, rótulo acima do campo, requisitos numa tabela que rola dentro do quadro. */
 .pbl-requisitos td:first-child { width: 2.5rem; text-align: center; }
 
-/* Barra de navegação (Bootstrap navbar-expand-md): no celular a marca, o nome, o Sair e o botão do menu ficam na primeira linha e os links
-   descem num collapse; a partir de 768 px tudo numa linha. Nada quebra nem vaza. */
+/* Barra de navegação (Bootstrap navbar-expand-xl): no celular (retrato ou paisagem) e no tablet a marca, o nome, o Sair e o botão do menu ficam na
+   primeira linha e os links descem num collapse; só a partir de 1200 px (onde todos os itens cabem) tudo fica numa linha. Nada vaza. */
 .navbar form { margin: 0; }
 .pbl-barra > .container { row-gap: .25rem; }
 .pbl-barra .pbl-nome { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -19,7 +23,7 @@ main pre, main textarea { max-width: 100%; }
 .pbl-barra .pbl-links { padding: .25rem 0 .5rem; }
 .pbl-barra .nav-link { white-space: nowrap; min-height: 44px; display: flex; align-items: center; padding-left: .75rem; padding-right: .75rem; }
 .pbl-barra .nav-link.active { color: #fff; font-weight: 600; box-shadow: inset 3px 0 0 #6ea8fe; }
-@media (min-width: 768px) {
+@media (min-width: 1200px) {
   .pbl-barra .navbar-collapse { order: 1; margin-left: 1rem; }
   .pbl-barra .pbl-usuario { order: 2; }
   .pbl-barra .pbl-links { padding: 0; column-gap: .25rem; }
@@ -165,3 +169,9 @@ main .form-check .form-text { flex: 0 0 100%; margin-top: .15rem; }
   .pbl-acoes.pbl-acoes-fixas .btn { width: auto; flex: 1 1 0; margin: 0; }
   .pbl-acoes.pbl-acoes-fixas .btn-primary, .pbl-acoes.pbl-acoes-fixas .btn-danger { flex-grow: 2; }
 }
+
+/* Tela Conteúdo (navegação por níveis) */
+.pbl-barra-acoes { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.pbl-filtros-conteudo { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .5rem; align-items: end; }
+.pbl-filtros-conteudo > * { min-width: 0; }
+.pbl-linha-acoes { display: flex; flex-wrap: wrap; gap: .25rem; justify-content: flex-end; }
