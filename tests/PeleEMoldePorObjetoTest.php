@@ -15,6 +15,10 @@ final class PeleEMoldePorObjetoTest extends TestCase
 {
     use AdminAuxiliar;
 
+    /**
+     * @param array<string, mixed> $meta
+     * @param array<string, mixed> $dados
+     */
     private function criar(string $classe, ?int $pai, string $titulo, string $url, array $meta = [], array $dados = []): Objeto
     {
         $c = $this->s->classes->porNome($classe) ?? self::fail("sem classe {$classe}");

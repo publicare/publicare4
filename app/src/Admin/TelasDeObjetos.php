@@ -1140,11 +1140,6 @@ final class TelasDeObjetos
     }
 
     /**
-     * Um campo com label, ajuda e mensagem de erro ligadas por `aria-describedby`. `$ajuda` já vem escapada.
-     *
-     * @param array<string, string> $erros
-     */
-    /**
      * Selects "Pele" e "Aparência (molde)" do card Publicação (ADR 0022). "Herdar" = vazio. Os moldes são os de cada pele
      * (agrupados por pele); a validação ao gravar confere o molde contra a pele efetiva.
      *
@@ -1201,6 +1196,11 @@ final class TelasDeObjetos
         return $erros;
     }
 
+    /**
+     * Um campo com label, ajuda e mensagem de erro ligadas por `aria-describedby`. `$ajuda` já vem escapada.
+     *
+     * @param array<string, string> $erros
+     */
     private function campo(string $chave, string $rotulo, string $controle, array $erros, string $ajuda = '', ?string $id = null): string
     {
         $id ??= 'campo-' . $this->idDe($chave);

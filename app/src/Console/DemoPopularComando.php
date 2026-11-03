@@ -207,7 +207,7 @@ final class DemoPopularComando extends Command
      * As duas versões de site em paralelo (ADR 0022): `/onepage` (pele onepage) e `/portal` (pele portal). Cada uma é um objeto-raiz de
      * pele; todo o conteúdo abaixo dele herda a pele. Os endereços levam prefixo (`op-`, `pt-`) porque são únicos por site.
      *
-     * @param \Closure(string, ?int, string, string, array<string, string|int|float|bool>, string, array<string, mixed>, ?\Closure): Objeto $criar
+     * @param \Closure(string, ?int, string, string, array<string, string|int|float|bool>, string, array<string, mixed>, ?\Closure=): Objeto $criar
      * @param \Closure(string, string): array{resumo: string, corpo: string} $pagina
      */
     private function versoesDoSite(\Closure $criar, \Closure $pagina, int $pastaDeLinks): void
@@ -234,7 +234,7 @@ final class DemoPopularComando extends Command
         $noticias = $criar('pasta', $pt->id, 'Notícias do portal', 'pt-noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Novidades']);
         foreach ([['inscricoes', 'Inscrições abertas para as oficinas', 2, [34, 112, 87]], ['horario', 'Biblioteca abre aos sábados', 8, [52, 95, 140]], ['feira', 'Feira de livros reúne 800 visitantes', 20, [140, 60, 90]], ['relatorio', 'Relatório anual publicado', 40, [60, 100, 100]]] as $i => [$u, $t, $atras, $cor]) {
             $criar('noticia', $noticias->id, $t, 'pt-noticia-' . $u, ['resumo' => $t . '.', 'corpo' => '<p>' . $t . '. Acompanhe as próximas novidades por aqui.</p>'], 'publicado',
-                ['data_publicacao' => gmdate('Y-m-d', strtotime(sprintf('-%d days', $atras)) ?: time()) . ' 09:00:00'], $this->imagem('imagem_destaque', $t, $cor, 'pt-noticia-' . $u . '.png', 960, 540, $u));
+                ['data_publicacao' => gmdate('Y-m-d', time() - $atras * 86400) . ' 09:00:00'], $this->imagem('imagem_destaque', $t, $cor, 'pt-noticia-' . $u . '.png', 960, 540, $u));
         }
         $pts = $criar('pasta', $pt->id, 'Serviços do portal', 'pt-servicos', [], 'publicado', ['peso' => 30, 'no_menu' => true, 'descricao' => 'O que oferecemos']);
         $criar('pagina', $pts->id, 'Biblioteca', 'pt-servico-biblioteca', $pagina('Empréstimo gratuito.', '<p>Mais de cinco mil títulos.</p>'), 'publicado', ['peso' => 10, 'no_menu' => true]);
