@@ -150,6 +150,20 @@ final class PeleEMoldePorObjetoTest extends TestCase
         self::assertStringContainsString('application/json', (string) $r->headers->get('Content-Type'));
     }
 
+    public function testApiDeAcoesOferecePainelDeConteudoSoQuandoHaFilhos(): void
+    {
+        $pai = $this->criar('pagina', $this->inicioId, 'Pai', 'pai');
+        $url = '/_pbl/api/acoes?objeto=' . $pai->id;
+        $antes = json_decode($this->html($this->req('GET', $url, $this->token('admin'))), true);
+        self::assertArrayNotHasKey('conteudo', $antes['acoes']);
+
+        $this->criar('pagina', $pai->id, 'Filho', 'filho');
+        $depois = json_decode($this->html($this->req('GET', $url, $this->token('admin'))), true);
+        self::assertSame(['conteudo', 'editar', 'despublicar', 'mover', 'excluir'], array_keys($depois['acoes']));
+        self::assertSame('/_pbl/conteudo/' . $pai->id, $depois['acoes']['conteudo']['url']);
+        self::assertArrayNotHasKey('conteudo', json_decode($this->html($this->req('GET', $url, $this->token('leitor'))), true)['acoes']);
+    }
+
     public function testApiDeAcoesPorPapel(): void
     {
         $p = $this->criar('pagina', $this->inicioId, 'Pagina', 'pagina');

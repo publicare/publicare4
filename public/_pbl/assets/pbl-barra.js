@@ -14,13 +14,14 @@
   var LOTE = 100;
 
   var ROTULOS = {
+    conteudo: ['Conteúdo', 'btn btn-sm btn-outline-primary', 'M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01'],
     editar: ['Editar', 'btn btn-sm btn-primary bg-gradient', 'M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z'],
     publicar: ['Publicar', 'btn btn-sm btn-success bg-gradient', 'M20 6 9 17l-5-5'],
     despublicar: ['Despublicar', 'btn btn-sm btn-warning bg-gradient', 'M8 5v14 M16 5v14'],
     mover: ['Mover', 'btn btn-sm btn-outline-secondary', 'M7 4v16 M3 8l4-4 4 4 M17 20V4 M13 16l4 4 4-4'],
     excluir: ['Excluir', 'btn btn-sm btn-danger bg-gradient', 'M3 6h18 M8 6V4h8v2 M6 6l1 14h10l1-14 M10 11v6 M14 11v6']
   };
-  var ORDEM = ['editar', 'publicar', 'despublicar', 'mover', 'excluir'];
+  var ORDEM = ['conteudo', 'editar', 'publicar', 'despublicar', 'mover', 'excluir'];
 
   var estado = {}; // id -> { versao, acoes, estado }
   var csrf = '';

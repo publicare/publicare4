@@ -103,6 +103,9 @@ final class ApiDeAcoes
     {
         $base = Painel::PREFIXO . '/objeto/' . $o->id;
         $acoes = [];
+        if ($this->pode($sessao, Acao::Editar, $o) && $this->servicos->objetos->filhosForaDaLixeira($o->id) > 0) {
+            $acoes['conteudo'] = ['url' => Painel::PREFIXO . '/conteudo/' . $o->id];
+        }
         if ($this->pode($sessao, Acao::Editar, $o)) {
             $acoes['editar'] = ['url' => $base . '/editar'];
         }
