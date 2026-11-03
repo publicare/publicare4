@@ -40,7 +40,8 @@ final class UploadsOrfaosTarefa implements Tarefa
 
     public function temTrabalho(Servicos $servicos): bool
     {
-        return $this->limpador($servicos)->executar(true)['orfaos'] > 0;
+        // A varredura É o trabalho: simulá-la aqui dobraria o custo da tarefa mais pesada. Roda no máximo uma vez por dia e só no cron real.
+        return true;
     }
 
     public function executar(Servicos $servicos, float $prazo): Resultado

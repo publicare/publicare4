@@ -60,7 +60,12 @@ final class AgendadosTarefa implements Tarefa
         $entraram = 0;
         $sairam = 0;
         $adiados = 0;
+        $parcial = false;
         foreach ($servicos->sites->todos() as $site) {
+            if (microtime(true) >= $prazo) {
+                $parcial = true; // acabou o orçamento: os sites que faltam ficam para a próxima rodada (daqui a 1 min)
+                break;
+            }
             if ($servicos->objetos->contarDoSite($site->id) > Publicador::LIMITE_SINCRONO) {
                 $p = $servicos->publicador->pendentes($site);
                 if ($p['entram'] !== [] || $p['saem'] !== []) {
@@ -76,6 +81,6 @@ final class AgendadosTarefa implements Tarefa
             $sairam += $r['sairam'];
         }
 
-        return new Resultado("{$entraram} entrou(aram) no ar, {$sairam} saiu(saíram) do ar" . ($adiados > 0 ? "; {$adiados} site(s) grande(s) republicado(s) em lotes" : ''));
+        return new Resultado("{$entraram} entrou(aram) no ar, {$sairam} saiu(saíram) do ar" . ($adiados > 0 ? "; {$adiados} site(s) grande(s) republicado(s) em lotes" : '') . ($parcial ? '; o resto fica para a próxima rodada' : ''), $parcial);
     }
 }
