@@ -35,7 +35,7 @@ make pbl ARGS="demo-popular"                 # ativa os 4 modelos, cria o conte�
 make pbl ARGS="demo-popular --site=2"        # outro site
 ```
 
-Ele cria página inicial com texto formatado, 3 destaques, a seção Institucional (com subpáginas), 8 notícias (uma agendada para o futuro e um rascunho), agenda, perguntas frequentes, documentos, galeria de fotos e links úteis. Pode ser repetido sem duplicar nada. **Só para desenvolvimento e demonstração**: se o site já tiver mais de 30 conteúdos, o comando recusa; `--forcar` ignora a trava, e `--sem-publicar` só cria o conteúdo.
+Ele cria página inicial com texto formatado, 3 destaques, a seção Institucional (com subpáginas), 8 notícias (uma agendada para o futuro e um rascunho), agenda, perguntas frequentes, documentos, galeria de fotos e links úteis. Também cria as contas `autor` e `editor` (senha de demonstração `demo-2026-pbl4`, **só para demo**: nunca use em site de verdade), cada uma com a seção Institucional, e dois envios de exemplo: um **em revisão** e um **devolvido com motivo**, para testar o fluxo de revisão. Pode ser repetido sem duplicar nada. **Só para desenvolvimento e demonstração**: se o site já tiver mais de 30 conteúdos, o comando recusa; `--forcar` ignora a trava, e `--sem-publicar` só cria o conteúdo.
 
 ## Peles por conteúdo e as duas versões do demo
 

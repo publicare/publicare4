@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pbl\Console;
 
+use Pbl\Acesso\Perfil;
+use Pbl\Acesso\Usuario;
 use Pbl\Caminhos;
 use Pbl\Conteudo\Modelos;
 use Pbl\Conteudo\Objeto;
@@ -25,6 +27,8 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 final class DemoPopularComando extends Command
 {
     private const LIMITE = 30;
+    /** Senha das contas de demonstração (`autor` e `editor`): SÓ para demo e desenvolvimento, nunca em produção. Tem o mínimo que a política de senhas exige. */
+    public const SENHA_DEMO = 'demo-2026-pbl4';
 
     private Modelos $m;
     private Servicos $servicos;
@@ -66,6 +70,7 @@ final class DemoPopularComando extends Command
                 $this->popular();
             });
             $output->writeln('Demo criado: ' . $this->m->criados() . ' conteúdo(s) novo(s).');
+            $output->writeln('Contas de demonstração: autor e editor (senha ' . self::SENHA_DEMO . ', só para demo; apague as contas se este site for para produção).');
             if (!$input->getOption('sem-publicar')) {
                 $n = $this->servicos->publicador->publicarSite($site);
                 $output->writeln("{$site->nome}: {$n} página(s) publicada(s)");
@@ -193,6 +198,7 @@ final class DemoPopularComando extends Command
         $criar('link', $links->id, 'Fale com a biblioteca', 'link-email', ['destino_externo' => 'mailto:biblioteca@exemplo.org'], 'publicado', ['peso' => 30]);
 
         $this->versoesDoSite($criar, $pagina, $links->id);
+        $this->fluxoDeRevisao($inst);
 
         // Os destaques apontam para páginas internas.
         foreach (['oficinas' => $agenda->id, 'biblioteca' => $docs->id, 'voluntariado' => $this->idDe('voluntariado')] as $u => $alvo) {
@@ -275,6 +281,39 @@ final class DemoPopularComando extends Command
         }
         if ($novas !== []) {
             $this->servicos->configs->definir($this->site->id, $novas);
+        }
+    }
+
+    /**
+     * Fluxo de revisão (fase 6): duas contas, `autor` e `editor`, com acesso só à seção Institucional, e dois envios de exemplo
+     * (um pendente na fila do editor, um devolvido com motivo). Idempotente: conta que já existe fica como está e os exemplos só
+     * mudam de estado enquanto ainda não têm histórico de revisão.
+     */
+    private function fluxoDeRevisao(Objeto $area): void
+    {
+        $contas = [];
+        foreach (['autor' => ['Autora de exemplo', Perfil::Autor], 'editor' => ['Editor de exemplo', Perfil::Editor]] as $login => [$nome, $perfil]) {
+            $conta = $this->servicos->usuarios->porLogin($login);
+            if ($conta === null) {
+                $conta = $this->servicos->usuarios->criar($login, $login . '@exemplo.org', $nome, self::SENHA_DEMO, false, 'demo');
+                $this->servicos->usuarios->conceder($conta->id, $area->id, $perfil, 'demo');
+            }
+            $contas[$login] = $conta;
+        }
+        /** @var array{autor: Usuario, editor: Usuario} $contas */
+        $exemplos = [
+            ['envio-pendente-calendario-de-visitas', 'Calendário de visitas (aguardando revisão)', 'Texto enviado pela autora de exemplo e aguardando o editor.'],
+            ['envio-devolvido-nota-de-transparencia', 'Nota de transparência (devolvida)', 'Texto devolvido pelo editor com um pedido de ajuste.'],
+        ];
+        foreach ($exemplos as $i => [$url, $titulo, $resumo]) {
+            $o = $this->m->garantirObjeto($this->site, 'pagina', $area->id, $titulo, $url, ['resumo' => $resumo, 'corpo' => '<p>' . $resumo . '</p>'], 'privado', ['criado_por' => $contas['autor']->id, 'peso' => 900 + $i]);
+            if ($o->status !== 'privado' || $this->servicos->revisao->historico($o->id, 1) !== []) {
+                continue;
+            }
+            $this->servicos->revisao->enviar($contas['autor'], $o->id);
+            if ($i === 1) {
+                $this->servicos->revisao->devolver($contas['editor'], $o->id, 'Faltou citar a fonte dos números e revisar o último parágrafo. Ajuste e reenvie.');
+            }
         }
     }
 

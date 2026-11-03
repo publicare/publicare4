@@ -56,6 +56,16 @@ final class Pagina
     public static function definirCaminho(string $caminho): void
     {
         self::$caminhoAtual = $caminho;
+        self::$revisao = [0, false, false];
+    }
+
+    /** Fluxo de revisão da conta em curso: [pendências na fila, é revisor, envia conteúdo]. Definido por `Painel` depois do login; a barra mostra os links "Pendências" e "Meus envios" conforme o papel. */
+    /** @var array{0: int, 1: bool, 2: bool} */
+    private static array $revisao = [0, false, false];
+
+    public static function definirRevisao(int $pendencias, bool $revisor, bool $envia): void
+    {
+        self::$revisao = [$pendencias, $revisor, $envia];
     }
 
     /**
@@ -147,9 +157,19 @@ final class Pagina
             str_starts_with($caminho, '/_pbl/classes'), str_starts_with($caminho, '/_pbl/modelos') => 'classes',
             str_starts_with($caminho, '/_pbl/contas') => 'contas',
             str_starts_with($caminho, '/_pbl/atualizacao') => 'atualizacao',
+            str_starts_with($caminho, '/_pbl/pendencias') => 'pendencias',
+            str_starts_with($caminho, '/_pbl/meus-envios') => 'envios',
             default => 'inicio',
         };
-        $itens = ['inicio' => ['/_pbl/', 'Sites e conteúdo'], 'classes' => ['/_pbl/classes', 'Tipos de conteúdo']];
+        [$pendencias, $revisor, $envia] = self::$revisao;
+        $itens = ['inicio' => ['/_pbl/', 'Sites e conteúdo']];
+        if ($revisor) {
+            $itens['pendencias'] = ['/_pbl/pendencias', 'Pendências' . ($pendencias > 0 ? ' <span class="badge text-bg-warning" title="Aguardando revisão">' . $pendencias . '</span>' : '')];
+        }
+        if ($envia) {
+            $itens['envios'] = ['/_pbl/meus-envios', 'Meus envios'];
+        }
+        $itens['classes'] = ['/_pbl/classes', 'Tipos de conteúdo'];
         if ($administrador) {
             $itens['contas'] = ['/_pbl/contas', 'Contas'];
             $itens['atualizacao'] = ['/_pbl/atualizacao', 'Atualização'];
