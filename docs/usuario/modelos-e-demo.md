@@ -41,4 +41,6 @@ Ele cria página inicial com texto formatado, 3 destaques, a seção Institucion
 
 Na edição de um conteúdo (cartão **Publicação**, só para quem pode publicar) há os campos **Pele** e **Aparência (molde)**. "Herdar" (o padrão) usa a do conteúdo-pai ou, no topo, a do site; escolhendo uma, tudo abaixo dele passa a usá-la e as páginas são republicadas. O molde, se existir na pele efetiva, vale para aquele conteúdo; a página inicial do site usa o molde `home` quando a pele o tem.
 
+Na página inicial da pele básica, os **links publicados direto sob a página inicial** viram cartões grandes logo abaixo da apresentação (o bloco só aparece se houver algum); os demais links ficam em "Links rápidos". No demo, eles são **Ver versão Onepage** e **Ver versão Portal**. As cores e medidas da pele básica ficam em variáveis no começo de `assets/pele.css` (da pele, em `dados/peles/basica/`).
+
 O `demo-popular` cria duas versões do mesmo site, no ar ao mesmo tempo: **/onepage** (pele `onepage`: uma página com seções vindas dos filhos) e **/portal** (pele `portal`: várias páginas, carrossel e notícias). O endereço de cada conteúdo é único no site, por isso os do demo levam prefixo (`op-`, `pt-`). A pele básica continua sem JavaScript; `onepage` e `portal` usam o do Bootstrap, hospedado no próprio site.

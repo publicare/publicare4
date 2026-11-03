@@ -24,6 +24,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Menu principal do site (escolher quais páginas entram, o nome no menu e a ordem), com submenus, sem JavaScript | ✅, com aviso no painel quando o menu é cortado ou a republicação está pendente, e botão "Republicar agora"; `sitemap.xml` e `robots.txt` automáticos |
 | Configurações do site pelo navegador (nome, idioma, textos de SEO, imagem e ícone, contato, redes sociais, rodapé, busca ligada ou não, itens por página, profundidade do menu, permitir ou não buscadores), que as páginas usam ao serem republicadas | ✅ (a pele básica ainda não mostra contato, redes sociais nem analytics) |
 | Modelos opcionais prontos (agenda de eventos, perguntas frequentes, destaques da página inicial e blocos reutilizáveis), que se ligam na instalação, pelo painel ou por comando, e um site de demonstração ("Instituto Exemplo") para ver tudo funcionando | ✅ ([guia](modelos-e-demo.md)) |
+| Visual da pele básica e da página inicial: cabeçalho com marca, busca e menu alinhados, destaque, cartões de atalho (por exemplo, para outras versões do site), notícias com miniatura e data, tema claro/escuro e leitura boa no celular, sem JavaScript | ✅ |
 | Busca no site, listas de notícias com páginas e página de "não encontrado" com o visual do site | ✅ |
 | Linguagem de moldes para montar páginas (listas, menus, herança de layout) | ✅ |
 | Publicar as páginas e entregá-las prontas, com cache | ✅ |
