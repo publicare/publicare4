@@ -282,7 +282,6 @@ final class DemoPopularComando extends Command
         if ($novas !== []) {
             $this->servicos->configs->definir($this->site->id, $novas);
         }
-
     }
 
     /**
