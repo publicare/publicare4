@@ -65,6 +65,7 @@ final class AdminPreviaTest extends TestCase
         return $o;
     }
 
+    /** @param array<string, mixed> $meta */
     private function filho(string $titulo, string $url, string $status = 'privado', array $meta = [], ?Objeto $pai = null): Objeto
     {
         $pai ??= $this->inicio;

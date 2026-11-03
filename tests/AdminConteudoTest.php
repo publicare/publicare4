@@ -225,7 +225,7 @@ final class AdminConteudoTest extends TestCase
         self::assertSame($this->ids['editor'], $this->s->objetos->versoes($novo->id)[0]['usuario_id'] ?? null);
         self::assertStringContainsString('Quem somos', (string) file_get_contents($this->caminhos->pagina($novo->siteId, 'sobre')));
         self::assertStringContainsString('Quem somos', (string) file_get_contents($this->caminhos->pagina($novo->siteId, '')), 'a lista de filhos do pai também foi regravada');
-        self::assertStringContainsString('Alterações salvas', (string) $this->req('GET', (string) $r->headers->get('Location'), $token)->getContent());
+        self::assertStringContainsString('Publicado', (string) $this->req('GET', (string) $r->headers->get('Location'), $token)->getContent());
     }
 
     public function testNadaMudouNaoCriaVersao(): void

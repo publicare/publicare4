@@ -251,3 +251,9 @@ Os campos `html` ganharam um editor (TinyMCE 6.8.6, MIT, hospedado, carregado s�
 ### Adendo (ADR 0022): JavaScript opcional por pele
 
 - "Páginas públicas sem JavaScript" passa a ser **o padrão da pele básica**, não uma regra absoluta: uma pele pode declarar JS próprio **local** (mesmo domínio, sem inline, sem CDN). `onepage` e `portal` usam o Bootstrap 5.3.8 local; todas as peles, inclusive a básica, carregam o `pbl-barra.js` (só age para quem tem o cookie indicador de sessão do painel).
+
+## Adendo: tela Conteúdo e prévia depois de gravar
+
+- `GET /_pbl/conteudo` (pontos de entrada; com um só, redireciona), `GET /_pbl/conteudo/{id}` (um nível; `q`, `estado`, `classe`, `ordem`, `por`, `inicio`) e `POST /_pbl/conteudo/acao` (publicar, despublicar, enviar, excluir; CSRF, origem, versão por id, máx. 200). Exige `Ver` no objeto; "não existe" e "sem acesso" têm a mesma resposta.
+- `GET /_pbl/objeto/{id}/previa?salvo=...` renderiza o objeto com a faixa de resultado; toda gravação redireciona para lá. O CSP relaxado de `MARCA_PREVIA` vale só nessa resposta.
+- A barra do painel usa `navbar-expand-xl`.

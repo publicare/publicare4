@@ -132,7 +132,7 @@ final class TelasDeObjetos
         }
         $agora = gmdate('c');
         [$tipo, $mensagem] = $this->mensagemDaPrevia($o, $agora, $codigo);
-        $faixa = $this->faixaDaPrevia($sessao, $o, $agora, $tipo, $mensagem, $codigo === 'aviso');
+        $faixa = $this->faixaDaPrevia($sessao, $o, $agora, $tipo, $mensagem, $codigo === 'aviso', $codigo === 'agendado');
         $site = $this->servicos->sites->porId($o->siteId);
         $pagina = null;
         if ($site !== null) {
@@ -179,7 +179,7 @@ final class TelasDeObjetos
         return $d === null ? $gravada : $d->setTimezone(new \DateTimeZone(self::FUSO))->format('d/m H:i');
     }
 
-    private function faixaDaPrevia(SessaoAtiva $sessao, Objeto $o, string $agora, string $tipo, string $mensagem, bool $aviso): string
+    private function faixaDaPrevia(SessaoAtiva $sessao, Objeto $o, string $agora, string $tipo, string $mensagem, bool $aviso, bool $agendado = false): string
     {
         $botoes = '';
         $estilo = 'color:#fff;text-decoration:none;padding:.4rem .8rem;border-radius:.375rem;font-size:15px;';
@@ -198,6 +198,7 @@ final class TelasDeObjetos
             . 'padding:.6rem 1rem;background:#212529;color:#fff;font:16px/1.4 system-ui,sans-serif;border-bottom:3px solid #6ea8fe">'
             . '<strong>' . Pagina::h($mensagem) . '</strong>'
             . ($aviso ? '<span>A página pública não pôde ser atualizada agora; publique o site de novo.</span>' : '')
+            . ($agendado ? '<span>Ela entra no ar na data marcada, quando o agendamento do servidor rodar (<code>bin/pbl agendados</code>, de preferência no cron).</span>' : '')
             . '<span style="margin-left:auto;display:flex;flex-wrap:wrap;gap:.5rem">' . $botoes . '</span></div>';
     }
 

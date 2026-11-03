@@ -65,6 +65,7 @@ final class AdminNavegacaoTest extends TestCase
         return $o;
     }
 
+    /** @param array<string, mixed> $meta */
     private function filho(Objeto $pai, string $titulo, string $url, string $status = 'publicado', array $meta = []): Objeto
     {
         return $this->s->objetos->criar($pai->siteId, $this->pagina, $pai->id, $titulo, $url, [], $status, $meta);
@@ -80,7 +81,10 @@ final class AdminNavegacaoTest extends TestCase
         return $this->s->csrf()->daSessao(SessaoRepositorio::hash($token));
     }
 
-    /** @param array<string, mixed> $campos */
+    /**
+     * @param array<string, mixed> $campos
+     * @param array<string, string> $cab
+     */
     private function req(string $metodo, string $caminho, ?string $token = null, array $campos = [], array $cab = self::ORIGEM): Response
     {
         $cookies = $token === null ? [] : ['__Host-pbl4' => $token];
@@ -94,7 +98,10 @@ final class AdminNavegacaoTest extends TestCase
         return (string) $r->getContent();
     }
 
-    /** @param list<Objeto> $alvos */
+    /**
+     * @param list<Objeto> $alvos
+     * @param array<string, mixed> $extra
+     */
     private function lote(string $login, string $acao, array $alvos, array $extra = []): Response
     {
         $t = $this->token($login);

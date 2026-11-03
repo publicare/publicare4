@@ -133,7 +133,7 @@ final class TelasDeNavegacao
         foreach (self::pontosDeEntrada($this->servicos, $sessao->usuario) as $siteId => $lista) {
             $site = $this->servicos->sites->porId($siteId);
             foreach ($lista as [$o, $perfil]) {
-                $pontos[] = [$site?->nome ?? '?', $o, $perfil];
+                $pontos[] = [$site->nome ?? '?', $o, $perfil];
             }
         }
         if (count($pontos) === 1) {
@@ -717,12 +717,12 @@ final class TelasDeNavegacao
 
     private function nomeDe(int $usuarioId): string
     {
-        return $this->nomesDeUsuario[$usuarioId] ??= $this->servicos->usuarios->porId($usuarioId)?->nome ?? 'conta removida';
+        return $this->nomesDeUsuario[$usuarioId] ??= $this->servicos->usuarios->porId($usuarioId)->nome ?? 'conta removida';
     }
 
     private function nomeDaClasse(int $classeId): string
     {
-        return $this->nomesDeClasse[$classeId] ??= $this->servicos->classes->porId($classeId)?->nome ?? '?';
+        return $this->nomesDeClasse[$classeId] ??= $this->servicos->classes->porId($classeId)->nome ?? '?';
     }
 
     private function pode(SessaoAtiva $sessao, Acao $acao, Objeto $o): bool

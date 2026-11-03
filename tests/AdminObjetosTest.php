@@ -263,7 +263,7 @@ final class AdminObjetosTest extends TestCase
         self::assertSame(7, $novo->peso);
         self::assertSame("Linha 1\nLinha 2", $novo->descricao);
         self::assertSame(['local' => 'Auditório', 'vagas' => 3.5, 'quando' => '2026-12-31 18:30:00', 'aberto' => 1, 'pagina_relacionada' => $this->inicio->id, 'corpo' => '<p>Oi</p>'], $novo->dados);
-        self::assertStringContainsString('Conteúdo criado', $this->html($this->req('GET', (string) $r->headers->get('Location'), $token)));
+        self::assertStringContainsString('Gravado como rascunho', $this->html($this->req('GET', (string) $r->headers->get('Location'), $token)));
 
         $outro = $this->post($token, $base, $this->formEvento('Notícia de hoje'));
         $segundo = $this->obj($this->idCriado($outro));
