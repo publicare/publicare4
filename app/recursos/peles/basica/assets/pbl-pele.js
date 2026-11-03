@@ -31,6 +31,7 @@
       b.setAttribute('aria-label', 'Mostrar submenu de ' + nome);
       b.setAttribute('data-bs-toggle', 'dropdown');
       b.setAttribute('data-bs-display', 'static');
+      b.setAttribute('data-bs-auto-close', 'outside');
       ul.classList.add('dropdown-menu');
       li.classList.add('tem-sub');
       li.insertBefore(b, ul);
