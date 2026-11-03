@@ -1097,7 +1097,7 @@ final class TelasDeSite
             return $this->naoEncontrado($sessao, 'Esta página não existe, não está publicada, ou não usa este molde.', $this->linkPeles($site) . '/' . $pele . '/molde/previsualizar?nome=' . rawurlencode($nome));
         }
         try {
-            $html = $this->servicos->renderizador->renderizar($site, $objeto, peleParaPreVisualizar: $pele, sobrescritas: [$nome => $rascunho['conteudo']]);
+            $html = $this->servicos->renderizador->renderizar($site, $objeto, $nome, peleParaPreVisualizar: $pele, sobrescritas: [$nome => $rascunho['conteudo']]);
         } catch (\Throwable $e) {
             return Pagina::resposta('Não foi possível pré-visualizar', '<div class="alert alert-danger" role="alert">O rascunho não pôde ser executado: ' . Pagina::h($e->getMessage()) . '</div>'
                 . '<p><a href="' . $this->linkPeles($site) . '/' . $pele . '/molde?nome=' . rawurlencode($nome) . '">Voltar ao editor</a></p>', Response::HTTP_UNPROCESSABLE_ENTITY, false, $this->barra($sessao));

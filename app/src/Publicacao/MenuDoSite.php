@@ -152,7 +152,7 @@ final class MenuDoSite
         $agora = gmdate('c');
         $this->consultas++;
         $linhas = $this->conexao->fetchAllAssociative(
-            "SELECT o.id, o.pai_id, o.titulo, o.rotulo_menu, o.url_amigavel, o.dados, o.pele, c.nome AS classe,
+            "SELECT o.id, o.pai_id, o.titulo, o.rotulo_menu, o.url_amigavel, o.dados, o.pele, o.no_menu, c.nome AS classe,
                     d.url_amigavel AS destino_url
                FROM objeto o
                JOIN classe c ON c.id = o.classe_id
@@ -160,7 +160,7 @@ final class MenuDoSite
                     AND (d.data_publicacao IS NULL OR d.data_publicacao <= ?)
                     AND (d.data_validade IS NULL OR d.data_validade >= ?)
                     AND d.id = CAST(json_extract(o.dados, '\$.destino_interno') AS INTEGER)
-              WHERE o.site_id = ? AND o.no_menu = 1 AND o.status = 'publicado'
+              WHERE o.site_id = ? AND (o.no_menu = 1 OR (o.pele IS NOT NULL AND o.pele != '')) AND o.status = 'publicado'
                 AND (o.data_publicacao IS NULL OR o.data_publicacao <= ?)
                 AND (o.data_validade IS NULL OR o.data_validade >= ?)
               ORDER BY o.peso, o.titulo, o.id",
@@ -174,11 +174,7 @@ final class MenuDoSite
         $arvore = $this->nivel($porPai, $site->objetoRaizId, 1, $cortes, $profundidade);
         // Uma subárvore por objeto com pele própria (não precisa estar no menu); a raiz do site não entra (é a árvore principal).
         $subarvores = [];
-        $this->consultas++;
-        $raizes = $this->conexao->fetchAllAssociative(
-            "SELECT id, url_amigavel FROM objeto WHERE site_id = ? AND pele IS NOT NULL AND pele != '' AND status <> 'apagado' ORDER BY id LIMIT 200",
-            [$site->id],
-        );
+        $raizes = array_filter($linhas, static fn (array $l): bool => is_string($l['pele'] ?? null) && $l['pele'] !== '');
         foreach ($raizes as $r) {
             $id = (int) $r['id'];
             if ($id === $site->objetoRaizId) {
@@ -196,7 +192,8 @@ final class MenuDoSite
      */
     private function nivel(array $porPai, int $paiId, int $nivel, int &$cortes, int $profundidade): array
     {
-        $filhos = $porPai[$paiId] ?? [];
+        // Objetos fora do menu entram na consulta só quando têm pele própria (raiz de subárvore); aqui não aparecem como itens.
+        $filhos = array_values(array_filter($porPai[$paiId] ?? [], static fn (array $l): bool => (int) ($l['no_menu'] ?? 1) === 1));
         if ($nivel > $profundidade) {
             $cortes += count($filhos);
 
