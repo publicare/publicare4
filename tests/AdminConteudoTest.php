@@ -217,7 +217,7 @@ final class AdminConteudoTest extends TestCase
         $r = $this->salvar($token, $this->sobre, '  Quem somos  ', "Linha 1\r\nLinha 2");
 
         self::assertSame(303, $r->getStatusCode());
-        self::assertSame('/_pbl/objeto/' . $this->sobre->id . '?salvo=sim', $r->headers->get('Location'));
+        self::assertSame('/_pbl/objeto/' . $this->sobre->id . '/previa?salvo=sim', $r->headers->get('Location'));
         $novo = $this->objeto($this->sobre->id);
         self::assertSame('Quem somos', $novo->titulo);
         self::assertSame("Linha 1\nLinha 2", $novo->descricao);

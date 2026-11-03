@@ -284,7 +284,7 @@ final class AdminIntegridadeTest extends TestCase
         $token = $this->token('admin');
         $futuro = (new \DateTimeImmutable('+2 days', new \DateTimeZone('America/Sao_Paulo')))->format('Y-m-d\TH:i');
         $r = $this->post($token, '/_pbl/objeto/' . $e->id . '/estado', ['versao' => (string) $e->versao, 'estado' => 'publicado', 'data_publicacao' => $futuro, 'data_validade' => '']);
-        self::assertSame('/_pbl/objeto/' . $e->id . '?salvo=agendado', $r->headers->get('Location'));
+        self::assertSame('/_pbl/objeto/' . $e->id . '/previa?salvo=agendado', $r->headers->get('Location'));
         $aviso = $this->html($this->req('GET', (string) $r->headers->get('Location'), $token));
         self::assertStringContainsString('bin/pbl agendados', $aviso);
     }

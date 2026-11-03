@@ -293,7 +293,7 @@ final class FluxoDeRevisaoTest extends TestCase
         self::assertStringContainsString('enviou para revisão', $editor);
         // Redireciona de volta com o aviso.
         $r = $this->post($this->token('editor_saude'), '/_pbl/revisao/' . $o->id . '/aprovar', ['versao' => (string) ($this->s->objetos->porId($o->id)?->versao), 'voltar' => 'objeto']);
-        self::assertSame('/_pbl/objeto/' . $o->id . '?salvo=aprovado', $r->headers->get('Location'));
+        self::assertSame('/_pbl/objeto/' . $o->id . '/previa?salvo=aprovado', $r->headers->get('Location'));
         self::assertStringContainsString('Aprovado e publicado', $this->html($this->req('GET', '/_pbl/objeto/' . $o->id . '?salvo=aprovado', $this->token('editor_saude'))));
     }
 

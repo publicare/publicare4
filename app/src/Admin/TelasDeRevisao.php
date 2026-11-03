@@ -103,7 +103,7 @@ final class TelasDeRevisao
         }
         $codigo = ['enviar' => 'enviado', 'reenviar' => 'reenviado', 'retirar' => 'retirado', 'aprovar' => 'aprovado', 'devolver' => 'devolvido'][$passo];
         if ($voltar === 'objeto') {
-            return new RedirectResponse(Painel::PREFIXO . '/objeto/' . $novo->id . '?salvo=' . $codigo, Response::HTTP_SEE_OTHER);
+            return new RedirectResponse(TelasDeObjetos::urlDaPrevia($novo->id, $codigo), Response::HTTP_SEE_OTHER);
         }
         $query = ['ok' => $codigo] + ($voltar === 'pendencias' && $area !== null ? ['area' => (string) $area] : []);
 

@@ -253,7 +253,7 @@ final class AdminObjetosTest extends TestCase
         ]));
 
         self::assertSame(303, $r->getStatusCode(), $this->html($r));
-        self::assertMatchesRegularExpression('#^/_pbl/objeto/(\d+)\?salvo=criado$#', (string) $r->headers->get('Location'));
+        self::assertMatchesRegularExpression('#^/_pbl/objeto/(\d+)/previa\?salvo=criado$#', (string) $r->headers->get('Location'));
         $novo = $this->obj($this->idCriado($r));
         self::assertSame('Notícia de Hoje!', $novo->titulo);
         self::assertSame('noticia-de-hoje', $novo->urlAmigavel, 'endereço gerado a partir do título');
@@ -368,7 +368,7 @@ final class AdminObjetosTest extends TestCase
         ]);
 
         self::assertSame(303, $r->getStatusCode(), $this->html($r));
-        self::assertSame('/_pbl/objeto/' . $e->id . '?salvo=sim', $r->headers->get('Location'));
+        self::assertSame('/_pbl/objeto/' . $e->id . '/previa?salvo=sim', $r->headers->get('Location'));
         $novo = $this->obj($e->id);
         self::assertSame(['vagas' => 12, 'aberto' => 0], $novo->dados, 'vazio remove; o resto é convertido pelo tipo');
         self::assertSame('palestras/nova', $novo->urlAmigavel);
@@ -425,7 +425,7 @@ final class AdminObjetosTest extends TestCase
 
         self::assertStringContainsString('<option value="privado" selected>', $this->html($this->req('GET', $url, $token)));
         $r = $this->post($token, $url, ['versao' => (string) $e->versao, 'estado' => 'publicado', 'data_publicacao' => '', 'data_validade' => '2099-12-31T18:30']);
-        self::assertSame('/_pbl/objeto/' . $e->id . '?salvo=estado', $r->headers->get('Location'));
+        self::assertSame('/_pbl/objeto/' . $e->id . '/previa?salvo=estado', $r->headers->get('Location'));
         $pub = $this->obj($e->id);
         self::assertSame('publicado', $pub->status);
         self::assertSame('2099-12-31T21:30:00+00:00', $pub->dataValidade, 'horário de Brasília gravado em UTC');
@@ -433,13 +433,13 @@ final class AdminObjetosTest extends TestCase
         self::assertStringContainsString('value="2099-12-31T18:30"', $this->html($this->req('GET', $url, $token)), 'e mostra de volta no mesmo fuso');
 
         $r = $this->post($token, $url, ['versao' => (string) $pub->versao, 'estado' => 'privado', 'data_publicacao' => '', 'data_validade' => '2099-12-31T18:30']);
-        self::assertSame('/_pbl/objeto/' . $e->id . '?salvo=estado', $r->headers->get('Location'));
+        self::assertSame('/_pbl/objeto/' . $e->id . '/previa?salvo=despublicado', $r->headers->get('Location'));
         self::assertSame('privado', $this->obj($e->id)->status);
         self::assertFileDoesNotExist($arquivo, 'despublicar tira a página do cache na hora');
 
         $atual = $this->obj($e->id);
         $r = $this->post($token, $url, ['versao' => (string) $atual->versao, 'estado' => 'publicado', 'data_publicacao' => '2099-01-01T00:00', 'data_validade' => '2099-12-31T18:30']);
-        self::assertSame('/_pbl/objeto/' . $e->id . '?salvo=agendado', $r->headers->get('Location'));
+        self::assertSame('/_pbl/objeto/' . $e->id . '/previa?salvo=agendado', $r->headers->get('Location'));
         self::assertFileDoesNotExist($arquivo, 'publicação futura não vai ao ar antes da data');
 
         $atual = $this->obj($e->id);
@@ -475,7 +475,7 @@ final class AdminObjetosTest extends TestCase
         // agendar pela edição, junto com outro campo
         $r = $this->post($token, $url, ['titulo' => 'Novo título', 'descricao' => '', 'url' => $e->urlAmigavel, 'peso' => '3', 'versao' => (string) $e->versao,
             'estado' => 'publicado', 'data_publicacao' => '2099-01-01T00:00', 'data_validade' => '2099-12-31T18:30']);
-        self::assertSame('/_pbl/objeto/' . $e->id . '?salvo=agendado', $r->headers->get('Location'));
+        self::assertSame('/_pbl/objeto/' . $e->id . '/previa?salvo=agendado', $r->headers->get('Location'));
         $salvo = $this->obj($e->id);
         self::assertSame('publicado', $salvo->status);
         self::assertSame('Novo título', $salvo->titulo);
@@ -495,7 +495,7 @@ final class AdminObjetosTest extends TestCase
         self::assertSame('/_pbl/objeto/' . $e->id . '?salvo=nada', $mesma->headers->get('Location'));
         $limpo = $this->post($token, $url, ['titulo' => 'Novo título', 'descricao' => '', 'url' => $salvo->urlAmigavel, 'peso' => '3', 'versao' => (string) $salvo->versao,
             'estado' => 'publicado', 'data_publicacao' => '', 'data_validade' => '']);
-        self::assertSame('/_pbl/objeto/' . $e->id . '?salvo=sim', $limpo->headers->get('Location'));
+        self::assertSame('/_pbl/objeto/' . $e->id . '/previa?salvo=sim', $limpo->headers->get('Location'));
         self::assertNull($this->obj($e->id)->dataPublicacao);
         self::assertNull($this->obj($e->id)->dataValidade);
     }
