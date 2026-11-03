@@ -38,6 +38,8 @@ final class ConfigDoSite
             'imagem_padrao' => ['tipo' => self::ARQUIVO, 'padrao' => '', 'rotulo' => 'Imagem padrão (SEO / compartilhamento)', 'ajuda' => 'Número de uma imagem já enviada a este site; usada quando a página não tem imagem.'],
             'titulo_padrao' => ['tipo' => self::TEXTO, 'padrao' => '', 'rotulo' => 'Título padrão', 'ajuda' => 'Usado quando a página não tem título.', 'max' => 120],
             'titulo_sufixo' => ['tipo' => self::TEXTO, 'padrao' => '', 'rotulo' => 'Sufixo do título', 'ajuda' => 'Texto depois do título da página, como " | Meu Site".', 'max' => 60],
+            'logo' => ['tipo' => self::ARQUIVO, 'padrao' => '', 'rotulo' => 'Logo', 'ajuda' => 'Número de uma imagem já enviada a este site; usada pelas peles que mostram logo (onepage, portal).'],
+            'imagem_hero' => ['tipo' => self::ARQUIVO, 'padrao' => '', 'rotulo' => 'Imagem de abertura (hero)', 'ajuda' => 'Número de uma imagem já enviada a este site; usada pelas peles com faixa de abertura quando o conteúdo não tem imagem própria.'],
             'icone' => ['tipo' => self::ARQUIVO, 'padrao' => '', 'rotulo' => 'Ícone (favicon)', 'ajuda' => 'Número de uma imagem já enviada a este site.'],
             'email_contato' => ['tipo' => self::EMAIL, 'padrao' => '', 'rotulo' => 'E-mail de contato', 'ajuda' => 'Aparece publicamente se o molde o usar.'],
             'telefone' => ['tipo' => self::TELEFONE, 'padrao' => '', 'rotulo' => 'Telefone de contato', 'ajuda' => 'Dígitos, espaço, +, parênteses e hífen.'],

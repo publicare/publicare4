@@ -19,6 +19,7 @@ final class Renderizador
         private readonly FonteRepositorio $fonte,
         private readonly ClasseRepositorio $classes,
         private readonly Compilador $compilador,
+        private readonly ?Aparencia $aparencia = null,
     ) {
     }
 
@@ -41,9 +42,12 @@ final class Renderizador
     {
         $classe = $this->classes->porId($objeto->classeId)
             ?? throw new \RuntimeException("Classe {$objeto->classeId} não existe");
-        $nomeDaPele = $peleParaPreVisualizar ?? $site->pele;
+        // Pele efetiva (ADR 0022): a do ancestral mais próximo que tenha uma, senão a do site. Páginas dinâmicas (`busca`,
+        // `erro404`) usam a do site, porque não pertencem a nenhuma subárvore.
+        $efetiva = $moldeNomeado === null && $this->aparencia !== null ? $this->aparencia->da($site, $objeto) : ['pele' => $site->pele, 'raiz' => null];
+        $nomeDaPele = $peleParaPreVisualizar ?? $efetiva['pele'];
         $pele = new ResolvedorDePele($this->caminhos, $nomeDaPele, $sobrescritas);
-        $nome = $moldeNomeado ?? ($pele->existe($classe->nome) ? $classe->nome : 'padrao');
+        $nome = $moldeNomeado ?? $this->escolherMolde($site, $objeto, $classe->nome, $pele);
         $molde = $pele->fonte($nome);
 
         $incluidor = fn (string $arquivo, array $o, Runtime $r): string => ($this->compilador->carregar($pele->fonte($arquivo), $pele))($o, $r);
@@ -55,9 +59,46 @@ final class Renderizador
         }
 
         try {
-            return ($this->compilador->carregar($molde, $pele))($this->fonte->contextoDe($objeto), $runtime);
+            return ($this->compilador->carregar($molde, $pele))($this->contexto($site, $objeto, $nomeDaPele, $efetiva['raiz']), $runtime);
         } catch (\Pbl\Linguagem\ErroSintaxe $e) {
             throw $e->arquivo === null ? $e->noArquivo("{$nomeDaPele}/{$nome}.pbl") : $e;
         }
+    }
+
+    /** Molde do objeto (se existir na pele) > `home` na raiz do site > molde da classe > `padrao`. */
+    private function escolherMolde(Site $site, Objeto $objeto, string $classe, ResolvedorDePele $pele): string
+    {
+        if ($objeto->molde !== null && $pele->existe($objeto->molde)) {
+            return $objeto->molde;
+        }
+        if ($site->objetoRaizId === $objeto->id && $pele->existe('home')) {
+            return 'home';
+        }
+
+        return $pele->existe($classe) ? $classe : 'padrao';
+    }
+
+    /**
+     * Contexto do objeto mais o que depende da pele: `#pele`, `#pele_url`, `#pele_v` (versão dos assets), `#raiz_pele`
+     * (onde a pele começa: o menu parte dele) e `#migalhas` (HTML escapado).
+     *
+     * @return array<string, mixed>
+     */
+    private function contexto(Site $site, Objeto $objeto, string $pele, ?int $raizDaPele): array
+    {
+        $contexto = $this->fonte->contextoDe($objeto);
+        if ($this->aparencia === null) {
+            return $contexto;
+        }
+        $inicio = $raizDaPele ?? $site->objetoRaizId;
+        $contexto['pele'] = $pele;
+        $contexto['pele_url'] = $this->aparencia->urlDaPele($pele);
+        $contexto['pele_v'] = $this->aparencia->versaoDaPele($pele);
+        $contexto['barra_v'] = Aparencia::versaoDaBarra();
+        $contexto['raiz_pele_url'] = $this->aparencia->urlDaRaiz($site, $raizDaPele);
+        $contexto['raiz_pele'] = $inicio ?? '';
+        $contexto['migalhas'] = $this->aparencia->migalhas($objeto, $inicio);
+
+        return $contexto;
     }
 }

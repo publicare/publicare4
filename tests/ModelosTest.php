@@ -129,7 +129,7 @@ final class ModelosTest extends TestCase
         $this->modelos()->ativar('destaque', $this->siteId);
         $this->modelos()->ativar('bloco', $this->siteId);
         $inicio = $this->pagina('index');
-        self::assertStringContainsString('class="destaques"', $inicio);
+        self::assertStringContainsString('class="destaque-principal"', $inicio, 'o primeiro destaque vira o principal do molde home');
         self::assertStringContainsString('Destaque de exemplo', $inicio);
         self::assertStringContainsString('Rodapé de exemplo', $inicio);
     }

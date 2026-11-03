@@ -35,10 +35,11 @@ final class Ajuda
     {
         $raiz = self::pastaTemporaria();
         mkdir($raiz . '/app/recursos/peles', 0775, true);
-        $origem = dirname(__DIR__) . '/app/recursos/peles/basica';
-        mkdir($raiz . '/app/recursos/peles/basica', 0775, true);
-        foreach (glob($origem . '/*.pbl') ?: [] as $arquivo) {
-            copy($arquivo, $raiz . '/app/recursos/peles/basica/' . basename($arquivo));
+        $origem = dirname(__DIR__) . '/app/recursos/peles';
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($origem, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST);
+        foreach ($it as $item) {
+            $destino = $raiz . '/app/recursos/peles/' . substr($item->getPathname(), strlen($origem) + 1);
+            $item->isDir() ? @mkdir($destino, 0775, true) : copy($item->getPathname(), $destino);
         }
 
         return $raiz;

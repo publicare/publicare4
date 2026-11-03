@@ -255,10 +255,15 @@ final class Pagina
      *
      * @param list<array{0: string, 1: string}> $secundarios
      * @param array{0: string, 1: string}|null $destrutivo
+     * @param string $gravarEPublicar rótulo do segundo botão de envio (verde); vazio: sem ele
      */
-    public static function acoes(string $primario, array $secundarios = [], ?array $destrutivo = null, string $classePrimario = 'btn-primary', string $classeBarra = ''): string
+    public static function acoes(string $primario, array $secundarios = [], ?array $destrutivo = null, string $classePrimario = 'btn-primary', string $classeBarra = '', string $gravarEPublicar = ''): string
     {
         $html = '<div class="pbl-acoes' . ($classeBarra === '' ? '' : ' ' . self::h($classeBarra)) . '">' . ($primario === '' ? '' : '<button type="submit" class="btn ' . self::h($classePrimario) . '">' . self::h($primario) . '</button>');
+        // Segundo envio do mesmo formulário (ADR 0022): `acao=publicar` grava e muda o estado para publicado. Só para quem pode publicar.
+        if ($gravarEPublicar !== '') {
+            $html .= '<button type="submit" name="acao" value="publicar" class="btn btn-success bg-gradient">' . self::h($gravarEPublicar) . '</button>';
+        }
         foreach ($secundarios as [$rotulo, $href]) {
             $html .= '<a class="btn btn-outline-secondary" href="' . self::h($href) . '">' . self::h($rotulo) . '</a>';
         }

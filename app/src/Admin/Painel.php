@@ -24,6 +24,8 @@ use Symfony\Component\HttpFoundation\Response;
 final class Painel
 {
     public const PREFIXO = '/_pbl';
+    /** Cookie não-HttpOnly que só indica "há sessão" para a barra de edição (ADR 0022). */
+    public const INDICADOR = 'pbl4_ind';
 
     public function __construct(
         private readonly Servicos $servicos,
@@ -58,6 +60,7 @@ final class Painel
         $rotaDeAtualizacao = TelasDeAtualizacao::rota(self::PREFIXO, $caminho, $metodo);
         $resposta = match (true) {
             $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s)),
+            ApiDeAcoes::atende($caminho, $metodo) => $this->api($requisicao, $caminho),
             $objeto !== null && TelasDeObjetos::atende($subrota, $metodo) => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->objetos()->tratar($s, $objeto, $subrota, $requisicao)),
             $rotaDeClasse !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeClasses($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeClasse, $requisicao)),
             $rotaDeModelo !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeModelos($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeModelo, $requisicao)),
@@ -84,6 +87,14 @@ final class Painel
         $sessao = $this->sessaoDe($requisicao);
 
         return $sessao === null ? new RedirectResponse(self::PREFIXO . '/entrar', Response::HTTP_SEE_OTHER) : $tela($sessao);
+    }
+
+    /** API da barra de edição: sem sessão devolve 401 em JSON (e não o redirecionamento das telas). */
+    private function api(Request $requisicao, string $caminho): Response
+    {
+        $sessao = $this->sessaoDe($requisicao);
+
+        return $sessao === null ? ApiDeAcoes::semSessao() : (new ApiDeAcoes($this->servicos, $this->rede, $this->csrf))->tratar($sessao, $caminho, $requisicao);
     }
 
     private function telas(): TelasDeConteudo
@@ -146,6 +157,7 @@ final class Painel
 
         $resposta = new RedirectResponse(self::PREFIXO . '/', Response::HTTP_SEE_OTHER);
         $resposta->headers->setCookie($this->cookie($requisicao, $token, time() + SessaoRepositorio::DURACAO_MAXIMA));
+        $resposta->headers->setCookie($this->indicador($requisicao, '1', time() + SessaoRepositorio::DURACAO_MAXIMA));
 
         return $resposta;
     }
@@ -166,6 +178,7 @@ final class Painel
         $this->servicos->auditoria->registrar('logout', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id);
         $resposta = new RedirectResponse(self::PREFIXO . '/entrar', Response::HTTP_SEE_OTHER);
         $resposta->headers->setCookie($this->cookie($requisicao, '', 1));
+        $resposta->headers->setCookie($this->indicador($requisicao, '', 1));
 
         return $resposta;
     }
@@ -193,6 +206,15 @@ final class Painel
     private function cookie(Request $requisicao, string $valor, int $expira): Cookie
     {
         return Cookie::create($this->nomeDoCookie($requisicao), $valor, $expira, '/', null, $this->rede->seguro($requisicao), true, false, Cookie::SAMESITE_LAX);
+    }
+
+    /**
+     * Cookie indicador "há sessão" (sem segredo, legível por JavaScript): só avisa à barra de edição das páginas públicas que vale
+     * perguntar ao servidor o que a pessoa pode fazer. Não autentica nada.
+     */
+    private function indicador(Request $requisicao, string $valor, int $expira): Cookie
+    {
+        return Cookie::create(self::INDICADOR, $valor, $expira, '/', null, $this->rede->seguro($requisicao), false, false, Cookie::SAMESITE_LAX);
     }
 
     private function protegida(Response $r, Request $requisicao): Response

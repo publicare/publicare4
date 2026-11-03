@@ -1,0 +1,77 @@
+<@-- Pele "onepage": na raiz da pele (o objeto que recebeu a pele) vira uma página única com seções vindas dos filhos; nas demais, uma página interna simples. --@>
+<!doctype html>
+<html lang="<@eco %SITE.config.idioma@>">
+<head>
+<@incluir arquivo="cabeca"@>
+</head>
+<body data-pbl-objeto="<@eco #id@>">
+<nav class="navbar navbar-expand-md bg-body-tertiary sticky-top" aria-label="Menu principal">
+<div class="container">
+<a class="navbar-brand" href="<@se #id == #raiz_pele@>#topo<@senao@><@eco #raiz_pele_url@><@/se@>"><@se %SITE.config.logo != ""@><img class="op-logo" src="<@arquivo valor=%SITE.config.logo info="url"@>" alt=""> <@/se@><span><@eco #site_nome@></span></a>
+<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#op-menu" aria-controls="op-menu" aria-expanded="false" aria-label="Abrir o menu"><span class="navbar-toggler-icon"></span></button>
+<div class="collapse navbar-collapse" id="op-menu">
+<ul class="navbar-nav ms-auto">
+<@se #id == #raiz_pele@><@filhos ordem="peso, titulo" limite=8@><li class="nav-item"><a class="nav-link" href="#s-<@eco #id@>"><@eco #titulo@></a></li>
+<@/filhos@><@senao@><li class="nav-item"><a class="nav-link" href="<@eco #raiz_pele_url@>">Início</a></li>
+<@/se@></ul>
+</div>
+</div>
+</nav>
+<@se #id == #raiz_pele@>
+<header class="op-cabecalho py-4" id="topo">
+<div class="container">
+<h1 class="display-6"><@eco #titulo@></h1>
+<@se #resumo@><p class="lead mb-0"><@eco #resumo@></p><@/se@>
+</div>
+</header>
+<@var $slides = 0@>
+<@localizar classes="destaque" pai=#raiz_pele niveis=3 ordem="peso, titulo" limite=5 expandir="destino_interno"@>
+<@se %INDICE == 1@><section class="op-hero carousel slide" id="op-carrossel" data-bs-ride="carousel" aria-label="Destaques"><div class="carousel-inner">
+<@/se@><div class="carousel-item<@se %INDICE == 1@> active<@/se@>">
+<@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=1200@>" alt=""><@/se@>
+<div class="carousel-caption"><h2 class="h3"><@eco #titulo@></h2>
+<@se #texto != ""@><p><@eco #texto@></p><@/se@>
+<@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
+<@se $dest != ""@><a class="btn btn-light" href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@>>Saiba mais<span class="visually-hidden"> sobre <@eco #titulo@></span></a><@/se@>
+</div></div>
+<@se %INDICE == %QUANTIDADE@></div>
+<button class="carousel-control-prev" type="button" data-bs-target="#op-carrossel" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Anterior</span></button>
+<button class="carousel-control-next" type="button" data-bs-target="#op-carrossel" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Próximo</span></button>
+</section>
+<@/se@><@var $slides = %QUANTIDADE@><@/localizar@>
+<@se $slides == 0@><@se %SITE.config.imagem_hero != ""@><section class="op-hero"><img class="w-100" style="max-height:22rem;object-fit:cover" src="<@miniatura valor=%SITE.config.imagem_hero tamanho=1200@>" alt=""></section>
+<@/se@><@/se@>
+<main id="conteudo">
+<@se #corpo != ""@><section class="op-secao"><div class="container"><@ecocru #corpo@></div></section>
+<@/se@>
+<@filhos ordem="peso, titulo"@><section class="op-secao" id="s-<@eco #id@>"><div class="container">
+<h2><@eco #titulo@></h2>
+<@se #imagem_destaque != ""@><p><img src="<@miniatura valor=#imagem_destaque tamanho=800@>" alt=""></p><@/se@>
+<@se #resumo != ""@><p class="lead"><@eco #resumo@></p><@/se@>
+<@se #corpo != ""@><div><@ecocru #corpo@></div><@/se@>
+<@filhos ordem="peso, titulo" limite=12@><@se %INDICE == 1@><div class="row row-cols-1 row-cols-md-3 g-3 mt-2">
+<@/se@><div class="col"><div class="card h-100"><@se #imagem_destaque != ""@><img class="card-img-top" src="<@miniatura valor=#imagem_destaque tamanho=400@>" alt=""><@/se@><@se #imagem != ""@><img class="card-img-top" src="<@miniatura valor=#imagem tamanho=400@>" alt=""><@/se@>
+<div class="card-body"><h3 class="h5 card-title"><a class="stretched-link" href="<@eco #url@>"><@eco #titulo@></a></h3>
+<@se #resumo != ""@><p class="card-text"><@eco #resumo@></p><@senao@><@se #descricao != ""@><p class="card-text"><@eco #descricao@></p><@/se@><@/se@></div></div></div>
+<@se %INDICE == %QUANTIDADE@></div>
+<@/se@><@/filhos@>
+</div></section>
+<@/filhos@>
+</main>
+<@senao@>
+<main id="conteudo" class="container py-4">
+<@ecocru #migalhas@>
+<article>
+<h1><@eco #titulo@></h1>
+<@se #data_publicacao != ""@><p class="text-body-secondary"><small>Publicado em <@formatadata valor=#data_publicacao formato="d/m/Y"@></small></p><@/se@>
+<@se #imagem_destaque != ""@><p><img class="img-fluid" src="<@miniatura valor=#imagem_destaque tamanho=800@>" alt=""></p><@/se@>
+<@se #resumo != ""@><p class="lead"><@eco #resumo@></p><@/se@>
+<div><@ecocru #corpo@></div>
+</article>
+</main>
+<@/se@>
+<footer class="bg-body-tertiary py-4 mt-4"><div class="container">
+<@se %SITE.config.rodape != ""@><@ecocru %SITE.config.rodape@><@senao@><small><@eco #site_nome@></small><@/se@>
+</div></footer>
+</body>
+</html>

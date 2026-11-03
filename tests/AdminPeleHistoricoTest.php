@@ -268,7 +268,7 @@ final class AdminPeleHistoricoTest extends TestCase
         $historico = $this->s->peles->historico('basica', 'padrao');
         self::assertSame('salvar', $historico[0]['acao']);
         $site = $this->s->sites->porId($this->siteId) ?? self::fail();
-        self::assertStringContainsString('Publicado via rascunho', (string) file_get_contents($this->caminhos->pagina($site->id, '')));
+        self::assertStringContainsString('Publicado via rascunho', (string) file_get_contents($this->caminhos->pagina($site->id, 'sobre')));
     }
 
     public function testPreVisualizacaoSemPermissaoDa403ESemRascunhoDa404(): void

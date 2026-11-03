@@ -475,6 +475,10 @@ final class TelasDeObjetos
         if ($o->status === self::LIXEIRA) {
             return $this->naLixeira($sessao, $o);
         }
+        // "Gravar e publicar" (ADR 0022): o mesmo envio, com o estado forçado a publicado; a permissão é conferida aqui, no servidor.
+        if (($campos['acao'] ?? '') === 'publicar' && $this->pode($sessao, Acao::Publicar, $o)) {
+            $campos['estado'] = 'publicado';
+        }
         $classe = $this->classeDe($o);
         if ($classe === null) {
             return $this->classeSumiu($sessao);
@@ -499,6 +503,21 @@ final class TelasDeObjetos
             $erros += $errosDatas;
             $vigente = $this->mudancasDeEstado($o, $estado, $dataInicio, $dataFim);
         }
+        // Pele e molde próprios (ADR 0022): só quem pode publicar; vazio = herdar; validados contra o que existe no disco.
+        $aparencia = [];
+        if ((isset($campos['pele']) || isset($campos['molde'])) && $this->pode($sessao, Acao::Publicar, $o)) {
+            $pele = is_string($campos['pele'] ?? '') ? trim((string) ($campos['pele'] ?? '')) : '';
+            $molde = is_string($campos['molde'] ?? '') ? trim((string) ($campos['molde'] ?? '')) : '';
+            $digitado['pele'] = $pele;
+            $digitado['molde'] = $molde;
+            $erros += $this->validarAparencia($o, $pele, $molde);
+            if (!isset($erros['pele']) && $pele !== ($o->pele ?? '')) {
+                $aparencia['pele'] = $pele;
+            }
+            if (!isset($erros['molde']) && $molde !== ($o->molde ?? '')) {
+                $aparencia['molde'] = $molde;
+            }
+        }
         if ($erros !== []) {
             return $this->telaDeEdicao($sessao, $o, $classe, $digitado, $versao, $erros, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -520,7 +539,7 @@ final class TelasDeObjetos
         if ($dados !== []) {
             $mudancas['dados'] = $dados;
         }
-        $mudancas += $vigente;
+        $mudancas += $vigente + $aparencia;
         if ($mudancas === []) {
             return new RedirectResponse($this->link($o->id) . '?salvo=nada', Response::HTTP_SEE_OTHER);
         }
@@ -543,6 +562,15 @@ final class TelasDeObjetos
             $ok = $this->tirarDoAr($o); // o endereço antigo passa a redirecionar (histórico de URLs)
         }
         $ok = $this->sincronizar($novo, $this->pai($novo)) && $ok;
+        if ($aparencia !== [] && $novo->visivel(gmdate('c'))) {
+            // Pele ou molde mudou: a subárvore inteira muda de cara (síncrono até o limite; senão fica pendente para o cron).
+            $site = $this->servicos->sites->porId($novo->siteId);
+            try {
+                $ok = ($site !== null && $this->servicos->publicador->republicarSubarvore($site, $novo)) && $ok;
+            } catch (\Throwable) {
+                $ok = false;
+            }
+        }
         $agendado = $vigente !== [] && $novo->status === 'publicado' && $novo->dataPublicacao !== null && $novo->dataPublicacao > gmdate('c');
 
         return new RedirectResponse($this->link($novo->id) . '?salvo=' . (!$ok ? 'aviso' : ($agendado ? 'agendado' : 'sim')), Response::HTTP_SEE_OTHER);
@@ -556,8 +584,8 @@ final class TelasDeObjetos
     {
         $corpo = $this->migalhas($sessao, $o) . $this->resumoDeErros($erros)
             . '<form method="post" action="' . $this->link($o->id) . '/editar" enctype="multipart/form-data" novalidate>' . $this->camposOcultos($sessao, $versao)
-            . $this->camposDoFormulario($classe, $digitado, $erros, $o->paiId === null, false, $this->pode($sessao, Acao::Publicar, $o) ? $this->vigencia($o, gmdate('c')) : null)
-            . Pagina::acoes('Salvar', [['Cancelar', $this->link($o->id)]], null, 'btn-primary', 'pbl-acoes-fixas') . '</form>';
+            . $this->camposDoFormulario($classe, $digitado, $erros, $o->paiId === null, false, $this->pode($sessao, Acao::Publicar, $o) ? $this->vigencia($o, gmdate('c')) : null, $this->pode($sessao, Acao::Publicar, $o) ? $this->campoDeAparencia($o, $digitado, $erros) : '')
+            . Pagina::acoes('Gravar', [['Cancelar', $this->link($o->id)]], null, 'btn-primary', 'pbl-acoes-fixas', $this->pode($sessao, Acao::Publicar, $o) ? 'Gravar e publicar' : '') . '</form>';
         if ($mostrarAtual) {
             $corpo .= '<h2 class="h5 mt-4">Salvo agora (versão ' . $o->versao . ')</h2><div class="table-responsive"><table class="table table-sm"><caption class="visually-hidden">Valores salvos agora</caption><tbody>'
                 . '<tr><th scope="row">Título</th><td>' . Pagina::h($o->titulo) . '</td></tr>'
@@ -1004,7 +1032,7 @@ final class TelasDeObjetos
      * @param array<string, string> $digitado
      * @param array<string, string> $erros
      */
-    private function camposDoFormulario(Classe $classe, array $digitado, array $erros, bool $raiz, bool $criando = false, ?string $vigencia = null): string
+    private function camposDoFormulario(Classe $classe, array $digitado, array $erros, bool $raiz, bool $criando = false, ?string $vigencia = null, string $aparencia = ''): string
     {
         $identificacao = $this->campo('titulo', 'Título', '<input id="campo-titulo" class="form-control' . $this->invalido($erros, 'titulo') . '" name="titulo" maxlength="' . self::MAX_TITULO . '" required value="' . Pagina::h($digitado['titulo'] ?? '') . '"' . $this->descrito($erros, 'titulo') . '>', $erros)
             . $this->campo('descricao', 'Descrição', '<textarea id="campo-descricao" class="form-control' . $this->invalido($erros, 'descricao') . '" name="descricao" rows="3" maxlength="' . self::MAX_DESCRICAO . '"' . $this->descrito($erros, 'descricao', true) . '>' . Pagina::h($digitado['descricao'] ?? '') . '</textarea>', $erros, 'Opcional, até ' . self::MAX_DESCRICAO . ' caracteres.');
@@ -1033,7 +1061,7 @@ final class TelasDeObjetos
                 . '</div>';
         }
         $publicacao .= $this->campo('peso', 'Peso', '<input id="campo-peso" class="form-control campo-ordem' . $this->invalido($erros, 'peso') . '" name="peso" type="number" step="1" min="-999999" max="999999" value="' . Pagina::h($digitado['peso'] ?? '0') . '"' . $this->descrito($erros, 'peso', true) . '>', $erros, 'Menor aparece primeiro nas listas e no menu.');
-        $html .= Pagina::card('Publicação', $publicacao);
+        $html .= Pagina::card('Publicação', $publicacao . $aparencia);
 
         if ($criando || !$raiz) {
             $menu = $this->campo('no_menu', 'Aparece no menu do site', '<select id="campo-no-menu" class="form-select" name="no_menu">' . $this->opcao('1', 'Sim', ($digitado['no_menu'] ?? '0') === '1') . $this->opcao('0', 'Não', ($digitado['no_menu'] ?? '0') !== '1') . '</select>', $erros, 'Vale para conteúdo direto na página inicial ou dentro de um item do menu.')
@@ -1109,6 +1137,63 @@ final class TelasDeObjetos
             . ($criando ? '' : ' Deixe em branco para manter o arquivo atual.');
 
         return '<div class="pbl-card pbl-campo-tipo">' . $this->campo($chave, $rotulo, $controle, $erros, $ajuda, $id) . '</div>';
+    }
+
+    /**
+     * Selects "Pele" e "Aparência (molde)" do card Publicação (ADR 0022). "Herdar" = vazio. Os moldes são os de cada pele
+     * (agrupados por pele); a validação ao gravar confere o molde contra a pele efetiva.
+     *
+     * @param array<string, string> $digitado
+     * @param array<string, string> $erros
+     */
+    private function campoDeAparencia(Objeto $o, array $digitado, array $erros): string
+    {
+        $peles = $this->servicos->peles->peles();
+        $pele = $digitado['pele'] ?? ($o->pele ?? '');
+        $molde = $digitado['molde'] ?? ($o->molde ?? '');
+        $herdada = $this->peleHerdada($o);
+        $opcoesPele = $this->opcao('', 'Herdar (' . $herdada . ')', $pele === '');
+        $opcoesMolde = $this->opcao('', 'Automático (pela classe)', $molde === '');
+        foreach ($peles as $nome) {
+            $opcoesPele .= $this->opcao($nome, $nome, $pele === $nome);
+            $grupo = '';
+            foreach ($this->servicos->peles->moldes($nome) as $m) {
+                $grupo .= $this->opcao($m, $m, $molde === $m);
+            }
+            $opcoesMolde .= '<optgroup label="' . Pagina::h($nome) . '">' . $grupo . '</optgroup>';
+        }
+
+        return $this->campo('pele', 'Pele', '<select id="campo-pele" name="pele" class="form-select' . $this->invalido($erros, 'pele') . '"' . $this->descrito($erros, 'pele', true) . '>' . $opcoesPele . '</select>', $erros, 'A pele vale para este conteúdo e tudo que está dentro dele. Mudar refaz as páginas dessa parte do site.')
+            . $this->campo('molde', 'Aparência (molde)', '<select id="campo-molde" name="molde" class="form-select' . $this->invalido($erros, 'molde') . '"' . $this->descrito($erros, 'molde', true) . '>' . $opcoesMolde . '</select>', $erros, 'Só desta página (não passa para o que está dentro). O molde precisa existir na pele em uso.');
+    }
+
+    /** Nome da pele que o objeto herda (a do pai ou ancestral; senão a do site). */
+    private function peleHerdada(Objeto $o): string
+    {
+        $site = $this->servicos->sites->porId($o->siteId);
+        if ($site === null) {
+            return '';
+        }
+        $pai = $o->paiId === null ? null : $this->servicos->objetos->porId($o->paiId);
+
+        return $pai === null ? $site->pele : $this->servicos->aparencia->da($site, $pai)['pele'];
+    }
+
+    /**
+     * @return array<string, string> erros por campo (`pele`, `molde`)
+     */
+    private function validarAparencia(Objeto $o, string $pele, string $molde): array
+    {
+        $erros = [];
+        if ($pele !== '' && !$this->servicos->peles->peleExiste($pele)) {
+            $erros['pele'] = 'Essa pele não existe. Escolha uma da lista ou deixe "Herdar".';
+        }
+        $efetiva = $pele !== '' && !isset($erros['pele']) ? $pele : $this->peleHerdada($o);
+        if ($molde !== '' && !in_array($molde, $this->servicos->peles->moldes($efetiva), true)) {
+            $erros['molde'] = 'Esse molde não existe na pele "' . $efetiva . '". Escolha um molde dela ou deixe "Automático".';
+        }
+
+        return $erros;
     }
 
     /**

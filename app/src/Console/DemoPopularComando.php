@@ -192,12 +192,89 @@ final class DemoPopularComando extends Command
         $criar('link', $links->id, 'Portal de dados abertos (exemplo)', 'link-dados-abertos', ['destino_externo' => 'https://dados.exemplo.org', 'nova_aba' => true], 'publicado', ['peso' => 20, 'descricao' => 'Atalho externo, abre em nova aba']);
         $criar('link', $links->id, 'Fale com a biblioteca', 'link-email', ['destino_externo' => 'mailto:biblioteca@exemplo.org'], 'publicado', ['peso' => 30]);
 
+        $this->versoesDoSite($criar, $pagina, $links->id);
+
         // Os destaques apontam para páginas internas.
         foreach (['oficinas' => $agenda->id, 'biblioteca' => $docs->id, 'voluntariado' => $this->idDe('voluntariado')] as $u => $alvo) {
             $d = $this->servicos->objetos->porUrl($this->site->id, 'destaque-' . $u);
             if ($d !== null && !isset($d->dados['destino_interno']) && $alvo > 0) {
                 $this->servicos->objetos->atualizar($d->id, ['dados' => ['destino_interno' => $alvo]], 'Demo');
             }
+        }
+    }
+
+    /**
+     * As duas versões de site em paralelo (ADR 0022): `/onepage` (pele onepage) e `/portal` (pele portal). Cada uma é um objeto-raiz de
+     * pele; todo o conteúdo abaixo dele herda a pele. Os endereços levam prefixo (`op-`, `pt-`) porque são únicos por site.
+     *
+     * @param \Closure(string, ?int, string, string, array<string, string|int|float|bool>, string, array<string, mixed>, ?\Closure=): Objeto $criar
+     * @param \Closure(string, string): array{resumo: string, corpo: string} $pagina
+     */
+    private function versoesDoSite(\Closure $criar, \Closure $pagina, int $pastaDeLinks): void
+    {
+        $this->logoEHero();
+
+        // --- Onepage: uma página só, com seções vindas dos filhos --------------------------------------------------------------------
+        $op = $criar('pagina', $this->raiz, 'Instituto Exemplo (uma página)', 'onepage', $pagina('A mesma organização numa página só, com seções.', '<p>Versão <strong>onepage</strong>: tudo na mesma tela, com menu de âncoras.</p>'), 'publicado', ['peso' => 80, 'no_menu' => false, 'rotulo_menu' => 'Versão onepage', 'pele' => 'onepage']);
+        $criar('pagina', $op->id, 'Sobre', 'op-sobre', $pagina('Educação, cultura e cidadania desde 1998.', '<p>O Instituto Exemplo atende cerca de 1.200 pessoas por ano com oficinas de leitura, biblioteca comunitária e formação de educadores.</p>'), 'publicado', ['peso' => 10]);
+        $servicos = $criar('pasta', $op->id, 'Serviços', 'op-servicos', [], 'publicado', ['peso' => 20, 'descricao' => 'O que oferecemos']);
+        foreach (['Oficinas de leitura' => 'Para crianças e jovens.', 'Biblioteca comunitária' => 'Empréstimo gratuito.', 'Formação de educadores' => 'Curso de 80 horas.'] as $t => $r) {
+            $criar('pagina', $servicos->id, $t, 'op-servico-' . $this->slug($t), $pagina($r, '<p>' . $r . ' Saiba como participar falando conosco.</p>'), 'publicado', ['peso' => 10]);
+        }
+        $destaques = $criar('pasta', $op->id, 'Destaques', 'op-destaques', [], 'publicado', ['peso' => 30, 'descricao' => 'Em evidência']);
+        foreach ([['oficinas', 'Inscrições abertas', [34, 112, 87]], ['biblioteca', 'Biblioteca aberta aos sábados', [52, 95, 140]], ['voluntario', 'Seja voluntário', [150, 82, 40]]] as $i => [$u, $t, $cor]) {
+            $criar('destaque', $destaques->id, $t, 'op-destaque-' . $u, ['texto' => 'Saiba como participar.', 'nova_aba' => false], 'publicado', ['peso' => ($i + 1) * 10],
+                $this->imagem('imagem', $t, $cor, 'op-destaque-' . $u . '.png', 1200, 500, $u));
+        }
+        $criar('pagina', $op->id, 'Contato', 'op-contato', $pagina('Fale com a gente.', '<p>Rua das Letras, 100, Centro. Telefone (11) 5555-0100. Ou use o <a href="/contato">formulário de contato</a>.</p>'), 'publicado', ['peso' => 40]);
+
+        // --- Portal: várias páginas, com notícias --------------------------------------------------------------------------------------
+        $pt = $criar('pagina', $this->raiz, 'Instituto Exemplo (portal)', 'portal', $pagina('Notícias, serviços e institucional num portal.', '<p>Versão <strong>portal</strong>: várias páginas, hero com carrossel, listagem de notícias e rodapé.</p>'), 'publicado', ['peso' => 90, 'no_menu' => false, 'rotulo_menu' => 'Versão portal', 'pele' => 'portal']);
+        $criar('pagina', $pt->id, 'Sobre o portal', 'pt-sobre', $pagina('Quem somos.', '<p>Portal institucional de demonstração do Instituto Exemplo.</p>'), 'publicado', ['peso' => 10, 'no_menu' => true]);
+        $noticias = $criar('pasta', $pt->id, 'Notícias do portal', 'pt-noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Novidades']);
+        foreach ([['inscricoes', 'Inscrições abertas para as oficinas', 2, [34, 112, 87]], ['horario', 'Biblioteca abre aos sábados', 8, [52, 95, 140]], ['feira', 'Feira de livros reúne 800 visitantes', 20, [140, 60, 90]], ['relatorio', 'Relatório anual publicado', 40, [60, 100, 100]]] as $i => [$u, $t, $atras, $cor]) {
+            $criar('noticia', $noticias->id, $t, 'pt-noticia-' . $u, ['resumo' => $t . '.', 'corpo' => '<p>' . $t . '. Acompanhe as próximas novidades por aqui.</p>'], 'publicado',
+                ['data_publicacao' => gmdate('Y-m-d', time() - $atras * 86400) . ' 09:00:00'], $this->imagem('imagem_destaque', $t, $cor, 'pt-noticia-' . $u . '.png', 960, 540, $u));
+        }
+        $pts = $criar('pasta', $pt->id, 'Serviços do portal', 'pt-servicos', [], 'publicado', ['peso' => 30, 'no_menu' => true, 'descricao' => 'O que oferecemos']);
+        $criar('pagina', $pts->id, 'Biblioteca', 'pt-servico-biblioteca', $pagina('Empréstimo gratuito.', '<p>Mais de cinco mil títulos.</p>'), 'publicado', ['peso' => 10, 'no_menu' => true]);
+        $criar('pagina', $pts->id, 'Oficinas', 'pt-servico-oficinas', $pagina('Leitura e escrita.', '<p>Turmas para crianças e jovens.</p>'), 'publicado', ['peso' => 20, 'no_menu' => true]);
+        $ptd = $criar('pasta', $pt->id, 'Destaques do portal', 'pt-destaques', [], 'publicado', ['peso' => 40, 'descricao' => 'Em evidência']);
+        foreach ([['oficinas', 'Oficinas de leitura', [34, 112, 87]], ['biblioteca', 'Biblioteca comunitária', [52, 95, 140]]] as $i => [$u, $t, $cor]) {
+            $criar('destaque', $ptd->id, $t, 'pt-destaque-' . $u, ['texto' => 'Conheça.', 'nova_aba' => false], 'publicado', ['peso' => ($i + 1) * 10],
+                $this->imagem('imagem', $t, $cor, 'pt-destaque-' . $u . '.png', 1200, 500, $u));
+        }
+        $criar('pagina', $pt->id, 'Contato do portal', 'pt-contato', $pagina('Fale com a gente.', '<p>Veja o <a href="/contato">formulário de contato</a>.</p>'), 'publicado', ['peso' => 50, 'no_menu' => true]);
+
+        // Atalhos na página inicial (molde home da pele básica) para as duas versões.
+        $criar('link', $pastaDeLinks, 'Versão onepage do site', 'link-onepage', ['destino_interno' => $op->id], 'publicado', ['peso' => 40, 'descricao' => 'Mesma organização numa página só']);
+        $criar('link', $pastaDeLinks, 'Versão portal do site', 'link-portal', ['destino_interno' => $pt->id], 'publicado', ['peso' => 50, 'descricao' => 'Mesma organização como portal']);
+    }
+
+    private function slug(string $texto): string
+    {
+        $ascii = (string) iconv('UTF-8', 'ASCII//TRANSLIT', $texto);
+
+        return trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($ascii)), '-');
+    }
+
+    /** Logo e imagem de abertura (hero) do site, geradas, para as peles onepage e portal. Só se ainda não houver. */
+    private function logoEHero(): void
+    {
+        $gravadas = $this->servicos->configs->gravadas($this->site->id);
+        $novas = [];
+        foreach (['logo' => ['Logo', [34, 112, 87], 400, 120], 'imagem_hero' => ['Imagem de abertura', [52, 95, 140], 1200, 500]] as $chave => [$t, $cor, $l, $a]) {
+            if (isset($gravadas[$chave])) {
+                continue;
+            }
+            $o = $this->m->garantirObjeto($this->site, 'imagem', $this->raiz, $t, 'demo-' . str_replace('_', '-', $chave), ['legenda' => $t, 'texto_alternativo' => $t], 'publicado', ['peso' => 999], $this->imagem('imagem', $t, $cor, 'demo-' . $chave . '.png', $l, $a, $chave));
+            $arquivo = $o->dados['imagem'] ?? null;
+            if (is_int($arquivo) || (is_string($arquivo) && ctype_digit($arquivo))) {
+                $novas[$chave] = (int) $arquivo;
+            }
+        }
+        if ($novas !== []) {
+            $this->servicos->configs->definir($this->site->id, $novas);
         }
     }
 

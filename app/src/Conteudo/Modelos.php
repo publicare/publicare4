@@ -23,21 +23,6 @@ final class Modelos
 {
     public const NOMES = ['evento', 'faq', 'destaque', 'bloco'];
 
-    /** Moldes novos da pele básica que os modelos usam (copiados se faltarem). */
-    private const MOLDES_NOVOS = ['agenda', 'bloco', 'bloco_aviso', 'bloco_rodape', 'destaque', 'evento', 'faixa_destaques', 'faq', 'perguntas'];
-
-    /**
-     * Moldes antigos da pele básica que ganharam ganchos para os modelos (aviso, faixa de destaques, rodapé, data do evento,
-     * CSS). Só são trocados se estiverem **idênticos** a uma versão que o PBL4 já distribuiu (sha-256); molde alterado pela
-     * administração fica como está e a ativação avisa o que acrescentar.
-     */
-    private const MOLDES_ATUALIZADOS = [
-        'topo' => ['6fcc24bd07d864b635e8f28f831b0ce5614e56fd1cccc032eb6e5285ff1f1f3d'],
-        'padrao' => ['faf850fdb9b204560607433b95b0b0225ebaa22a66a05618912a30f8de8208bc'],
-        'item' => ['becc8791873fd7e2ef231d49fa72a91452e22c7a8cfa2ada5307caac5144a4e4'],
-        'estilo' => ['b22d076390043f85b8cf1e53a7aced98b5324de833ea34b2b5a9498d890a9310'],
-    ];
-
     private int $criados = 0;
 
     public function __construct(private readonly Connection $conexao, private readonly Caminhos $caminhos)
@@ -174,7 +159,7 @@ final class Modelos
      * Cria o objeto se o endereço ainda não existe no site (senão devolve o que está lá, sem alterar nada).
      *
      * @param array<string, string|int|float|bool> $dados
-     * @param array{peso?: int, descricao?: string, no_menu?: bool, rotulo_menu?: string, data_publicacao?: string|null, data_validade?: string|null} $meta
+     * @param array{peso?: int, descricao?: string, no_menu?: bool, rotulo_menu?: string, data_publicacao?: string|null, data_validade?: string|null, pele?: string|null, molde?: string|null} $meta
      * @param (\Closure(int): array<string, string|int|float|bool>)|null $aposInserir
      */
     public function garantirObjeto(Site $site, string $classe, ?int $paiId, string $titulo, string $url, array $dados = [], string $status = 'publicado', array $meta = [], ?\Closure $aposInserir = null): Objeto
@@ -251,37 +236,12 @@ final class Modelos
 
             return [];
         }
-        $origem = $this->caminhos->app() . '/recursos/peles/basica';
-        $destino = $this->caminhos->peles() . '/basica';
-        if (!is_dir($destino) && !@mkdir($destino, 0775, true) && !is_dir($destino)) {
-            $avisos[] = "Não foi possível criar {$destino}; copie os moldes dos modelos manualmente.";
-
-            return [];
-        }
+        $r = (new \Pbl\Instalacao\PelesDistribuidas($this->caminhos))->sincronizar(['basica']);
+        array_push($avisos, ...$r['avisos']);
         $gravados = [];
-        foreach (self::MOLDES_NOVOS as $nome) {
-            if (!is_file("{$destino}/{$nome}.pbl") && is_file("{$origem}/{$nome}.pbl") && @copy("{$origem}/{$nome}.pbl", "{$destino}/{$nome}.pbl")) {
-                $gravados[] = $nome;
-            }
-        }
-        foreach (self::MOLDES_ATUALIZADOS as $nome => $antigos) {
-            $novo = "{$origem}/{$nome}.pbl";
-            $atual = "{$destino}/{$nome}.pbl";
-            if (!is_file($novo)) {
-                continue;
-            }
-            if (!is_file($atual)) {
-                @copy($novo, $atual) && $gravados[] = $nome;
-                continue;
-            }
-            $hash = hash_file('sha256', $atual);
-            if ($hash === hash_file('sha256', $novo)) {
-                continue;
-            }
-            if (in_array($hash, $antigos, true)) {
-                @copy($novo, $atual) && $gravados[] = $nome;
-            } else {
-                $avisos[] = "O molde \"{$nome}\" foi personalizado e não foi alterado. Para usar os modelos, copie dele os trechos novos de app/recursos/peles/basica/{$nome}.pbl.";
+        foreach ($r['gravados'] as $chave) {
+            if (str_starts_with($chave, 'basica/') && str_ends_with($chave, '.pbl')) {
+                $gravados[] = basename($chave, '.pbl');
             }
         }
 

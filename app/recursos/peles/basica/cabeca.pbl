@@ -23,4 +23,4 @@
 <meta property="og:url" content="<@eco #base_url@><@eco #url@>">
 <@se $imagem_seo != ""@><meta property="og:image" content="<@eco #base_url@><@arquivo valor=$imagem_seo info="url"@>">
 <@/se@><@se $icone_site != ""@><link rel="icon" href="<@arquivo valor=$icone_site info="url"@>">
-<@/se@>
+<@/se@><script src="/_pbl/assets/pbl-barra.js?v=<@eco #barra_v@>" defer></script>

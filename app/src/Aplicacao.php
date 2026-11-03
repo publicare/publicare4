@@ -77,6 +77,10 @@ final class Aplicacao
             // Entrega de arquivo (sem sessão): só o arquivo de um objeto publicado e vigente deste site (fluxo 7).
             return (new ArquivoController($servicos, $site->id))->tratar($requisicao);
         }
+        if (\Pbl\Publicacao\AssetsDePele::atende($requisicao)) {
+            // CSS/JS/imagens das peles (ADR 0022), sem sessão: só arquivos de dados/peles/<pele>/assets.
+            return (new \Pbl\Publicacao\AssetsDePele($this->caminhos))->tratar($requisicao);
+        }
         if (Painel::atende($requisicao)) {
             // Administração (entrar, sair…). Só aqui o segredo do site e as sessões entram em jogo: a página pública não depende deles.
             return (new Painel($servicos, new Rede($this->caminhos), $servicos->csrf(), $servicos->sessoes(), $servicos->limiteDeTentativas()))->tratar($requisicao);

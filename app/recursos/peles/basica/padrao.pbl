@@ -4,7 +4,7 @@
 <@incluir arquivo="cabeca"@>
 <@incluir arquivo="estilo"@>
 </head>
-<body>
+<body data-pbl-objeto="<@eco #id@>">
 <@incluir arquivo="topo"@>
 <main>
 <@se #id == #raiz@><@incluir arquivo="faixa_destaques"@><@/se@>
