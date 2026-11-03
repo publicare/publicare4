@@ -80,9 +80,6 @@ final class ApiDeAcoes
             }
             $ids[$id] = true;
         }
-        if ($ids === []) {
-            return self::json(['erro' => 'pedido_invalido'], Response::HTTP_BAD_REQUEST);
-        }
         if (count($ids) > self::LIMITE_LOTE) {
             return self::json(['erro' => 'muitos_objetos', 'limite' => self::LIMITE_LOTE], Response::HTTP_BAD_REQUEST);
         }
