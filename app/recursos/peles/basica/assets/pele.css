@@ -71,10 +71,10 @@ main>:first-child{margin-top:1.25rem}
 .marca img{display:block;max-height:2.5rem;width:auto}
 .busca{display:flex;gap:.4rem;flex:1 1 15rem;max-width:24rem}
 .busca input[type=search]{flex:1 1 auto;min-width:0;font:inherit;padding:.5rem .7rem;color:var(--cor-texto);background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:.5rem}
-.busca button,.pbl-acoes button{font:inherit;font-weight:600;padding:.5rem 1rem;color:var(--cor-enfase-texto);background:var(--cor-enfase);border:1px solid var(--cor-enfase);border-radius:.5rem;cursor:pointer}
-.busca button:hover,.pbl-acoes button:hover{filter:brightness(1.1)}
+.busca button{font:inherit;font-weight:600;padding:.5rem 1rem;color:var(--cor-enfase-texto);background:var(--cor-enfase);border:1px solid var(--cor-enfase);border-radius:.5rem;cursor:pointer}
+.busca button:hover{filter:brightness(1.1)}
 
-/* Menu: sem JavaScript. No celular só o primeiro nível (os níveis de baixo estão nas próprias páginas); a partir de 48rem, submenus ao passar o mouse ou focar. */
+/* Menu. Sem JavaScript: no celular só o primeiro nível (os de baixo estão nas próprias páginas); a partir de 48rem, submenus ao passar o mouse ou focar. Com JavaScript (html.js): hambúrguer no celular e botão de submenu (ver bloco "Melhoria progressiva" no fim). */
 .topo .menu{flex:1 1 100%;margin-left:-.8rem}
 .menu ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.1rem .25rem}
 .menu a{display:block;padding:.6rem .8rem;color:var(--cor-texto);text-decoration:none;border-bottom:3px solid transparent}
@@ -157,7 +157,6 @@ main>:first-child{margin-top:1.25rem}
 label{display:block;font-weight:600;margin-bottom:.2rem}
 input[type=text],input[type=email],input[type=tel],input[type=url],input[type=number],input[type=date],select,textarea{display:block;width:100%;max-width:36rem;font:inherit;padding:.5rem .7rem;color:var(--cor-texto);background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:.5rem}
 .pbl-erros{padding:.6rem 1rem;border:1px solid #b3261e;border-radius:.5rem}
-.pbl-acoes{margin-top:1rem}
 
 /* Perguntas frequentes */
 details{border:1px solid var(--cor-borda);border-radius:.5rem;margin:.5rem 0;padding:.6rem .9rem;background:var(--cor-cartao)}
@@ -182,4 +181,97 @@ body>footer p{margin:.3rem 0}
 }
 @media print{
   .topo .busca,.menu,.aviso-do-site{display:none}
+}
+
+/* ===== Melhoria progressiva (JavaScript opcional) =====
+   Nada some por CSS sem a classe html.js (posta por pbl-js.js). Sem JavaScript: menu aberto, destaques empilhados, respostas das perguntas
+   visíveis. As classes collapse/collapsing/show e carousel-* são as do Bootstrap 5, que o bundle local controla; o CSS aqui é só da pele. */
+.topo-toggle,.carousel-control-prev,.carousel-control-next,.carousel-indicators,.sub-toggle,.voltar-ao-topo{display:none}
+.carousel-item+.carousel-item{margin-top:1rem}
+
+/* Menu recolhível (celular) */
+.js .topo-toggle{display:inline-flex;align-items:center;justify-content:center;width:2.75rem;height:2.75rem;padding:0;color:var(--cor-texto);background:transparent;border:1px solid var(--cor-borda);border-radius:.5rem;cursor:pointer}
+.topo-toggle-barras,.topo-toggle-barras::before,.topo-toggle-barras::after{display:block;width:1.3rem;height:2px;background:currentColor;border-radius:1px;content:""}
+.topo-toggle-barras{position:relative}
+.topo-toggle-barras::before{position:absolute;top:-.4rem}
+.topo-toggle-barras::after{position:absolute;top:.4rem}
+.topo-nav{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center}
+.topo-nav>.menu{flex:1 1 100%}
+.js .topo-nav.collapse:not(.show){display:none}
+.js .topo-nav.collapsing{display:flex;overflow:hidden;height:0;transition:height .25s ease}
+.js .topo-nav .menu>ul{flex-direction:column;gap:0}
+.js .topo-nav .menu a{border-bottom:0;border-left:3px solid transparent}
+.js .topo-nav .menu .ativo>a{border-left-color:var(--cor-enfase)}
+.menu li.tem-sub{display:flex;flex-wrap:wrap;align-items:stretch}
+.menu li.tem-sub>a{flex:1 1 auto}
+.sub-toggle{display:inline-flex;align-items:center;justify-content:center;width:2.75rem;padding:0;color:var(--cor-texto);background:transparent;border:0;cursor:pointer;font:inherit}
+.sub-toggle::before{content:"";width:.5rem;height:.5rem;border:solid currentColor;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s}
+.sub-toggle[aria-expanded=true]::before{transform:rotate(225deg)}
+.menu li ul.show{display:flex;flex:1 1 100%;flex-direction:column;padding-left:1rem}
+
+@media (min-width:48rem){
+  .js .topo-toggle{display:none}
+  .topo-nav,.js .topo-nav.collapse:not(.show),.js .topo-nav.collapsing{display:contents;height:auto;overflow:visible}
+  .js .topo-nav .menu>ul{flex-direction:row;flex-wrap:wrap;gap:.1rem .25rem}
+  .js .topo-nav .menu a{border-bottom:3px solid transparent;border-left:0}
+  .js .topo-nav .menu .ativo>a{border-bottom-color:var(--cor-enfase)}
+  .menu li.tem-sub{flex-wrap:nowrap}
+  .menu li.tem-sub>a{flex:0 1 auto}
+  .sub-toggle{width:1.6rem}
+  .menu li ul.show{position:absolute;flex:none;padding:.35rem}
+  .js .topo{position:sticky;top:0;z-index:30;transition:box-shadow .2s}
+  .js .topo.rolou{box-shadow:0 2px 12px rgba(20,30,45,.18)}
+}
+
+/* Carrossel do hero: todos os slides empilhados sem JavaScript; com JavaScript, um por vez, com setas e indicadores. */
+.js .carrossel{position:relative}
+.js .carrossel .carousel-inner{position:relative;width:100%;overflow:hidden;border-radius:var(--raio)}
+.js .carrossel .carousel-inner::after{display:block;clear:both;content:""}
+.js .carrossel .carousel-item{display:none;float:left;width:100%;margin:0 -100% 0 0;backface-visibility:hidden;transition:transform .6s ease-in-out;border-radius:0;border:0}
+.js .carrossel .carousel-item.active,.js .carrossel .carousel-item-next,.js .carrossel .carousel-item-prev{display:block}
+.js .carrossel .carousel-item-next:not(.carousel-item-start),.js .carrossel .active.carousel-item-end{transform:translateX(100%)}
+.js .carrossel .carousel-item-prev:not(.carousel-item-end),.js .carrossel .active.carousel-item-start{transform:translateX(-100%)}
+.js .carrossel .carousel-control-prev,.js .carrossel .carousel-control-next{display:flex;position:absolute;top:50%;z-index:2;align-items:center;justify-content:center;width:2.75rem;height:2.75rem;margin-top:-1.4rem;padding:0;font-size:2rem;line-height:1;color:#fff;background:rgba(0,0,0,.55);border:0;border-radius:50%;cursor:pointer}
+.js .carrossel .carousel-control-prev{left:.6rem}
+.js .carrossel .carousel-control-next{right:.6rem}
+.js .carrossel .carousel-control-prev:hover,.js .carrossel .carousel-control-next:hover{background:rgba(0,0,0,.75)}
+.js .carrossel .carousel-indicators{display:flex;position:absolute;right:0;bottom:.5rem;left:0;z-index:2;justify-content:center;gap:.4rem;margin:0;padding:0;list-style:none}
+.carousel-indicators button{width:.9rem;height:.9rem;padding:0;border:2px solid #fff;border-radius:50%;background:rgba(0,0,0,.45);cursor:pointer}
+.carousel-indicators button.active{background:#fff}
+
+/* Perguntas frequentes (accordion): respostas visíveis sem JavaScript; com JavaScript, uma aberta por vez. */
+.accordion-item{margin:.5rem 0;border:1px solid var(--cor-borda);border-radius:.5rem;background:var(--cor-cartao);overflow:hidden}
+.accordion-header{display:flex;align-items:center;margin:0;font-size:1.05rem}
+.accordion-button{flex:1 1 auto;text-align:left;font:inherit;font-weight:600;padding:.75rem .9rem;color:var(--cor-texto);background:transparent;border:0;cursor:default}
+.accordion-body{padding:0 .9rem .8rem}
+.js .accordion-button{cursor:pointer}
+.js .accordion-button::after{float:right;content:"+";font-weight:400;font-size:1.3rem;line-height:1}
+.js .accordion-button[aria-expanded=true]::after{content:"\2212"}
+.js .accordion-collapse.collapse:not(.show){display:none}
+.js .accordion-collapse.collapsing{overflow:hidden;height:0;transition:height .25s ease}
+.accordion-header .pbl-acoes{margin-right:.6rem}
+
+/* Links rápidos recolhíveis */
+.recolher{all:unset;box-sizing:border-box;display:block;width:100%;color:inherit;font:inherit}
+.js .recolher{cursor:pointer}
+.js .recolher::after{float:right;content:"\2212";font-weight:400}
+.js .recolher[aria-expanded=false]::after{content:"+"}
+.recolher:focus-visible{outline:3px solid var(--cor-enfase);outline-offset:2px}
+.js .links-rapidos .collapse:not(.show){display:none}
+.js .links-rapidos .collapsing{overflow:hidden;height:0;transition:height .25s ease}
+
+/* Voltar ao topo (criado pelo JavaScript) */
+.js .voltar-ao-topo{display:flex;position:fixed;right:1rem;bottom:1rem;z-index:40;align-items:center;justify-content:center;width:2.75rem;height:2.75rem;padding:0;color:var(--cor-enfase-texto);background:var(--cor-enfase);border:0;border-radius:50%;box-shadow:var(--sombra);cursor:pointer;font-size:1.3rem;line-height:1;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+.js .voltar-ao-topo.visivel{opacity:1;visibility:visible}
+
+/* Cartões revelados ao rolar (a classe revelar só é posta pelo JavaScript, em itens ainda fora da tela) */
+.revelar{opacity:0;transform:translateY(.8rem);transition:opacity .45s ease,transform .45s ease}
+.revelar.visivel{opacity:1;transform:none}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .revelar{opacity:1;transform:none}
+}
+@media (min-width:40rem){
+  .js .carrossel .carousel-item.active,.js .carrossel .carousel-item-next,.js .carrossel .carousel-item-prev{display:grid}
 }

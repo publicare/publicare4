@@ -10,11 +10,14 @@
 <h1><@eco #titulo@></h1>
 <@se #descricao != ""@><p><@eco #descricao@></p><@/se@>
 <@var $categoria_anterior = ""@>
+<div class="accordion" id="perguntas">
 <@filhos classes="faq" ordem="categoria, peso, titulo"@>
 <@se #categoria != ""@><@se #categoria != $categoria_anterior@><h2><@eco #categoria@></h2>
 <@var $categoria_anterior = #categoria@><@/se@><@/se@>
-<details><summary data-pbl-objeto="<@eco #id@>"><@eco #titulo@><span class="pbl-acoes" hidden></span></summary><div><@ecocru #resposta@></div></details>
+<div class="accordion-item"><h3 class="accordion-header" data-pbl-objeto="<@eco #id@>"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#pergunta-<@eco #id@>" aria-controls="pergunta-<@eco #id@>" aria-expanded="false"><@eco #titulo@></button><span class="pbl-acoes" hidden></span></h3>
+<div class="accordion-collapse collapse" id="pergunta-<@eco #id@>" data-bs-parent="#perguntas"><div class="accordion-body"><@ecocru #resposta@></div></div></div>
 <@/filhos@>
+</div>
 <@semfilhos@><p>Nenhuma pergunta cadastrada ainda.</p><@/semfilhos@>
 </main>
 <@incluir arquivo="bloco_rodape"@>

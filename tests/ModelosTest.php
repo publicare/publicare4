@@ -120,7 +120,7 @@ final class ModelosTest extends TestCase
         self::assertGreaterThan(strpos($agenda, 'Eventos passados'), strpos($agenda, 'Evento passado de exemplo'));
         self::assertLessThan(strpos($agenda, 'Eventos passados'), strpos($agenda, 'Encontro de exemplo'));
         $faq = $this->pagina('perguntas-frequentes');
-        self::assertStringContainsString('<details', $faq);
+        self::assertStringContainsString('class="accordion-item"', $faq);
         self::assertStringContainsString('Como edito esta pergunta?', $faq);
     }
 
@@ -137,7 +137,7 @@ final class ModelosTest extends TestCase
     public function testSemOsModelosAPaginaInicialNaoMostraFaixaNemErro(): void
     {
         $inicio = $this->pagina('index');
-        self::assertStringNotContainsString('class="destaques"', $inicio);
+        self::assertStringNotContainsString('class="carrossel', $inicio);
     }
 
     public function testTelaDeModelosListaEAtiva(): void
@@ -192,7 +192,7 @@ final class ModelosTest extends TestCase
         self::assertFileDoesNotExist($dir . '/balanco-do-semestre.html', 'conteúdo agendado só sai na data');
         self::assertFileExists($dir . '/faq-1.html');
         self::assertStringContainsString('Instituto Exemplo', (string) file_get_contents($dir . '/index.html'));
-        self::assertStringContainsString('<details', (string) file_get_contents($dir . '/perguntas-frequentes.html'));
+        self::assertStringContainsString('class="accordion-item"', (string) file_get_contents($dir . '/perguntas-frequentes.html'));
     }
 
     public function testHomeDaDemoTemHierarquiaAtalhosDasVersoesEHtmlLimpo(): void
@@ -201,7 +201,7 @@ final class ModelosTest extends TestCase
         self::assertSame(0, $t->execute(['--site' => (string) $this->siteId]), $t->getDisplay());
         $dir = $this->caminhos->dados() . '/cache/paginas/' . $this->siteId;
         $html = (string) file_get_contents($dir . '/index.html');
-        $ordem = ['class="topo"', 'class="hero"', 'class="atalhos"', 'class="destaques"', 'class="ultimas"', 'class="links-rapidos"'];
+        $ordem = ['class="topo"', 'class="hero"', 'class="carrossel', 'class="atalhos"', 'class="ultimas"', 'class="links-rapidos"'];
         $ultima = -1;
         foreach ($ordem as $marca) {
             $pos = strpos($html, $marca);
@@ -237,6 +237,46 @@ final class ModelosTest extends TestCase
             self::assertStringNotContainsString('<style', $p, $url);
             self::assertStringNotContainsString(' style=', $p, $url);
         }
+        // JavaScript próprio em todas as peles, sempre arquivo local versionado: nunca inline, nunca manipulador no HTML (CSP script-src 'self').
+        foreach (['index', 'noticias', 'perguntas-frequentes', 'agenda'] as $url) {
+            $p = (string) file_get_contents($dir . '/' . $url . '.html');
+            self::assertMatchesRegularExpression('#<script src="/_pbl/peles/basica/assets/pbl-js\.js\?v=[0-9a-f]{8}"></script>#', $p, $url);
+            self::assertMatchesRegularExpression('#<script src="/_pbl/peles/basica/assets/bootstrap\.bundle\.min\.js\?v=[0-9a-f]{8}" defer></script>#', $p, $url);
+            self::assertMatchesRegularExpression('#<script src="/_pbl/peles/basica/assets/pbl-pele\.js\?v=[0-9a-f]{8}" defer></script>#', $p, $url);
+            self::assertDoesNotMatchRegularExpression('#<script(?![^>]*\ssrc=)#', $p, $url);
+            self::assertDoesNotMatchRegularExpression('#\son(click|load|error|change|submit|mouse\w+|key\w+)=#i', $p, $url);
+            self::assertStringNotContainsString('javascript:', $p, $url);
+            self::assertStringNotContainsString('cdn.', $p, $url);
+        }
+        foreach (['bootstrap.bundle.min.js', 'pbl-js.js', 'pbl-pele.js'] as $js) {
+            self::assertFileExists($this->caminhos->peles() . '/basica/assets/' . $js);
+        }
+        // Menu recolhível, carrossel e controles com os atributos data-bs-* do Bootstrap, e o conteúdo todo no HTML estático (sem JS).
+        self::assertMatchesRegularExpression('#<button class="topo-toggle" type="button" data-bs-toggle="collapse" data-bs-target="\#topo-nav" aria-controls="topo-nav" aria-expanded="false" aria-label="[^"]+">#', $html);
+        self::assertStringContainsString('<div class="topo-nav collapse" id="topo-nav">', $html);
+        self::assertStringContainsString('id="hero-carrossel" data-bs-ride="carousel"', $html);
+        self::assertSame(3, substr_count($html, 'class="carousel-item destaque-principal'), 'os 3 destaques do demo viram slides');
+        self::assertSame(1, substr_count($html, 'carousel-item destaque-principal active'));
+        self::assertStringContainsString('data-bs-slide="prev"', $html);
+        self::assertStringContainsString('data-bs-slide="next"', $html);
+        self::assertStringContainsString('Oficinas de leitura', $html);
+        self::assertStringContainsString('Seja voluntário', $html);
+        self::assertStringContainsString('data-bs-target="#links-rapidos-lista" aria-controls="links-rapidos-lista" aria-expanded="true"', $html);
+        self::assertStringContainsString('class="collapse show" id="links-rapidos-lista"', $html);
+        $faqHtml = (string) file_get_contents($dir . '/perguntas-frequentes.html');
+        self::assertMatchesRegularExpression('#<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="\#pergunta-(\d+)" aria-controls="pergunta-\1" aria-expanded="false">#', $faqHtml);
+        self::assertMatchesRegularExpression('#id="pergunta-\d+" data-bs-parent="\#perguntas"><div class="accordion-body">\S#', $faqHtml, 'a resposta está no HTML estático');
+        // Nada fica escondido por estilo embutido; só o CSS com html.js esconde, e o JS próprio é quem marca a classe.
+        $css = (string) file_get_contents($this->caminhos->peles() . '/basica/assets/pele.css');
+        self::assertStringContainsString('.js .topo-nav.collapse:not(.show)', $css);
+        self::assertStringContainsString('prefers-reduced-motion:reduce', $css);
+        $semJs = (string) preg_replace('#\.js [^{}]*\{[^{}]*\}#', '', $css);
+        self::assertDoesNotMatchRegularExpression('#[^{}]*\.(collapse|carousel-item|accordion-collapse)[^{}]*\{[^}]*display:none#', $semJs, 'nenhuma regra esconde conteúdo sem html.js');
+        $marcador = (string) file_get_contents($this->caminhos->peles() . '/basica/assets/pbl-js.js');
+        self::assertStringContainsString("documentElement.className += ' js'", $marcador);
+        $pele = (string) file_get_contents($this->caminhos->peles() . '/basica/assets/pbl-pele.js');
+        self::assertStringContainsString('prefers-reduced-motion', $pele);
+        self::assertStringNotContainsString('innerHTML', $pele);
         // Ações por título (barra de edição): cada item listado leva o id e um espaço vazio e oculto para os botões; o do <body> não conta.
         foreach (['index', 'onepage', 'portal', 'noticias', 'perguntas-frequentes'] as $url) {
             $p = (string) file_get_contents($dir . '/' . $url . '.html');
