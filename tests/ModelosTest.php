@@ -237,6 +237,14 @@ final class ModelosTest extends TestCase
             self::assertStringNotContainsString('<style', $p, $url);
             self::assertStringNotContainsString(' style=', $p, $url);
         }
+        // Ações por título (barra de edição): cada item listado leva o id e um espaço vazio e oculto para os botões; o do <body> não conta.
+        foreach (['index', 'onepage', 'portal', 'noticias', 'perguntas-frequentes'] as $url) {
+            $p = (string) file_get_contents($dir . '/' . $url . '.html');
+            $marcas = preg_match_all('#\sdata-pbl-objeto="[1-9][0-9]*"#', $p);
+            $espacos = substr_count($p, '<span class="pbl-acoes" hidden></span>');
+            self::assertGreaterThan(1, $marcas, $url);
+            self::assertSame($marcas - 1, $espacos, "{$url}: um espaço de ações por item listado");
+        }
         // Em onepage e portal, o hero usa um tamanho de miniatura que existe (antes o src saía vazio).
         foreach (['onepage', 'portal'] as $url) {
             $p = (string) file_get_contents($dir . '/' . $url . '.html');

@@ -29,7 +29,7 @@
 <@se %INDICE == 1@><section class="op-hero carousel slide" id="op-carrossel" data-bs-ride="carousel" aria-label="Destaques"><div class="carousel-inner">
 <@/se@><div class="carousel-item<@se %INDICE == 1@> active<@/se@>">
 <@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=1200@>" alt=""><@/se@>
-<div class="carousel-caption"><h2 class="h3"><@eco #titulo@></h2>
+<div class="carousel-caption"><h2 class="h3" data-pbl-objeto="<@eco #id@>"><@eco #titulo@><span class="pbl-acoes" hidden></span></h2>
 <@se #texto != ""@><p><@eco #texto@></p><@/se@>
 <@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
 <@se $dest != ""@><a class="btn btn-light" href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@>>Saiba mais<span class="visually-hidden"> sobre <@eco #titulo@></span></a><@/se@>
@@ -45,13 +45,13 @@
 <@se #corpo != ""@><section class="op-secao"><div class="container"><@ecocru #corpo@></div></section>
 <@/se@>
 <@filhos ordem="peso, titulo"@><section class="op-secao" id="s-<@eco #id@>"><div class="container">
-<h2><@eco #titulo@></h2>
+<h2 data-pbl-objeto="<@eco #id@>"><@eco #titulo@><span class="pbl-acoes" hidden></span></h2>
 <@se #imagem_destaque != ""@><p><img src="<@miniatura valor=#imagem_destaque tamanho=800@>" alt=""></p><@/se@>
 <@se #resumo != ""@><p class="lead"><@eco #resumo@></p><@/se@>
 <@se #corpo != ""@><div><@ecocru #corpo@></div><@/se@>
 <@filhos ordem="peso, titulo" limite=12@><@se %INDICE == 1@><div class="row row-cols-1 row-cols-md-3 g-3 mt-2">
 <@/se@><div class="col"><div class="card h-100"><@se #imagem_destaque != ""@><img class="card-img-top" src="<@miniatura valor=#imagem_destaque tamanho=800@>" alt="" loading="lazy"><@/se@><@se #imagem != ""@><img class="card-img-top" src="<@miniatura valor=#imagem tamanho=800@>" alt="" loading="lazy"><@/se@>
-<div class="card-body"><h3 class="h5 card-title"><a class="stretched-link" href="<@eco #url@>"><@eco #titulo@></a></h3>
+<div class="card-body"><h3 class="h5 card-title" data-pbl-objeto="<@eco #id@>"><a class="stretched-link" href="<@eco #url@>"><@eco #titulo@></a><span class="pbl-acoes" hidden></span></h3>
 <@se #resumo != ""@><p class="card-text"><@eco #resumo@></p><@senao@><@se #descricao != ""@><p class="card-text"><@eco #descricao@></p><@/se@><@/se@></div></div></div>
 <@se %INDICE == %QUANTIDADE@></div>
 <@/se@><@/filhos@>

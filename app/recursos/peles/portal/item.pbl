@@ -1,7 +1,7 @@
 <div class="pt-item d-flex gap-3 my-3">
 <@se #imagem_destaque != ""@><img src="<@miniatura valor=#imagem_destaque tamanho=400@>" alt="" loading="lazy" decoding="async"><@/se@>
 <div>
-<@se #classe == "link"@><strong><@incluir arquivo="link_a"@></strong><@senao@><strong><a href="<@eco #url@>"><@eco #titulo@></a></strong><@/se@>
+<@se #classe == "link"@><strong data-pbl-objeto="<@eco #id@>"><@incluir arquivo="link_a"@><span class="pbl-acoes" hidden></span></strong><@senao@><strong data-pbl-objeto="<@eco #id@>"><a href="<@eco #url@>"><@eco #titulo@></a><span class="pbl-acoes" hidden></span></strong><@/se@>
 <@se #classe == "noticia"@><@se #data_publicacao != ""@><br><small class="text-body-secondary"><@formatadata valor=#data_publicacao formato="d/m/Y"@></small><@/se@><@/se@>
 <@se #resumo != ""@><br><span><@eco #resumo@></span><@senao@><@se #descricao != ""@><br><span><@eco #descricao@></span><@/se@><@/se@>
 </div>

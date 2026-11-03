@@ -13,7 +13,7 @@
 <@filhos classes="faq" ordem="categoria, peso, titulo"@>
 <@se #categoria != ""@><@se #categoria != $categoria_anterior@><h2><@eco #categoria@></h2>
 <@var $categoria_anterior = #categoria@><@/se@><@/se@>
-<details><summary><@eco #titulo@></summary><div><@ecocru #resposta@></div></details>
+<details><summary data-pbl-objeto="<@eco #id@>"><@eco #titulo@><span class="pbl-acoes" hidden></span></summary><div><@ecocru #resposta@></div></details>
 <@/filhos@>
 <@semfilhos@><p>Nenhuma pergunta cadastrada ainda.</p><@/semfilhos@>
 </main>

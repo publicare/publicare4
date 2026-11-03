@@ -18,7 +18,7 @@
 <@var $tem_principal = 1@><div class="destaque-principal">
 <@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=1200@>" alt="" fetchpriority="high"><@/se@>
 <div class="destaque-texto">
-<h2><@eco #titulo@></h2>
+<h2 data-pbl-objeto="<@eco #id@>"><@eco #titulo@><span class="pbl-acoes" hidden></span></h2>
 <@se #texto != ""@><p><@eco #texto@></p><@/se@>
 <@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
 <@se $dest != ""@><p><a href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span class="so-leitor"> sobre <@eco #titulo@></span></a></p><@/se@>
@@ -31,14 +31,14 @@
 <@filhos classes="link" ordem="peso, titulo" limite=4@>
 <@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
 <@se $dest != ""@><@se $atalhos == 0@><section class="atalhos" aria-label="Em destaque"><ul>
-<@var $atalhos = 1@><@/se@><li><a class="cartao-atalho" href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>><span class="titulo"><@eco #titulo@></span><@se #descricao != ""@><span class="texto"><@eco #descricao@></span><@/se@><span class="seta" aria-hidden="true">Abrir &rarr;</span></a></li>
+<@var $atalhos = 1@><@/se@><li data-pbl-objeto="<@eco #id@>"><a class="cartao-atalho" href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>><span class="titulo"><@eco #titulo@></span><@se #descricao != ""@><span class="texto"><@eco #descricao@></span><@/se@><span class="seta" aria-hidden="true">Abrir &rarr;</span></a><span class="pbl-acoes" hidden></span></li>
 <@/se@><@/filhos@>
 <@se $atalhos == 1@></ul></section>
 <@/se@><@localizar classes="destaque" ordem="peso, titulo" inicio=1 limite=3 expandir="destino_interno"@>
 <@se %INDICE == 1@><section class="destaques" aria-label="Destaques">
 <@/se@><article class="destaque">
 <@se #imagem != ""@><img src="<@miniatura valor=#imagem tamanho=800@>" alt="" loading="lazy" decoding="async"><@/se@>
-<h2><@eco #titulo@></h2>
+<h2 data-pbl-objeto="<@eco #id@>"><@eco #titulo@><span class="pbl-acoes" hidden></span></h2>
 <@se #texto != ""@><p><@eco #texto@></p><@/se@>
 <@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
 <@se $dest != ""@><a href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>>Saiba mais<span class="so-leitor"> sobre <@eco #titulo@></span></a><@/se@>
