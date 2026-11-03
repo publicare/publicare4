@@ -409,7 +409,7 @@ final class FormulariosTest extends TestCase
         self::assertStringContainsString('type="checkbox"', $html);
         self::assertStringContainsString('<textarea', $html);
         self::assertStringNotContainsString('name="interno"', $html);
-        self::assertStringNotContainsString('<script', $html);
+        self::assertStringNotContainsString('<script>', $html, 'sem script inline (só o arquivo da barra de edição, com src)');
         // o formulário publicado funciona de ponta a ponta
         self::assertSame(303, $this->enviar($this->valido())->getStatusCode());
     }
