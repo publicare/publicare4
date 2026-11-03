@@ -95,6 +95,10 @@ final class ApiDeAcoes
         }
         $novoEstado = $acao === 'publicar' ? 'publicado' : 'privado';
         $versao = $this->id($r->request->get('versao'));
+        if ($versao === null) {
+            // Sem a versão lida pela barra não há bloqueio otimista: recusa em vez de sobrescrever uma mudança concorrente.
+            return self::json(['erro' => 'versao_obrigatoria'], Response::HTTP_BAD_REQUEST);
+        }
         if ($o->status !== $novoEstado) {
             try {
                 $o = $this->servicos->objetos->atualizar($o->id, ['status' => $novoEstado], TelasDeObjetos::MOTIVO, $versao, false, $sessao->usuario->id);

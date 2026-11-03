@@ -166,6 +166,18 @@ final class MenuDoSite
               ORDER BY o.peso, o.titulo, o.id",
             [$agora, $agora, $site->id, $agora, $agora],
         );
+        // Pele salva que não existe mais no disco não é fronteira: o objeto herda a do ancestral/site (como `Aparencia::da`).
+        $existe = [];
+        foreach ($linhas as &$l) {
+            $pele = (string) ($l['pele'] ?? '');
+            if ($pele !== '') {
+                $existe[$pele] ??= preg_match('/^[a-z0-9_-]+$/D', $pele) === 1 && is_dir($this->caminhos->peles() . '/' . $pele);
+                if (!$existe[$pele]) {
+                    $l['pele'] = null;
+                }
+            }
+        }
+        unset($l);
         $porPai = [];
         foreach ($linhas as $l) {
             $porPai[(int) ($l['pai_id'] ?? 0)][] = $l;

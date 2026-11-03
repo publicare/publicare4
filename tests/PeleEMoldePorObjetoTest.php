@@ -191,6 +191,34 @@ final class PeleEMoldePorObjetoTest extends TestCase
         self::assertSame(409, $conflito->getStatusCode());
     }
 
+    public function testApiDeEstadoRecusaVersaoAusenteOuInvalida(): void
+    {
+        $p = $this->criar('pagina', $this->inicioId, 'Pagina', 'pagina');
+        foreach ([[], ['versao' => ''], ['versao' => 'abc'], ['versao' => '0']] as $extra) {
+            $r = $this->post($this->token('admin'), '/_pbl/api/estado', ['objeto' => (string) $p->id, 'acao' => 'despublicar'] + $extra);
+            self::assertSame(400, $r->getStatusCode(), json_encode($extra) ?: '');
+            self::assertSame('publicado', $this->s->objetos->porId($p->id)?->status, 'sem versao nada muda');
+        }
+    }
+
+    public function testPeleSalvaInexistenteNaoCortaOMenu(): void
+    {
+        $this->sincronizarPeles();
+        $a = $this->criar('pagina', $this->inicioId, 'Secao', 'secao', ['no_menu' => true]);
+        $this->criar('pagina', $a->id, 'Filha da secao', 'filha-da-secao', ['no_menu' => true]);
+        $this->s->objetos->atualizar($a->id, ['pele' => 'pele-removida']);
+        $snap = $this->s->menu->reconstruir($this->site());
+        $secao = null;
+        foreach ($snap['arvore'] as $item) {
+            if ($item['rotulo'] === 'Secao') {
+                $secao = $item;
+            }
+        }
+        self::assertNotNull($secao, 'a secao aparece no menu do site');
+        self::assertSame(['Filha da secao'], array_column($secao['filhos'], 'rotulo'), 'pele inexistente é herdada: filhos continuam no menu');
+        self::assertArrayNotHasKey($a->id, $snap['subarvores']);
+    }
+
     public function testCookieIndicadorNoLoginENaSaida(): void
     {
         $r = $this->req('POST', '/_pbl/entrar', null, ['login' => 'admin', 'senha' => self::SENHA, '_csrf' => $this->s->csrf()->paraEntrar()], self::ORIGEM);
