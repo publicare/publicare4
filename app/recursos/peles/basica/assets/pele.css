@@ -121,6 +121,9 @@ main>:first-child{margin-top:1.25rem}
 .cartao-atalho .texto{opacity:.95}
 .cartao-atalho .seta{margin-top:auto;padding-top:.5rem;font-weight:600}
 .cartao-atalho:focus-visible{outline-color:var(--cor-texto)}
+.atalhos li{display:flex;flex-direction:column}
+.atalhos li .cartao-atalho{flex:1}
+.atalhos .pbl-acoes{margin:.4rem 0 0}
 
 .destaques{display:grid;gap:1rem;grid-template-columns:1fr;margin:0 0 1.75rem}
 .destaque{display:flex;flex-direction:column;overflow:hidden;background:var(--cor-cartao);border:1px solid var(--cor-borda);border-radius:var(--raio);box-shadow:var(--sombra)}
