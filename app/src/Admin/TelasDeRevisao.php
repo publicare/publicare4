@@ -87,10 +87,19 @@ final class TelasDeRevisao
                 default => $revisao->devolver($u, $id, $this->texto($r, 'motivo') ?? '', $versao),
             };
         } catch (ErroDeRevisao $e) {
+            if ($e->codigo === ErroDeRevisao::NEGADO) {
+                // fora da transação do serviço, para o registro não ser desfeito junto com ela
+                $this->servicos->auditoria->registrar('revisao.negado', 'usuario:' . $u->id, $u->id, $id, ['acao' => $passo]);
+            }
+
             return $this->falha($sessao, $e, $voltar);
         }
-        if ($passo === 'aprovar') {
-            $this->sincronizar($novo);
+        if ($passo === 'aprovar' && !$this->sincronizar($novo)) {
+            $link = $voltar === 'objeto' ? Painel::PREFIXO . '/objeto/' . $novo->id : Painel::PREFIXO . '/' . $voltar;
+            $corpo = Pagina::alerta('warning', 'O envio foi aprovado e o conteúdo está publicado no painel, mas a página pública não pôde ser atualizada agora. Publique de novo pelo painel ou rode a publicação do site.')
+                . '<p><a class="btn btn-outline-secondary" href="' . Pagina::h($link) . '">Voltar</a></p>';
+
+            return Pagina::resposta('Aprovado, com aviso', $corpo, Response::HTTP_OK, false, $this->barra($sessao));
         }
         $codigo = ['enviar' => 'enviado', 'reenviar' => 'reenviado', 'retirar' => 'retirado', 'aprovar' => 'aprovado', 'devolver' => 'devolvido'][$passo];
         if ($voltar === 'objeto') {
@@ -116,12 +125,13 @@ final class TelasDeRevisao
     }
 
     /** Regrava a página aprovada (e a do pai, que lista filhos). A mudança já está salva: se a publicação falha, a próxima publicação do site recupera. */
-    private function sincronizar(Objeto $o): void
+    private function sincronizar(Objeto $o): bool
     {
         $site = $this->servicos->sites->porId($o->siteId);
         if ($site === null) {
-            return;
+            return true;
         }
+        $ok = true;
         $agora = gmdate('c');
         foreach ([$o, $o->paiId === null ? null : $this->servicos->objetos->porId($o->paiId)] as $alvo) {
             if ($alvo === null) {
@@ -130,8 +140,11 @@ final class TelasDeRevisao
             try {
                 $alvo->visivel($agora) ? $this->servicos->publicador->publicar($site, $alvo) : $this->servicos->publicador->despublicar($site, $alvo);
             } catch (\Throwable) {
+                $ok = false;
             }
         }
+
+        return $ok;
     }
 
     // ---------------------------------------------------------------- Pendências

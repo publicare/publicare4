@@ -341,8 +341,6 @@ final class FluxoDeRevisao
     private function exigir(Usuario $quem, Acao $acao, Objeto $o): void
     {
         if (!$this->permissoes->pode($quem, $acao, $o)) {
-            $this->auditoria->registrar('revisao.negado', 'usuario:' . $quem->id, $quem->id, $o->id, ['acao' => $acao->value]);
-
             throw new ErroDeRevisao(ErroDeRevisao::NEGADO, 'Sem permissão para esta ação');
         }
     }

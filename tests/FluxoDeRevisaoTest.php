@@ -125,6 +125,7 @@ final class FluxoDeRevisaoTest extends TestCase
         self::assertSame(403, $this->passo('autor_saude', $o, 'aprovar'));
         self::assertSame(403, $this->passo('autor_saude', $o, 'devolver', ['motivo' => 'eu mesmo']));
         self::assertSame(403, $this->passo('leitor', $o, 'aprovar'));
+        self::assertNotEmpty($this->auditoria('revisao.negado'), 'tentativa negada fica registrada');
         $fora = $this->conteudo('Em Educação', $this->educacao, 'autor_saude');
         self::assertSame(403, $this->passo('autor_saude', $fora, 'enviar'), 'autor de Saúde não envia em Educação');
         self::assertSame('privado', $this->estado($fora));
