@@ -299,7 +299,7 @@ final class AdminSiteTest extends TestCase
         self::assertSame($novo, file_get_contents($this->caminhos->peles() . '/basica/padrao.pbl'));
         // Republicou: a página inicial no cache usa o molde novo.
         $site = $this->s->sites->porId($this->siteId) ?? self::fail();
-        $pagina = (string) file_get_contents($this->caminhos->pagina($site->id, ''));
+        $pagina = (string) file_get_contents($this->caminhos->pagina($site->id, 'sobre'));
         self::assertStringContainsString('<h1>Olá ', $pagina);
         self::assertSame([], glob($this->caminhos->peles() . '/basica/.*.tmp') ?: []);
         self::assertContains('pele.molde.salvar', array_column($this->s->auditoria->recentes(), 'acao'));
