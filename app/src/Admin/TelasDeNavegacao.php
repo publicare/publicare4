@@ -570,18 +570,22 @@ final class TelasDeNavegacao
     {
         $ok = true;
         $agora = gmdate('c');
-        foreach ($objetos as $novo) {
-            $site = $this->servicos->sites->porId($novo->siteId);
-            if ($site === null) {
+        // Cada objeto afetado e cada pai entram uma única vez, relidos do banco (o estado vigente, não o do momento da gravação).
+        $alvos = [];
+        foreach ($objetos as $gravado) {
+            $alvos[$gravado->id] = true;
+            if ($gravado->paiId !== null) {
+                $alvos[$gravado->paiId] = true;
+            }
+        }
+        foreach (array_keys($alvos) as $id) {
+            $alvo = $this->servicos->objetos->porId($id);
+            $site = $alvo === null ? null : $this->servicos->sites->porId($alvo->siteId);
+            if ($alvo === null || $site === null) {
                 continue;
             }
             try {
-                foreach ([$novo, $novo->paiId === null ? null : $this->servicos->objetos->porId($novo->paiId)] as $alvo) {
-                    if ($alvo === null) {
-                        continue;
-                    }
-                    $alvo->visivel($agora) ? $this->servicos->publicador->publicar($site, $alvo) : $this->servicos->publicador->despublicar($site, $alvo);
-                }
+                $alvo->visivel($agora) ? $this->servicos->publicador->publicar($site, $alvo) : $this->servicos->publicador->despublicar($site, $alvo);
             } catch (\Throwable) {
                 $ok = false;
             }
