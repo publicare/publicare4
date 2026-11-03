@@ -283,6 +283,9 @@ final class DemoPopularComando extends Command
             $this->servicos->configs->definir($this->site->id, $novas);
         }
 
+    }
+
+    /**
      * Fluxo de revisão (fase 6): duas contas, `autor` e `editor`, com acesso só à seção Institucional, e dois envios de exemplo
      * (um pendente na fila do editor, um devolvido com motivo). Idempotente: conta que já existe fica como está e os exemplos só
      * mudam de estado enquanto ainda não têm histórico de revisão.
