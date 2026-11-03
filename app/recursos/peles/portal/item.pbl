@@ -1,5 +1,5 @@
 <div class="pt-item d-flex gap-3 my-3">
-<@se #imagem_destaque != ""@><img src="<@miniatura valor=#imagem_destaque tamanho=150@>" alt=""><@/se@>
+<@se #imagem_destaque != ""@><img src="<@miniatura valor=#imagem_destaque tamanho=400@>" alt="" loading="lazy" decoding="async"><@/se@>
 <div>
 <@se #classe == "link"@><strong><@incluir arquivo="link_a"@></strong><@senao@><strong><a href="<@eco #url@>"><@eco #titulo@></a></strong><@/se@>
 <@se #classe == "noticia"@><@se #data_publicacao != ""@><br><small class="text-body-secondary"><@formatadata valor=#data_publicacao formato="d/m/Y"@></small><@/se@><@/se@>

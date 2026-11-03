@@ -9,3 +9,8 @@ html{scroll-behavior:smooth;scroll-padding-top:4.5rem}
 .op-secao{padding:3.5rem 0}
 .op-secao:nth-of-type(even){background:var(--bs-light-bg-subtle)}
 .op-secao img{max-width:100%;height:auto}
+.op-hero-img{max-height:22rem;object-fit:cover}
+.op-secao .card-img-top{aspect-ratio:16/9;object-fit:cover}
+.op-secao a:not(.btn):not(.stretched-link){text-underline-offset:.15em}
+a:focus-visible,button:focus-visible{outline:3px solid var(--bs-primary);outline-offset:2px}
+@media (max-width:575.98px){.op-secao{padding:2.25rem 0}.op-hero .carousel-item img{height:14rem}.op-hero .carousel-item{min-height:14rem}}

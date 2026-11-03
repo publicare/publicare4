@@ -1,6 +1,6 @@
 <@incluir arquivo="bloco_aviso"@>
 <header class="topo">
-<a class="marca" href="/"><@eco #site_nome@></a>
-<@se %SITE.config.busca_ligada == 1@><form class="busca" action="/busca" method="get" role="search"><label for="busca-q" style="position:absolute;left:-9999px">Buscar no site</label><input id="busca-q" type="search" name="q" value="<@eco $q@>" maxlength="200"> <button type="submit">Buscar</button></form>
+<a class="marca" href="/"><@se %SITE.config.logo != ""@><img src="<@arquivo valor=%SITE.config.logo info="url"@>" alt=""><@/se@><span><@eco #site_nome@></span></a>
+<@se %SITE.config.busca_ligada == 1@><form class="busca" action="/busca" method="get" role="search"><label class="so-leitor" for="busca-q">Buscar no site</label><input id="busca-q" type="search" name="q" value="<@eco $q@>" maxlength="200" placeholder="Buscar no site"> <button type="submit">Buscar</button></form>
 <@/se@><@menu profundidade=3 inicio="Início"@>
 </header>

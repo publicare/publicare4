@@ -39,7 +39,7 @@
 <button class="carousel-control-next" type="button" data-bs-target="#op-carrossel" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Próximo</span></button>
 </section>
 <@/se@><@var $slides = %QUANTIDADE@><@/localizar@>
-<@se $slides == 0@><@se %SITE.config.imagem_hero != ""@><section class="op-hero"><img class="w-100" style="max-height:22rem;object-fit:cover" src="<@miniatura valor=%SITE.config.imagem_hero tamanho=1200@>" alt=""></section>
+<@se $slides == 0@><@se %SITE.config.imagem_hero != ""@><section class="op-hero"><img class="w-100 op-hero-img" src="<@miniatura valor=%SITE.config.imagem_hero tamanho=1200@>" alt=""></section>
 <@/se@><@/se@>
 <main id="conteudo">
 <@se #corpo != ""@><section class="op-secao"><div class="container"><@ecocru #corpo@></div></section>
@@ -50,7 +50,7 @@
 <@se #resumo != ""@><p class="lead"><@eco #resumo@></p><@/se@>
 <@se #corpo != ""@><div><@ecocru #corpo@></div><@/se@>
 <@filhos ordem="peso, titulo" limite=12@><@se %INDICE == 1@><div class="row row-cols-1 row-cols-md-3 g-3 mt-2">
-<@/se@><div class="col"><div class="card h-100"><@se #imagem_destaque != ""@><img class="card-img-top" src="<@miniatura valor=#imagem_destaque tamanho=400@>" alt=""><@/se@><@se #imagem != ""@><img class="card-img-top" src="<@miniatura valor=#imagem tamanho=400@>" alt=""><@/se@>
+<@/se@><div class="col"><div class="card h-100"><@se #imagem_destaque != ""@><img class="card-img-top" src="<@miniatura valor=#imagem_destaque tamanho=800@>" alt="" loading="lazy"><@/se@><@se #imagem != ""@><img class="card-img-top" src="<@miniatura valor=#imagem tamanho=800@>" alt="" loading="lazy"><@/se@>
 <div class="card-body"><h3 class="h5 card-title"><a class="stretched-link" href="<@eco #url@>"><@eco #titulo@></a></h3>
 <@se #resumo != ""@><p class="card-text"><@eco #resumo@></p><@senao@><@se #descricao != ""@><p class="card-text"><@eco #descricao@></p><@/se@><@/se@></div></div></div>
 <@se %INDICE == %QUANTIDADE@></div>

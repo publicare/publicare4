@@ -1,9 +1,9 @@
-<div class="item">
-<@se #imagem_destaque != ""@><img src="<@miniatura valor=#imagem_destaque tamanho=150@>" alt=""><@/se@>
-<div>
-<@se #classe == "link"@><strong><@incluir arquivo="link_a"@></strong><@senao@><strong><a href="<@eco #url@>"><@eco #titulo@></a></strong><@/se@>
-<@se #classe == "evento"@><@se #inicio != ""@><br><small><@formatadata valor=#inicio formato="d/m/Y H:i"@><@se #local != ""@> - <@eco #local@><@/se@></small><@/se@><@/se@>
-<@se #classe == "noticia"@><@se #data_publicacao != ""@><br><small><@formatadata valor=#data_publicacao formato="d/m/Y"@></small><@/se@><@/se@>
-<@se #resumo != ""@><br><span><@eco #resumo@></span><@senao@><@se #descricao != ""@><br><span><@eco #descricao@></span><@/se@><@/se@>
+<article class="item">
+<@se #imagem_destaque != ""@><@se #classe == "link"@><span class="item-imagem"><img src="<@miniatura valor=#imagem_destaque tamanho=400@>" alt="" loading="lazy" decoding="async"></span><@senao@><a class="item-imagem" href="<@eco #url@>" tabindex="-1" aria-hidden="true"><img src="<@miniatura valor=#imagem_destaque tamanho=400@>" alt="" loading="lazy" decoding="async"></a><@/se@><@/se@>
+<div class="item-texto">
+<@se #classe == "link"@><strong class="item-titulo"><@incluir arquivo="link_a"@></strong><@senao@><strong class="item-titulo"><a href="<@eco #url@>"><@eco #titulo@></a></strong><@/se@>
+<@se #classe == "evento"@><@se #inicio != ""@><span class="data"><@formatadata valor=#inicio formato="d/m/Y H:i"@><@se #local != ""@> - <@eco #local@><@/se@></span><@/se@><@/se@>
+<@se #classe == "noticia"@><@se #data_publicacao != ""@><span class="data"><@formatadata valor=#data_publicacao formato="d/m/Y"@></span><@/se@><@/se@>
+<@se #resumo != ""@><p><@eco #resumo@></p><@senao@><@se #descricao != ""@><p><@eco #descricao@></p><@/se@><@/se@>
 </div>
-</div>
+</article>

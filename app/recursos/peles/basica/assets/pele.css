@@ -1,0 +1,182 @@
+/* Pele "básica" do PBL4: folha de estilos do próprio site (sem CDN, sem JavaScript, sem estilo embutido nas páginas).
+   Mobile first. Cores e medidas em variáveis: troque aqui para mudar a cara do site inteiro.
+   Contraste de texto e de links com o fundo acima de 4,5:1 (WCAG AA) nos dois esquemas, claro e escuro. */
+:root{
+  --cor-texto:#1b2430;
+  --cor-texto-suave:#4a5663;
+  --cor-fundo:#ffffff;
+  --cor-fundo-suave:#f2f5f8;
+  --cor-cartao:#ffffff;
+  --cor-borda:#d3dbe3;
+  --cor-link:#0b5cad;
+  --cor-link-ativo:#07407a;
+  --cor-enfase:#0b5cad;
+  --cor-enfase-texto:#ffffff;
+  --cor-aviso:#fff4cc;
+  --cor-aviso-texto:#4a3b00;
+  --raio:.75rem;
+  --sombra:0 1px 2px rgba(20,30,45,.08),0 4px 14px rgba(20,30,45,.06);
+  --largura:64rem;
+  --largura-texto:44rem;
+  --lateral:max(1rem,calc((100% - var(--largura)) / 2));
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --cor-texto:#e6ebf0;
+    --cor-texto-suave:#aab6c3;
+    --cor-fundo:#12171d;
+    --cor-fundo-suave:#1a222b;
+    --cor-cartao:#1a222b;
+    --cor-borda:#34404c;
+    --cor-link:#8ab8f0;
+    --cor-link-ativo:#b6d3f7;
+    --cor-enfase:#8ab8f0;
+    --cor-enfase-texto:#0b1620;
+    --cor-aviso:#3a3210;
+    --cor-aviso-texto:#f5e6a8;
+    --sombra:none;
+  }
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:1.0625rem;line-height:1.6;color:var(--cor-texto);background:var(--cor-fundo)}
+img{max-width:100%;height:auto}
+h1,h2,h3{line-height:1.25;margin:1.5rem 0 .6rem}
+h1{font-size:1.75rem;margin-top:1rem}
+h2{font-size:1.35rem}
+h3{font-size:1.15rem}
+p{margin:.6rem 0}
+
+a{color:var(--cor-link);text-underline-offset:.15em;text-decoration-thickness:.08em}
+a:hover{color:var(--cor-link-ativo);text-decoration-thickness:.15em}
+:focus-visible{outline:3px solid var(--cor-enfase);outline-offset:2px;border-radius:.2rem}
+
+.so-leitor{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Estrutura: o conteúdo fica centralizado; fundos de cabeçalho e rodapé ocupam a largura toda. */
+main{padding:0 var(--lateral) 2rem}
+main>:first-child{margin-top:1.25rem}
+
+/* Aviso do site (bloco "bloco-aviso") */
+.aviso-do-site{background:var(--cor-aviso);color:var(--cor-aviso-texto);padding:.6rem var(--lateral);border-bottom:1px solid var(--cor-borda);font-size:.95rem}
+.aviso-do-site p{margin:.2rem 0}
+.aviso-do-site a{color:inherit}
+
+/* Cabeçalho: marca e busca na primeira linha; menu embaixo. */
+.topo{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;padding:.8rem var(--lateral) 0;border-bottom:1px solid var(--cor-borda);background:var(--cor-fundo-suave)}
+.marca{display:inline-flex;align-items:center;gap:.6rem;flex:1 1 auto;font-size:1.3rem;font-weight:700;line-height:1.2;color:var(--cor-texto);text-decoration:none}
+.marca:hover{color:var(--cor-texto);text-decoration:underline}
+.marca img{display:block;max-height:2.5rem;width:auto}
+.busca{display:flex;gap:.4rem;flex:1 1 15rem;max-width:24rem}
+.busca input[type=search]{flex:1 1 auto;min-width:0;font:inherit;padding:.5rem .7rem;color:var(--cor-texto);background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:.5rem}
+.busca button,.pbl-acoes button{font:inherit;font-weight:600;padding:.5rem 1rem;color:var(--cor-enfase-texto);background:var(--cor-enfase);border:1px solid var(--cor-enfase);border-radius:.5rem;cursor:pointer}
+.busca button:hover,.pbl-acoes button:hover{filter:brightness(1.1)}
+
+/* Menu: sem JavaScript. No celular só o primeiro nível (os níveis de baixo estão nas próprias páginas); a partir de 48rem, submenus ao passar o mouse ou focar. */
+.topo .menu{flex:1 1 100%;margin-left:-.8rem}
+.menu ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.1rem .25rem}
+.menu a{display:block;padding:.6rem .8rem;color:var(--cor-texto);text-decoration:none;border-bottom:3px solid transparent}
+.menu a:hover{color:var(--cor-link);border-bottom-color:var(--cor-borda)}
+.menu .ativo>a{font-weight:700;color:var(--cor-link);border-bottom-color:var(--cor-enfase)}
+.menu .ancestral>a{font-weight:600;border-bottom-color:var(--cor-borda)}
+.menu li ul{display:none}
+@media (min-width:48rem){
+  .menu li{position:relative}
+  .menu li ul{position:absolute;left:0;top:100%;z-index:10;flex-direction:column;flex-wrap:nowrap;gap:0;min-width:13rem;padding:.35rem;background:var(--cor-cartao);border:1px solid var(--cor-borda);border-radius:var(--raio);box-shadow:var(--sombra)}
+  .menu li:hover>ul,.menu li:focus-within>ul{display:flex}
+  .menu li ul a{padding:.45rem .7rem;border-bottom:0;border-radius:.4rem}
+  .menu li ul a:hover{background:var(--cor-fundo-suave)}
+  .menu li ul ul{left:100%;top:0}
+}
+
+/* Conteúdo editado (corpo): largura de leitura, tabelas e imagens que não estouram o celular. */
+.corpo{max-width:var(--largura-texto)}
+.corpo table,.corpo .table{display:block;max-width:100%;overflow-x:auto;border-collapse:collapse}
+.corpo th,.corpo td{padding:.4rem .7rem;border:1px solid var(--cor-borda);text-align:left}
+.corpo blockquote{margin:1rem 0;padding:.2rem 1rem;border-left:4px solid var(--cor-enfase);color:var(--cor-texto-suave)}
+.resumo{font-size:1.15rem;color:var(--cor-texto-suave);max-width:var(--largura-texto)}
+.data{color:var(--cor-texto-suave);font-size:.9rem}
+.foto-noticia{margin:1rem 0}
+.foto-noticia img{display:block;width:100%;max-width:var(--largura-texto);aspect-ratio:16/9;object-fit:cover;border-radius:var(--raio)}
+.navegacao-filhos{display:flex;flex-wrap:wrap;gap:.4rem 1rem}
+
+/* Página inicial: hero, atalhos, destaques, notícias, links. */
+.hero{margin:0 0 1.5rem}
+.hero h1{font-size:2rem;margin:.5rem 0 .3rem}
+.hero .resumo{margin:.2rem 0 1rem}
+.destaque-principal{position:relative;margin:0;border-radius:var(--raio);overflow:hidden;background:var(--cor-fundo-suave);border:1px solid var(--cor-borda);box-shadow:var(--sombra)}
+.destaque-principal img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.destaque-principal .destaque-texto{padding:1rem 1.1rem 1.2rem}
+.destaque-principal h2{margin:0 0 .3rem;font-size:1.4rem}
+.destaque-principal p{margin:.3rem 0}
+.destaque-principal .destaque-texto:only-child{grid-column:1 / -1}
+
+.atalhos{margin:0 0 1.75rem}
+.atalhos ul{list-style:none;margin:0;padding:0;display:grid;gap:.9rem;grid-template-columns:1fr}
+.cartao-atalho{display:flex;flex-direction:column;gap:.25rem;height:100%;padding:1.1rem 1.2rem;color:var(--cor-enfase-texto);background:var(--cor-enfase);border-radius:var(--raio);text-decoration:none;box-shadow:var(--sombra)}
+.cartao-atalho:hover{color:var(--cor-enfase-texto);filter:brightness(1.1)}
+.cartao-atalho .titulo{font-size:1.25rem;font-weight:700;line-height:1.25}
+.cartao-atalho .texto{opacity:.95}
+.cartao-atalho .seta{margin-top:auto;padding-top:.5rem;font-weight:600}
+.cartao-atalho:focus-visible{outline-color:var(--cor-texto)}
+
+.destaques{display:grid;gap:1rem;grid-template-columns:1fr;margin:0 0 1.75rem}
+.destaque{display:flex;flex-direction:column;overflow:hidden;background:var(--cor-cartao);border:1px solid var(--cor-borda);border-radius:var(--raio);box-shadow:var(--sombra)}
+.destaque img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.destaque h2{font-size:1.1rem;margin:.8rem 1rem .2rem}
+.destaque p{margin:.2rem 1rem}
+.destaque>a{margin:.4rem 1rem 1rem;font-weight:600}
+
+.ultimas,.links-rapidos{margin:2rem 0}
+.ultimas>h2,.links-rapidos>h2,.agenda h2{margin-top:0;padding-bottom:.4rem;border-bottom:2px solid var(--cor-borda)}
+.links-rapidos ul{display:flex;flex-wrap:wrap;gap:.5rem;list-style:none;padding:0;margin:.8rem 0 0}
+.links-rapidos li{margin:0}
+.links-rapidos a{display:inline-block;padding:.4rem .9rem;border:1px solid var(--cor-borda);border-radius:2rem;background:var(--cor-cartao);text-decoration:none}
+.links-rapidos a:hover{border-color:var(--cor-enfase)}
+
+/* Item de lista (pasta, busca, notícias, agenda): miniatura de proporção fixa à esquerda. */
+.item{display:flex;gap:1rem;align-items:flex-start;margin:0;padding:1rem 0;border-bottom:1px solid var(--cor-borda)}
+.item:last-child{border-bottom:0}
+.item-imagem{flex:0 0 auto;display:block;width:6.5rem;aspect-ratio:16/10;border-radius:.5rem;overflow:hidden;background:var(--cor-fundo-suave)}
+.item-imagem img{display:block;width:100%;height:100%;object-fit:cover}
+.item-texto{flex:1 1 auto;min-width:0}
+.item-titulo{display:block;font-weight:700;font-size:1.05rem;line-height:1.3}
+.item-texto p{margin:.2rem 0 0}
+.item .data{display:block;margin-top:.15rem}
+.evento-quando{font-weight:600}
+
+.paginacao{display:flex;justify-content:space-between;gap:1rem;margin:1.5rem 0}
+
+/* Formulários (contato e busca) */
+.pbl-campo{margin:.9rem 0}
+label{display:block;font-weight:600;margin-bottom:.2rem}
+input[type=text],input[type=email],input[type=tel],input[type=url],input[type=number],input[type=date],select,textarea{display:block;width:100%;max-width:36rem;font:inherit;padding:.5rem .7rem;color:var(--cor-texto);background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:.5rem}
+.pbl-erros{padding:.6rem 1rem;border:1px solid #b3261e;border-radius:.5rem}
+.pbl-acoes{margin-top:1rem}
+
+/* Perguntas frequentes */
+details{border:1px solid var(--cor-borda);border-radius:.5rem;margin:.5rem 0;padding:.6rem .9rem;background:var(--cor-cartao)}
+details summary{cursor:pointer;font-weight:600}
+
+/* Rodapé */
+body>footer{margin-top:2rem;padding:1.25rem var(--lateral);border-top:1px solid var(--cor-borda);background:var(--cor-fundo-suave);color:var(--cor-texto-suave);font-size:.95rem}
+body>footer p{margin:.3rem 0}
+
+@media (min-width:40rem){
+  h1{font-size:2.1rem}
+  .hero h1{font-size:2.6rem}
+  .item-imagem{width:9rem}
+  .atalhos ul{grid-template-columns:repeat(2,1fr)}
+  .destaques{grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
+  .destaque-principal{display:grid;grid-template-columns:3fr 2fr;align-items:stretch}
+  .destaque-principal img{height:100%;aspect-ratio:auto;min-height:15rem}
+  .destaque-principal .destaque-texto{align-self:center;padding:1.5rem}
+}
+@media (prefers-reduced-motion:no-preference){
+  .cartao-atalho,.links-rapidos a{transition:filter .15s,border-color .15s}
+}
+@media print{
+  .topo .busca,.menu,.aviso-do-site{display:none}
+}
