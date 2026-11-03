@@ -35,6 +35,7 @@ use Pbl\Publicacao\EnderecoDoSite;
 use Pbl\Publicacao\FonteRepositorio;
 use Pbl\Publicacao\MenuDoSite;
 use Pbl\Publicacao\GerenciadorDePeles;
+use Pbl\Publicacao\FilaDeRepublicacao;
 use Pbl\Publicacao\Publicador;
 use Pbl\Publicacao\Renderizador;
 
@@ -52,6 +53,8 @@ final class Servicos
     public readonly UsuarioRepositorio $usuarios;
     public readonly Permissoes $permissoes;
     public readonly Publicador $publicador;
+    /** Fila de republicação em lotes, retomável (ADR 0023): painel, `bin/pbl publicar` e cron usam a mesma. */
+    public readonly FilaDeRepublicacao $republicacao;
     /** Renderiza um objeto sem publicar (fase 5j): a pré-visualização isolada de rascunho e as páginas dinâmicas (fase 5l) o usam diretamente. */
     public readonly Renderizador $renderizador;
     public readonly MenuDoSite $menu;
@@ -85,6 +88,7 @@ final class Servicos
         $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos, $this->menu, $this->configs, $this->enderecos);
         $this->renderizador = $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()), $this->aparencia = new Aparencia($caminhos, $conexao));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador, $this->menu);
+        $this->republicacao = new FilaDeRepublicacao($caminhos, $this->publicador, $this->objetos);
         $this->peles = new GerenciadorDePeles($caminhos, $conexao);
     }
 
