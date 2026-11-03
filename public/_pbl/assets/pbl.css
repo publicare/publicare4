@@ -156,11 +156,18 @@ main .form-check .form-text { flex: 0 0 100%; margin-top: .15rem; }
 .pbl-filho .btn { flex: none; }
 
 /* Edição: ajuda curta com detalhe atrás de um "?"; barra Salvar/Cancelar fixa no rodapé do celular. */
-.pbl-ajuda { display: inline-block; }
-.pbl-ajuda summary { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border: 1px solid #6c757d; border-radius: 50%; cursor: pointer; font-weight: 700; list-style: none; color: #343a40; }
-.pbl-ajuda summary::-webkit-details-marker { display: none; }
-.pbl-ajuda[open] { display: block; margin-top: .25rem; }
-.pbl-ajuda span { display: block; margin-top: .25rem; }
+/* Ajuda em "?" (Pagina::ajuda): botão redondo ao lado do rótulo; o painel recolhível ocupa a linha de baixo. */
+.pbl-rotulo { display: flex; flex-wrap: wrap; align-items: center; column-gap: .5rem; }
+.pbl-rotulo > label, .pbl-rotulo > legend, .pbl-rotulo > h1 { margin-bottom: .3rem; }
+.pbl-ajuda-botao { display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; padding: 0; border-radius: 50%; font-weight: 700; line-height: 1; flex: none; margin-bottom: .3rem; }
+.pbl-ajuda-botao:focus-visible { outline: 3px solid #0a58ca; outline-offset: 2px; }
+.pbl-ajuda-painel { flex: 0 0 100%; margin: 0 0 .5rem; padding: .5rem .75rem; border-left: 3px solid #6c757d; background: #f1f3f5; border-radius: .25rem; }
+legend .pbl-ajuda-botao { margin-left: .35rem; vertical-align: middle; }
+.pbl-card > .pbl-ajuda-painel { margin-top: .25rem; }
+main .form-check { flex-wrap: wrap; }
+.form-check > .pbl-ajuda-botao { margin-left: .5rem; }
+.form-check > .pbl-ajuda-painel { flex: 0 0 100%; margin-left: -1.5em; }
+@media (max-width: 767.98px) { main .pbl-ajuda-botao { min-height: 44px; min-width: 44px; border-radius: 50%; } }
 .pbl-campo-tipo { border-left: 4px solid #0d6efd; }
 .pbl-campo-tipo .mb-3:last-child { margin-bottom: 0 !important; }
 .pbl-vigencia { margin: 0 0 .75rem; }

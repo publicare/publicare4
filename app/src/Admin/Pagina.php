@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Admin;
 
 use Pbl\Versao;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -71,11 +72,11 @@ final class Pagina
     /**
      * `$navegacao` (HTML já escapado, em geral uma `<nav>`) vai num `<header>` antes do `<main>`; o título vira o `<h1>`.
      * `$migalhas` (lista de `[rótulo, href|null]`, o último sem href = tela atual) vira o caminho de volta acima do título;
-     * `$descricao` (HTML já escapado) é uma frase curta abaixo dele.
+     * `$descricao` (HTML já escapado) é uma frase curta abaixo dele; `$ajudaDaTela` (HTML já escapado) é a explicação longa da tela, atrás de um "?" ao lado do título.
      *
      * @param list<array{0: string, 1: string|null}> $migalhas
      */
-    public static function resposta(string $titulo, string $corpo, int $status = Response::HTTP_OK, bool $seguro = false, string $navegacao = '', array $migalhas = [], string $descricao = ''): Response
+    public static function resposta(string $titulo, string $corpo, int $status = Response::HTTP_OK, bool $seguro = false, string $navegacao = '', array $migalhas = [], string $descricao = '', string $ajudaDaTela = ''): Response
     {
         $editor = str_contains($corpo, self::MARCA_EDITOR);
         $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
@@ -86,7 +87,7 @@ final class Pagina
             . '</head><body><a class="visually-hidden-focusable" href="#conteudo">Pular para o conteúdo</a>'
             . ($navegacao === '' ? '' : '<header>' . $navegacao . '</header>')
             . '<main id="conteudo" class="container py-3 py-md-4">' . self::migalhas($migalhas)
-            . '<h1 class="h3 mb-2">' . self::h($titulo) . '</h1>'
+            . ($ajudaDaTela === '' ? '<h1 class="h3 mb-2">' . self::h($titulo) . '</h1>' : '<div class="pbl-rotulo"><h1 class="h3 mb-2">' . self::h($titulo) . '</h1>' . self::ajuda('ajuda-tela', $titulo, $ajudaDaTela) . '</div>')
             . ($descricao === '' ? '<div class="mb-4"></div>' : '<p class="text-body-secondary mb-4">' . $descricao . '</p>')
             . self::tabelasEmCartoes($corpo) . '</main></body></html>';
 
@@ -203,7 +204,77 @@ final class Pagina
             . $resumo . '</button></h3><div id="' . $alvo . '" class="accordion-collapse collapse' . ($aberto ? ' show' : '') . '"><div class="accordion-body">' . $corpo . '</div></div></div>';
     }
 
+    /**
+     * Abas do Bootstrap (`nav-tabs`, WAI-ARIA tablist). O servidor já entrega a aba escolhida com `active show` e todos os painéis no
+     * HTML; sem JavaScript os painéis ficam empilhados, cada um com o seu título (a barra de abas nasce `hidden`). O `pbl-admin.js`
+     * (`data-pbl-abas`) mostra a barra, esconde os títulos e põe `tab-content`/`tab-pane`, que é o que faz o Bootstrap esconder
+     * os painéis inativos. Avisos e erros entram dentro do painel ativo. `$rotuloDaBarra` = nome acessível da lista de abas.
+     *
+     * @param array<string, array{0: string, 1: string}> $abas chave => [rótulo, HTML do painel]
+     */
+    public static function abas(array $abas, string $ativa, string $avisos, string $rotuloDaBarra): string
+    {
+        $nav = '<ul class="nav nav-tabs flex-nowrap overflow-x-auto mb-3" role="tablist" aria-label="' . self::h($rotuloDaBarra) . '" hidden data-pbl-abas-nav>';
+        $paineis = '';
+        foreach ($abas as $chave => [$rotulo, $html]) {
+            $on = $chave === $ativa;
+            $nav .= '<li class="nav-item" role="presentation"><button type="button" id="aba-' . $chave . '" class="nav-link text-nowrap' . ($on ? ' active' : '') . '" role="tab" data-bs-toggle="tab" data-bs-target="#painel-' . $chave . '" data-pbl-aba="' . $chave . '" aria-controls="painel-' . $chave . '" aria-selected="' . ($on ? 'true' : 'false') . '"' . ($on ? '' : ' tabindex="-1"') . '>' . self::h($rotulo) . '</button></li>';
+            $paineis .= '<div id="painel-' . $chave . '" class="pbl-aba-painel mb-4' . ($on ? ' active show' : '') . '" role="tabpanel" aria-labelledby="aba-' . $chave . '" tabindex="0">'
+                . '<h2 class="h5 pbl-aba-titulo">' . self::h($rotulo) . '</h2>' . ($on ? $avisos : '') . $html . '</div>';
+        }
+
+        return '<div data-pbl-abas>' . $nav . '</ul><div data-pbl-abas-paineis>' . $paineis . '</div></div>';
+    }
+
+    /**
+     * A aba pedida em `?aba=` (ou `$padrao`). Com `$validas`, qualquer outra chave volta ao padrão.
+     *
+     * @param list<string>|null $validas
+     */
+    public static function abaDe(Request $requisicao, string $padrao, ?array $validas = null): string
+    {
+        $aba = $requisicao->query->all()['aba'] ?? null;
+        if (!is_string($aba)) {
+            return $padrao;
+        }
+
+        return $validas === null || in_array($aba, $validas, true) ? $aba : $padrao;
+    }
+
     // ---------------------------------------------------------------- componentes de formulário (HTML sempre escapado)
+
+    /**
+     * Ajuda de um campo, bloco ou tela atrás de um botão "?" (collapse do Bootstrap local, sem JavaScript inline): o botão leva
+     * `aria-expanded`/`aria-controls`, funciona por teclado e tem nome acessível ("Ajuda: assunto"); o painel (`role="note"`) tem o
+     * `id` pedido, então o campo pode apontá-lo em `aria-describedby` e o leitor de tela lê o texto mesmo recolhido. Devolve botão +
+     * painel: ponha-os logo depois do rótulo/título, dentro de um `.pbl-rotulo` (o painel ocupa a linha de baixo).
+     * `$id` único na página; `$assunto` é texto puro (nome do campo); `$html` é HTML já escapado.
+     */
+    public static function ajuda(string $id, string $assunto, string $html): string
+    {
+        return self::ajudaBotao($id, $assunto, $html) . self::ajudaPainel($id, $html);
+    }
+
+    public static function ajudaBotao(string $id, string $assunto, string $html): string
+    {
+        if ($html === '') {
+            return '';
+        }
+        $i = self::h($id);
+
+        return '<button type="button" class="btn btn-sm btn-outline-secondary pbl-ajuda-botao" data-bs-toggle="collapse" data-bs-target="#' . $i . '" aria-expanded="false" aria-controls="' . $i . '" aria-label="Ajuda: ' . self::h($assunto) . '"><span aria-hidden="true">?</span></button>';
+    }
+
+    public static function ajudaPainel(string $id, string $html): string
+    {
+        return $html === '' ? '' : '<div id="' . self::h($id) . '" class="collapse pbl-ajuda-painel form-text" role="note">' . $html . '</div>';
+    }
+
+    /** Linha do rótulo (`<label>`, título) com o "?" de ajuda ao lado; `$rotuloHtml` já escapado. */
+    public static function rotulo(string $paraId, string $rotuloHtml, string $ajuda = '', string $classe = 'form-label'): string
+    {
+        return '<div class="pbl-rotulo"><label for="' . self::h($paraId) . '" class="' . self::h($classe) . '">' . $rotuloHtml . '</label>' . $ajuda . '</div>';
+    }
 
     /**
      * Campo com `<label>` visível e associado (`for`/`id`), ajuda abaixo e `mb-3`. `$tipo`: `text`, `password`, `email`, `number`,
@@ -239,8 +310,8 @@ final class Pagina
             $controle = '<input type="' . self::h($tipo) . '" class="form-control' . $classe . '"' . $attrs . ' value="' . self::h($valor) . '">';
         }
 
-        return '<div class="' . (is_string($o['grupo'] ?? null) ? $o['grupo'] : 'mb-3') . '"><label for="' . self::h($id) . '" class="form-label">' . self::h($rotulo) . '</label>'
-            . $controle . ($ajuda === '' ? '' : '<div id="' . self::h($id) . '-ajuda" class="form-text">' . $ajuda . '</div>') . '</div>';
+        return '<div class="' . (is_string($o['grupo'] ?? null) ? $o['grupo'] : 'mb-3') . '">' . self::rotulo($id, self::h($rotulo), self::ajuda($id . '-ajuda', $rotulo, $ajuda))
+            . $controle . '</div>';
     }
 
     /**
@@ -252,16 +323,19 @@ final class Pagina
         return '<div class="form-check"><input class="form-check-input" type="' . $tipo . '" id="' . self::h($id) . '" name="' . self::h($nome) . '" value="' . self::h($valor) . '"'
             . ($marcado ? ' checked' : '') . ($ajuda === '' ? '' : ' aria-describedby="' . self::h($id) . '-ajuda"') . '>'
             . '<label class="form-check-label" for="' . self::h($id) . '">' . ($rotuloHtml ? $rotulo : self::h($rotulo)) . '</label>'
-            . ($ajuda === '' ? '' : '<div id="' . self::h($id) . '-ajuda" class="form-text w-100">' . $ajuda . '</div>') . '</div>';
+            . self::ajuda($id . '-ajuda', $rotuloHtml ? trim(html_entity_decode(strip_tags($rotulo), ENT_QUOTES, 'UTF-8')) : $rotulo, $ajuda) . '</div>';
     }
 
     /** Quadro com título (`<fieldset><legend>` por padrão; `$tag = 'section'` para quadro sem campos). Título em texto puro, corpo em HTML. */
     public static function card(string $titulo, string $corpo, string $ajuda = '', string $tag = 'fieldset', string $classe = ''): string
     {
-        $cab = $tag === 'fieldset' ? '<legend>' . self::h($titulo) . '</legend>' : '<h2 class="pbl-card-titulo">' . self::h($titulo) . '</h2>';
+        static $n = 0;
+        $id = 'ajuda-bloco-' . (++$n);
+        $botao = self::ajudaBotao($id, $titulo, $ajuda);
+        $rot = self::h($titulo) . ($botao === '' ? '' : ' ' . $botao);
+        $cab = $tag === 'fieldset' ? '<legend>' . $rot . '</legend>' : '<h2 class="pbl-card-titulo">' . $rot . '</h2>';
 
-        return '<' . $tag . ' class="pbl-card' . ($classe === '' ? '' : ' ' . $classe) . '">' . $cab
-            . ($ajuda === '' ? '' : '<p class="form-text mt-0">' . $ajuda . '</p>') . $corpo . '</' . $tag . '>';
+        return '<' . $tag . ' class="pbl-card' . ($classe === '' ? '' : ' ' . $classe) . '">' . $cab . self::ajudaPainel($id, $ajuda) . $corpo . '</' . $tag . '>';
     }
 
     /** Aviso Bootstrap: `$tipo` = danger, success, warning ou info; erro/aviso usam `role="alert"`, o resto `role="status"`. `$texto` é texto puro. */

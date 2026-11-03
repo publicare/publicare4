@@ -101,7 +101,7 @@ final class TelasDeContas
         }
 
         return match ($tela) {
-            'ver' => $this->pagina($sessao, $alvo, null, Response::HTTP_OK, [], $this->avisoDe($requisicao), self::abaDe($requisicao)),
+            'ver' => $this->pagina($sessao, $alvo, null, Response::HTTP_OK, [], $this->avisoDe($requisicao), Pagina::abaDe($requisicao, 'dados')),
             'editar' => $this->editar($sessao, $alvo, $requisicao),
             'senha' => $this->senha($sessao, $alvo, $requisicao),
             'desativar', 'reativar' => $this->situacao($sessao, $alvo, $tela === 'reativar', $requisicao),
@@ -182,8 +182,8 @@ final class TelasDeContas
         $valor = static fn (string $k): string => Pagina::h($v[$k] ?? '');
         $corpo = $this->erro($erro)
             . '<form method="post" action="' . Painel::PREFIXO . '/contas/nova"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>' . $this->campoCsrf($sessao)
-            . '<div class="mb-3"><label for="campo-login" class="form-label">Login</label><input id="campo-login" class="form-control" name="login" maxlength="' . self::MAX_LOGIN . '" required autocomplete="off" value="' . $valor('login') . '" aria-describedby="ajuda-login">'
-            . '<div id="ajuda-login" class="form-text">3 a 64 letras minúsculas, números, ponto, hífen ou sublinhado. Não muda depois.</div></div>'
+            . '<div class="mb-3">' . Pagina::rotulo('campo-login', 'Login', Pagina::ajuda('ajuda-login', 'Login', '3 a 64 letras minúsculas, números, ponto, hífen ou sublinhado. Não muda depois.'))
+            . '<input id="campo-login" class="form-control" name="login" maxlength="' . self::MAX_LOGIN . '" required autocomplete="off" value="' . $valor('login') . '" aria-describedby="ajuda-login"></div>'
             . '<div class="mb-3"><label for="campo-nome" class="form-label">Nome</label><input id="campo-nome" class="form-control" name="nome" maxlength="' . self::MAX_NOME . '" required value="' . $valor('nome') . '"></div>'
             . '<div class="mb-3"><label for="campo-email" class="form-label">E-mail</label><input id="campo-email" class="form-control" name="email" type="email" maxlength="' . self::MAX_EMAIL . '" required value="' . $valor('email') . '"></div>'
             . $this->camposDeSenha('senha inicial')
@@ -245,12 +245,12 @@ final class TelasDeContas
             . '<div class="mb-3"><label for="campo-nome" class="form-label">Nome</label><input id="campo-nome" class="form-control" name="nome" maxlength="' . self::MAX_NOME . '" required value="' . $nome . '"></div>'
             . '<div class="mb-3"><label for="campo-email" class="form-label">E-mail</label><input id="campo-email" class="form-control" name="email" type="email" maxlength="' . self::MAX_EMAIL . '" required value="' . $email . '"></div>'
             . ($eu
-                ? '<p class="form-text">Você é administrador e não pode tirar a própria marca de administrador (peça a outro administrador).</p>'
+                ? '<div class="mb-3 pbl-rotulo"><span class="form-label">Administrador</span>' . Pagina::ajuda('ajuda-admin-eu', 'Administrador', 'Você é administrador e não pode tirar a própria marca de administrador (peça a outro administrador).') . '</div>'
                 : '<div class="form-check mb-3"><input id="campo-admin" class="form-check-input" type="checkbox" name="administrador" value="1"' . ($admin ? ' checked' : '') . '>'
                     . '<label for="campo-admin" class="form-check-label">Administrador (vê e altera tudo, em todos os sites)</label></div>')
             . $this->campoSenha($sessao, 'campo-senha-editar')
             . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar dados</button></div></form>';
-        $senha = ($eu ? '<p class="form-text">Ao trocar a sua senha você sai e precisa entrar de novo.</p>' : '<p class="form-text">A conta sai de todas as sessões abertas e entra com a senha nova.</p>')
+        $senha = '<div class="pbl-rotulo"><h3 class="h6 mb-1">Trocar senha</h3>' . Pagina::ajuda('ajuda-trocar-senha', 'Trocar senha', $eu ? 'Ao trocar a sua senha você sai e precisa entrar de novo.' : 'A conta sai de todas as sessões abertas e entra com a senha nova.') . '</div>'
             . '<form method="post" action="' . $base . '/senha">' . $csrf . $this->camposDeSenha('nova senha')
             . $this->campoSenha($sessao, 'campo-senha-atual-redefinir', 'senha_atual')
             . '<div class="pbl-acoes"><button type="submit" class="btn btn-warning">Trocar senha</button></div></form>';
@@ -262,39 +262,10 @@ final class TelasDeContas
         ];
         $aba = array_key_exists($aba, $abas) ? $aba : 'dados';
         $corpo = '<p>Login: <code>' . Pagina::h($c->login) . '</code> · ' . ($c->ativo ? 'conta ativa' : '<span class="badge text-bg-secondary">desativada</span>') . ($eu ? ' · <strong>esta é a sua conta</strong>' : '') . '</p>'
-            . $this->abas($abas, $aba, $avisos)
+            . Pagina::abas($abas, $aba, $avisos, 'Seções da conta')
             . '<p><a href="' . $this->linkLista() . '">Voltar às contas</a></p>';
 
         return Pagina::resposta('Conta: ' . $c->login, $corpo, $status, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Contas', $this->linkLista()], [$c->login, null]]);
-    }
-
-    /**
-     * Abas do Bootstrap (`nav-tabs`, WAI-ARIA tablist). O servidor já entrega a aba escolhida com `active show` e todos os painéis no
-     * HTML; sem JavaScript os painéis ficam empilhados, cada um com o seu título (a barra de abas nasce `hidden`). O `pbl-admin.js`
-     * (`data-pbl-abas`) mostra a barra, esconde os títulos e põe `tab-content`/`tab-pane`, que é o que faz o Bootstrap esconder
-     * os painéis inativos. Avisos e erros entram dentro do painel ativo.
-     *
-     * @param array<string, array{0: string, 1: string}> $abas chave => [rótulo, HTML do painel]
-     */
-    private function abas(array $abas, string $ativa, string $avisos): string
-    {
-        $nav = '<ul class="nav nav-tabs flex-nowrap overflow-x-auto mb-3" role="tablist" aria-label="Seções da conta" hidden data-pbl-abas-nav>';
-        $paineis = '';
-        foreach ($abas as $chave => [$rotulo, $html]) {
-            $on = $chave === $ativa;
-            $nav .= '<li class="nav-item" role="presentation"><button type="button" id="aba-' . $chave . '" class="nav-link text-nowrap' . ($on ? ' active' : '') . '" role="tab" data-bs-toggle="tab" data-bs-target="#painel-' . $chave . '" data-pbl-aba="' . $chave . '" aria-controls="painel-' . $chave . '" aria-selected="' . ($on ? 'true' : 'false') . '"' . ($on ? '' : ' tabindex="-1"') . '>' . Pagina::h($rotulo) . '</button></li>';
-            $paineis .= '<div id="painel-' . $chave . '" class="pbl-aba-painel mb-4' . ($on ? ' active show' : '') . '" role="tabpanel" aria-labelledby="aba-' . $chave . '" tabindex="0">'
-                . '<h2 class="h5 pbl-aba-titulo">' . Pagina::h($rotulo) . '</h2>' . ($on ? $avisos : '') . $html . '</div>';
-        }
-
-        return '<div data-pbl-abas>' . $nav . '</ul><div data-pbl-abas-paineis>' . $paineis . '</div></div>';
-    }
-
-    private static function abaDe(Request $requisicao): string
-    {
-        $aba = $requisicao->query->all()['aba'] ?? null;
-
-        return is_string($aba) ? $aba : 'dados';
     }
 
     private function blocoDeSituacao(SessaoAtiva $sessao, string $csrf, Usuario $c, bool $eu, string $base): string
@@ -304,7 +275,7 @@ final class TelasDeContas
                 . $this->campoSenha($sessao, 'campo-senha-reativar') . '<button type="submit" class="btn btn-outline-success">Reativar conta</button></form>';
         }
         if ($eu) {
-            return '<p class="form-text">Você não pode desativar a própria conta.</p>';
+            return '<p class="text-body-secondary">Você não pode desativar a própria conta.</p>';
         }
 
         return '<p>Desativar impede de entrar e derruba as sessões abertas; os papéis e o histórico ficam guardados.</p>'
@@ -322,7 +293,7 @@ final class TelasDeContas
         if ($acessos === []) {
             $corpo .= $c->administrador ? '' : '<p>Nenhum papel concedido: esta conta não vê nem altera conteúdo até receber um papel.</p>';
         } else {
-            $corpo .= ($c->administrador ? '<p class="form-text">Papéis guardados (só valem se a marca de administrador sair):</p>' : '')
+            $corpo .= ($c->administrador ? '<p class="text-body-secondary">Papéis guardados (só valem se a marca de administrador sair):</p>' : '')
                 . '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Papéis</caption><thead><tr><th scope="col">Conteúdo</th><th scope="col">Site</th><th scope="col">Papel</th><th scope="col">Vale para</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
             $melhorPorSite = [];
             foreach ($acessos as $a) {
@@ -352,13 +323,13 @@ final class TelasDeContas
             $opcoes .= '<option value="' . $p->value . '">' . ucfirst($p->value) . '</option>';
         }
         $formulario = '<form method="post" action="' . $base . '/conceder" class="row g-2 align-items-end">' . $csrf
-            . '<div class="col-12"><label for="campo-objeto" class="form-label">Conteúdo (pasta, página ou início do site)</label><select id="campo-objeto" class="form-select" name="objeto" aria-describedby="ajuda-objeto">' . $this->opcoesDeConteudo() . '</select></div>'
+            . '<div class="col-12">' . Pagina::rotulo('campo-objeto', 'Conteúdo (pasta, página ou início do site)', Pagina::ajuda('ajuda-objeto', 'Conteúdo', 'Vale para o conteúdo escolhido e tudo abaixo dele; substitui o papel que a conta já tinha nele. Se preferir, digite o número do conteúdo (aparece na página dele na administração) no segundo campo, que vale no lugar da lista. Leitor vê; autor cria e edita o que criou; editor também publica e apaga.')) . '<select id="campo-objeto" class="form-select" name="objeto" aria-describedby="ajuda-objeto">' . $this->opcoesDeConteudo() . '</select></div>'
             . '<div class="col-sm-4"><label for="campo-objeto-numero" class="form-label">Ou o número</label><input id="campo-objeto-numero" class="form-control" name="objeto_numero" inputmode="numeric" maxlength="10"></div>'
             . '<div class="col-sm-4"><label for="campo-perfil" class="form-label">Papel</label><select id="campo-perfil" class="form-select" name="perfil">' . $opcoes . '</select></div>'
             . '<div class="col-sm-4">' . $this->campoSenha($sessao, 'campo-senha-conceder') . '<button type="submit" class="btn btn-primary">Conceder</button></div>'
-            . '<div id="ajuda-objeto" class="form-text">Vale para o conteúdo escolhido e tudo abaixo dele; substitui o papel que a conta já tinha nele. Se preferir, digite o número do conteúdo (aparece na página dele na administração) no segundo campo, que vale no lugar da lista. Leitor vê; autor cria e edita o que criou; editor também publica e apaga.</div></form>';
+            . '</form>';
         if ($c->administrador) {
-            return $corpo . '<details class="mb-3"><summary>Conceder papel por conteúdo (só vale se a marca de administrador sair)</summary><div class="pt-3">' . $formulario . '</div></details>';
+            return $corpo . '<div class="accordion mb-3">' . Pagina::recolhivel('papel-admin', 'Conceder papel por conteúdo (só vale se a marca de administrador sair)', $formulario) . '</div>';
         }
 
         return $corpo . '<h3 class="h6">Conceder papel</h3>' . $formulario;
@@ -392,8 +363,8 @@ final class TelasDeContas
 
     private function camposDeSenha(string $rotulo): string
     {
-        return '<div class="mb-3"><label for="campo-senha" class="form-label">' . ucfirst($rotulo) . '</label><input id="campo-senha" class="form-control" name="senha" type="password" autocomplete="new-password" maxlength="1024" required aria-describedby="ajuda-senha">'
-            . '<div id="ajuda-senha" class="form-text">No mínimo 10 caracteres, nada óbvio (como "senha123456"). Tamanho vale mais que símbolos.</div></div>'
+        return '<div class="mb-3">' . Pagina::rotulo('campo-senha', Pagina::h(ucfirst($rotulo)), Pagina::ajuda('ajuda-senha', ucfirst($rotulo), 'No mínimo 10 caracteres, nada óbvio (como "senha123456"). Tamanho vale mais que símbolos.'))
+            . '<input id="campo-senha" class="form-control" name="senha" type="password" autocomplete="new-password" maxlength="1024" required aria-describedby="ajuda-senha"></div>'
             . '<div class="mb-3"><label for="campo-senha2" class="form-label">Repita a ' . $rotulo . '</label><input id="campo-senha2" class="form-control" name="senha2" type="password" autocomplete="new-password" maxlength="1024" required></div>';
     }
 
