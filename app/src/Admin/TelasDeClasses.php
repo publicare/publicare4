@@ -174,10 +174,9 @@ final class TelasDeClasses
                 'maxlength' => ClasseRepositorio::MAX_NOME, 'obrigatorio' => true,
                 'ajuda' => 'Letras minúsculas sem acento, números e <code>_</code>, começando por letra (por exemplo <code>noticia</code>). É o nome que os moldes usam e não muda depois.',
             ]) . $this->camposDaClasse($descricao, $aceita, $filhas, $this->servicos->classes->todas(), null))
-            . '<p class="form-text">Os campos (propriedades) são adicionados depois de criar o tipo.</p>'
             . $this->acoes('Criar tipo de conteúdo', [['Cancelar', $this->linkLista()]]) . '</form>';
 
-        return Pagina::resposta('Novo tipo de conteúdo', $corpo, $status, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], ['Novo', null]], 'Dê um nome ao tipo; os campos entram na tela seguinte.');
+        return Pagina::resposta('Novo tipo de conteúdo', $corpo, $status, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], ['Novo', null]], 'Dê um nome ao tipo; os campos entram na tela seguinte.', 'Os campos (propriedades) são adicionados depois de criar o tipo.');
     }
 
     private function criar(SessaoAtiva $sessao, Request $requisicao): Response
@@ -659,12 +658,11 @@ final class TelasDeClasses
             . '<form method="post" action="' . $this->link($classe->id) . '/editar"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>'
             . $this->campoCsrf($sessao) . '<input type="hidden" name="versao" value="' . $classe->versao . '">'
             . $this->card('Sobre o tipo', $this->camposDaClasse($r['descricao'], $r['aceita_filhos'], $r['filhas'], $todas, $classe->nome))
-            . '<h2 class="h5 mt-4">Campos deste tipo</h2>';
+            . '<div class="pbl-rotulo mt-4"><h2 class="h5">Campos deste tipo</h2>' . Pagina::ajuda('ajuda-campos', 'Campos deste tipo', 'Mude a ordem trocando os números (menor primeiro). Campo com valores guardados não troca de tipo e não pode ser removido, só arquivado. "Obrigatório" fica guardado no tipo; a exigência ao salvar um conteúdo vem com as telas de conteúdo.') . '</div>';
 
         if ($r['campos'] === []) {
             $corpo .= '<p class="text-body-secondary">Este tipo ainda não tem campos.</p>';
         } else {
-            $corpo .= '<p class="form-text">Mude a ordem trocando os números (menor primeiro). Campo com valores guardados não troca de tipo e não pode ser removido, só arquivado.</p>';
             $paineis = '';
             foreach ($r['campos'] as $i => $c) {
                 $p = $this->definicao($classe, $c['nome']);
@@ -688,7 +686,7 @@ final class TelasDeClasses
                 }
                 if ($emUso > 0) {
                     $tipo = '<div class="pbl-largo"><span class="form-label d-block">Tipo do campo</span><p class="mb-1">' . Pagina::h($this->descreverTipo($c['tipo'], $c['classe'])) . '</p>'
-                        . '<div class="form-text">Não muda porque há conteúdo com valor neste campo.</div>'
+                        . '<div class="small text-body-secondary">Não muda porque há conteúdo com valor neste campo.</div>'
                         . '<input type="hidden" name="' . Pagina::h($base) . '[tipo]" value="' . Pagina::h($c['tipo']) . '">'
                         . '<input type="hidden" name="' . Pagina::h($base) . '[classe]" value="' . Pagina::h($c['classe']) . '"></div>';
                 } else {
@@ -700,7 +698,7 @@ final class TelasDeClasses
                     . $tipo
                     . $this->campo($id . '-situacao', $base . '[situacao]', 'Situação', $c['situacao'], ['tipo' => 'select', 'opcoes' => $situacoes, 'grupo' => 'mb-0'])
                     . '<div class="d-flex align-items-end">' . $this->checkbox($id . '-obrigatorio', $base . '[obrigatorio]', 'Obrigatório', $c['obrigatorio']) . '</div>'
-                    . '<p class="form-text pbl-largo mb-0">Em uso por ' . $objetos . ' conteúdo' . ($objetos === 1 ? '' : 's')
+                    . '<p class="small text-body-secondary pbl-largo mb-0">Em uso por ' . $objetos . ' conteúdo' . ($objetos === 1 ? '' : 's')
                     . ($historico > $objetos ? ' (+ versões antigas)' : '') . '.</p>'
                     . '<div class="pbl-largo">' . $this->camposDeArquivo($id, $base, $c['tipos'], $c['tamanho_max_mb'], in_array($c['tipo'], ['arquivo', 'imagem'], true)) . '</div>'
                     . '</div>';
@@ -723,7 +721,6 @@ final class TelasDeClasses
             . '<div class="pbl-largo">' . $this->camposDeArquivo('novo', 'novo', $n['tipos'], $n['tamanho_max_mb'], in_array($n['tipo'], ['arquivo', 'imagem'], true), true) . '</div>'
             . '</div>';
         $corpo .= '<div class="accordion mb-3">' . Pagina::recolhivel('novo-campo', '<strong>Adicionar um campo</strong> <span class="pbl-resumo-meta ms-2">(opcional)</span>', $novo, $this->novoPreenchido($n)) . '</div>'
-            . '<p class="form-text">"Obrigatório" fica guardado no tipo; a exigência ao salvar um conteúdo vem com as telas de conteúdo.</p>'
             . $this->acoes('Salvar alterações', [['Voltar aos tipos', $this->linkLista()]], $classe->fixa ? null : ['Apagar este tipo de conteúdo', $this->link($classe->id) . '/apagar'])
             . '</form>';
 
@@ -752,8 +749,9 @@ final class TelasDeClasses
                 $caixas .= $this->checkbox($id . '-tipo-' . $extensao, $base . '[tipos][]', $extensao, in_array($extensao, $tiposSelecionados, true), '', $extensao);
             }
         }
-        $html = '<fieldset><legend>Arquivos permitidos</legend>'
-            . '<div class="form-text mb-1">Sem marcar nenhum, vale a categoria inteira do tipo (imagens ou documentos).</div>'
+        $ajTipos = 'Sem marcar nenhum, vale a categoria inteira do tipo (imagens ou documentos).';
+        $html = '<fieldset><legend>Arquivos permitidos ' . Pagina::ajudaBotao($id . '-ajuda-tipos', 'Arquivos permitidos', $ajTipos) . '</legend>'
+            . Pagina::ajudaPainel($id . '-ajuda-tipos', $ajTipos)
             . '<div class="pbl-extensoes">' . $caixas . '</div></fieldset>'
             . $this->campo($id . '-tamanho-max-mb', $base . '[tamanho_max_mb]', 'Tamanho máximo (MB)', $tamanhoMaxMb, [
                 'tipo' => 'number', 'min' => 1, 'max' => TiposDeArquivo::TETO_MB, 'step' => 1, 'classe' => 'pbl-tamanho', 'grupo' => 'mb-0',
@@ -811,9 +809,9 @@ final class TelasDeClasses
             $opcoes .= $this->checkbox('filha-' . $i, 'filhas[]', '<code>' . Pagina::h($nome) . '</code>' . ($nome === $propria ? ' (o próprio)' : ''), in_array($nome, $filhas, true), '', $nome, true);
         }
         if ($opcoes !== '') {
-            $dentro .= '<p class="form-text mb-1 mt-2">Que tipos podem ficar dentro. Nenhum marcado: qualquer tipo. Ignorado se não pode ter filhos.</p><div class="pbl-extensoes">' . $opcoes . '</div>';
+            $dentro .= '<div class="pbl-rotulo mt-2"><span class="form-label">Tipos aceitos dentro</span>' . Pagina::ajuda('ajuda-filhos-aceitos', 'Tipos aceitos dentro', 'Que tipos podem ficar dentro. Nenhum marcado: qualquer tipo. Ignorado se não pode ter filhos.') . '</div><div class="pbl-extensoes">' . $opcoes . '</div>';
         }
-        $dentro .= '<p class="form-text">A regra de filhos fica guardada no tipo; a conferência ao criar ou mover conteúdo vem com as telas de conteúdo.</p>';
+        $dentro .= '<div class="pbl-rotulo"><span class="form-label">Sobre esta regra</span>' . Pagina::ajuda('ajuda-regra-filhos', 'Regra de filhos', 'A regra de filhos fica guardada no tipo; a conferência ao criar ou mover conteúdo vem com as telas de conteúdo.') . '</div>';
 
         return $html . '<div class="accordion mb-3">' . Pagina::recolhivel('filhos', '<strong>Que tipos podem ficar dentro</strong> <span class="pbl-resumo-meta ms-2">(conteúdo dentro deste tipo)</span>', $dentro, $filhas !== []) . '</div>';
     }

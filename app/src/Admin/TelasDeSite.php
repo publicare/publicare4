@@ -173,7 +173,7 @@ final class TelasDeSite
     private function listaDeRegras(SessaoAtiva $sessao, Site $site, string $aviso): Response
     {
         $regras = $this->servicos->redirecionamentos->doSite($site->id);
-        $corpo = $aviso . '<p>Regras para endereços antigos que não correspondem a nenhum conteúdo atual. Valem <strong>depois</strong> da página publicada e do histórico de endereços.</p>';
+        $corpo = $aviso;
         $corpo .= '<div class="table-responsive"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Redirecionamentos de ' . Pagina::h($site->nome) . '</caption><thead><tr>'
             . '<th scope="col">Endereço antigo</th><th scope="col">Vai para</th><th scope="col">Código</th><th scope="col">Alcance</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
         foreach ($regras as $r) {
@@ -186,7 +186,7 @@ final class TelasDeSite
         $corpo .= $regras === [] ? '<tr><td colspan="5" class="text-body-secondary">Nenhuma regra ainda.</td></tr>' : '';
         $corpo .= '</tbody></table></div><h2 class="h5 mt-4">Nova regra</h2>' . $this->formRegra($sessao, $site, null, ['codigo' => '301'], null);
 
-        return Pagina::resposta('Redirecionamentos de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Redirecionamentos', null]]);
+        return Pagina::resposta('Redirecionamentos de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Redirecionamentos', null]], '', 'Regras para endereços antigos que não correspondem a nenhum conteúdo atual. Valem <strong>depois</strong> da página publicada e do histórico de endereços.');
     }
 
     /**
@@ -210,9 +210,9 @@ final class TelasDeSite
 
         return ($erro === null ? '' : '<div class="alert alert-danger" role="alert">' . Pagina::h($erro) . '</div>')
             . '<form method="post" action="' . $acao . '">' . $this->campoCsrf($sessao)
-            . '<div class="mb-3"><label for="r-origem" class="form-label">Endereço antigo (caminho, como <code>/antigo/pagina</code>)</label>'
+            . '<div class="mb-3">' . Pagina::rotulo('r-origem', 'Endereço antigo', Pagina::ajuda('ajuda-r-origem', 'Endereço antigo', 'Caminho, como <code>/antigo/pagina</code>.'))
             . '<input id="r-origem" class="form-control" name="origem" maxlength="300" required value="' . Pagina::h($c['origem'] ?? '') . '"></div>'
-            . '<div class="mb-3"><label for="r-destino" class="form-label">Destino (caminho do site, como <code>/novo</code>, ou endereço <code>https://</code>)</label>'
+            . '<div class="mb-3">' . Pagina::rotulo('r-destino', 'Destino', Pagina::ajuda('ajuda-r-destino', 'Destino', 'Caminho do site, como <code>/novo</code>, ou endereço <code>https://</code>.'))
             . '<input id="r-destino" class="form-control" name="destino" maxlength="500" required value="' . Pagina::h($c['destino'] ?? '') . '"></div>'
             . '<div class="mb-3"><label for="r-codigo" class="form-label">Tipo</label><select id="r-codigo" class="form-select" name="codigo">'
             . '<option value="301"' . ($codigo === '301' ? ' selected' : '') . '>301 — permanente</option>'
@@ -449,14 +449,12 @@ final class TelasDeSite
     {
         $ligado = $site->buscaTolerancia;
         $corpo = $aviso
-            . '<p>Quando uma busca de texto não acha nada, o site pode sugerir "você quis dizer…" com uma palavra parecida do '
-            . 'vocabulário já indexado (nível C da busca). Desligada por padrão: analisa mais candidatos a cada busca sem resultado.</p>'
             . '<form method="post" action="' . $this->linkBusca($site) . '">' . $this->campoCsrf($sessao)
             . '<div class="form-check mb-3"><input id="b-ligado" class="form-check-input" type="checkbox" name="ligado" value="1"' . ($ligado ? ' checked' : '') . '>'
             . '<label for="b-ligado" class="form-check-label">Sugerir grafia parecida quando a busca não encontra nada</label></div>'
             . '<button type="submit" class="btn btn-primary">Salvar</button></form>';
 
-        return Pagina::resposta('Busca de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Busca', null]]);
+        return Pagina::resposta('Busca de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Busca', null]], '', 'Quando uma busca de texto não acha nada, o site pode sugerir "você quis dizer…" com uma palavra parecida do vocabulário já indexado (nível C da busca). Desligada por padrão: analisa mais candidatos a cada busca sem resultado.');
     }
 
     private function salvarBusca(SessaoAtiva $sessao, Site $site, Request $req): Response
@@ -512,7 +510,7 @@ final class TelasDeSite
 
     private function listaDePeles(SessaoAtiva $sessao, Site $site, string $aviso): Response
     {
-        $corpo = $aviso . '<p>Peles são pastas em <code>dados/peles/</code> com os moldes da linguagem do PBL4. Uma pele pode ser usada por mais de um site: editar um molde muda todos os sites que usam essa pele.</p>'
+        $corpo = $aviso
             . '<div class="table-responsive"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Peles</caption><thead><tr>'
             . '<th scope="col">Pele</th><th scope="col">Moldes</th><th scope="col">Situação</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
         foreach ($this->peles->peles() as $p) {
@@ -526,7 +524,7 @@ final class TelasDeSite
         }
         $corpo .= '</tbody></table></div>';
 
-        return Pagina::resposta('Peles de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Peles', null]]);
+        return Pagina::resposta('Peles de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Peles', null]], '', 'Peles são pastas em <code>dados/peles/</code> com os moldes da linguagem do PBL4. Uma pele pode ser usada por mais de um site: editar um molde muda todos os sites que usam essa pele.');
     }
 
     private function ativarPele(SessaoAtiva $sessao, Site $site, Request $req): Response
@@ -716,8 +714,7 @@ final class TelasDeSite
             }
             $aviso .= '</div>';
         }
-        $corpo = $aviso . '<p>Pele <code>' . Pagina::h($pele) . '</code>. O molde é validado pela linguagem do PBL4 antes de salvar (ou de publicar um rascunho); nada é executado como PHP. '
-            . 'A caixa abaixo é texto simples, sem realce de sintaxe (ADR 0012 §9).</p>'
+        $corpo = $aviso . '<p>Pele <code>' . Pagina::h($pele) . '</code>.</p>'
             . '<form method="post" action="' . $url . ($novo ? '/novo' : '/molde') . '">' . $this->campoCsrf($sessao)
             . ($novo
                 ? '<div class="mb-3"><label for="m-nome" class="form-label">Nome do molde (sem <code>.pbl</code>; <code>/</code> só para pastas)</label><input id="m-nome" class="form-control" name="nome" maxlength="100" required value="' . Pagina::h($nome) . '"></div>'
@@ -732,7 +729,7 @@ final class TelasDeSite
                 . ' <a class="btn btn-link" href="' . $url . '/molde/historico?nome=' . rawurlencode($nome) . '">Histórico</a>')
             . '</form>';
 
-        return Pagina::resposta($novo ? 'Novo molde' : 'Editar molde', $corpo, $status, false, $this->barra($sessao));
+        return Pagina::resposta($novo ? 'Novo molde' : 'Editar molde', $corpo, $status, false, $this->barra($sessao), [], '', 'O molde é validado pela linguagem do PBL4 antes de salvar (ou de publicar um rascunho); nada é executado como PHP. A caixa é texto simples, sem realce de sintaxe (ADR 0012 §9).');
     }
 
     /**
@@ -806,9 +803,9 @@ final class TelasDeSite
                 ? '<div class="alert alert-warning" role="alert">Esta versão não existe (a retenção já apagou, ou nunca existiu).</div>'
                 : '<h2 class="h5">Versão ' . $v['versao'] . ', com realce (somente leitura)</h2><pre class="pbl-realce"><code>' . $realce->html($v['conteudo']) . '</code></pre>';
         }
-        $corpo .= '<p>Cada vez que o molde <code>' . Pagina::h($nome) . '.pbl</code> é salvo, criado ou apagado, a versão anterior fica guardada '
+        $ajudaHistorico = 'Cada vez que o molde <code>' . Pagina::h($nome) . '.pbl</code> é salvo, criado ou apagado, a versão anterior fica guardada '
             . '(até ' . GerenciadorDePeles::MAX_VERSOES_POR_MOLDE . ' por molde; a mais antiga some quando passa disso). "Voltar a esta versão" grava o '
-            . 'conteúdo dela como uma versão nova, depois de passar pela mesma validação do parser e pelo mesmo modo elevado de uma edição comum.</p>';
+            . 'conteúdo dela como uma versão nova, depois de passar pela mesma validação do parser e pelo mesmo modo elevado de uma edição comum.';
         if (count($historico) >= 2) {
             $corpo .= '<form method="get" action="' . $base . '/molde/diferenca" class="row row-cols-auto g-2 align-items-end mb-4">'
                 . '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '">'
@@ -836,7 +833,7 @@ final class TelasDeSite
         }
         $corpo .= '</tbody></table></div><p><a href="' . $base . '">Voltar aos arquivos da pele</a></p>';
 
-        return Pagina::resposta('Histórico: ' . $nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Histórico: ' . $nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', $ajudaHistorico);
     }
 
     /** @param list<array{versao: int, hash: string, acao: string, usuario_id: int|null, criado_em: string}> $historico */
@@ -866,7 +863,7 @@ final class TelasDeSite
             return $this->naoEncontrado($sessao, 'Escolha duas versões existentes deste molde para comparar.', $historicoLink);
         }
         $realce = new Realce();
-        $corpo = '<p>Diferença do molde <code>' . Pagina::h($nome) . '.pbl</code> entre a versão ' . $versaoDe['versao'] . ' e a ' . $versaoPara['versao'] . '. Linhas escapadas, com o mesmo realce da leitura.</p>'
+        $corpo = '<p>Molde <code>' . Pagina::h($nome) . '.pbl</code>, da versão ' . $versaoDe['versao'] . ' para a ' . $versaoPara['versao'] . '.</p>'
             . '<pre class="pbl-realce pbl-diff"><code>';
         foreach ($this->diffDeLinhas(explode("\n", $versaoDe['conteudo']), explode("\n", $versaoPara['conteudo'])) as $op) {
             $classe = match ($op['tipo']) { 'add' => 'pbl-diff-add', 'rem' => 'pbl-diff-rem', default => 'pbl-diff-igual' };
@@ -875,7 +872,7 @@ final class TelasDeSite
         }
         $corpo .= '</code></pre><p><a href="' . $historicoLink . '">Voltar ao histórico</a></p>';
 
-        return Pagina::resposta('Diferença: ' . $nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Diferença: ' . $nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', 'Linhas escapadas, com o mesmo realce da leitura.');
     }
 
     private function numeroDeVersao(mixed $v): ?int
@@ -1129,15 +1126,14 @@ final class TelasDeSite
             foreach ($paginas as $p) {
                 $opcoes .= '<option value="' . $p->id . '">' . Pagina::h($p->titulo) . ' (/' . Pagina::h($p->urlAmigavel) . ')</option>';
             }
-            $corpo = '<p>Escolha uma página publicada deste site para ver como ela ficaria com o rascunho do molde <code>' . Pagina::h($nome) . '</code>. '
-                . 'A pré-visualização não publica nada, não entra no cache do site e só quem administra este site a vê.</p>'
+            $corpo = '<p>Molde <code>' . Pagina::h($nome) . '</code>: escolha uma página publicada deste site.</p>'
                 . '<form method="get" action="' . $this->linkPeles($site) . '/' . $pele . '/molde/previsualizar">'
                 . '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '">'
                 . '<div class="mb-3"><label for="pv-objeto" class="form-label">Página</label><select id="pv-objeto" class="form-select" name="objeto">' . $opcoes . '</select></div>'
                 . '<button type="submit" class="btn btn-primary">Pré-visualizar</button></form>';
         }
 
-        return Pagina::resposta('Pré-visualizar rascunho', $corpo . '<p class="mt-3"><a href="' . $editor . '">Voltar ao editor</a></p>', Response::HTTP_OK, false, $this->barra($sessao));
+        return Pagina::resposta('Pré-visualizar rascunho', $corpo . '<p class="mt-3"><a href="' . $editor . '">Voltar ao editor</a></p>', Response::HTTP_OK, false, $this->barra($sessao), [], '', 'A pré-visualização mostra como a página escolhida ficaria com o rascunho do molde. Não publica nada, não entra no cache do site e só quem administra este site a vê.');
     }
 
     /**

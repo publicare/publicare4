@@ -160,7 +160,7 @@ final class TelasDeDominios
         $base = $this->link($site->id);
         $dominios = $this->servicos->dominios->doSite($site->id);
         $corpo = $aviso . $this->erro($erro)
-            . '<p>Site <strong>' . Pagina::h($site->nome) . '</strong>. O <em>principal</em> é o endereço canônico. Um <em>alias</em> mostra o mesmo conteúdo (com aviso de canônico para os buscadores); um <em>redirecionador</em> manda o visitante para o principal (301).</p>';
+            . '<p>Site <strong>' . Pagina::h($site->nome) . '</strong>.</p>';
         if ($dominios === []) {
             $corpo .= '<p>Nenhum domínio ainda.</p>';
         } else {
@@ -179,13 +179,13 @@ final class TelasDeDominios
             $modos .= '<option value="' . $valor . '">' . Pagina::h($rotulo) . '</option>';
         }
         $corpo .= '<section class="mt-4"><h2 class="h5">Adicionar domínio</h2><form method="post" action="' . $base . '/adicionar" class="row g-2 align-items-end">' . $csrf
-            . '<div class="col-sm-5"><label for="campo-host" class="form-label">Domínio</label><input id="campo-host" class="form-control" name="host" maxlength="253" required placeholder="www.exemplo.org" aria-describedby="ajuda-host"></div>'
+            . '<div class="col-sm-5">' . Pagina::rotulo('campo-host', 'Domínio', Pagina::ajuda('ajuda-host', 'Domínio', 'Só o nome (sem <code>https://</code>, porta ou caminho). O DNS e o certificado do domínio precisam apontar para esta hospedagem; isso se faz fora do PBL4.')) . '<input id="campo-host" class="form-control" name="host" maxlength="253" required placeholder="www.exemplo.org" aria-describedby="ajuda-host"></div>'
             . '<div class="col-sm-5"><label for="campo-modo" class="form-label">Tipo</label><select id="campo-modo" class="form-select" name="modo">' . $modos . '</select></div>'
             . '<div class="col-sm-2">' . $this->campoSenha($sessao, 'campo-senha-adicionar') . '<button type="submit" class="btn btn-primary">Adicionar</button></div>'
-            . '<div id="ajuda-host" class="form-text">Só o nome (sem <code>https://</code>, porta ou caminho). O DNS e o certificado do domínio precisam apontar para esta hospedagem; isso se faz fora do PBL4.</div></form></section>'
+            . '</form></section>'
             . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
 
-        return Pagina::resposta('Domínios: ' . $site->nome, $corpo, $status, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Domínios', null]]);
+        return Pagina::resposta('Domínios: ' . $site->nome, $corpo, $status, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Domínios', null]], '', 'O <em>principal</em> é o endereço canônico. Um <em>alias</em> mostra o mesmo conteúdo (com aviso de canônico para os buscadores); um <em>redirecionador</em> manda o visitante para o principal (301).');
     }
 
     private function acoesDe(SessaoAtiva $sessao, string $csrf, string $base, Dominio $d): string

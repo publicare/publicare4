@@ -84,7 +84,7 @@ final class TelasDeConteudo
                 $corpo .= '<p class="text-body-secondary">Este site ainda não tem conteúdo inicial.</p></section>';
                 continue;
             }
-            $corpo .= '<p class="form-text mb-1">Seções que você pode abrir:</p><ul class="list-group">';
+            $corpo .= '<p class="text-body-secondary mb-1">Seções que você pode abrir:</p><ul class="list-group">';
             foreach ($lista as [$o, $perfil]) {
                 $corpo .= '<li class="list-group-item d-flex justify-content-between align-items-center gap-2"><a href="' . $this->link($o->id) . '">' . Pagina::h($o->titulo) . '</a>'
                     . ' <span class="badge text-bg-secondary" title="Seu papel nesta seção">' . Pagina::h($perfil) . '</span></li>';
