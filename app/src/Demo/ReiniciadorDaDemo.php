@@ -18,8 +18,8 @@ use Symfony\Component\Console\Output\BufferedOutput;
  *
  * Só roda em instalação de demonstração ({@see ConfigDaDemo::ativa}); em qualquer outra a chamada lança antes de tocar em
  * qualquer coisa. Passos: trava `dados/demo/reiniciar.lock` (duas execuções não se sobrepõem) → lê nome e domínio principal do
- * site → backup de `dados/` (SQLite, uploads, peles e a marca de instalado) em `dados/demo/backups/`, mantendo os 3 últimos →
- * liga a manutenção (503) → apaga banco, cache, peles, uploads e `instalado.lock` → reinstala com o {@see Instalador} (todos os
+ * site → liga a manutenção (503) e espera um instante os pedidos em andamento → backup de `dados/` (SQLite, uploads, peles e a marca de instalado) em `dados/demo/backups/`, mantendo os 3 últimos →
+ * apaga banco, cache, peles, uploads e `instalado.lock` → reinstala com o {@see Instalador} (todos os
  * modelos, administrador com a senha da demo) → popula como `demo-popular --forcar` → liga a agenda do próximo ciclo. **Se
  * qualquer passo falhar, o backup é restaurado** e a manutenção é desligada: o site volta como estava. Ficam intactos
  * `dados/config/` (segredo, rede.json, flag da demo…), `dados/cron/` e `dados/demo/`.
@@ -29,6 +29,7 @@ final class ReiniciadorDaDemo
     public const LOGIN_ADMIN = 'admin';
     public const SENHA_ADMIN = 'admin-demo-2026';
     public const MANTER_BACKUPS = 3;
+    private const PAUSA_PEDIDOS_EM_ANDAMENTO_US = 500_000;
 
     /** @param (\Closure(string): void)|null $aposApagar só para os testes: roda depois de apagar e antes de reinstalar (para simular falha) */
     public function __construct(
@@ -66,8 +67,8 @@ final class ReiniciadorDaDemo
         try {
             [$nome, $host] = $this->identidade();
             $plano = [
-                "Backup de dados/ (SQLite, uploads, peles) em dados/demo/backups/, mantendo os " . self::MANTER_BACKUPS . ' últimos',
                 'Manutenção (503) ligada durante o reinício',
+                "Backup de dados/ (SQLite, uploads, peles) em dados/demo/backups/, mantendo os " . self::MANTER_BACKUPS . ' últimos',
                 'Banco, cache, peles, uploads e dados/config/instalado.lock apagados; dados/config/ (segredo, rede, flag da demo) mantida',
                 "Reinstalação: site \"{$nome}\" em {$host}, todos os modelos, administrador \"" . self::LOGIN_ADMIN . '"',
                 'Conteúdo de exemplo recriado (como demo-popular --forcar), com as contas autor e editor',
@@ -90,8 +91,17 @@ final class ReiniciadorDaDemo
     private function executar(AgendaDaDemo $agenda, string $nome, string $host, array $plano): array
     {
         $ultimoAntes = $agenda->ultimo();
-        $backup = $this->fazerBackup($agenda->pasta() . '/backups');
+        // Primeiro a manutenção (pedidos novos recebem 503 e não escrevem), uma pausa curta para os pedidos em andamento
+        // terminarem, e só então o backup: assim o instantâneo é consistente com o que será restaurado se algo falhar.
         Manutencao::ligar($this->caminhos, 'reinicio-da-demo');
+        usleep(self::PAUSA_PEDIDOS_EM_ANDAMENTO_US);
+        try {
+            $backup = $this->fazerBackup($agenda->pasta() . '/backups');
+        } catch (\Throwable $e) {
+            Manutencao::desligar($this->caminhos);
+
+            throw $e;
+        }
         try {
             $this->apagar();
             if ($this->aposApagar !== null) {
