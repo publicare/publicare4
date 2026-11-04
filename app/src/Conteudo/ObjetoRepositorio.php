@@ -233,6 +233,28 @@ final class ObjetoRepositorio
         ], $linhas);
     }
 
+    /**
+     * Itens de feed RSS: objetos publicados e vigentes abaixo do contêiner (em qualquer profundidade, sem o próprio contêiner),
+     * de classes de conteúdo (`pasta`, `link`, `formulario`, `arquivo` e `imagem` não entram), do mais recente ao mais antigo
+     * (`data_publicacao`, senão `atualizado_em`).
+     *
+     * @return list<array{objeto: Objeto, data: string}> a data é a de publicação, ou a de modificação se não houver
+     */
+    public function itensDeFeed(int $siteId, Objeto $conteiner, int $limite): array
+    {
+        $agora = gmdate('c');
+        $linhas = $this->conexao->fetchAllAssociative(
+            "SELECT o.*, COALESCE(o.data_publicacao, o.atualizado_em) AS data_do_feed FROM objeto o JOIN classe c ON c.id = o.classe_id
+              WHERE o.site_id = ? AND o.caminho LIKE ? ESCAPE '!' AND o.id <> ? AND o.status = 'publicado'
+                AND (o.data_publicacao IS NULL OR o.data_publicacao <= ?) AND (o.data_validade IS NULL OR o.data_validade >= ?)
+                AND c.nome NOT IN ('pasta', 'link', 'formulario', 'arquivo', 'imagem')
+              ORDER BY COALESCE(o.data_publicacao, o.atualizado_em) DESC, o.id DESC LIMIT " . max(1, $limite),
+            [$siteId, $this->escaparLike($conteiner->caminho) . '%', $conteiner->id, $agora, $agora],
+        );
+
+        return array_map(fn (array $l): array => ['objeto' => $this->hidratar($l), 'data' => (string) $l['data_do_feed']], $linhas);
+    }
+
     /** Quantos objetos tem a subárvore (a raiz e tudo abaixo dela), em qualquer estado: o total que `loteDaSubarvore` percorre. */
     public function contarDaSubarvore(int $siteId, string $caminhoRaiz): int
     {
