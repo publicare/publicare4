@@ -8,6 +8,7 @@ use Pbl\Caminhos;
 use Pbl\Conteudo\ClasseRepositorio;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\Site;
+use Pbl\Demo\AvisoDaDemo;
 use Pbl\Linguagem\Compilador;
 use Pbl\Linguagem\Runtime;
 
@@ -59,10 +60,19 @@ final class Renderizador
         }
 
         try {
-            return ($this->compilador->carregar($molde, $pele))($this->contexto($site, $objeto, $nomeDaPele, $efetiva['raiz']), $runtime);
+            return $this->comAvisoDeDemo(($this->compilador->carregar($molde, $pele))($this->contexto($site, $objeto, $nomeDaPele, $efetiva['raiz']), $runtime));
         } catch (\Pbl\Linguagem\ErroSintaxe $e) {
             throw $e->arquivo === null ? $e->noArquivo("{$nomeDaPele}/{$nome}.pbl") : $e;
         }
+    }
+
+    /** Em instalação de demonstração, a faixa "Demo: reinicia em DD/MM às 04:00" vai antes de `</body>`; fora dela, o HTML sai como veio. */
+    private function comAvisoDeDemo(string $html): string
+    {
+        $faixa = AvisoDaDemo::faixa($this->caminhos);
+        $fim = $faixa === '' ? false : strripos($html, '</body>');
+
+        return $fim === false ? $html : substr($html, 0, $fim) . $faixa . substr($html, $fim);
     }
 
     /** Molde do objeto (se existir na pele) > `home` na raiz do site > molde da classe > `padrao`. */
