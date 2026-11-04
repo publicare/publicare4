@@ -33,6 +33,7 @@ final class TagRepositorio
     /**
      * Lista digitada (vírgula ou quebra de linha) -> nomes limpos, sem repetição por slug, na ordem digitada.
      *
+     * @param string|list<string> $entrada
      * @return list<string>
      */
     public static function interpretar(string|array $entrada): array
@@ -96,7 +97,7 @@ final class TagRepositorio
         }
         $linhas = $this->conexao->executeQuery(
             'SELECT ot.objeto_id, t.id, t.nome, t.slug FROM objeto_tag ot JOIN tag t ON t.id = ot.tag_id WHERE ot.objeto_id IN (?) ORDER BY t.slug',
-            [array_values($objetoIds)],
+            [$objetoIds],
             [ArrayParameterType::INTEGER],
         )->fetchAllAssociative();
         $saida = [];

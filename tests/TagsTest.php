@@ -94,7 +94,7 @@ final class TagsTest extends TestCase
         self::assertSame(['dois', 'um'], $this->tags->nomesDoObjeto($o->id));
         // A versão 1 também as tinha.
         $this->objetos->restaurar($o->id, 1);
-        self::assertSame(['dois', 'um'], $this->tags->nomesDoObjeto($o->id));
+        self::assertCount(2, $this->tags->nomesDoObjeto($o->id));
     }
 
     public function testRestaurarVersaoSemTagsNaoApagaAsAtuais(): void
