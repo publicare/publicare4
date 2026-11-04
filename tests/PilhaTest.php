@@ -384,11 +384,11 @@ final class PilhaTest extends TestCase
         $t = $this->token('leitor');
         $html = (string) $this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $t)->getContent();
         self::assertStringContainsString('Copiar para a pilha', $html);
-        self::assertStringNotContainsString('Recortar para a pilha', $html);
-        self::assertStringNotContainsString('Colar aqui', $html);
+        self::assertStringNotContainsString('value="recortar"', $html);
+        self::assertStringNotContainsString('/pilha/colar/', $html);
         $t = $this->token('editor');
         $html = (string) $this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $t)->getContent();
-        self::assertStringContainsString('Recortar para a pilha', $html);
+        self::assertStringContainsString('value="recortar"', $html);
         $a = $this->obj((int) $this->s->objetos->porUrl($this->inicio->siteId, 'alfa')?->id);
         $this->separar('editor', 'copiar', [$a]);
         $html = (string) $this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $t)->getContent();
