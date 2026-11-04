@@ -29,12 +29,42 @@
       b.className = 'sub-toggle';
       b.setAttribute('aria-expanded', 'false');
       b.setAttribute('aria-label', 'Mostrar submenu de ' + nome);
-      b.setAttribute('data-bs-toggle', 'dropdown');
-      b.setAttribute('data-bs-display', 'static');
-      b.setAttribute('data-bs-auto-close', 'outside');
-      ul.classList.add('dropdown-menu');
       li.classList.add('tem-sub');
       li.insertBefore(b, ul);
+      b.addEventListener('click', function () {
+        var abrir = !ul.classList.contains('show');
+        fechar(li.parentNode, ul);
+        alternar(b, ul, abrir);
+      });
+    });
+    doc.addEventListener('click', function (e) {
+      if (!e.target.closest || !e.target.closest('.menu')) {
+        fechar(doc.querySelector('.menu'), null);
+      }
+    });
+    doc.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        fechar(doc.querySelector('.menu'), null);
+      }
+    });
+  }
+
+  function alternar(botao, ul, abrir) {
+    ul.classList.toggle('show', abrir);
+    botao.classList.toggle('show', abrir);
+    botao.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  }
+
+  // Fecha os submenus abertos dentro de `raiz`, menos `exceto` (o que a pessoa acabou de mexer) e quem o contem.
+  function fechar(raiz, exceto) {
+    if (!raiz) {
+      return;
+    }
+    todos('ul.show', raiz).forEach(function (u) {
+      if (u !== exceto && !(exceto && u.contains(exceto))) {
+        var b = u.previousElementSibling;
+        alternar(b && b.classList.contains('sub-toggle') ? b : doc.createElement('i'), u, false);
+      }
     });
   }
 
