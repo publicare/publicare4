@@ -210,6 +210,28 @@ final class FeedsTest extends TestCase
         self::assertSame(404, $pedir('/..%2Fx/feed.xml')->getStatusCode());
     }
 
+    public function testItensOcultosNaoEsgotamABusca(): void
+    {
+        $this->s->configs->definir($this->site->id, ['rss_itens' => '1']);
+        $this->noticia('Elegivel', 'elegivel', [], 'publicado', '2026-09-01 08:00:00');
+        foreach ([1, 2, 3, 4] as $i) {
+            $this->noticia("Oculta {$i}", "oculta{$i}", ['seo_nao_indexar' => 1], 'publicado', "2026-10-0{$i} 08:00:00");
+        }
+        $this->s->publicador->publicarSite($this->site);
+
+        self::assertStringContainsString('Elegivel', $this->feed());
+    }
+
+    public function testPaginaDaSecaoGanhaOLinkQuandoOFeedPassaAExistir(): void
+    {
+        $this->s->publicador->publicarSite($this->site);
+        $pagina = $this->caminhos->pagina($this->site->id, 'avisos');
+        self::assertStringNotContainsString('feed.xml', (string) file_get_contents($pagina));
+
+        $this->s->publicador->publicar($this->site, $this->noticia('Primeira', 'primeira'));
+        self::assertStringContainsString('avisos/feed.xml', (string) file_get_contents($pagina));
+    }
+
     public function testCaminhoDoFeedValidaAUrl(): void
     {
         $this->expectException(\InvalidArgumentException::class);

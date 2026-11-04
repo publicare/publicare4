@@ -65,12 +65,13 @@ final class Publicador
      * Grava (ou tira) o `feed.xml` da seção: existe só se os feeds estão ligados, há domínio principal e a seção tem itens
      * visíveis. Segue a vigência da própria página (`.expira`).
      */
-    private function publicarFeed(Site $site, Objeto $objeto): void
+    private function publicarFeed(Site $site, Objeto $objeto): bool
     {
         if ($this->feeds === null) {
-            return;
+            return false;
         }
         $arquivo = $this->caminhos->feed($site->id, $objeto->urlAmigavel);
+        $existia = is_file($arquivo);
         $xml = $this->feeds->gerar($site, $objeto);
         if ($xml === null) {
             foreach ([$arquivo, $arquivo . '.expira'] as $caminho) {
@@ -79,7 +80,7 @@ final class Publicador
                 }
             }
 
-            return;
+            return $existia;
         }
         $pasta = dirname($arquivo);
         if (!is_dir($pasta) && !@mkdir($pasta, 0775, true) && !is_dir($pasta)) {
@@ -91,6 +92,8 @@ final class Publicador
         } elseif (is_file($arquivo . '.expira')) {
             unlink($arquivo . '.expira');
         }
+
+        return !$existia;
     }
 
     /** Refaz o feed das seções publicadas acima do objeto (o caminho materializado `/1/5/9/` lista os ancestrais). */
@@ -106,7 +109,10 @@ final class Publicador
             $ancestral = $this->objetos->porId($id);
             if ($ancestral !== null && $ancestral->siteId === $site->id && $ancestral->visivel($agora)) {
                 try {
-                    $this->publicarFeed($site, $ancestral);
+                    // Feed que passou a existir (ou deixou de existir): a página da seção carrega o link alternate, então é refeita.
+                    if ($this->publicarFeed($site, $ancestral)) {
+                        $this->publicar($site, $ancestral);
+                    }
                 } catch (\InvalidArgumentException) {
                     continue; // endereço inválido (dado antigo)
                 }

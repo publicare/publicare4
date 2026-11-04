@@ -140,20 +140,26 @@ final class Feeds
     /** @return list<array{objeto: Objeto, data: string}> */
     private function itens(Site $site, Objeto $conteiner, int $limite): array
     {
-        // Folga para os `seo_nao_indexar`, que saem depois da consulta.
-        $lista = [];
-        foreach ($this->objetos->itensDeFeed($site->id, $conteiner, $limite * 3) as $par) {
-            $v = $par['objeto']->dados['seo_nao_indexar'] ?? null;
-            if ($v === 1 || $v === '1') {
-                continue;
+        // Os `seo_nao_indexar` saem depois da consulta: se a leva veio cheia e ainda falta item, busca uma leva maior.
+        $busca = $limite * 3;
+        while (true) {
+            $lista = [];
+            $achados = $this->objetos->itensDeFeed($site->id, $conteiner, $busca);
+            foreach ($achados as $par) {
+                $v = $par['objeto']->dados['seo_nao_indexar'] ?? null;
+                if ($v === 1 || $v === '1') {
+                    continue;
+                }
+                $lista[] = $par;
+                if (count($lista) >= $limite) {
+                    return $lista;
+                }
             }
-            $lista[] = $par;
-            if (count($lista) >= $limite) {
-                break;
+            if (count($achados) < $busca || $busca >= 10000) {
+                return $lista;
             }
+            $busca *= 4;
         }
-
-        return $lista;
     }
 
     private function data(string $texto): \DateTimeImmutable
