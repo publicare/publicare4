@@ -44,7 +44,13 @@
     });
     doc.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
+        var foco = doc.activeElement;
+        var lista = foco && foco.closest ? foco.closest('.menu ul.show') : null;
+        var dono = lista ? lista.previousElementSibling : null;
         fechar(doc.querySelector('.menu'), null);
+        if (dono && dono.focus) {
+          dono.focus();
+        }
       }
     });
   }
