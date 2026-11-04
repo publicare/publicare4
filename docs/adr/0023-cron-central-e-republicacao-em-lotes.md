@@ -23,3 +23,15 @@ O PBL4 dependia de várias linhas de cron avulsas (`agendados`, `publicar`, `lim
 - Sites grandes deixam de depender de comando manual: a pendência é consumida pelo cron ou pelo botão.
 - O estado em arquivos (e não em tabela) evita migração e funciona com o banco ocupado; custa uma pasta `dados/cron/` e `dados/republicacao/` gravável.
 - Pendente: tarefas de limpeza da lixeira de conteúdo (decisão humana, fora do cron) e ajuda contextual (`?`) na tela nova, a cargo do passe de UX do painel.
+
+## Adendo (2026-11-04): reinício agendado da demonstração
+
+A demo pública acumula alterações dos visitantes; o cron central ganha a tarefa `demo-reset` (classe `ReinicioDaDemoTarefa`, interface opcional `ComProgramacao` para a tela mostrar "a cada 7 dias, às 04:00" e a próxima data). Decisões:
+
+1. **Só com flag explícita** (`demo: true` em `dados/config/demo.json` ou `PBL_DEMO=1`), verificada em três lugares: o catálogo (`Catalogo::padrao($caminhos)` não inclui a tarefa), `temTrabalho` e o próprio `ReiniciadorDaDemo`, que lança antes de qualquer escrita. O arquivo fica em `dados/config/`, preservado pelo reinício.
+2. **Reinstalar reaproveitando o `Instalador` e o `DemoPopularComando --forcar`**, não shell. Apaga banco, cache, peles, uploads e `instalado.lock`; mantém `rede.json`, segredo e a flag.
+3. **Segurança**: trava `flock` própria; backup prévio de `dados/` (3 últimos); manutenção com página 503 estática; qualquer falha restaura o backup e a tarefa espera 1 h antes de tentar de novo.
+4. **Agenda própria** em `dados/demo/estado.json` (último reinício; padrão da primeira leitura = agora). O botão "Executar agora" não força o reinício; só `bin/pbl demo-resetar --agora`.
+5. **Aviso discreto** "Demo: reinicia em DD/MM às 04:00" nas páginas públicas (injetado ao publicar) e no painel.
+6. Na mesma entrega, a migração **M021** completa campos novos das classes fixas em instalações antigas (aditiva), e `garantirFixas` passa a recriar `formulario`. A M020 foi pulada de propósito; uma migração 20 criada depois não rodaria em instalações que já aplicaram a 21.
+

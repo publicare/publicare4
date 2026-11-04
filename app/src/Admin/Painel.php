@@ -10,6 +10,7 @@ use Pbl\Acesso\Rede;
 use Pbl\Acesso\SessaoAtiva;
 use Pbl\Acesso\SessaoRepositorio;
 use Pbl\Cron\PseudoCron;
+use Pbl\Demo\AvisoDaDemo;
 use Pbl\Servicos;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -49,6 +50,7 @@ final class Painel
     {
         $caminho = rtrim($requisicao->getPathInfo(), '/');
         Pagina::definirCaminho($caminho);
+        Pagina::definirAvisoDeDemo(AvisoDaDemo::linhaDoPainel($this->servicos->caminhos));
         $metodo = $requisicao->getMethod();
         // Id validado por expressão ancorada e sem ambiguidade antes de virar inteiro; a sub-rota precisa existir para o método.
         $objeto = preg_match('#^' . self::PREFIXO . '/objeto/([1-9][0-9]{0,9})(?:/([a-z]{1,20}))?$#D', $caminho, $m) === 1 ? (int) $m[1] : null;

@@ -9,6 +9,7 @@ use Pbl\Acesso\Rede;
 use Pbl\Acesso\SessaoAtiva;
 use Pbl\Acesso\Usuario;
 use Pbl\Cron\Catalogo;
+use Pbl\Cron\ComProgramacao;
 use Pbl\Cron\EstadoDoCron;
 use Pbl\Cron\Executor;
 use Pbl\Cron\Tarefa;
@@ -107,7 +108,7 @@ final class TelasDeCron
     private function executar(SessaoAtiva $sessao, Request $requisicao): Response
     {
         $id = $this->texto($requisicao, 'tarefa');
-        $tarefas = $this->tarefas ?? Catalogo::padrao();
+        $tarefas = $this->tarefas ?? Catalogo::padrao($this->servicos->caminhos);
         $tarefa = $id === null ? null : Catalogo::porId($tarefas, $id);
         if ($tarefa === null) {
             return $this->pagina($sessao, Pagina::alerta('danger', 'Tarefa desconhecida.'), Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -144,9 +145,10 @@ final class TelasDeCron
     {
         $agora = $this->estado->agora();
         $linhas = '';
-        foreach ($this->tarefas ?? Catalogo::padrao() as $t) {
+        foreach ($this->tarefas ?? Catalogo::padrao($this->servicos->caminhos) as $t) {
             $e = $this->estado->tarefa($t->id());
-            $proxima = $e['verificada_em'] > 0 ? max($agora, $e['verificada_em'] + $t->intervalo()) : $agora;
+            $programada = $t instanceof ComProgramacao;
+            $proxima = $programada ? $t->proximaExecucao($this->servicos) : ($e['verificada_em'] > 0 ? max($agora, $e['verificada_em'] + $t->intervalo()) : $agora);
             $badge = match ($e['resultado']) {
                 EstadoDoCron::OK => '<span class="badge text-bg-success">ok</span>',
                 EstadoDoCron::PARCIAL => '<span class="badge text-bg-info">em andamento</span>',
@@ -154,9 +156,9 @@ final class TelasDeCron
                 default => '<span class="badge text-bg-secondary">ainda sem trabalho</span>',
             };
             $linhas .= '<tr><td><strong>' . Pagina::h($t->nome()) . '</strong><div class="form-text mt-0">' . Pagina::h($t->descricao()) . '</div></td>'
-                . '<td>' . Pagina::h(self::frequencia($t->intervalo())) . '</td>'
+                . '<td>' . Pagina::h($t instanceof ComProgramacao ? $t->frequenciaTexto($this->servicos) : self::frequencia($t->intervalo())) . '</td>'
                 . '<td>' . ($e['executada_em'] > 0 ? self::data($e['executada_em']) : 'nunca') . '</td>'
-                . '<td>' . ($e['verificada_em'] > 0 ? self::data($proxima) : 'na próxima rodada') . '</td>'
+                . '<td>' . ($programada || $e['verificada_em'] > 0 ? self::data($proxima) : 'na próxima rodada') . '</td>'
                 . '<td>' . $badge . ($e['resumo'] === '' ? '' : '<div class="form-text mt-0">' . Pagina::h($e['resumo']) . ($e['duracao_ms'] > 0 ? ' (' . $e['duracao_ms'] . ' ms)' : '') . '</div>') . '</td>'
                 . '<td><form method="post" action="' . Painel::PREFIXO . '/tarefas/executar">' . $this->campoCsrf($sessao)
                 . '<input type="hidden" name="tarefa" value="' . Pagina::h($t->id()) . '"><button class="btn btn-sm btn-outline-primary" type="submit">Executar agora</button></form></td></tr>';

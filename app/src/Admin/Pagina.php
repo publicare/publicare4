@@ -64,6 +64,14 @@ final class Pagina
     /** @var array{0: int, 1: bool, 2: bool} */
     private static array $revisao = [0, false, false];
 
+    /** Linha de aviso da demo (HTML já escapado) no topo de toda tela do painel; vazia fora de demo. Definida por `Painel`. */
+    private static string $avisoDeDemo = '';
+
+    public static function definirAvisoDeDemo(string $html): void
+    {
+        self::$avisoDeDemo = $html;
+    }
+
     public static function definirRevisao(int $pendencias, bool $revisor, bool $envia): void
     {
         self::$revisao = [$pendencias, $revisor, $envia];
@@ -84,7 +92,7 @@ final class Pagina
             . '<link rel="stylesheet" href="' . self::urlVersionada(self::BOOTSTRAP) . '"><link rel="stylesheet" href="' . self::urlVersionada(self::CSS) . '">'
             . '<script src="' . self::urlVersionada(self::BOOTSTRAP_JS) . '" defer></script><script src="' . self::urlVersionada(self::JS) . '" defer></script>'
             . ($editor ? '<script src="' . self::urlVersionada(self::TINYMCE_JS) . '" defer></script><script src="' . self::urlVersionada(self::EDITOR_JS) . '" defer></script>' : '')
-            . '</head><body><a class="visually-hidden-focusable" href="#conteudo">Pular para o conteúdo</a>'
+            . '</head><body>' . self::$avisoDeDemo . '<a class="visually-hidden-focusable" href="#conteudo">Pular para o conteúdo</a>'
             . ($navegacao === '' ? '' : '<header>' . $navegacao . '</header>')
             . '<main id="conteudo" class="container py-3 py-md-4">' . self::migalhas($migalhas)
             . ($ajudaDaTela === '' ? '<h1 class="h3 mb-2">' . self::h($titulo) . '</h1>' : '<div class="pbl-rotulo"><h1 class="h3 mb-2">' . self::h($titulo) . '</h1>' . self::ajuda('ajuda-tela', $titulo, $ajudaDaTela) . '</div>')
