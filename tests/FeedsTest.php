@@ -224,12 +224,16 @@ final class FeedsTest extends TestCase
 
     public function testPaginaDaSecaoGanhaOLinkQuandoOFeedPassaAExistir(): void
     {
+        $pasta = $this->s->classes->porNome('pasta') ?? self::fail();
+        $extras = $this->s->objetos->criar($this->site->id, $pasta, $this->inicio->id, 'Extras', 'extras', []);
         $this->s->publicador->publicarSite($this->site);
-        $pagina = $this->caminhos->pagina($this->site->id, 'avisos');
-        self::assertStringNotContainsString('feed.xml', (string) file_get_contents($pagina));
+        $pagina = $this->caminhos->pagina($this->site->id, 'extras');
+        self::assertStringNotContainsString('extras/feed.xml', (string) file_get_contents($pagina));
 
-        $this->s->publicador->publicar($this->site, $this->noticia('Primeira', 'primeira'));
-        self::assertStringContainsString('avisos/feed.xml', (string) file_get_contents($pagina));
+        $classe = $this->s->classes->porNome('noticia') ?? self::fail();
+        $nova = $this->s->objetos->criar($this->site->id, $classe, $extras->id, 'Primeira', 'primeira-extra', []);
+        $this->s->publicador->publicar($this->site, $nova);
+        self::assertStringContainsString('extras/feed.xml', (string) file_get_contents($pagina));
     }
 
     public function testCaminhoDoFeedValidaAUrl(): void
