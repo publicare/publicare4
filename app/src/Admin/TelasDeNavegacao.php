@@ -166,7 +166,7 @@ final class TelasDeNavegacao
         $total = $this->servicos->motor->contar(new Consulta($o->siteId, $o->id, 1, $f['classe'] === null ? null : [$f['classe']], $this->condicoes($f, $agora), self::ORDENS[$f['ordem']][1], 0, 1, false, null));
         $resumos = $this->servicos->objetos->resumosParaLista(array_map(static fn (Objeto $x): int => $x->id, $lista));
 
-        $corpo = $this->avisoDoResultado($q) . $this->selosDoAtual($o, $agora) . $this->acoesDoTopo($sessao, $o) . $this->formularioDeFiltros($o, $f);
+        $corpo = $this->avisoDoResultado($q) . $this->faixaDaPilha($sessao, $o) . $this->selosDoAtual($o, $agora) . $this->acoesDoTopo($sessao, $o) . $this->formularioDeFiltros($o, $f);
         if ($lista === []) {
             $corpo .= '<p class="text-body-secondary">' . ($this->filtrando($f) ? 'Nenhum conteúdo com estes filtros neste nível.' : 'Nada dentro deste conteúdo ainda.') . '</p>';
         } else {
@@ -231,7 +231,8 @@ final class TelasDeNavegacao
         return '<strong>Posição</strong> é o peso do conteúdo (menor primeiro); para mudar, edite o conteúdo. '
             . '<strong>Publicar</strong> e <strong>Despublicar</strong> exigem papel de editor; quem é autor usa <strong>Enviar para revisão</strong>. '
             . '<strong>Mover</strong> e <strong>Excluir</strong> (vai para a lixeira, com histórico) abrem uma tela de confirmação. '
-            . 'Marque várias linhas para publicar, despublicar, enviar ou excluir de uma vez. A lixeira aparece no filtro de estado.';
+            . 'Marque várias linhas para publicar, despublicar, enviar ou excluir de uma vez. A lixeira aparece no filtro de estado. '
+            . '<strong>Copiar para a pilha</strong> e <strong>Recortar para a pilha</strong> separam itens (nas linhas, em "Mais", ou marcados) para <strong>Colar aqui</strong> em outra pasta: ver o "?" da faixa da pilha.';
     }
 
     /** @return list<array{0: string, 1: string|null}> */
@@ -376,7 +377,9 @@ final class TelasDeNavegacao
             . '<div><label for="campo-lote" class="form-label mb-0">Com os selecionados</label><select id="campo-lote" name="acao" class="form-select form-select-sm">'
             . '<option value="publicar">Publicar</option><option value="despublicar">Despublicar</option><option value="enviar">Enviar para revisão</option><option value="excluir">Mandar para a lixeira</option></select></div>'
             . '<button type="submit" class="btn btn-sm btn-outline-primary">Aplicar aos selecionados</button>'
-            . '<span class="small text-body-secondary">Para mover, abra "Mais" na linha.</span></form>';
+            . '<button type="submit" class="btn btn-sm btn-outline-secondary" name="modo" value="copiar" formaction="' . Painel::PREFIXO . '/pilha/adicionar">Copiar para a pilha</button>'
+            . '<button type="submit" class="btn btn-sm btn-outline-secondary" name="modo" value="recortar" formaction="' . Painel::PREFIXO . '/pilha/adicionar">Recortar para a pilha</button>'
+            . '<span class="small text-body-secondary">Para mover, recorte para a pilha ou abra "Mais" na linha.</span></form>';
     }
 
     private function acoesDaLinha(SessaoAtiva $sessao, Objeto $x, int $filhos, int $nivel, string $volta, string $csrf): string
@@ -401,6 +404,12 @@ final class TelasDeNavegacao
             $mais .= '<li><a class="dropdown-item" href="' . Pagina::h($publica) . '" target="_blank" rel="noopener">Ver página pública</a></li>';
         }
         $mais .= '<li><a class="dropdown-item" href="' . $this->objeto($x->id) . '/versoes">Histórico</a></li>';
+        if (!$naLixeira && $x->paiId !== null) {
+            $mais .= '<li>' . $this->formularioDePilha('copiar', 'Copiar para a pilha', $x, $nivel, $csrf) . '</li>';
+            if ($this->pode($sessao, Acao::Editar, $x)) {
+                $mais .= '<li>' . $this->formularioDePilha('recortar', 'Recortar para a pilha', $x, $nivel, $csrf) . '</li>';
+            }
+        }
         if (!$naLixeira && $x->paiId !== null && $this->pode($sessao, Acao::Apagar, $x)) {
             $mais .= '<li><a class="dropdown-item" href="' . $this->objeto($x->id) . '/mover">Mover</a></li>'
                 . '<li><a class="dropdown-item text-danger" href="' . $this->objeto($x->id) . '/apagar">Excluir (lixeira)</a></li>';
@@ -412,6 +421,37 @@ final class TelasDeNavegacao
 
         return '<div class="pbl-linha-acoes">' . $b . '<span class="dropdown d-inline-block"><button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Mais'
             . '<span class="visually-hidden"> ações de ' . Pagina::h($x->titulo) . '</span></button><ul class="dropdown-menu dropdown-menu-end">' . $mais . '</ul></span></div>';
+    }
+
+    private function formularioDePilha(string $modo, string $rotulo, Objeto $x, int $nivel, string $csrf): string
+    {
+        return '<form method="post" action="' . Painel::PREFIXO . '/pilha/adicionar">' . $csrf
+            . '<input type="hidden" name="modo" value="' . $modo . '"><input type="hidden" name="ids[]" value="' . $x->id . '"><input type="hidden" name="versao[' . $x->id . ']" value="' . $x->versao . '">'
+            . '<input type="hidden" name="nivel" value="' . $nivel . '"><button type="submit" class="dropdown-item">' . Pagina::h($rotulo) . '<span class="visually-hidden"> ' . Pagina::h($x->titulo) . '</span></button></form>';
+    }
+
+    /**
+     * A faixa da pilha (fase 5r, ADR 0025): só aparece quando há itens separados. "Colar aqui" leva à previsão deste nível como
+     * destino (só para quem pode criar aqui); "Ver a pilha" lista os itens; "Esvaziar" limpa.
+     */
+    private function faixaDaPilha(SessaoAtiva $sessao, Objeto $atual): string
+    {
+        $itens = $this->servicos->pilha->itens($sessao->usuario->id);
+        if ($itens === []) {
+            return '';
+        }
+        $recortar = $itens[0]['modo'] === 'recortar';
+        $botoes = '';
+        if ($atual->status !== self::LIXEIRA && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $atual) && $atual->siteId === $itens[0]['site_id']) {
+            $botoes .= '<a class="btn btn-sm btn-success bg-gradient" href="' . Painel::PREFIXO . '/pilha/colar/' . $atual->id . '">Colar aqui</a> ';
+        }
+        $botoes .= '<a class="btn btn-sm btn-outline-secondary" href="' . Painel::PREFIXO . '/pilha">Ver a pilha</a> '
+            . '<form method="post" action="' . Painel::PREFIXO . '/pilha/esvaziar" class="d-inline">' . $this->campoCsrf($sessao) . '<input type="hidden" name="nivel" value="' . $atual->id . '">'
+            . '<button type="submit" class="btn btn-sm btn-outline-danger bg-gradient">Esvaziar</button></form>';
+
+        return '<div class="alert alert-info d-flex flex-wrap align-items-center gap-2" role="status"><span>'
+            . count($itens) . ($recortar ? (count($itens) === 1 ? ' item recortado' : ' itens recortados') : (count($itens) === 1 ? ' item copiado' : ' itens copiados')) . ' na pilha.</span>'
+            . '<span class="ms-auto d-flex flex-wrap align-items-center gap-2">' . $botoes . Pagina::ajuda('ajuda-pilha', 'Pilha', TelasDePilha::ajudaDaPilha()) . '</span></div>';
     }
 
     private function formularioUnico(string $acao, string $rotulo, string $classe, Objeto $x, int $nivel, string $volta, string $csrf): string
@@ -648,6 +688,9 @@ final class TelasDeNavegacao
         }
         if ($ok === 'nada') {
             return Pagina::alerta('secondary', 'Nada foi marcado.');
+        }
+        if (str_starts_with($ok, 'pilha_')) {
+            return TelasDePilha::aviso($q);
         }
         $verbo = ['publicar' => ['publicado', 'publicados'], 'despublicar' => ['despublicado', 'despublicados'], 'enviar' => ['enviado para revisão', 'enviados para revisão'], 'excluir' => ['enviado para a lixeira', 'enviados para a lixeira']][$ok] ?? null;
         $n = $this->numero($q['n'] ?? null);

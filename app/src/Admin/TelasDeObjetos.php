@@ -226,7 +226,7 @@ final class TelasDeObjetos
         $total = $this->servicos->motor->contar($consulta);
         $agora = gmdate('c');
 
-        $corpo = $this->migalhas($sessao, $o) . $this->aviso($q['salvo'] ?? null);
+        $corpo = $this->migalhas($sessao, $o) . $this->aviso($q['salvo'] ?? null) . TelasDePilha::aviso($q);
         if ($o->status === self::LIXEIRA) {
             $corpo .= Pagina::alerta('warning', 'Este conteúdo está na lixeira: fora do ar e sem edição. ' . ($this->pode($sessao, Acao::Apagar, $o)
                 ? '<form method="post" action="' . $this->link($o->id) . '/recuperar" class="d-inline">' . $this->camposOcultos($sessao, $o->versao)
@@ -510,6 +510,24 @@ final class TelasDeObjetos
         foreach ($outras as [$rotulo, $href, $perigo]) {
             $desktop .= '<a class="btn ' . ($perigo ? 'btn-outline-danger' : 'btn-outline-secondary') . '" href="' . Pagina::h($href) . '">' . Pagina::h($rotulo) . '</a>';
             $menu .= '<li><a class="dropdown-item' . ($perigo ? ' text-danger' : '') . '" href="' . Pagina::h($href) . '">' . Pagina::h($rotulo) . '</a></li>';
+        }
+
+        if (!$naLixeira && $o->paiId !== null) {
+            $csrf = '<input type="hidden" name="_csrf" value="' . Pagina::h($this->csrf->daSessao($sessao->idHash)) . '">';
+            $modos = [['copiar', 'Copiar para a pilha']];
+            if ($this->pode($sessao, Acao::Editar, $o)) {
+                $modos[] = ['recortar', 'Recortar para a pilha'];
+            }
+            foreach ($modos as [$modo, $rotulo]) {
+                $campos = $csrf . '<input type="hidden" name="modo" value="' . $modo . '"><input type="hidden" name="ids[]" value="' . $o->id . '"><input type="hidden" name="versao[' . $o->id . ']" value="' . $o->versao . '">'
+                    . '<input type="hidden" name="nivel" value="' . $o->id . '"><input type="hidden" name="tela" value="objeto">';
+                $desktop .= '<form method="post" action="' . Painel::PREFIXO . '/pilha/adicionar" class="d-inline">' . $campos . '<button type="submit" class="btn btn-outline-secondary">' . Pagina::h($rotulo) . '</button></form>';
+                $menu .= '<li><form method="post" action="' . Painel::PREFIXO . '/pilha/adicionar">' . $campos . '<button type="submit" class="dropdown-item">' . Pagina::h($rotulo) . '</button></form></li>';
+            }
+        }
+        if (!$naLixeira && $this->servicos->pilha->contar($sessao->usuario->id) > 0 && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o)) {
+            $desktop .= '<a class="btn btn-success bg-gradient" href="' . Painel::PREFIXO . '/pilha/colar/' . $o->id . '">Colar aqui</a>';
+            $menu .= '<li><a class="dropdown-item" href="' . Painel::PREFIXO . '/pilha/colar/' . $o->id . '">Colar aqui</a></li>';
         }
 
         return '<div class="pbl-barra-acoes">' . $editar

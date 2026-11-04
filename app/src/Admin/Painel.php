@@ -62,6 +62,7 @@ final class Painel
         $rotaDeCron = TelasDeCron::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeRevisao = TelasDeRevisao::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeNavegacao = TelasDeNavegacao::rota(self::PREFIXO, $caminho, $metodo);
+        $rotaDePilha = TelasDePilha::rota(self::PREFIXO, $caminho, $metodo);
         $resposta = match (true) {
             $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s)),
             ApiDeAcoes::atende($caminho, $metodo) => $this->api($requisicao, $caminho),
@@ -75,6 +76,7 @@ final class Painel
             $rotaDeCron !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeCron($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeCron, $requisicao)),
             $rotaDeRevisao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeRevisao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeRevisao, $requisicao)),
             $rotaDeNavegacao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeNavegacao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeNavegacao, $requisicao)),
+            $rotaDePilha !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDePilha($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDePilha, $requisicao)),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'GET' => $this->formularioDeEntrar($requisicao),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'POST' => $this->entrar($requisicao),
             $caminho === self::PREFIXO . '/sair' && $metodo === 'POST' => $this->sair($requisicao),

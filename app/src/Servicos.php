@@ -25,6 +25,7 @@ use Pbl\Conteudo\ConfigDoSiteRepositorio;
 use Pbl\Conteudo\DominioRepositorio;
 use Pbl\Conteudo\FluxoDeRevisao;
 use Pbl\Conteudo\ObjetoRepositorio;
+use Pbl\Conteudo\Pilha;
 use Pbl\Conteudo\RedirecionamentoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
 use Pbl\Formularios\FormularioParaMolde;
@@ -66,6 +67,8 @@ final class Servicos
     public readonly ArquivoRepositorio $arquivos;
     /** Fluxo de revisão (fase 6): enviar, retirar, aprovar, devolver e a fila de quem revisa. */
     public readonly FluxoDeRevisao $revisao;
+    /** A pilha de copiar/recortar/colar de cada conta (fase 5r). */
+    public readonly Pilha $pilha;
 
     private ?string $segredo = null;
 
@@ -75,6 +78,7 @@ final class Servicos
         $this->auditoria = new Auditoria($conexao);
         $this->objetos = new ObjetoRepositorio($conexao, $this->auditoria);
         $this->arquivos = new ArquivoRepositorio($conexao);
+        $this->pilha = new Pilha($conexao);
         $this->sites = new SiteRepositorio($conexao);
         $this->motor = new MotorDeConsulta($conexao, $this->objetos);
         $this->dominios = new DominioRepositorio($conexao);
