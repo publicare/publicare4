@@ -11,7 +11,7 @@ Nome, idioma, textos de SEO, contato, rodapé, busca e profundidade do menu esta
 ### 1. Catálogo no código, valores no banco
 `Pbl\Conteudo\ConfigDoSite` é a lista fechada de chaves (tipo, padrão, rótulo, ajuda e validação). Os valores ficam na tabela `site_config` (`site_id`, `chave`, `valor` em JSON, `atualizado_em`; chave primária `site_id` + `chave`), criada pela migração 17, **idempotente** (confere a tabela antes de criar; o `Migrador` guarda só a maior versão aplicada) e aditiva ([ADR 0006](0006-atualizador-automatico.md)). Chave fora do catálogo é rejeitada; valor vazio apaga a linha e volta ao padrão. Nada aqui é segredo: tudo pode aparecer no HTML público.
 
-Chaves: `nome`, `slogan`, `idioma`, `descricao`, `imagem_padrao`, `titulo_padrao`, `titulo_sufixo`, `icone`, `email_contato`, `telefone`, `endereco`, `redes_sociais`, `analytics`, `rodape`, `busca_ligada`, `itens_por_pagina`, `menu_profundidade`, `robots_indexar`.
+Chaves: `nome`, `slogan`, `idioma`, `descricao`, `imagem_padrao`, `titulo_padrao`, `titulo_sufixo`, `icone`, `email_contato`, `telefone`, `endereco`, `redes_sociais`, `analytics`, `rodape`, `busca_ligada`, `itens_por_pagina`, `menu_profundidade`, `rss_ligado`, `rss_itens`, `robots_indexar`.
 
 ### 2. Validação por tipo
 Texto (tamanho máximo, sem caracteres de controle), idioma (`pt-BR`, `en`...), e-mail, telefone, inteiro com faixa, booleano, lista de endereços `http`/`https` (até 10; `javascript:` e outros esquemas são recusados), arquivo (número de uma **imagem do mesmo site**, conferido pelo repositório) e HTML (`HtmlSeguro`, como o resto do conteúdo). **Analytics guarda só o identificador** (`[A-Za-z0-9_-]{3,40}`), nunca um script. Se qualquer chave for recusada, nada é gravado.

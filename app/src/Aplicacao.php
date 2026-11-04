@@ -120,6 +120,13 @@ final class Aplicacao
                 return new RedirectResponse($this->comConsulta($requisicao, $regra['destino']), $regra['codigo']);
             }
 
+            if ($arquivo === null && in_array($requisicao->getMethod(), ['GET', 'HEAD'], true)) {
+                $feed = $this->feed($site, $url);
+                if ($feed !== null) {
+                    return $feed;
+                }
+            }
+
             if ($arquivo === null && SitemapERobots::atende($pedido) && in_array($requisicao->getMethod(), ['GET', 'HEAD'], true)) {
                 $r = (new SitemapERobots($servicos))->tratar($site, $pedido);
                 if ($r !== null) {
@@ -146,6 +153,26 @@ final class Aplicacao
         }
 
         return new Response((string) file_get_contents($arquivo), Response::HTTP_OK, $cabecalhos);
+    }
+
+    /** `<seção>/feed.xml` (ou `feed.xml` na raiz): o RSS estático gravado na publicação; sem arquivo (ou vencido), segue o 404 normal. */
+    private function feed(Site $site, string $url): ?Response
+    {
+        if ($url !== 'feed.xml' && !str_ends_with($url, '/feed.xml')) {
+            return null;
+        }
+        $secao = $url === 'feed.xml' ? '' : substr($url, 0, -9);
+        if (!Caminhos::urlValida($secao)) {
+            return null;
+        }
+        $arquivo = $this->caminhos->feed($site->id, $secao);
+        if (!is_file($arquivo) || (is_file($arquivo . '.expira') && trim((string) file_get_contents($arquivo . '.expira')) < gmdate('c'))) {
+            return null;
+        }
+
+        return new Response((string) file_get_contents($arquivo), Response::HTTP_OK, [
+            'Content-Type' => 'application/rss+xml; charset=utf-8', 'Cache-Control' => 'public, max-age=900', 'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     /** 404 de página pública: o molde `erro404` da pele, se houver; senão o texto simples de sempre. */
