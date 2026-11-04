@@ -27,6 +27,7 @@ use Pbl\Conteudo\FluxoDeRevisao;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\RedirecionamentoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
+use Pbl\Conteudo\TagRepositorio;
 use Pbl\Formularios\FormularioParaMolde;
 use Pbl\Formularios\FormularioRepositorio;
 use Pbl\Linguagem\Compilador;
@@ -44,6 +45,7 @@ final class Servicos
 {
     public readonly ClasseRepositorio $classes;
     public readonly ObjetoRepositorio $objetos;
+    public readonly TagRepositorio $tags;
     public readonly SiteRepositorio $sites;
     public readonly ConfigDoSiteRepositorio $configs;
     public readonly MotorDeConsulta $motor;
@@ -73,6 +75,7 @@ final class Servicos
         $this->classes = new ClasseRepositorio($conexao);
         $this->auditoria = new Auditoria($conexao);
         $this->objetos = new ObjetoRepositorio($conexao, $this->auditoria);
+        $this->tags = new TagRepositorio($conexao);
         $this->arquivos = new ArquivoRepositorio($conexao);
         $this->sites = new SiteRepositorio($conexao);
         $this->motor = new MotorDeConsulta($conexao, $this->objetos);
