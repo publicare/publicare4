@@ -32,6 +32,7 @@ final class Publicador
         private readonly ObjetoRepositorio $objetos,
         private readonly Renderizador $renderizador,
         private readonly ?MenuDoSite $menu = null,
+        private readonly ?Feeds $feeds = null,
     ) {
     }
 
@@ -49,11 +50,74 @@ final class Publicador
         } elseif (is_file($arquivo . '.expira')) {
             unlink($arquivo . '.expira');
         }
+        $this->publicarFeed($site, $objeto);
+        if (!$this->emLote) {
+            $this->atualizarFeedsDosAncestrais($site, $objeto); // o item novo (ou editado) entra nos feeds das seções acima dele
+        }
         if ($mudouMenu) {
             $this->republicarPorMenu($site);
         }
 
         return $arquivo;
+    }
+
+    /**
+     * Grava (ou tira) o `feed.xml` da seção: existe só se os feeds estão ligados, há domínio principal e a seção tem itens
+     * visíveis. Segue a vigência da própria página (`.expira`).
+     */
+    private function publicarFeed(Site $site, Objeto $objeto): bool
+    {
+        if ($this->feeds === null) {
+            return false;
+        }
+        $arquivo = $this->caminhos->feed($site->id, $objeto->urlAmigavel);
+        $existia = is_file($arquivo);
+        $xml = $this->feeds->gerar($site, $objeto);
+        if ($xml === null) {
+            foreach ([$arquivo, $arquivo . '.expira'] as $caminho) {
+                if (is_file($caminho)) {
+                    unlink($caminho);
+                }
+            }
+
+            return $existia;
+        }
+        $pasta = dirname($arquivo);
+        if (!is_dir($pasta) && !@mkdir($pasta, 0775, true) && !is_dir($pasta)) {
+            throw new \RuntimeException("Não foi possível criar {$pasta}");
+        }
+        $this->gravar($arquivo, $xml);
+        if ($objeto->dataValidade !== null) {
+            $this->gravar($arquivo . '.expira', $objeto->dataValidade);
+        } elseif (is_file($arquivo . '.expira')) {
+            unlink($arquivo . '.expira');
+        }
+
+        return !$existia;
+    }
+
+    /** Refaz o feed das seções publicadas acima do objeto (o caminho materializado `/1/5/9/` lista os ancestrais). */
+    private function atualizarFeedsDosAncestrais(Site $site, Objeto $objeto): void
+    {
+        if ($this->feeds === null) {
+            return;
+        }
+        $ids = array_map('intval', array_filter(explode('/', $objeto->caminho), static fn (string $p): bool => $p !== ''));
+        array_pop($ids); // o próprio objeto
+        $agora = gmdate('c');
+        foreach ($ids as $id) {
+            $ancestral = $this->objetos->porId($id);
+            if ($ancestral !== null && $ancestral->siteId === $site->id && $ancestral->visivel($agora)) {
+                try {
+                    // Feed que passou a existir (ou deixou de existir): a página da seção carrega o link alternate, então é refeita.
+                    if ($this->publicarFeed($site, $ancestral)) {
+                        $this->publicar($site, $ancestral);
+                    }
+                } catch (\InvalidArgumentException) {
+                    continue; // endereço inválido (dado antigo)
+                }
+            }
+        }
     }
 
     /** O menu do site tem uma republicação pendente (alguma edição mudou o hash e o site ainda não foi refeito)? */
@@ -300,7 +364,19 @@ final class Publicador
         }
         $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($pasta, \FilesystemIterator::SKIP_DOTS));
         foreach ($it as $f) {
-            if (!$f instanceof \SplFileInfo || !str_ends_with($f->getFilename(), '.html')) {
+            if (!$f instanceof \SplFileInfo) {
+                continue;
+            }
+            if ($f->getFilename() === 'feed.xml') {
+                // O feed vive na pasta da seção: sem página publicada naquele endereço, não há feed.
+                $secao = substr(dirname($f->getPathname()), strlen($pasta) + 1);
+                if (!isset($publicadas[$secao])) {
+                    @unlink($f->getPathname());
+                    @unlink($f->getPathname() . '.expira');
+                }
+                continue;
+            }
+            if (!str_ends_with($f->getFilename(), '.html')) {
                 continue;
             }
             $relativo = substr($f->getPathname(), strlen($pasta) + 1, -5);
@@ -318,6 +394,7 @@ final class Publicador
     public function despublicar(Site $site, Objeto $objeto): void
     {
         $this->remover($site, $objeto);
+        $this->atualizarFeedsDosAncestrais($site, $objeto); // o item sai dos feeds das seções acima dele
         if ($this->menu?->verificar($site, 'publicacao') === true) {
             $this->republicarPorMenu($site);
         }
@@ -326,7 +403,10 @@ final class Publicador
     private function remover(Site $site, Objeto $objeto): void
     {
         $arquivo = $this->caminhos->pagina($site->id, $objeto->urlAmigavel);
-        foreach ([$arquivo, $arquivo . '.expira'] as $caminho) {
+        $alvos = [$arquivo, $arquivo . '.expira'];
+        $feed = $this->caminhos->feed($site->id, $objeto->urlAmigavel);
+        array_push($alvos, $feed, $feed . '.expira');
+        foreach ($alvos as $caminho) {
             if (is_file($caminho) || is_link($caminho)) {
                 unlink($caminho);
             }

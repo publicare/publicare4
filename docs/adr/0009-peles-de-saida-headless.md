@@ -29,3 +29,9 @@ O PBL3 já servia mais que HTML: RSS, XML, mapas de site e exportações eram "p
 - Separar back e front fica possível sem trocar de produto; portais, apps e sites estáticos consomem o mesmo conteúdo.
 - O custo é decidir cedo o **tipo de saída da pele** (manifesto e cache), mesmo que o JSON só chegue depois do MVP. O restante entra em "Em seguida".
 - Cuidado de modelagem: a API de conteúdo é contrato público; mudar sem versionar quebra clientes.
+
+## Adendo (2026-11-04): feed RSS
+
+Primeira saída alternativa entregue: **RSS 2.0**, por seção e para o site. Não é um molde de pele, é um serializador nativo (`Pbl\Publicacao\Feeds`, árvore DOM, então o escape é sempre correto). O `Publicador` grava `feed.xml` ao lado da página e atualiza os feeds das seções ancestrais quando um item entra ou sai do ar; `Aplicacao` serve o arquivo como `application/rss+xml`. Só entra conteúdo publicado e vigente, sem `seo_nao_indexar`; endereços absolutos pelo domínio principal. Configuração: `rss_ligado` e `rss_itens` (ADR 0017). As peles da casa declaram `<link rel="alternate">`. Sem migração.
+
+**Ainda pendente:** Atom, peles de saída JSON/XML/CSV e o tipo de saída no manifesto da pele.

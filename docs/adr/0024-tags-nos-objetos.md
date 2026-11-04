@@ -8,7 +8,7 @@ O PBL3 tinha tags nos objetos (`localizar tags=…`, `#tags`, nuvem). O converso
 
 ## Decisão
 
-1. **Modelo**: tabelas `tag` (por site: `nome` e `slug`, único por `site_id`+`slug`) e `objeto_tag` (migração M020, só adiciona tabelas). A tag se identifica pelo **slug** (sem acento, minúsculo, hífens): "Eventos 2026" e "eventos-2026" são a mesma, e vale a primeira grafia digitada. Criada ao salvar o objeto; a que fica sem objeto é apagada.
+1. **Modelo**: tabelas `tag` (por site: `nome` e `slug`, único por `site_id`+`slug`) e `objeto_tag` (migração M022, só adiciona tabelas). A tag se identifica pelo **slug** (sem acento, minúsculo, hífens): "Eventos 2026" e "eventos-2026" são a mesma, e vale a primeira grafia digitada. Criada ao salvar o objeto; a que fica sem objeto é apagada.
 2. **Limites**: 20 tags por objeto, 40 caracteres por tag; excesso vira erro de formulário e nada é gravado.
 3. **Edição**: campo "Tags" (separadas por vírgula, `;` ou linha) no cartão Identificação, com ajuda no "?". Mesma permissão, versão otimista e auditoria de editar (a auditoria registra que `tags` mudou, nunca os nomes). Campo ausente no POST não mexe nas tags.
 4. **Histórico**: a versão do objeto guarda `_tags` junto de `_menu`; restaurar volta as tags. Versão antiga sem `_tags` não mexe nas atuais.

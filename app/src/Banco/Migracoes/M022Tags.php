@@ -12,11 +12,11 @@ use Pbl\Banco\Migracao;
  * Tags nos objetos (fase 5r, ADR 0024): `tag` é por site (nome + slug únicos no site) e `objeto_tag` liga objeto e tag.
  * Só adiciona tabelas; a versão anterior do código as ignora (ADR 0006).
  */
-final class M020Tags implements Migracao
+final class M022Tags implements Migracao
 {
     public function versao(): int
     {
-        return 20;
+        return 22;
     }
 
     public function aplicar(Connection $conexao): void

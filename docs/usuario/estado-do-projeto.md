@@ -67,6 +67,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | **Barra de edição nas páginas do site** para quem está logado (editar, publicar, despublicar, mover, excluir) e botão **Gravar e publicar** na edição | ✅ |
 | Consultas com até três condições, comparações (maior, menor, contém) e carga rápida de listas | ✅ |
 | **Upload de arquivo e imagem**: um tipo de conteúdo pode ter um campo de arquivo (documento) ou de imagem, com os tipos aceitos e o tamanho máximo configuráveis por campo; você envia pelo navegador, ao criar ou editar o conteúdo (na criação, o envio e a criação são uma coisa só: se o arquivo falhar, nada é criado), e o PBL4 confere o tipo de verdade (não só pelo nome), recodifica a imagem quando possível e só mostra o arquivo em páginas publicadas. Os moldes mostram o link, o nome, o tamanho, o tipo e a miniatura do arquivo | ✅ (veja o [ADR 0014](../adr/0014-upload-de-arquivos.md)) |
+| **Feed RSS** de cada seção (`/<seção>/feed.xml`) e do site (`/feed.xml`), atualizado ao publicar, só com o que já está no ar; liga e desliga e escolhe quantos itens nas configurações do site | ✅ (só RSS; Atom e saídas JSON/XML ainda não) |
 
 ## O que vem a seguir
 

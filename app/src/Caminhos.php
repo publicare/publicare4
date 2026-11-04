@@ -81,6 +81,19 @@ final class Caminhos
         return $this->cache() . "/paginas/{$siteId}/" . ($urlAmigavel === '' ? 'index' : $urlAmigavel) . '.html';
     }
 
+    /**
+     * Feed RSS de uma seção (`<url>/feed.xml`; o da página inicial é `feed.xml` na raiz do site). Vive ao lado das páginas
+     * `.html`, que nunca terminam em `.xml`, então não há colisão com nenhum endereço de conteúdo.
+     */
+    public function feed(int $siteId, string $urlAmigavel): string
+    {
+        if (!self::urlValida($urlAmigavel)) {
+            throw new \InvalidArgumentException('URL inválida');
+        }
+
+        return $this->cache() . "/paginas/{$siteId}" . ($urlAmigavel === '' ? '' : '/' . $urlAmigavel) . '/feed.xml';
+    }
+
     /** Pasta das páginas publicadas de um site. */
     public function paginasDoSite(int $siteId): string
     {
