@@ -83,6 +83,10 @@ final class Gerador
                 $codigo .= "    echo \$r->formulario({$o}, " . $this->mapa($no->params, $nivel) . ");\n";
             } elseif ($no instanceof NoMenu) {
                 $codigo .= "    echo \$r->menu({$o}, " . $this->mapa($no->params, $nivel) . ");\n";
+            } elseif ($no instanceof NoTags) {
+                $codigo .= "    echo \$r->tags({$o});\n";
+            } elseif ($no instanceof NoNuvem) {
+                $codigo .= "    echo \$r->nuvem({$o}, " . $this->mapa($no->params, $nivel) . ");\n";
             } elseif ($no instanceof NoArquivo) {
                 $codigo .= "    echo \$r->esc(\$r->arquivoInfo({$o}, " . $this->mapa($no->params, $nivel) . "));\n";
             } elseif ($no instanceof NoMiniatura) {

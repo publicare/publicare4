@@ -59,6 +59,16 @@ final class LinguagemTest extends TestCase
                 return $this->arquivos[$id] ?? null;
             }
 
+            public function tagsDoObjeto(array $objeto): array
+            {
+                return [['nome' => 'Educação', 'slug' => 'educacao'], ['nome' => 'A <b>', 'slug' => 'a-b']];
+            }
+
+            public function nuvemDeTags(array $objeto, int $limite): array
+            {
+                return [['nome' => 'Grande', 'slug' => 'grande', 'total' => 9], ['nome' => 'Pequena', 'slug' => 'pequena', 'total' => 1], ['nome' => 'Média', 'slug' => 'media', 'total' => 5]];
+            }
+
             public function filhos(array $objeto, array $filtros): array
             {
                 return $this->filtrar($filtros);
@@ -149,6 +159,22 @@ final class LinguagemTest extends TestCase
         self::assertSame('<form data-id="3"></form>', $this->render('<@formulario@>', ['id' => 3]));
         $this->expectException(ErroSintaxe::class);
         $this->render('<@formulario nome=1@>');
+    }
+
+    public function testComandosTagsENuvemImprimemLinksEscapados(): void
+    {
+        self::assertSame(
+            '<ul class="pbl-tags"><li><a href="/tag/educacao" rel="tag">Educação</a></li><li><a href="/tag/a-b" rel="tag">A &lt;b&gt;</a></li></ul>',
+            $this->render('<@tags@>', ['id' => 3]),
+        );
+        self::assertSame(
+            '<ul class="pbl-nuvem"><li class="peso-5"><a href="/tag/grande" rel="tag">Grande</a></li><li class="peso-3"><a href="/tag/media" rel="tag">Média</a></li><li class="peso-1"><a href="/tag/pequena" rel="tag">Pequena</a></li></ul>',
+            $this->render('<@nuvem limite=5@>', ['id' => 3]),
+        );
+        // O parâmetro tag= é aceito em filhos e localizar.
+        self::assertSame('', $this->render('<@filhos tag="x"@>a<@/filhos@>', ['id' => 3]));
+        $this->expectException(ErroSintaxe::class);
+        $this->render('<@tags nome=1@>');
     }
 
     public function testComandoArquivoImprimeCadaInfoSempreEscapada(): void
