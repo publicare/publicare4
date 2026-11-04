@@ -20,6 +20,7 @@ final class Renderizador
         private readonly ClasseRepositorio $classes,
         private readonly Compilador $compilador,
         private readonly ?Aparencia $aparencia = null,
+        private readonly ?Feeds $feeds = null,
     ) {
     }
 
@@ -98,6 +99,10 @@ final class Renderizador
         $contexto['raiz_pele_url'] = $this->aparencia->urlDaRaiz($site, $raizDaPele);
         $contexto['raiz_pele'] = $inicio ?? '';
         $contexto['migalhas'] = $this->aparencia->migalhas($objeto, $inicio);
+        // `#feed_url`: feed RSS desta página (se for seção com itens); `#feed_site_url`: o do site. Vazios se não existem.
+        $contexto['feed_url'] = $this->feeds?->url($site, $objeto) ?? '';
+        $contexto['feed_site_url'] = $site->objetoRaizId === $objeto->id ? $contexto['feed_url'] : ($this->feeds?->urlDaRaiz($site) ?? '');
+        $contexto['feed_titulo'] = $objeto->titulo;
 
         return $contexto;
     }

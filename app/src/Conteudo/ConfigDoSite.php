@@ -50,6 +50,8 @@ final class ConfigDoSite
             'busca_ligada' => ['tipo' => self::BOOLEANO, 'padrao' => true, 'rotulo' => 'Busca ligada', 'ajuda' => 'Desligada, a página /busca responde "não encontrado".'],
             'itens_por_pagina' => ['tipo' => self::INTEIRO, 'padrao' => 10, 'rotulo' => 'Itens por página nas listagens', 'ajuda' => 'De 1 a 50.', 'min' => 1, 'max' => 50],
             'menu_profundidade' => ['tipo' => self::INTEIRO, 'padrao' => 0, 'rotulo' => 'Profundidade do menu', 'ajuda' => 'De 1 a 5, limitada pelo teto global (PBL_MENU_PROFUNDIDADE); 0: vale o teto global.', 'min' => 0, 'max' => 5],
+            'rss_ligado' => ['tipo' => self::BOOLEANO, 'padrao' => true, 'rotulo' => 'Feeds RSS ligados', 'ajuda' => 'Gera um feed.xml (RSS 2.0) para a página inicial e para cada seção com conteúdo publicado; exige domínio principal. Desligado, os feeds saem do ar.'],
+            'rss_itens' => ['tipo' => self::INTEIRO, 'padrao' => 20, 'rotulo' => 'Itens por feed RSS', 'ajuda' => 'Quantos itens mais recentes cada feed traz; de 1 a 100.', 'min' => 1, 'max' => 100],
             'robots_indexar' => ['tipo' => self::BOOLEANO, 'padrao' => true, 'rotulo' => 'Permitir indexação por buscadores', 'ajuda' => 'Desmarcado, as páginas saem com "noindex".'],
         ];
     }
