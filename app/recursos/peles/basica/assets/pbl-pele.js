@@ -44,7 +44,16 @@
     });
     doc.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
-        fechar(doc.querySelector('.menu'), null);
+        var foco = doc.activeElement;
+        var lista = foco && foco.closest ? foco.closest('.menu ul.show') : null;
+        var dono = lista ? lista.previousElementSibling : null;
+        if (lista && dono) {
+          todos('ul.show', lista).forEach(function (u) { alternar(u.previousElementSibling, u, false); });
+          alternar(dono, lista, false);
+          dono.focus();
+        } else {
+          fechar(doc.querySelector('.menu'), null);
+        }
       }
     });
   }
