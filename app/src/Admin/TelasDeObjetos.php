@@ -678,7 +678,7 @@ final class TelasDeObjetos
                 $ok = false;
             }
         }
-        if (isset($mudancas['tags'])) {
+        if (isset($mudancas['tags']) || $this->visibilidadeMudou($o, $novo)) {
             $ok = $this->republicarPorTags($o, $novo) && $ok;
         }
         $agendado = $vigente !== [] && $novo->status === 'publicado' && $novo->dataPublicacao !== null && $novo->dataPublicacao > gmdate('c');
@@ -1440,6 +1440,9 @@ final class TelasDeObjetos
             return $this->telaDeEstado($sessao, $atual, $estado, $inicio, $fim, $atual->versao, ['_' => $erro], Response::HTTP_CONFLICT);
         }
         $ok = $this->sincronizar($novo, $this->pai($novo));
+        if ($this->visibilidadeMudou($o, $novo)) {
+            $ok = $this->republicarPorTags($o, $novo) && $ok;
+        }
         $agendado = $novo->status === 'publicado' && $novo->dataPublicacao !== null && $novo->dataPublicacao > gmdate('c');
 
         return new RedirectResponse(self::urlDaPrevia($novo->id, !$ok ? 'aviso' : ($o->status === 'publicado' && $novo->status !== 'publicado' ? 'despublicado' : ($agendado ? 'agendado' : 'estado'))), Response::HTTP_SEE_OTHER);
@@ -1869,6 +1872,9 @@ final class TelasDeObjetos
         }
         $pai = $this->pai($novo);
         $ok = $this->sincronizar($novo, $pai);
+        if ($this->visibilidadeMudou($o, $novo)) {
+            $ok = $this->republicarPorTags($o, $novo) && $ok;
+        }
         // Volta para a página-mãe se a pessoa pode vê-la (quem cuida só desta seção fica na própria página, agora na lixeira).
         $destino = $pai !== null && $this->pode($sessao, Acao::Ver, $pai) ? $pai : $novo;
 
@@ -2018,6 +2024,14 @@ final class TelasDeObjetos
      * O conjunto de tags mudou: a nuvem e as listas por tag das páginas já publicadas ficam velhas. Republica o site (síncrono até o
      * limite; senão fica pendente para o cron). Só se o objeto estava ou ficou visível ao público.
      */
+    /** Publicar, despublicar, agendar ou apagar um objeto com tags muda a nuvem e as listas por tag já publicadas. */
+    private function visibilidadeMudou(Objeto $antes, Objeto $depois): bool
+    {
+        $agora = gmdate('c');
+
+        return $antes->visivel($agora) !== $depois->visivel($agora) && $this->servicos->tags->porObjeto($depois->id) !== [];
+    }
+
     private function republicarPorTags(Objeto $antes, Objeto $depois): bool
     {
         $agora = gmdate('c');

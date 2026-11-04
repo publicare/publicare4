@@ -162,6 +162,7 @@ final class ApiDeAcoes
             // Sem a versão lida pela barra não há bloqueio otimista: recusa em vez de sobrescrever uma mudança concorrente.
             return self::json(['erro' => 'versao_obrigatoria'], Response::HTTP_BAD_REQUEST);
         }
+        $antes = $o;
         if ($o->status !== $novoEstado) {
             try {
                 $o = $this->servicos->objetos->atualizar($o->id, ['status' => $novoEstado], TelasDeObjetos::MOTIVO, $versao, false, $sessao->usuario->id);
@@ -170,7 +171,19 @@ final class ApiDeAcoes
             }
         }
 
-        return self::json(['objeto' => $o->id, 'estado' => $o->status, 'versao' => $o->versao, 'sincronizado' => $this->sincronizar($o)]);
+        $sincronizado = $this->sincronizar($o);
+        $agora = gmdate('c');
+        if ($antes->visivel($agora) !== $o->visivel($agora) && $this->servicos->tags->porObjeto($o->id) !== []) {
+            // Objeto com tags: a nuvem e as listas por tag das outras páginas também mudam.
+            $site = $this->servicos->sites->porId($o->siteId);
+            try {
+                $sincronizado = ($site !== null && $this->servicos->publicador->republicarPorConfiguracao($site)) && $sincronizado;
+            } catch (\Throwable) {
+                $sincronizado = false;
+            }
+        }
+
+        return self::json(['objeto' => $o->id, 'estado' => $o->status, 'versao' => $o->versao, 'sincronizado' => $sincronizado]);
     }
 
     private function sincronizar(Objeto $o): bool
