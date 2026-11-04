@@ -817,7 +817,7 @@ final class ObjetoRepositorio
         if ($entrada === null) {
             return null;
         }
-        $nomes = TagRepositorio::interpretar(is_array($entrada) ? $entrada : (string) $entrada);
+        $nomes = TagRepositorio::interpretar(is_array($entrada) ? array_values(array_map(static fn (mixed $n): string => is_scalar($n) ? (string) $n : "", $entrada)) : (string) $entrada);
         $erro = TagRepositorio::validar($nomes);
         if ($erro !== null) {
             throw new \InvalidArgumentException($erro);
