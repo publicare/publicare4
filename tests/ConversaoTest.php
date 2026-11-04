@@ -157,14 +157,24 @@ PBL);
         self::assertStringContainsString('fora de um usarblob', implode("\n", array_map(static fn (Aviso $a): string => $a->mensagem, $r->avisos)));
     }
 
-    public function testCondicaoComplexaLikeETagsNaoSaemEmSilencio(): void
+    public function testCondicaoComplexaELikeNaoSaemEmSilencio(): void
     {
-        $r = $this->converter('<@localizar classes=["a"] condicao=["x=1 or y=2"] like=["titulo","%a%"] tags=["z"]@><@/localizar@>');
+        $r = $this->converter('<@localizar classes=["a"] condicao=["x=1 or y=2"] like=["titulo","%a%"]@><@/localizar@>');
 
         self::assertTrue($r->valido);
-        self::assertSame(3, $r->contar(Aviso::REVISAR));
+        self::assertSame(2, $r->contar(Aviso::REVISAR));
         self::assertStringContainsString('<@-- REVISAR:', $r->saida);
         self::assertStringContainsString('<@localizar classes="a"@>', $r->saida);
+    }
+
+    public function testTagsViramParametroTagEComandoTags(): void
+    {
+        $r = $this->converter('<@localizar classes=["a"] tags=["z"]@><@/localizar@><@= #tags@>');
+
+        self::assertTrue($r->valido);
+        self::assertSame(0, $r->contar(Aviso::REVISAR), implode("\n", array_map(static fn (Aviso $a): string => $a->mensagem, $r->avisos)));
+        self::assertStringContainsString('<@localizar classes="a" tag="z"@>', $r->saida);
+        self::assertStringContainsString('<@tags@>', $r->saida);
     }
 
     public function testApostrofoEArrobaDentroDeComentarioNaoQuebram(): void

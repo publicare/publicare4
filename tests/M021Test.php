@@ -22,18 +22,18 @@ final class M021Test extends TestCase
         self::assertIsArray($props);
         $removida = array_pop($props);
         $c->executeStatement('UPDATE classe SET propriedades = ? WHERE id = ?', [json_encode($props), $linha['id']]);
-        $c->executeStatement('DELETE FROM schema_versao WHERE versao = 21');
+        $c->executeStatement('DELETE FROM schema_versao WHERE versao >= 21');
 
         $n = (int) $c->fetchOne('SELECT COUNT(*) FROM classe');
-        self::assertSame([21], (new Migrador($c))->migrar());
+        self::assertSame([21, 22], (new Migrador($c))->migrar());
         self::assertSame($n, (int) $c->fetchOne('SELECT COUNT(*) FROM classe'), 'não cria classe');
         $depois = json_decode((string) $c->fetchOne("SELECT propriedades FROM classe WHERE nome = 'formulario'"), true);
         $nomes = array_column($depois, 'nome');
         self::assertContains($removida['nome'], $nomes);
         self::assertSame(count($nomes), count(array_unique($nomes)));
 
-        $c->executeStatement('DELETE FROM schema_versao WHERE versao = 21');
-        self::assertSame([21], (new Migrador($c))->migrar());
+        $c->executeStatement('DELETE FROM schema_versao WHERE versao >= 21');
+        self::assertSame([21, 22], (new Migrador($c))->migrar());
         self::assertSame($depois, json_decode((string) $c->fetchOne("SELECT propriedades FROM classe WHERE nome = 'formulario'"), true), 'idempotente');
     }
 

@@ -22,20 +22,24 @@ final class ObjetoRepositorio
 {
     /** Chave reservada no JSON de uma versão com o menu do objeto (`no_menu`, `rotulo_menu`). */
     private const CHAVE_MENU = '_menu';
+    /** Nomes das tags na versão (fase 5r): como `_menu`, mora no JSON da versão, fora das propriedades da classe. */
+    private const CHAVE_TAGS = '_tags';
 
     /** Estados de um objeto (fluxo 5). Só `publicado` aparece ao público. */
     public const STATUS = ['privado', 'submetido', 'rejeitado', 'publicado', 'apagado'];
 
     private readonly IndexadorDeObjeto $buscador;
+    private readonly TagRepositorio $tags;
 
     public function __construct(private readonly Connection $conexao, private readonly ?Auditoria $auditoria = null, ?BuscaInterface $busca = null)
     {
+        $this->tags = new TagRepositorio($conexao);
         $this->buscador = new IndexadorDeObjeto($busca ?? new BuscaSql($conexao), new ClasseRepositorio($conexao));
     }
 
     /**
      * @param array<string, string|int|float|bool> $dados
-     * @param array{peso?: int, descricao?: string, no_menu?: bool, rotulo_menu?: string, pele?: string|null, molde?: string|null, data_publicacao?: string|null, data_validade?: string|null, criado_por?: int|null} $meta `criado_por` = id do usuário (o autor só edita o que criou)
+     * @param array{peso?: int, descricao?: string, no_menu?: bool, rotulo_menu?: string, pele?: string|null, molde?: string|null, data_publicacao?: string|null, data_validade?: string|null, criado_por?: int|null, tags?: list<string>|string|null} $meta `tags` = lista de nomes (ou texto separado por vírgula); `criado_por` = id do usuário (o autor só edita o que criou)
      * @param bool $liberarUrl true = tomar de propósito um endereço que hoje redireciona para outro objeto
      * @param (\Closure(int): array<string, string|int|float|bool>)|null $aposInserir chamado **dentro da mesma transação**, já com
      *     o id do objeto novo; devolve dados adicionais para mesclar (upload de arquivo, que precisa do id do dono antes de
@@ -56,8 +60,9 @@ final class ObjetoRepositorio
         $this->exigirRegrasDoTipo($classe, $dados);
         $meta['data_publicacao'] = $this->dataDaVigencia('data_publicacao', $meta['data_publicacao'] ?? null);
         $meta['data_validade'] = $this->dataDaVigencia('data_validade', $meta['data_validade'] ?? null);
+        $tags = $this->tagsDaEntrada($meta['tags'] ?? null);
 
-        return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta, $liberarUrl, $aposInserir): Objeto {
+        return $this->conexao->transactional(function () use ($siteId, $classe, $paiId, $titulo, $urlAmigavel, $dados, $status, $meta, $liberarUrl, $aposInserir, $tags): Objeto {
             // Um endereço que redireciona para outro conteúdo não pode ser tomado por acidente: o cache da página nova passaria
             // na frente do histórico e o link antigo deixaria de levar ao conteúdo original.
             if ($this->conexao->fetchOne('SELECT objeto_id FROM url_historico WHERE site_id = ? AND url_amigavel = ?', [$siteId, $urlAmigavel]) !== false) {
@@ -113,6 +118,9 @@ final class ObjetoRepositorio
             }
             $this->indexar($id, $classe, $dados);
             $this->buscador->indexar($id, $classe->id, $titulo, (string) ($meta['descricao'] ?? ''), $dados);
+            if ($tags !== null) {
+                $this->tags->definir($siteId, $id, $tags);
+            }
             $this->registrarVersao($id, 'criação', $meta['criado_por'] ?? null);
             $this->auditar('objeto.criar', $meta['criado_por'] ?? null, $id, ['classe' => $classe->nome, 'estado' => $status]);
 
@@ -329,13 +337,15 @@ final class ObjetoRepositorio
      * as demais chaves substituem o valor. Se a URL muda, a antiga vira redirecionamento 301 para o objeto
      * (`url_historico`). `$versaoEsperada` evita sobrescrever o trabalho de outra pessoa.
      *
-     * @param array{titulo?: string, url_amigavel?: string, status?: string, dados?: array<string, string|int|float|bool|null>, peso?: int, descricao?: string, no_menu?: bool, rotulo_menu?: string, pele?: string|null, molde?: string|null, data_publicacao?: string|null, data_validade?: string|null} $mudancas
+     * @param array{titulo?: string, url_amigavel?: string, status?: string, dados?: array<string, string|int|float|bool|null>, peso?: int, descricao?: string, no_menu?: bool, rotulo_menu?: string, pele?: string|null, molde?: string|null, data_publicacao?: string|null, data_validade?: string|null, tags?: list<string>|string|null} $mudancas `tags` ausente ou nulo = não mexe; lista (mesmo vazia) = substitui
      * @throws ConflitoDeVersao se a versão atual não for a esperada
      * @throws \InvalidArgumentException valor, estado ou URL inválidos (nada é gravado)
      */
     public function atualizar(int $id, array $mudancas, string $motivo = '', ?int $versaoEsperada = null, bool $liberarUrl = false, ?int $usuarioId = null): Objeto
     {
-        return $this->conexao->transactional(function () use ($id, $mudancas, $motivo, $versaoEsperada, $liberarUrl, $usuarioId): Objeto {
+        $tags = $this->tagsDaEntrada($mudancas['tags'] ?? null);
+
+        return $this->conexao->transactional(function () use ($id, $mudancas, $motivo, $versaoEsperada, $liberarUrl, $usuarioId, $tags): Objeto {
             $atual = $this->porId($id) ?? throw new \InvalidArgumentException("Objeto {$id} não existe");
             if ($versaoEsperada !== null && $versaoEsperada !== $atual->versao) {
                 throw new ConflitoDeVersao($versaoEsperada, $atual->versao);
@@ -402,11 +412,15 @@ final class ObjetoRepositorio
                 $novo = $this->porId($id) ?? throw new \RuntimeException('Objeto sumiu durante a atualização');
                 $this->buscador->indexar($id, $novo->classeId, $novo->titulo, $novo->descricao, $novo->dados);
             }
+            $tagsMudaram = $tags !== null && $this->tags->definir($atual->siteId, $id, $tags);
             $this->registrarVersao($id, $motivo, $usuarioId);
             // Só os NOMES do que mudou, nunca o conteúdo (título, texto, dados pessoais ficam fora da auditoria).
             $campos = array_values(array_diff(array_keys($linha), ['versao', 'atualizado_em', 'titulo_busca', 'titulo_norm', 'dados']));
             foreach (array_keys($mudancas['dados'] ?? []) as $propriedade) {
                 $campos[] = 'dados.' . $propriedade;
+            }
+            if ($tagsMudaram) {
+                $campos[] = 'tags';
             }
             $this->auditar('objeto.atualizar', $usuarioId, $id, ['versao' => $atual->versao + 1, 'campos' => implode(',', $campos), 'motivo' => $motivo === '' ? null : mb_substr($motivo, 0, 120)]);
             if (isset($linha['status']) && $linha['status'] !== $atual->status) {
@@ -535,6 +549,9 @@ final class ObjetoRepositorio
         // Menu (fase 5l2): guardado na própria versão sob `_menu`, fora das propriedades da classe. Versões antigas não o têm.
         $menu = is_array($dados[self::CHAVE_MENU] ?? null) ? $dados[self::CHAVE_MENU] : null;
         unset($dados[self::CHAVE_MENU]);
+        // Tags (fase 5r): versões anteriores à M022 não têm `_tags` e, nesse caso, as tags atuais ficam como estão.
+        $tagsDaVersao = is_array($dados[self::CHAVE_TAGS] ?? null) ? array_values(array_map('strval', $dados[self::CHAVE_TAGS])) : null;
+        unset($dados[self::CHAVE_TAGS]);
         foreach (array_keys($atual->dados) as $chave) {
             $dados[$chave] ??= null;
         }
@@ -546,6 +563,9 @@ final class ObjetoRepositorio
             'peso' => (int) $v['peso'],
             'descricao' => $v['descricao'] === null ? '' : (string) $v['descricao'],
         ];
+        if ($tagsDaVersao !== null) {
+            $mudancas['tags'] = $tagsDaVersao;
+        }
         if ($menu !== null) {
             $mudancas['no_menu'] = !empty($menu['no_menu']);
             $mudancas['rotulo_menu'] = is_string($menu['rotulo_menu'] ?? null) ? $menu['rotulo_menu'] : '';
@@ -804,8 +824,28 @@ final class ObjetoRepositorio
         $dados = json_decode((string) $o['dados'], true);
         $dados = is_array($dados) ? $dados : [];
         $dados[self::CHAVE_MENU] = ['no_menu' => (int) ($o['no_menu'] ?? 0), 'rotulo_menu' => (string) ($o['rotulo_menu'] ?? '')];
+        $dados[self::CHAVE_TAGS] = $this->tags->nomesDoObjeto((int) $o['id']);
 
         return json_encode($dados, JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * Interpreta e valida as tags vindas de quem chama. Nulo = não mexer.
+     *
+     * @return list<string>|null
+     */
+    private function tagsDaEntrada(mixed $entrada): ?array
+    {
+        if ($entrada === null) {
+            return null;
+        }
+        $nomes = TagRepositorio::interpretar(is_array($entrada) ? array_values(array_map(static fn (mixed $n): string => is_scalar($n) ? (string) $n : "", $entrada)) : (string) $entrada);
+        $erro = TagRepositorio::validar($nomes);
+        if ($erro !== null) {
+            throw new \InvalidArgumentException($erro);
+        }
+
+        return $nomes;
     }
 
     /** Grava o estado atual do objeto como uma linha de `objeto_versao`. */

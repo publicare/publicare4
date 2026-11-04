@@ -279,3 +279,8 @@ body>footer p{margin:.3rem 0}
 @media (min-width:40rem){
   .js .carrossel .carousel-item.active,.js .carrossel .carousel-item-next,.js .carrossel .carousel-item-prev{display:grid}
 }
+
+/* Tags (fase 5r) */
+.pbl-tags,.pbl-nuvem{list-style:none;margin:.8rem 0;padding:0;display:flex;flex-wrap:wrap;gap:.4rem .6rem}
+.pbl-tags a{display:inline-block;padding:.1rem .6rem;border:1px solid var(--cor-borda);border-radius:1rem;text-decoration:none}
+.pbl-nuvem .peso-1{font-size:.85rem}.pbl-nuvem .peso-2{font-size:1rem}.pbl-nuvem .peso-3{font-size:1.2rem}.pbl-nuvem .peso-4{font-size:1.45rem}.pbl-nuvem .peso-5{font-size:1.75rem;font-weight:700}

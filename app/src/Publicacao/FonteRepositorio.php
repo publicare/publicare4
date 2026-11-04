@@ -16,6 +16,7 @@ use Pbl\Conteudo\ConfigDoSiteRepositorio;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
+use Pbl\Conteudo\TagRepositorio;
 use Pbl\Formularios\FormularioParaMolde;
 use Pbl\Linguagem\FonteDeDados;
 
@@ -43,6 +44,7 @@ final class FonteRepositorio implements FonteDeDados
         private readonly ?MenuDoSite $menus = null,
         private readonly ?ConfigDoSiteRepositorio $configs = null,
         private readonly ?EnderecoDoSite $enderecos = null,
+        private readonly ?TagRepositorio $tags = null,
     ) {
     }
 
@@ -62,6 +64,7 @@ final class FonteRepositorio implements FonteDeDados
             ordem: (string) ($filtros['ordem'] ?? ''),
             inicio: (int) ($filtros['inicio'] ?? 0),
             limite: (int) ($filtros['limite'] ?? 100),
+            tags: $this->tagsDoFiltro($filtros),
         ), $filtros);
     }
 
@@ -87,7 +90,36 @@ final class FonteRepositorio implements FonteDeDados
             inicio: (int) ($filtros['inicio'] ?? 0),
             limite: (int) ($filtros['limite'] ?? 100),
             busca: isset($filtros['busca']) ? (string) $filtros['busca'] : null,
+            tags: $this->tagsDoFiltro($filtros),
         ), $filtros);
+    }
+
+    /**
+     * `tag="a,b"`: os slugs pedidos (todos valem). Vazio = sem filtro.
+     *
+     * @param array<string, int|string> $filtros
+     * @return list<string>
+     */
+    private function tagsDoFiltro(array $filtros): array
+    {
+        return TagRepositorio::interpretar((string) ($filtros['tag'] ?? ''));
+    }
+
+    public function tagsDoObjeto(array $objeto): array
+    {
+        $id = $objeto['id'] ?? null;
+        if (!is_int($id) || $this->tags === null) {
+            return [];
+        }
+
+        return array_map(static fn (array $t): array => ['nome' => $t['nome'], 'slug' => $t['slug']], $this->tags->porObjeto($id));
+    }
+
+    public function nuvemDeTags(array $objeto, int $limite): array
+    {
+        $site = $objeto['site'] ?? null;
+
+        return is_int($site) && $this->tags !== null ? $this->tags->nuvem($site, $limite) : [];
     }
 
     public function objeto(array $objeto, string $id, string $url, string $titulo): ?array

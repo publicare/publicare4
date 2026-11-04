@@ -109,6 +109,12 @@ final class Aplicacao
                     return $busca;
                 }
             }
+            if (preg_match('#^tag/([a-z0-9]+(?:-[a-z0-9]+)*)$#D', $url, $m) === 1 && strlen($m[1]) <= 80) {
+                $tag = (new PaginasDinamicas($servicos))->tag($site, $m[1], $requisicao);
+                if ($tag !== null) {
+                    return $tag;
+                }
+            }
             if ($arquivo !== null) {
                 $atual = $servicos->objetos->urlAtualDoHistorico($site->id, $url);
                 if ($atual !== null) {

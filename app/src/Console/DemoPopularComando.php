@@ -132,12 +132,13 @@ final class DemoPopularComando extends Command
             ['novo-conselho-eleito', 'Novo conselho é eleito em assembleia', 'A posse acontece no próximo mês.', 160, [70, 70, 70]],
             ['dez-anos-da-biblioteca', 'Biblioteca comunitária completa vinte anos', 'Uma celebração com a presença de antigos leitores.', 240, [110, 70, 120]],
         ];
+        $tagsDemo = ['Oficinas, Educação', 'Biblioteca', 'Eventos, Leitura', 'Educação, Formação', 'Transparência', 'Solidariedade, Eventos', 'Institucional', 'Biblioteca, Leitura'];
         foreach ($lista as $i => [$u, $t, $r, $atras, $cor]) {
             $criar('noticia', $noticias->id, $t, $u, [
                 'resumo' => $r,
                 'corpo' => '<p>' . $r . ' O instituto convida toda a comunidade a participar e a acompanhar as próximas novidades por aqui.</p><h2>Como participar</h2><p>As informações completas estão na <a href="/agenda">agenda</a>. Em caso de dúvida, fale conosco pelo <a href="/contato">formulário de contato</a>.</p>',
                 ...($i === 0 ? ['seo_titulo' => $t . ' | Instituto Exemplo', 'seo_descricao' => $r] : []),
-            ], 'publicado', ['peso' => 0, 'data_publicacao' => $dia(-$atras, '09:00:00')],
+            ], 'publicado', ['peso' => 0, 'data_publicacao' => $dia(-$atras, '09:00:00'), 'tags' => $tagsDemo[$i % count($tagsDemo)]],
                 $this->imagem('imagem_destaque', $t, $cor, $u . '.png', 1200, 630, (string) $i));
         }
         $criar('noticia', $noticias->id, 'Balanço do semestre (em breve)', 'balanco-do-semestre', ['resumo' => 'Será publicada na data programada.', 'corpo' => '<p>Esta notícia está agendada e só aparece depois da data de publicação.</p>'], 'publicado', ['data_publicacao' => $dia(20, '08:00:00')]);
@@ -240,7 +241,7 @@ final class DemoPopularComando extends Command
         $noticias = $criar('pasta', $pt->id, 'Notícias do portal', 'pt-noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Novidades']);
         foreach ([['inscricoes', 'Inscrições abertas para as oficinas', 2, [34, 112, 87]], ['horario', 'Biblioteca abre aos sábados', 8, [52, 95, 140]], ['feira', 'Feira de livros reúne 800 visitantes', 20, [140, 60, 90]], ['relatorio', 'Relatório anual publicado', 40, [60, 100, 100]]] as $i => [$u, $t, $atras, $cor]) {
             $criar('noticia', $noticias->id, $t, 'pt-noticia-' . $u, ['resumo' => $t . '.', 'corpo' => '<p>' . $t . '. Acompanhe as próximas novidades por aqui.</p>'], 'publicado',
-                ['data_publicacao' => gmdate('Y-m-d', time() - $atras * 86400) . ' 09:00:00'], $this->imagem('imagem_destaque', $t, $cor, 'pt-noticia-' . $u . '.png', 1200, 630, $u));
+                ['data_publicacao' => gmdate('Y-m-d', time() - $atras * 86400) . ' 09:00:00', 'tags' => $i % 2 === 0 ? 'Eventos, Leitura' : 'Biblioteca'], $this->imagem('imagem_destaque', $t, $cor, 'pt-noticia-' . $u . '.png', 1200, 630, $u));
         }
         $pts = $criar('pasta', $pt->id, 'Serviços do portal', 'pt-servicos', [], 'publicado', ['peso' => 30, 'no_menu' => true, 'descricao' => 'O que oferecemos']);
         $criar('pagina', $pts->id, 'Biblioteca', 'pt-servico-biblioteca', $pagina('Empréstimo gratuito.', '<p>Mais de cinco mil títulos.</p>'), 'publicado', ['peso' => 10, 'no_menu' => true]);

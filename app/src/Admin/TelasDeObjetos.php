@@ -23,6 +23,7 @@ use Pbl\Conteudo\ConflitoDeArvore;
 use Pbl\Conteudo\ConflitoDeVersao;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
+use Pbl\Conteudo\TagRepositorio;
 use Pbl\Servicos;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -631,6 +632,10 @@ final class TelasDeObjetos
                 $mudancas[$campo] = $valores[$campo];
             }
         }
+        $tagsAntes = $this->servicos->tags->nomesDoObjeto($o->id);
+        if (isset($valores['tags']) && $this->slugsDe($valores['tags']) !== $this->slugsDe($tagsAntes)) {
+            $mudancas['tags'] = $valores['tags'];
+        }
         $dados = [];
         foreach ($valores['dados'] as $nome => $novo) {
             $atual = $o->dados[$nome] ?? null;
@@ -672,6 +677,9 @@ final class TelasDeObjetos
             } catch (\Throwable) {
                 $ok = false;
             }
+        }
+        if (isset($mudancas['tags']) || $this->visibilidadeMudou($o, $novo)) {
+            $ok = $this->republicarPorTags($o, $novo) && $ok;
         }
         $agendado = $vigente !== [] && $novo->status === 'publicado' && $novo->dataPublicacao !== null && $novo->dataPublicacao > gmdate('c');
 
@@ -790,6 +798,7 @@ final class TelasDeObjetos
             // inteiro é desfeito e nada fica pela metade.
             $novo = $this->servicos->objetos->criarDentro($pai->siteId, $classe, $pai->id, $valores['titulo'], $url, $dados, 'privado', [
                 'peso' => $valores['peso'], 'descricao' => $valores['descricao'], 'no_menu' => $valores['no_menu'], 'rotulo_menu' => $valores['rotulo_menu'], 'criado_por' => $u->id,
+                'tags' => $valores['tags'] ?? null,
             ], $aposInserir);
         } catch (ConflitoDeArvore) {
             return $this->naLixeira($sessao, $pai);
@@ -870,7 +879,7 @@ final class TelasDeObjetos
      * obrigatório e nada foi enviado; o conteúdo do arquivo em si só é conferido depois.
      *
      * @param array<string, mixed> $campos
-     * @return array{0: array{titulo: string, descricao: string, url_amigavel?: string, peso: int, no_menu: bool, rotulo_menu: string, dados: array<string, string|int|float|null>}, 1: array<string, string>, 2: array<string, string>, 3: array<string, UploadedFile>}|null
+     * @return array{0: array{titulo: string, descricao: string, url_amigavel?: string, peso: int, no_menu: bool, rotulo_menu: string, dados: array<string, string|int|float|null>, tags?: list<string>}, 1: array<string, string>, 2: array<string, string>, 3: array<string, UploadedFile>}|null
      */
     private function lerFormulario(SessaoAtiva $sessao, int $siteId, Classe $classe, array $campos, ?Objeto $atual, ?Request $r = null): ?array
     {
@@ -882,6 +891,10 @@ final class TelasDeObjetos
         $noMenu = $campos['no_menu'] ?? ($atual?->noMenu ? '1' : '0');
         $rotulo = $campos['rotulo_menu'] ?? ($atual === null ? '' : $atual->rotuloMenu);
         $dadosBrutos = $campos['dados'] ?? [];
+        $tagsBrutas = $campos['tags'] ?? null; // ausente = não mexe (formulário antigo, pedido parcial)
+        if ($tagsBrutas !== null && !is_string($tagsBrutas)) {
+            return null;
+        }
         if (!is_string($titulo) || !is_string($descricao) || !is_string($url) || !is_string($peso) || !is_string($noMenu) || !is_string($rotulo) || !is_array($dadosBrutos)) {
             return null;
         }
@@ -893,6 +906,23 @@ final class TelasDeObjetos
         $digitado = ['titulo' => $titulo, 'descricao' => $descricao, 'url' => $url, 'peso' => $peso, 'no_menu' => $noMenu === '1' ? '1' : '0', 'rotulo_menu' => $rotulo];
         $erros = [];
         $valores = ['titulo' => $titulo, 'descricao' => $descricao, 'peso' => 0, 'no_menu' => $noMenu === '1', 'rotulo_menu' => $rotulo, 'dados' => []];
+        // Tags (fase 5r): lista separada por vírgula; o nome é livre, mas a tag se identifica pelo slug.
+        if ($tagsBrutas !== null) {
+            $digitado['tags'] = trim($this->linhas($tagsBrutas));
+            if (!mb_check_encoding($tagsBrutas, 'UTF-8') || $this->temControle($tagsBrutas, true)) {
+                $erros['tags'] = 'As tags têm caracteres que não são permitidos.';
+            } else {
+                $nomes = TagRepositorio::interpretar($tagsBrutas);
+                $erroTags = TagRepositorio::validar($nomes);
+                if ($erroTags !== null) {
+                    $erros['tags'] = $erroTags;
+                } else {
+                    $valores['tags'] = $nomes;
+                }
+            }
+        } elseif ($atual !== null) {
+            $digitado['tags'] = implode(', ', $this->servicos->tags->nomesDoObjeto($atual->id));
+        }
         if (!mb_check_encoding($rotulo, 'UTF-8') || $this->temControle($rotulo, false)) {
             $erros['rotulo_menu'] = 'O texto do menu tem caracteres que não são permitidos.';
         } elseif (mb_strlen($rotulo) > self::MAX_ROTULO_MENU) {
@@ -1114,10 +1144,23 @@ final class TelasDeObjetos
         }
     }
 
+    /**
+     * @param list<string> $nomes
+     * @return list<string> slugs ordenados, para comparar conjuntos de tags
+     */
+    private function slugsDe(array $nomes): array
+    {
+        $slugs = array_map(TagRepositorio::slug(...), $nomes);
+        sort($slugs);
+
+        return $slugs;
+    }
+
     /** @return array<string, string> os valores atuais como texto, para preencher o formulário */
     private function digitadoDe(Objeto $o, Classe $classe): array
     {
         $d = ['titulo' => $o->titulo, 'descricao' => $o->descricao, 'url' => $o->urlAmigavel, 'peso' => (string) $o->peso, 'no_menu' => $o->noMenu ? '1' : '0', 'rotulo_menu' => $o->rotuloMenu,
+            'tags' => implode(', ', $this->servicos->tags->nomesDoObjeto($o->id)),
             'estado' => $o->status, 'data_publicacao' => $this->dataParaCampo($o->dataPublicacao), 'data_validade' => $this->dataParaCampo($o->dataValidade)];
         foreach ($classe->propriedades as $p) {
             $d['dados.' . $p['nome']] = isset($o->dados[$p['nome']]) ? (string) $o->dados[$p['nome']] : '';
@@ -1142,6 +1185,8 @@ final class TelasDeObjetos
             $identificacao .= $this->campo('url', 'Endereço (URL amigável)', '<div class="input-group"><span class="input-group-text">/</span><input id="campo-url" class="form-control' . $this->invalido($erros, 'url') . '" name="url" maxlength="' . Caminhos::URL_TAMANHO_MAXIMO . '" value="' . Pagina::h($digitado['url'] ?? '') . '"' . $this->descrito($erros, 'url', true) . '></div>', $erros,
                 ($criando ? 'Opcional: se vazio, vem do título.' : 'Se mudar, o endereço antigo leva ao novo.') . ' ' . 'Letras minúsculas sem acento, números, hífen e "/".');
         }
+        $identificacao .= $this->campo('tags', 'Tags', '<input id="campo-tags" class="form-control' . $this->invalido($erros, 'tags') . '" name="tags" maxlength="' . (TagRepositorio::MAX_POR_OBJETO * (TagRepositorio::MAX_NOME + 2)) . '" value="' . Pagina::h($digitado['tags'] ?? '') . '"' . $this->descrito($erros, 'tags', true) . '>', $erros,
+            'Opcional: palavras que agrupam conteúdos parecidos, separadas por vírgula (exemplo: educação, eventos 2026). Cada tag vira uma página que lista tudo o que tem a mesma tag. Até ' . TagRepositorio::MAX_POR_OBJETO . ' tags de ' . TagRepositorio::MAX_NOME . ' caracteres.');
         $html = Pagina::card('Identificação', $identificacao);
 
         foreach ($this->propriedadesAtivas($classe) as $p) {
@@ -1395,6 +1440,9 @@ final class TelasDeObjetos
             return $this->telaDeEstado($sessao, $atual, $estado, $inicio, $fim, $atual->versao, ['_' => $erro], Response::HTTP_CONFLICT);
         }
         $ok = $this->sincronizar($novo, $this->pai($novo));
+        if ($this->visibilidadeMudou($o, $novo)) {
+            $ok = $this->republicarPorTags($o, $novo) && $ok;
+        }
         $agendado = $novo->status === 'publicado' && $novo->dataPublicacao !== null && $novo->dataPublicacao > gmdate('c');
 
         return new RedirectResponse(self::urlDaPrevia($novo->id, !$ok ? 'aviso' : ($o->status === 'publicado' && $novo->status !== 'publicado' ? 'despublicado' : ($agendado ? 'agendado' : 'estado'))), Response::HTTP_SEE_OTHER);
@@ -1824,6 +1872,9 @@ final class TelasDeObjetos
         }
         $pai = $this->pai($novo);
         $ok = $this->sincronizar($novo, $pai);
+        if ($this->visibilidadeMudou($o, $novo)) {
+            $ok = $this->republicarPorTags($o, $novo) && $ok;
+        }
         // Volta para a página-mãe se a pessoa pode vê-la (quem cuida só desta seção fica na própria página, agora na lixeira).
         $destino = $pai !== null && $this->pode($sessao, Acao::Ver, $pai) ? $pai : $novo;
 
@@ -1947,6 +1998,7 @@ final class TelasDeObjetos
         if ($alvo === $o->versao || !in_array($alvo, array_column($this->servicos->objetos->versoes($o->id), 'versao'), true)) {
             return $this->recusa($sessao, 'Versão indisponível', 'Essa versão não existe ou já é a atual.', $o, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
+        $slugsAntes = $this->slugsDe($this->servicos->tags->nomesDoObjeto($o->id));
         try {
             $novo = $this->servicos->objetos->restaurar($o->id, $alvo, 'restaurada a versão ' . $alvo, $sessao->usuario->id, $versao, true);
         } catch (ConflitoDeVersao) {
@@ -1959,11 +2011,40 @@ final class TelasDeObjetos
             $ok = $this->tirarDoAr($o);
         }
         $ok = $this->sincronizar($novo, $this->pai($novo)) && $ok;
+        if ($this->slugsDe($this->servicos->tags->nomesDoObjeto($o->id)) !== $slugsAntes) {
+            $ok = $this->republicarPorTags($o, $novo) && $ok;
+        }
 
         return new RedirectResponse($this->link($novo->id) . '?salvo=' . ($ok ? 'restaurado' : 'aviso'), Response::HTTP_SEE_OTHER);
     }
 
     // ---------------------------------------------------------------- apoio
+
+    /**
+     * O conjunto de tags mudou: a nuvem e as listas por tag das páginas já publicadas ficam velhas. Republica o site (síncrono até o
+     * limite; senão fica pendente para o cron). Só se o objeto estava ou ficou visível ao público.
+     */
+    /** Publicar, despublicar, agendar ou apagar um objeto com tags muda a nuvem e as listas por tag já publicadas. */
+    private function visibilidadeMudou(Objeto $antes, Objeto $depois): bool
+    {
+        $agora = gmdate('c');
+
+        return $antes->visivel($agora) !== $depois->visivel($agora) && $this->servicos->tags->porObjeto($depois->id) !== [];
+    }
+
+    private function republicarPorTags(Objeto $antes, Objeto $depois): bool
+    {
+        $agora = gmdate('c');
+        if (!$antes->visivel($agora) && !$depois->visivel($agora)) {
+            return true;
+        }
+        $site = $this->servicos->sites->porId($depois->siteId);
+        try {
+            return $site !== null && $this->servicos->publicador->republicarPorConfiguracao($site);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
 
     private function pode(SessaoAtiva $sessao, Acao $acao, Objeto $o): bool
     {

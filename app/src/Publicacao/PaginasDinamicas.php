@@ -43,6 +43,26 @@ final class PaginasDinamicas
         return $this->html($html, Response::HTTP_OK);
     }
 
+    /**
+     * `/tag/<slug>` (fase 5r, ADR 0024): o molde `tag` da pele sobre a página inicial, com `$tag_nome`, `$tag_slug`, `$pagina` e `$q` vazio
+     * (a paginação da pele é a mesma da busca). Dinâmica como a busca, então nunca fica velha. Null se a tag não existe no site
+     * ou a pele não tem o molde (a `Aplicacao` responde 404).
+     */
+    public function tag(Site $site, string $slug, Request $req): ?Response
+    {
+        if (!$this->servicos->renderizador->temMolde($site, 'tag')) {
+            return null;
+        }
+        $tag = $this->servicos->tags->porSlug($site->id, $slug);
+        $raiz = $site->objetoRaizId === null ? null : $this->servicos->objetos->porId($site->objetoRaizId);
+        if ($tag === null || $raiz === null || $tag['slug'] !== $slug) {
+            return null;
+        }
+        $html = $this->servicos->renderizador->renderizar($site, $raiz, 'tag', ['q' => '', 'tag_nome' => $tag['nome'], 'tag_slug' => $tag['slug'], 'pagina' => $this->pagina($req)]);
+
+        return $this->html($html, Response::HTTP_OK);
+    }
+
     /** `?pagina=N` (N ≥ 2) sobre a página publicada `$url`: o mesmo molde da página, com `$pagina` preenchido. Null se não se aplica. */
     public function paginada(Site $site, string $url, Request $req): ?Response
     {

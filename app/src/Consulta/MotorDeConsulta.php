@@ -14,6 +14,7 @@ use Pbl\Busca\Texto;
 use Pbl\Busca\Visibilidade;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
+use Pbl\Conteudo\TagRepositorio;
 
 /**
  * Executa `Consulta`s sobre `objeto` e `objeto_indice`. Tudo numa consulta SQL, sem tabela temporária e sem DDL:
@@ -34,6 +35,8 @@ final class MotorDeConsulta
     private const MAX_JUNCOES = 8;
     private const MAX_ORDENS = 4;
     private const MAX_FILTROS = 6;
+    /** Quantas tags (todas obrigatórias) uma consulta aceita. */
+    private const MAX_TAGS = 3;
 
     private readonly BuscaInterface $busca;
 
@@ -154,6 +157,18 @@ final class MotorDeConsulta
         if ($c->classeIds !== null) {
             $q['onde'][] = 'o.classe_id IN (:classes)';
             $this->param($q, 'classes', $c->classeIds === [] ? [0] : $c->classeIds, ArrayParameterType::INTEGER);
+        }
+        // Tags (fase 5r): cada slug é um EXISTS (todas valem); o limite protege a consulta. Slug sem tag no site = sem resultado.
+        $slugsVistos = [];
+        foreach (array_slice($c->tags, 0, self::MAX_TAGS) as $t) {
+            $slug = TagRepositorio::slug($t);
+            if ($slug === '' || isset($slugsVistos[$slug])) {
+                continue;
+            }
+            $slugsVistos[$slug] = true;
+            $nome = 'tag' . count($slugsVistos);
+            $this->param($q, $nome, $slug, ParameterType::STRING);
+            $q['onde'][] = "EXISTS (SELECT 1 FROM objeto_tag ot_{$nome} JOIN tag t_{$nome} ON t_{$nome}.id = ot_{$nome}.tag_id WHERE ot_{$nome}.objeto_id = o.id AND t_{$nome}.site_id = o.site_id AND t_{$nome}.slug = :{$nome})";
         }
         foreach (array_slice($c->filtros, 0, self::MAX_FILTROS) as $f) {
             $q['onde'][] = $this->condicao($f, $q);

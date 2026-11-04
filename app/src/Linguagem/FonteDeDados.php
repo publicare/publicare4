@@ -59,6 +59,22 @@ interface FonteDeDados
     public function menu(array $objeto, int $profundidade, string $inicio): string;
 
     /**
+     * As tags do objeto corrente (nome e slug), em ordem alfabética do slug. Vazio se não há.
+     *
+     * @param array<string, mixed> $objeto
+     * @return list<array{nome: string, slug: string}>
+     */
+    public function tagsDoObjeto(array $objeto): array;
+
+    /**
+     * As tags mais usadas do site do objeto corrente, com a quantidade de objetos publicados e vigentes de cada uma.
+     *
+     * @param array<string, mixed> $objeto
+     * @return list<array{nome: string, slug: string, total: int}>
+     */
+    public function nuvemDeTags(array $objeto, int $limite): array;
+
+    /**
      * `%SITE.config.chave` (ADR 0017): o valor da configuração do site do objeto corrente, como texto ou número (booleano
      * vira 1/0, lista vira linhas). Chave fora do catálogo ou sem site: vazio.
      *

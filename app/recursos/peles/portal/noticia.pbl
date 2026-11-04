@@ -13,6 +13,7 @@
 <@se #imagem_destaque != ""@><p><img class="img-fluid" src="<@miniatura valor=#imagem_destaque tamanho=800@>" alt=""></p><@/se@>
 <@se #resumo != ""@><p class="lead"><@eco #resumo@></p><@/se@>
 <div><@ecocru #corpo@></div>
+<@tags@>
 </article>
 </main>
 <@incluir arquivo="rodape"@>

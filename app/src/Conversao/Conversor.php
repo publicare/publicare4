@@ -21,7 +21,7 @@ final class Conversor
     /** Campos do PBL3 com outro nome no PBL4. */
     private const CAMPOS = ['cod_objeto' => 'id', 'cod_pai' => 'pai', 'cod_classe' => 'classe_id'];
     /** Campos que o PBL4 ainda não oferece no contexto do molde. */
-    private const CAMPOS_AUSENTES = ['tags', 'cod_usuario', 'cod_pele', 'script_exibir', 'versao', 'versao_publicada', 'objetosistema', 'nome_classe'];
+    private const CAMPOS_AUSENTES = ['cod_usuario', 'cod_pele', 'script_exibir', 'versao', 'versao_publicada', 'objetosistema', 'nome_classe'];
     private const STATUS = [1 => 'privado', 2 => 'publicado', 3 => 'rejeitado', 4 => 'submetido'];
     /** Colunas de objeto que não são propriedades da classe. */
     private const METADADOS = ['id', 'titulo', 'peso', 'descricao', 'data_publicacao', 'data_validade', 'criado_em', 'atualizado_em'];
@@ -304,6 +304,11 @@ final class Conversor
                 return "<@eco_limite texto={$texto} limite={$m[2]}@>";
             }
         }
+        if (strtolower(trim($resto)) === '#tags') {
+            $this->avisos[] = new Aviso(Aviso::INFO, $this->linha, '#tags virou o comando tags (lista de links para a página de cada tag)');
+
+            return '<@tags@>';
+        }
         $expr = $this->expressao($resto);
         if ($expr === null) {
             return $this->revisar($original, 'expressão não convertida automaticamente');
@@ -429,10 +434,20 @@ final class Conversor
                         $saida[] = $c;
                     }
                     break;
+                case 'tags':
+                    $e = $this->expressao($valor);
+                    if ($e === null) {
+                        $notas[] = "tags não convertido: {$this->limpar($valor)}";
+                        break;
+                    }
+                    $saida[] = "tag={$e}";
+                    if (str_contains($valor, ',')) {
+                        $this->avisos[] = new Aviso(Aviso::INFO, $this->linha, 'tag= com várias tags exige todas elas (E); confira se o PBL3 aceitava qualquer uma');
+                    }
+                    break;
                 case 'like':
                 case 'ilike':
-                case 'tags':
-                    $notas[] = "{$chave} não portado (busca no título: use busca=; tags ainda não existem)";
+                    $notas[] = "{$chave} não portado (busca no título: use busca=)";
                     break;
                 default:
                     $notas[] = "parâmetro {$chave} desconhecido";
@@ -580,6 +595,9 @@ final class Conversor
                         $nome = 'status';
                         $partes[] = '#status';
                         break;
+                    }
+                    if ($nome === 'tags') {
+                        $this->avisos[] = new Aviso(Aviso::REVISAR, $this->linha, '#tags não é campo no PBL4: use o comando <@tags@> (links) ou localizar tag=');
                     }
                     if (in_array($nome, self::CAMPOS_AUSENTES, true)) {
                         $this->avisos[] = new Aviso(Aviso::REVISAR, $this->linha, "#{$nome} ainda não existe no PBL4 (vai vazio)");
