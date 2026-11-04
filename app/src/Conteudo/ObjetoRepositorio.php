@@ -272,6 +272,15 @@ final class ObjetoRepositorio
         );
     }
 
+    /** Quantos objetos da subárvore (a raiz incluída) não estão na lixeira: um teto barato antes de carregar a árvore toda. */
+    public function contarAtivosDaSubarvore(int $siteId, string $caminhoRaiz): int
+    {
+        return (int) $this->conexao->fetchOne(
+            "SELECT COUNT(*) FROM objeto WHERE site_id = ? AND status <> 'apagado' AND caminho LIKE ? ESCAPE '!'",
+            [$siteId, $this->escaparLike($caminhoRaiz) . '%'],
+        );
+    }
+
     /** Quantos objetos o site tem (fora da lixeira definitiva). */
     public function contarDoSite(int $siteId): int
     {
