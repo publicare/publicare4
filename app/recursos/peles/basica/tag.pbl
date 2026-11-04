@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="<@eco %SITE.config.idioma@>">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tag: <@eco $tag_nome@> - <@eco #site_nome@></title>
+<@incluir arquivo="estilo"@>
+</head>
+<body>
+<@incluir arquivo="topo"@>
+<main>
+<h1>Tag: <@eco $tag_nome@></h1>
+<@var $tem_mais = 0@>
+<@var $por_pagina = %SITE.config.itens_por_pagina@>
+<@var $inicio_da_pagina = ($pagina - 1) * $por_pagina@>
+<@var $limite_tag = $por_pagina + 1@>
+<@localizar tag=$tag_slug ordem="-data_publicacao, titulo" inicio=$inicio_da_pagina limite=$limite_tag@><@se %INDICE <= $por_pagina@><@incluir arquivo="item"@><@senao@><@var $tem_mais = 1@><@/se@><@/localizar@>
+<@naolocalizado@>
+<p>Nenhum conteúdo publicado com esta tag.</p>
+<@/naolocalizado@>
+<@incluir arquivo="paginacao"@>
+</main>
+</body>
+</html>

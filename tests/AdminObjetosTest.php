@@ -388,6 +388,46 @@ final class AdminObjetosTest extends TestCase
         self::assertStringNotContainsString('Palestra', $detalhe);
     }
 
+    public function testTagsNoFormularioGravamAuditamERepublicam(): void
+    {
+        $e = $this->evento('Com tags', null, ['local' => 'Sala']);
+        $this->publicarSite();
+        $token = $this->token('editor');
+        $form = $this->html($this->req('GET', '/_pbl/objeto/' . $e->id . '/editar', $token));
+        self::assertStringContainsString('name="tags"', $form);
+        self::assertStringContainsString('aria-describedby="ajuda-tags"', $form);
+
+        $base = ['versao' => (string) $e->versao, 'titulo' => 'Com tags', 'descricao' => '', 'url' => $e->urlAmigavel, 'peso' => '0', 'dados' => ['local' => 'Sala']];
+        $r = $this->post($token, '/_pbl/objeto/' . $e->id . '/editar', $base + ['tags' => 'Educação, Eventos 2026']);
+        self::assertSame(303, $r->getStatusCode(), $this->html($r));
+        self::assertSame(['Educação', 'Eventos 2026'], $this->s->tags->nomesDoObjeto($e->id));
+        $linhas = array_values(array_filter($this->auditoria('objeto.atualizar'), static fn (array $l): bool => $l['objeto_id'] === $e->id));
+        self::assertStringContainsString('tags', (string) $linhas[0]['detalhe']);
+        self::assertStringNotContainsString('Educação', (string) $linhas[0]['detalhe']);
+
+        $depois = $this->obj($e->id);
+        $r = $this->post($token, '/_pbl/objeto/' . $e->id . '/editar', ['versao' => (string) $depois->versao, 'tags' => str_repeat('x', 50)] + $base);
+        self::assertSame(422, $r->getStatusCode(), 'limite vira erro de formulário');
+        self::assertStringContainsString('no máximo', $this->html($r));
+        self::assertSame(['Educação', 'Eventos 2026'], $this->s->tags->nomesDoObjeto($e->id), 'nada foi gravado');
+    }
+
+    public function testPaginaDeTagListaSoPublicadosEDa404ParaInexistente(): void
+    {
+        $this->evento('Visivel', null, [], 'publicado', ['tags' => 'Foco']);
+        $this->evento('Escondido', null, [], 'privado', ['tags' => 'foco']);
+        $this->publicarSite();
+
+        $ok = $this->req('GET', '/tag/foco');
+        self::assertSame(200, $ok->getStatusCode());
+        $html = $this->html($ok);
+        self::assertStringContainsString('Visivel', $html);
+        self::assertStringNotContainsString('Escondido', $html);
+        self::assertStringContainsString('Foco', $html);
+        self::assertSame(404, $this->req('GET', '/tag/nao-existe')->getStatusCode());
+        self::assertSame(404, $this->req('GET', '/tag/Foco_Invalido')->getStatusCode());
+    }
+
     public function testEditarSemMudancaNaoGravaEPaginaInicialNaoTrocaDeEndereco(): void
     {
         $e = $this->evento('Igual', null, ['vagas' => 5]);

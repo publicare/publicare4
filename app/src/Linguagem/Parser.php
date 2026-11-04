@@ -10,12 +10,14 @@ final class Parser
     private const PARAMS = [
         'eco_limite' => ['texto', 'limite', 'inicio'],
         'formatadata' => ['valor', 'formato'],
-        'filhos' => ['nome', 'classes', 'ordem', 'inicio', 'limite', 'expandir'],
-        'localizar' => ['nome', 'classes', 'ordem', 'inicio', 'limite', 'pai', 'niveis', 'campo', 'op', 'valor', 'campo2', 'op2', 'valor2', 'campo3', 'op3', 'valor3', 'busca', 'expandir'],
+        'filhos' => ['nome', 'classes', 'ordem', 'inicio', 'limite', 'expandir', 'tag'],
+        'localizar' => ['nome', 'classes', 'ordem', 'inicio', 'limite', 'pai', 'niveis', 'campo', 'op', 'valor', 'campo2', 'op2', 'valor2', 'campo3', 'op3', 'valor3', 'busca', 'expandir', 'tag'],
         'usarobjeto' => ['id', 'url', 'titulo'],
         'temfilho' => ['id'],
         'formulario' => ['id'],
         'menu' => ['profundidade', 'inicio'],
+        'tags' => [],
+        'nuvem' => ['limite'],
         'arquivo' => ['valor', 'info'],
         'miniatura' => ['valor', 'tamanho'],
     ];
@@ -166,6 +168,12 @@ final class Parser
                     break;
                 case 'menu':
                     $adicionar(new NoMenu($this->parametros($nome, $resto, $linha, [])));
+                    break;
+                case 'tags':
+                    $adicionar(new NoTags($this->parametros($nome, $resto, $linha, [])));
+                    break;
+                case 'nuvem':
+                    $adicionar(new NoNuvem($this->parametros($nome, $resto, $linha, [])));
                     break;
                 case 'arquivo':
                     $adicionar(new NoArquivo($this->parametros($nome, $resto, $linha, ['valor', 'info'])));

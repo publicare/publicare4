@@ -285,6 +285,51 @@ final class Runtime
     }
 
     /**
+     * `tags`: as tags do objeto corrente como lista de links para `/tag/<slug>` (HTML pronto, tudo escapado). Vazio sem tags.
+     *
+     * @param array<string, mixed> $objeto
+     */
+    public function tags(array $objeto): string
+    {
+        $tags = $this->fonte?->tagsDoObjeto($objeto) ?? [];
+        if ($tags === []) {
+            return '';
+        }
+        $itens = '';
+        foreach ($tags as $t) {
+            $itens .= '<li><a href="/tag/' . $this->esc($t['slug']) . '" rel="tag">' . $this->esc($t['nome']) . '</a></li>';
+        }
+
+        return '<ul class="pbl-tags">' . $itens . '</ul>';
+    }
+
+    /**
+     * `nuvem`: as tags mais usadas do site (só conta objeto publicado e vigente), em ordem alfabética, cada uma com a classe
+     * `peso-1` a `peso-5` conforme o uso. `limite=` (padrão 30, no máximo 100).
+     *
+     * @param array<string, mixed> $objeto
+     * @param array<string, mixed> $p
+     */
+    public function nuvem(array $objeto, array $p): string
+    {
+        $limite = is_numeric($p['limite'] ?? null) ? max(1, min(100, (int) $p['limite'])) : 30;
+        $tags = $this->fonte?->nuvemDeTags($objeto, $limite) ?? [];
+        if ($tags === []) {
+            return '';
+        }
+        $maior = max(array_column($tags, 'total'));
+        $menor = min(array_column($tags, 'total'));
+        usort($tags, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
+        $itens = '';
+        foreach ($tags as $t) {
+            $peso = $maior === $menor ? 3 : 1 + (int) round(4 * ($t['total'] - $menor) / ($maior - $menor));
+            $itens .= '<li class="peso-' . $peso . '"><a href="/tag/' . $this->esc($t['slug']) . '" rel="tag">' . $this->esc($t['nome']) . '</a></li>';
+        }
+
+        return '<ul class="pbl-nuvem">' . $itens . '</ul>';
+    }
+
+    /**
      * `arquivo`: um dado (nome, tamanho legível, tipo ou a URL de entrega) de uma propriedade `arquivo`/`imagem`, sempre
      * escapado e só se o arquivo existe e seu objeto dono está publicado e vigente (`FonteDeDados::arquivo`); fora disso,
      * ou com `info` desconhecido, vazio.
@@ -359,7 +404,7 @@ final class Runtime
     private function filtros(array $p): array
     {
         $f = [];
-        foreach (['classes', 'ordem', 'campo', 'op', 'valor', 'campo2', 'op2', 'valor2', 'campo3', 'op3', 'valor3', 'busca', 'expandir'] as $chave) {
+        foreach (['classes', 'ordem', 'campo', 'op', 'valor', 'campo2', 'op2', 'valor2', 'campo3', 'op3', 'valor3', 'busca', 'expandir', 'tag'] as $chave) {
             if (isset($p[$chave]) && $this->texto($p[$chave]) !== '') {
                 $f[$chave] = $this->texto($p[$chave]);
             }

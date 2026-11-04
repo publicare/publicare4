@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="<@eco %SITE.config.idioma@>">
+<head>
+<@incluir arquivo="cabeca"@>
+</head>
+<body data-pbl-objeto="<@eco #id@>">
+<@incluir arquivo="topo"@>
+<main id="conteudo" class="container py-4">
+<h1>Tag: <@eco $tag_nome@></h1>
+<@var $tem_mais = 0@>
+<@var $por_pagina = %SITE.config.itens_por_pagina@>
+<@var $inicio_da_pagina = ($pagina - 1) * $por_pagina@>
+<@var $limite_lista = $por_pagina + 1@>
+<@localizar tag=$tag_slug ordem="-data_publicacao, titulo" inicio=$inicio_da_pagina limite=$limite_lista@><@se %INDICE <= $por_pagina@><@incluir arquivo="item"@><@senao@><@var $tem_mais = 1@><@/se@><@/localizar@>
+<@naolocalizado@><p>Nenhum conteúdo publicado com esta tag.</p><@/naolocalizado@>
+<@incluir arquivo="paginacao"@>
+</main>
+<@incluir arquivo="rodape"@>
+</body>
+</html>

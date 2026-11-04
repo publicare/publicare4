@@ -28,7 +28,7 @@ final class PseudoCron
             if (!$estado->pseudoLigado() || !$estado->cronAtrasado()) {
                 return false;
             }
-            $r = (new Executor($servicos->caminhos, $servicos, $estado, $tarefas ?? Catalogo::padrao()))->rodar('pseudo', self::ORCAMENTO, null, false, true);
+            $r = (new Executor($servicos->caminhos, $servicos, $estado, $tarefas ?? Catalogo::padrao($servicos->caminhos)))->rodar('pseudo', self::ORCAMENTO, null, false, true);
 
             return !$r['ocupado'];
         } catch (\Throwable) {

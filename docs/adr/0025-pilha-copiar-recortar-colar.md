@@ -23,4 +23,4 @@ O PBL3 tinha uma "pilha" por conta: separar objetos e colá-los em outra pasta, 
 - Copiar não duplica arquivos no disco; a limpeza de blobs precisa contar por chave (já é assim) e não apagar o blob enquanto outra linha o usar.
 - Cópias nascem privadas: nada vai ao ar sem decisão de quem pode publicar.
 - Uma pilha por conta, de um site e um modo, mantém a tela simples; copiar e recortar ao mesmo tempo ficam fora.
-- **Atenção à numeração**: esta migração é a 23 por reserva (as 21 e 22 estão em PRs paralelos). O `Migrador` só aplica versões maiores que a máxima registrada: se a 23 for aplicada antes da 21 ou 22, estas deixam de rodar num banco já migrado. Integre os PRs na ordem 21, 22, 23.
+- A migração é a 23 (a 20 não é usada; 21 e 22 vieram do reset da demo e das tags). O `Migrador` só aplica versões maiores que a máxima registrada, então a numeração deve seguir a ordem de integração.

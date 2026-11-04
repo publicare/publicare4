@@ -163,7 +163,7 @@ final class ClassesPadraoTest extends TestCase
         $conexao->executeStatement('ALTER TABLE objeto DROP COLUMN no_menu');
         $conexao->executeStatement('ALTER TABLE objeto DROP COLUMN rotulo_menu');
         $conexao->executeStatement('DELETE FROM schema_versao WHERE versao >= 16');
-        self::assertSame([16, 17, 18, 19, 23], (new Migrador($conexao))->migrar());
+        self::assertSame([16, 17, 18, 19, 21, 22, 23], (new Migrador($conexao))->migrar());
         self::assertSame(1, $this->fixas($conexao), 'em banco novo só formulario existe na migração 11');
         self::assertSame(0, (int) $conexao->fetchOne('SELECT COUNT(*) FROM objeto WHERE no_menu = 1'));
     }

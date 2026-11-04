@@ -15,6 +15,7 @@ final class Consulta
      * @param list<Filtro> $filtros todos precisam valer (E)
      * @param string $ordem `peso, -data_publicacao`, `titulo desc`, `autor.titulo`, `relevancia`… (padrão: `peso`; com `busca`, `relevancia`)
      * @param string|null $busca texto digitado: várias palavras (todas), prefixo, plural e relevância (nível B); null/em branco = sem busca
+     * @param list<string> $tags slugs de tags (fase 5r): o objeto precisa ter todas (E); vazio = sem filtro
      * @param bool $apenasVisiveis true = só publicado e dentro da vigência (público); false = qualquer estado (admin)
      */
     public function __construct(
@@ -28,6 +29,7 @@ final class Consulta
         public readonly int $limite = 100,
         public readonly bool $apenasVisiveis = true,
         public readonly ?string $busca = null,
+        public readonly array $tags = [],
     ) {
     }
 }

@@ -28,6 +28,7 @@ use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\Pilha;
 use Pbl\Conteudo\RedirecionamentoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
+use Pbl\Conteudo\TagRepositorio;
 use Pbl\Formularios\FormularioParaMolde;
 use Pbl\Formularios\FormularioRepositorio;
 use Pbl\Linguagem\Compilador;
@@ -46,6 +47,7 @@ final class Servicos
 {
     public readonly ClasseRepositorio $classes;
     public readonly ObjetoRepositorio $objetos;
+    public readonly TagRepositorio $tags;
     public readonly SiteRepositorio $sites;
     public readonly ConfigDoSiteRepositorio $configs;
     public readonly MotorDeConsulta $motor;
@@ -77,6 +79,7 @@ final class Servicos
         $this->classes = new ClasseRepositorio($conexao);
         $this->auditoria = new Auditoria($conexao);
         $this->objetos = new ObjetoRepositorio($conexao, $this->auditoria);
+        $this->tags = new TagRepositorio($conexao);
         $this->arquivos = new ArquivoRepositorio($conexao);
         $this->pilha = new Pilha($conexao);
         $this->sites = new SiteRepositorio($conexao);
@@ -90,7 +93,7 @@ final class Servicos
         $this->configs = new ConfigDoSiteRepositorio($conexao, $this->arquivos);
         $this->menu = new MenuDoSite($conexao, $caminhos, $this->auditoria, (int) (getenv('PBL_MENU_PROFUNDIDADE') ?: MenuDoSite::PROFUNDIDADE_PADRAO), $this->configs);
         $this->enderecos = new EnderecoDoSite($this->dominios, EnderecoDoSite::esquemaDoAmbiente());
-        $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos, $this->menu, $this->configs, $this->enderecos);
+        $fonte = new FonteRepositorio($this->objetos, $this->classes, $this->motor, new FormularioParaMolde($this->formularios, fn (): Csrf => $this->csrf()), $this->sites, $this->arquivos, $this->menu, $this->configs, $this->enderecos, $this->tags);
         $this->renderizador = $renderizador = new Renderizador($caminhos, $fonte, $this->classes, new Compilador($caminhos->cachePbl()), $this->aparencia = new Aparencia($caminhos, $conexao), $feeds = new Feeds($this->objetos, $this->configs, $this->enderecos, $this->arquivos));
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador, $this->menu, $feeds);
         $this->republicacao = new FilaDeRepublicacao($caminhos, $this->publicador, $this->objetos);

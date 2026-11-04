@@ -13,6 +13,7 @@
 <@se #imagem_destaque != ""@><p class="foto-noticia"><img src="<@miniatura valor=#imagem_destaque tamanho=800@>" alt=""></p><@/se@>
 <@se #resumo != ""@><p class="resumo"><@eco #resumo@></p><@/se@>
 <div class="corpo"><@ecocru #corpo@></div>
+<@tags@>
 </article>
 </main>
 </body>
