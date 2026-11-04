@@ -160,7 +160,7 @@ final class TelasDePilha
                 }
                 $pai = $o->paiId === null ? null : $this->servicos->objetos->porId($o->paiId);
                 $linhas .= '<tr><td><a href="' . Painel::PREFIXO . '/objeto/' . $o->id . '">' . Pagina::h($o->titulo) . '</a>' . ($o->status === 'apagado' ? ' <span class="badge text-bg-secondary">na lixeira</span>' : '') . '</td>'
-                    . '<td>' . Pagina::h($this->servicos->classes->porId($o->classeId)->nome) . '</td>'
+                    . '<td>' . Pagina::h($this->servicos->classes->porId($o->classeId)->nome ?? '?') . '</td>'
                     . '<td>' . ($pai === null ? '—' : Pagina::h($pai->titulo)) . '</td>'
                     . '<td class="text-end"><form method="post" action="' . Painel::PREFIXO . '/pilha/remover" class="d-inline">' . $csrf . '<input type="hidden" name="id" value="' . $o->id . '">'
                     . '<button type="submit" class="btn btn-sm btn-outline-secondary">Tirar da pilha<span class="visually-hidden"> ' . Pagina::h($o->titulo) . '</span></button></form></td></tr>';
