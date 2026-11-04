@@ -47,9 +47,12 @@
         var foco = doc.activeElement;
         var lista = foco && foco.closest ? foco.closest('.menu ul.show') : null;
         var dono = lista ? lista.previousElementSibling : null;
-        fechar(doc.querySelector('.menu'), null);
-        if (dono && dono.focus) {
+        if (lista && dono) {
+          todos('ul.show', lista).forEach(function (u) { alternar(u.previousElementSibling, u, false); });
+          alternar(dono, lista, false);
           dono.focus();
+        } else {
+          fechar(doc.querySelector('.menu'), null);
         }
       }
     });
