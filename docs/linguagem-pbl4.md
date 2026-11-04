@@ -67,10 +67,12 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 | `<@var $x = expr@>` | define variável |
 | `<@se cond@>…<@senao@>…<@/se@>` | condicional |
 | `<@repetir $i=[a,b]@>…<@/repetir@>` | laço numérico inclusivo |
-| `<@filhos [classes="a,b"] [ordem="peso, -data_publicacao"] [inicio=n] [limite=n] [expandir="autor"]@>…<@/filhos@>` | laço sobre filhos **publicados e vigentes** (fora de `data_publicacao`/`data_validade` não aparecem) |
+| `<@filhos [classes="a,b"] [ordem="peso, -data_publicacao"] [inicio=n] [limite=n] [tag="a"] [expandir="autor"]@>…<@/filhos@>` | laço sobre filhos **publicados e vigentes** (fora de `data_publicacao`/`data_validade` não aparecem) |
 | `<@aleatorio …@>…<@/aleatorio@>` | como `filhos`, em ordem aleatória: sorteia entre **todos** os candidatos e só então aplica `inicio`/`limite` (`limite=1` escolhe um item qualquer) |
-| `<@localizar [classes=…] [pai=n] [niveis=n] [campo=… op=… valor=…] [campo2=…] [campo3=…] [busca=…] [ordem=…] [inicio=n] [limite=n] [expandir=…]@>…<@/localizar@>` | laço sobre objetos **publicados e vigentes do mesmo site**. `pai` limita à subárvore (sem o próprio pai) e `niveis` à profundidade (`niveis=1` são os filhos diretos). Até **três condições** (todas precisam valer): `campo`/`op`/`valor`, `campo2`/`op2`/`valor2`, `campo3`/`op3`/`valor3`. `campo` é uma coluna do objeto, uma propriedade **indexável** ou `ref.campo` (`autor.cargo`); `op` é `=` (padrão), `!=`, `<`, `>`, `<=`, `>=` ou `contem`. `busca` é a busca de texto por palavras (ver [Busca](#busca-busca) abaixo). O operador `contem` faz o mesmo no título e nas propriedades de texto indexáveis (inclusive `autor.titulo`); em outras colunas, como `descricao`, diferencia maiúsculas. Consulta mal formada devolve lista vazia |
+| `<@localizar [classes=…] [pai=n] [niveis=n] [campo=… op=… valor=…] [campo2=…] [campo3=…] [busca=…] [tag="a,b"] [ordem=…] [inicio=n] [limite=n] [expandir=…]@>…<@/localizar@>` | laço sobre objetos **publicados e vigentes do mesmo site**. `pai` limita à subárvore (sem o próprio pai) e `niveis` à profundidade (`niveis=1` são os filhos diretos). Até **três condições** (todas precisam valer): `campo`/`op`/`valor`, `campo2`/`op2`/`valor2`, `campo3`/`op3`/`valor3`. `campo` é uma coluna do objeto, uma propriedade **indexável** ou `ref.campo` (`autor.cargo`); `op` é `=` (padrão), `!=`, `<`, `>`, `<=`, `>=` ou `contem`. `busca` é a busca de texto por palavras (ver [Busca](#busca-busca) abaixo). O operador `contem` faz o mesmo no título e nas propriedades de texto indexáveis (inclusive `autor.titulo`); em outras colunas, como `descricao`, diferencia maiúsculas. Consulta mal formada devolve lista vazia |
 | `<@localizaraleatorio …@>…<@/localizaraleatorio@>` | como `localizar`, em ordem aleatória |
+| `<@tags@>` | imprime os links das tags do objeto corrente (`<ul class="pbl-tags">`, cada um para `/tag/<slug>`; nome escapado); vazio se não há tags ([ADR 0024](adr/0024-tags-nos-objetos.md)) |
+| `<@nuvem [limite=n]@>` | nuvem de tags do site: `<ul class="pbl-nuvem">` com `class="peso-1"` a `peso-5"` por uso, em ordem alfabética (padrão 30, máximo 100); conta só objetos publicados e vigentes. Mudou as tags, o site é republicado |
 | `<@semfilhos@>…<@/semfilhos@>` / `<@naolocalizado@>…<@/naolocalizado@>` | executa se o último laço de coleção não achou nada (são sinônimos) |
 | `<@usarobjeto id=n \| url="…" \| titulo="…"@>…<@/usarobjeto@>` | troca o objeto corrente dentro do bloco; objeto inexistente, de outro site ou não publicado: o bloco não roda |
 | `<@temfilho [id=n]@>…<@/temfilho@>` | executa se o objeto (corrente ou `id=`) tem filhos publicados e vigentes; o `id=` precisa ser do mesmo site |
@@ -90,6 +92,10 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 - Paginação sem total: `<@filhos inicio=($pagina-1)*10 limite=11@>`, mostrar os 10 primeiros e tratar o 11º como "há próxima página". `%INDICE` começa em 1.
 - Moldes especiais da pele: `busca` (servido em `/busca?q=…`, se não existir a página `busca`) e `erro404` (resposta 404 das páginas públicas, com fallback ao texto simples).
 - Corte: o menu respeita profundidade máxima e 50 itens por nível. Para sites grandes, use menu até 3 níveis mais uma página de mapa do site com `<@localizar@>`/`<@filhos@>` paginados.
+
+### Página de tag (fase 5r)
+
+`/tag/<slug>` usa o molde `tag` da pele (variáveis: `$tag_nome`, `$tag_slug`, `$pagina`; a lista vem de `localizar tag=$tag_slug`). Não existe molde `tag` na pele ou a tag não existe: 404.
 
 ### Herança de layout
 
@@ -184,7 +190,7 @@ Lê `.php`, `.pbl`, `.html`, `.htm` que tenham tags `<@…@>` (e os moldes sem t
 | `incluir arquivo=['/html/include/x.php']` | `incluir arquivo="include/x"` e o arquivo é convertido junto |
 | `$_page->config["portal"]["url"]` | removido (links relativos à raiz do site) |
 | PHP cru (`<?php … ?>`) | removido e substituído por `<@-- REVISAR … --@>` |
-| comando sem equivalente, expressão com PHP, `condicao` complexa, `like`/`ilike`/`tags` | comentário `<@-- REVISAR … --@>` com o original; entra no relatório |
+| comando sem equivalente, expressão com PHP, `condicao` complexa, `like`/`ilike` | comentário `<@-- REVISAR … --@>` com o original; entra no relatório |
 | arquivo em ISO-8859-1 | convertido para UTF-8 |
 
 Pontos a saber: ids fixos nos moldes (`pai=[1]`) só continuam certos se o importador (fase 9) **preservar os ids** do PBL3; o relatório lista moldes incluídos que não existem na origem.
@@ -202,8 +208,8 @@ A tabela orienta o conversor de moldes (fase 2c). Estado: ✅ nesta versão (o c
 | `incluir arquivo=…` | `incluir arquivo=…` (nome de molde da pele, não caminho do servidor) | ✅ |
 | `#cod_objeto`, `#cod_pai`, `#cod_classe`, `#cod_status`, `#url_amigavel`, `#peso`, `#descricao`, datas | mapeados (ver conversor) | ✅ |
 | `#temfilhos` | `#temfilhos` | ✅ |
-| `#tags` | ainda não existe no contexto | ⏳ |
-| `localizar`, `localizaraleatorio` | `localizar`/`localizaraleatorio` com o subconjunto acima; `condicao`, `like`, `ilike` e `tags` em SQL livre **não** existem: o conversor os marca para revisão e a fase 1 traz filtros equivalentes | ✅ (parcial) |
+| `#tags` | `<@tags@>` (links); `localizar tags=[…]` vira `tag=…` | ✅ |
+| `localizar`, `localizaraleatorio` | `localizar`/`localizaraleatorio` com o subconjunto acima; `condicao`, `like` e `ilike` em SQL livre **não** existem: o conversor os marca para revisão e a fase 1 traz filtros equivalentes | ✅ (parcial) |
 | `usarobjeto titulo=…`/`cod_objeto=…`, `temfilho cod_objeto=…` | `usarobjeto titulo=…`/`id=…`, `temfilho id=…` | ✅ |
 | `usarblob nome=["x"]@>…<@/usarblob@>` | sem bloco: os comandos abaixo recebem `valor=#x` direto (o conversor troca `#x` pelo nome literal de `nome=`; `nome=` dinâmico vai para revisão) | ✅ |
 | `srcblob`, `linkblob`, `downloadblob` (dentro de `usarblob`) | `<@arquivo valor=#x info="url"@>` (os três eram o mesmo link no PBL3; no PBL4 inline/anexo é decidido pelo servidor, não pelo molde) | ✅ |
