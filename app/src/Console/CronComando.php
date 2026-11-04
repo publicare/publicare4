@@ -41,7 +41,7 @@ final class CronComando extends Command
         try {
             $servicos = Servicos::doBancoInstalado($this->caminhos);
             $estado = new EstadoDoCron($this->caminhos);
-            $executor = new Executor($this->caminhos, $servicos, $estado, Catalogo::padrao());
+            $executor = new Executor($this->caminhos, $servicos, $estado, Catalogo::padrao($this->caminhos));
             if ((bool) $input->getOption('listar')) {
                 foreach ($executor->tarefas() as $t) {
                     $e = $estado->tarefa($t->id());

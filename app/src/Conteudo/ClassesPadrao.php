@@ -13,7 +13,8 @@ namespace Pbl\Conteudo;
  * (reservados), por isso "descrição" de pasta/arquivo/link é o campo `descricao` do próprio conteúdo e o endereço externo de
  * `link` se chama `destino_externo`, não `url`.
  *
- * `formulario` vem da migração 11 (e é marcada fixa pela 16): `garantir` não a recria.
+ * `formulario` nasce na migração 11 (e é marcada fixa pela 16), mas também consta de {@see definicoes}: assim `garantir` e
+ * `garantirFixas` a recriam se faltar, e a migração 21 completa os campos novos que as instalações antigas não têm.
  */
 final class ClassesPadrao
 {
@@ -71,6 +72,19 @@ final class ClassesPadrao
                 'meta' => ['descricao' => 'Página de texto. Também serve de página inicial do site.', 'aceita_filhos' => true, 'filhas' => [], 'fixa' => true],
             ],
             [
+                'nome' => 'formulario',
+                'propriedades' => [
+                    ['nome' => 'corpo', 'tipo' => 'html', 'indexavel' => false, 'rotulo' => 'Texto antes do formulário'],
+                    ['nome' => 'destino', 'tipo' => 'ref', 'indexavel' => true, 'rotulo' => 'Seção que recebe os envios', 'obrigatorio' => true],
+                    ['nome' => 'classe_envio', 'tipo' => 'texto', 'indexavel' => false, 'rotulo' => 'Tipo de conteúdo de cada envio', 'obrigatorio' => true],
+                    ['nome' => 'campos', 'tipo' => 'texto', 'indexavel' => false, 'rotulo' => 'Campos do formulário (nomes separados por vírgula)', 'obrigatorio' => true],
+                    ['nome' => 'mensagem', 'tipo' => 'texto', 'indexavel' => false, 'rotulo' => 'Mensagem depois de enviar'],
+                    ['nome' => 'botao', 'tipo' => 'texto', 'indexavel' => false, 'rotulo' => 'Texto do botão'],
+                    ['nome' => 'fechado', 'tipo' => 'booleano', 'indexavel' => false, 'rotulo' => 'Fechado (não recebe envios)'],
+                ],
+                'meta' => ['descricao' => 'Formulário público: cada envio vira um conteúdo privado do tipo indicado, dentro da seção de destino.', 'aceita_filhos' => false, 'filhas' => [], 'fixa' => true],
+            ],
+            [
                 'nome' => 'arquivo',
                 'propriedades' => [
                     ['nome' => 'arquivo', 'tipo' => 'arquivo', 'indexavel' => false, 'rotulo' => 'Arquivo', 'obrigatorio' => true],
@@ -118,8 +132,7 @@ final class ClassesPadrao
     }
 
     /**
-     * Cria as classes do pacote que ainda não existem (as que já existem não são tocadas). `formulario` não é criada aqui: vem
-     * da migração 11.
+     * Cria as classes do pacote que ainda não existem (as que já existem não são tocadas).
      *
      * @return list<string> nomes das classes criadas
      */

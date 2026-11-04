@@ -37,7 +37,12 @@ final class Aplicacao
     public function tratar(Request $requisicao): Response
     {
         if (Manutencao::ativa($this->caminhos)) {
-            $r = $this->texto('Site em manutenção: voltamos em instantes.', Response::HTTP_SERVICE_UNAVAILABLE);
+            $r = new Response(
+                '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Site em manutenção</title></head>'
+                . '<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:20vh auto;padding:0 1rem;text-align:center"><h1>Site em manutenção</h1><p>Site em manutenção: voltamos em instantes.</p></body></html>',
+                Response::HTTP_SERVICE_UNAVAILABLE,
+                ['Content-Type' => 'text/html; charset=utf-8', 'Cache-Control' => 'no-store'],
+            );
             $r->headers->set('Retry-After', '60');
 
             return $r;
