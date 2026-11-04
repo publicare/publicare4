@@ -195,7 +195,11 @@ final class Colagem
             return null;
         }
         if ($profunda) {
-            $quantidade = count($this->subarvoreAtiva($o));
+            // Sem carregar a árvore inteira: acima do limite basta saber que passa (o item será recusado adiante).
+            $quantidade = $this->servicos->objetos->contarAtivosDaSubarvore($o->siteId, $o->caminho);
+            if ($quantidade <= self::LIMITE_TOTAL) {
+                $quantidade = count($this->subarvoreAtiva($o));
+            }
         }
 
         return null;

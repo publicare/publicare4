@@ -155,7 +155,7 @@ final class TelasDePilha
             $linhas = '';
             foreach ($itens as $i) {
                 $o = $this->servicos->objetos->porId($i['objeto_id']);
-                if ($o === null) {
+                if ($o === null || !$this->servicos->permissoes->pode($sessao->usuario, Acao::Ver, $o)) {
                     continue;
                 }
                 $pai = $o->paiId === null ? null : $this->servicos->objetos->porId($o->paiId);
