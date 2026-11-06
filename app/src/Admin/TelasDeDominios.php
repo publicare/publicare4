@@ -191,16 +191,15 @@ final class TelasDeDominios
     private function acoesDe(SessaoAtiva $sessao, string $csrf, string $base, Dominio $d): string
     {
         $h = '<input type="hidden" name="host" value="' . Pagina::h($d->host) . '">';
-        $oculto = '<span class="visually-hidden"> ' . Pagina::h($d->host) . '</span>';
         $outro = $d->modo === Dominio::SERVIR ? Dominio::REDIRECIONAR : Dominio::SERVIR;
 
         return '<div class="d-flex flex-wrap gap-1 align-items-end">'
             . '<form method="post" action="' . $base . '/principal" class="d-flex gap-1 align-items-end">' . $csrf . $h . '<input type="hidden" name="antigo" value="' . Dominio::REDIRECIONAR . '">'
-            . $this->campoSenha($sessao, 'campo-senha-principal-' . md5($d->host)) . '<button type="submit" class="btn btn-sm btn-outline-primary">Tornar principal' . $oculto . '</button></form>'
-            . '<form method="post" action="' . $base . '/modo">' . $csrf . $h . '<input type="hidden" name="modo" value="' . $outro . '"><button type="submit" class="btn btn-sm btn-outline-secondary">'
-            . ($outro === Dominio::SERVIR ? 'Tornar alias' : 'Tornar redirecionador') . $oculto . '</button></form>'
+            . $this->campoSenha($sessao, 'campo-senha-principal-' . md5($d->host)) . '' . Pagina::botaoIcone('principal', 'Tornar principal', 'btn-outline-primary', ['item' => $d->host]) . '</form>'
+            . '<form method="post" action="' . $base . '/modo">' . $csrf . $h . '<input type="hidden" name="modo" value="' . $outro . '">'
+            . Pagina::botaoIcone('alternar', $outro === Dominio::SERVIR ? 'Tornar alias' : 'Tornar redirecionador', 'btn-outline-secondary', ['item' => $d->host]) . '</form>'
             . '<form method="post" action="' . $base . '/remover" class="d-flex gap-1 align-items-end">' . $csrf . $h
-            . $this->campoSenha($sessao, 'campo-senha-remover-' . md5($d->host)) . '<button type="submit" class="btn btn-sm btn-outline-danger">Remover' . $oculto . '</button></form></div>';
+            . $this->campoSenha($sessao, 'campo-senha-remover-' . md5($d->host)) . '' . Pagina::botaoIcone('excluir', 'Remover', 'btn-danger bg-gradient', ['item' => $d->host]) . '</form></div>';
     }
 
     private function pode(SessaoAtiva $sessao, Site $site): bool

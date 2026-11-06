@@ -179,6 +179,13 @@ main .form-check { flex-wrap: wrap; }
 
 /* Tela Conteúdo (navegação por níveis) */
 .pbl-barra-acoes { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.pbl-barra-acoes form { display: inline-flex; margin: 0; }
 .pbl-filtros-conteudo { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .5rem; align-items: end; }
 .pbl-filtros-conteudo > * { min-width: 0; }
 .pbl-linha-acoes { display: flex; flex-wrap: wrap; gap: .25rem; justify-content: flex-end; }
+.pbl-linha-acoes form { display: inline-flex; margin: 0; }
+
+/* Botões de ação só com ícone (Pagina::botaoIcone): alvo de pelo menos 32px, 44px no celular; o rótulo fica em .visually-hidden. */
+.pbl-btn-icone { display: inline-flex; align-items: center; justify-content: center; min-width: 2rem; min-height: 2rem; padding-left: .5rem; padding-right: .5rem; }
+.pbl-btn-icone svg { flex: none; }
+@media (max-width: 767.98px) { main .pbl-btn-icone { min-width: 44px; } }
