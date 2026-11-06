@@ -57,7 +57,7 @@ final class TelasDeObjetos
     /** Sub-rota de `/_pbl/objeto/{id}` => métodos aceitos. O resto é 404. */
     private const ROTAS = [
         '' => ['GET'], 'editar' => ['GET', 'POST'], 'novo' => ['GET', 'POST'], 'estado' => ['GET', 'POST'],
-        'mover' => ['GET', 'POST'], 'apagar' => ['GET', 'POST'], 'recuperar' => ['POST'], 'versoes' => ['GET'], 'log' => ['GET'], 'restaurar' => ['POST'], 'envios' => ['GET'], 'previa' => ['GET'],
+        'mover' => ['GET', 'POST'], 'apagar' => ['GET', 'POST'], 'recuperar' => ['POST'], 'versoes' => ['GET'], 'log' => ['GET'], 'qr' => ['GET'], 'restaurar' => ['POST'], 'envios' => ['GET'], 'previa' => ['GET'],
     ];
     /** Ordens da lista de filhos: chave da URL => [rótulo, ordem da Consulta]. Só estas chegam ao motor. */
     private const ORDENS = [
@@ -103,6 +103,7 @@ final class TelasDeObjetos
             'recuperar' => $this->recuperar($sessao, $id, $r),
             'versoes' => $this->versoes($sessao, $id),
             'log' => $this->log($sessao, $id),
+            'qr' => $this->qr($sessao, $id, $r),
             'envios' => $this->envios($sessao, $id, $r),
             'previa' => $this->previa($sessao, $id, $r),
             default => $this->restaurar($sessao, $id, $r),
@@ -504,6 +505,7 @@ final class TelasDeObjetos
         }
         $outras[] = ['Histórico de versões', $this->link($o->id) . '/versoes', false];
         $outras[] = ['Registro de atividade', $this->link($o->id) . '/log', false];
+        $outras[] = ['QR code', $this->link($o->id) . '/qr', false];
         if (!$naLixeira && $o->paiId !== null && $this->pode($sessao, Acao::Apagar, $o)) {
             $outras[] = ['Mover', $this->link($o->id) . '/mover', false];
             $outras[] = ['Mandar para a lixeira', $this->link($o->id) . '/apagar', true];
@@ -2042,6 +2044,36 @@ final class TelasDeObjetos
         $corpo .= Pagina::acoes('', [['Voltar', $this->link($o->id)], ['Histórico de versões', $this->link($o->id) . '/versoes']]);
 
         return Pagina::resposta('Registro de atividade: ' . $o->titulo, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', 'Tudo que a auditoria guardou sobre este conteúdo (criar, editar, mudar de estado, mover, lixeira, acessos negados) e os passos do fluxo de revisão. Só leitura: a auditoria não se edita.');
+    }
+
+    /** QR code do endereço público do conteúdo (gerado aqui, sem serviço externo); `?formato=svg` baixa o arquivo. */
+    private function qr(SessaoAtiva $sessao, int $id, Request $r): Response
+    {
+        $o = $this->servicos->objetos->porId($id);
+        if ($o === null || !$this->pode($sessao, Acao::Ver, $o)) {
+            return $this->semAcesso($sessao);
+        }
+        $base = $o->visivel(gmdate('c')) ? $this->servicos->enderecos->base($o->siteId) : '';
+        $corpo = $this->migalhas($sessao, $o);
+        $voltar = Pagina::acoes('', [['Voltar', $this->link($o->id)]]);
+        if ($base === '') {
+            return Pagina::resposta('QR code: ' . $o->titulo, $corpo . '<div class="alert alert-info" role="status">Este conteúdo ainda não tem endereço público: ele está fora do ar (privado, agendado, vencido ou na lixeira) ou o site não tem domínio configurado. Publique-o para gerar o QR code.</div>' . $voltar,
+                Response::HTTP_OK, false, $this->barra($sessao), [], '', 'QR code do endereço público do conteúdo.');
+        }
+        $url = $base . '/' . ($o->urlAmigavel === '' ? '' : ltrim($o->urlAmigavel, '/'));
+        try {
+            $svg = CodigoQr::svg($url);
+        } catch (\InvalidArgumentException $e) {
+            return Pagina::resposta('QR code: ' . $o->titulo, $corpo . $this->alerta('warning', $e->getMessage() . '.') . $voltar, Response::HTTP_OK, false, $this->barra($sessao));
+        }
+        if (($r->query->all()['formato'] ?? null) === 'svg') {
+            return new Response($svg, Response::HTTP_OK, ['Content-Type' => 'image/svg+xml; charset=UTF-8', 'Content-Disposition' => 'attachment; filename="qr-' . $o->id . '.svg"', 'X-Content-Type-Options' => 'nosniff']);
+        }
+        $corpo .= '<p>Endereço: <a href="' . Pagina::h($url) . '" target="_blank" rel="noopener">' . Pagina::h($url) . '</a></p>'
+            . '<div class="bg-white d-inline-block p-2 border mb-3">' . $svg . '</div>'
+            . Pagina::acoes('', [['Baixar SVG', $this->link($o->id) . '/qr?formato=svg'], ['Voltar', $this->link($o->id)]]);
+
+        return Pagina::resposta('QR code: ' . $o->titulo, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', 'QR code do endereço público do conteúdo, para imprimir ou colar em material. Se o endereço mudar, gere de novo.');
     }
 
     /** O JSON do detalhe da auditoria como "chave: valor" (texto; o chamador escapa). */
