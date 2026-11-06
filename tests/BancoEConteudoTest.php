@@ -27,7 +27,7 @@ final class BancoEConteudoTest extends TestCase
         $m = new Migrador($this->con);
 
         self::assertSame([], $m->migrar());
-        self::assertSame(23, $m->versaoAtual());
+        self::assertSame(24, $m->versaoAtual());
     }
 
     public function testCaminhoMaterializadoEEscopoDeSubarvore(): void

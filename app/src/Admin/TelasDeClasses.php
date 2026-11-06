@@ -72,7 +72,7 @@ final class TelasDeClasses
                 default => null,
             };
         }
-        if (preg_match('#^' . preg_quote($prefixo, '#') . '/classe/([1-9][0-9]{0,9})/(editar|apagar)$#D', $caminho, $m) !== 1) {
+        if (preg_match('#^' . preg_quote($prefixo, '#') . '/classe/([1-9][0-9]{0,9})/(editar|apagar|icone)$#D', $caminho, $m) !== 1) {
             return null;
         }
         $id = (int) $m[1];
@@ -82,6 +82,7 @@ final class TelasDeClasses
             ['editar', 'POST'] => ['salvar', $id],
             ['apagar', 'GET'] => ['apagar', $id],
             ['apagar', 'POST'] => ['confirmarApagar', $id],
+            ['icone', 'POST'] => ['icone', $id],
             default => null,
         };
     }
@@ -121,8 +122,37 @@ final class TelasDeClasses
             'editar' => $this->formularioDeEdicao($sessao, $classe, $this->rascunhoDe($classe), null, Response::HTTP_OK, $this->avisoDe($requisicao)),
             'salvar' => $this->salvar($sessao, $classe, $requisicao),
             'apagar' => $this->telaDeApagar($sessao, $classe),
+            'icone' => $this->salvarIcone($sessao, $classe, $requisicao),
             default => $this->apagar($sessao, $classe, $requisicao),
         };
+    }
+
+    private function salvarIcone(SessaoAtiva $sessao, Classe $classe, Request $requisicao): Response
+    {
+        $icone = $requisicao->request->all()['icone'] ?? '';
+        if (!is_string($icone) || !IconesDeClasse::valido($icone)) {
+            return Pagina::resposta('Pedido recusado', '<p>Ícone desconhecido. Volte e escolha um da lista.</p>', Response::HTTP_UNPROCESSABLE_ENTITY, false, $this->barra($sessao));
+        }
+        $this->servicos->classes->definirIcone($classe->id, $icone);
+        $u = $sessao->usuario;
+        $this->servicos->auditoria->registrar('classe.icone', 'usuario:' . $u->id, $u->id, null, ['classe_id' => $classe->id, 'icone' => $icone]);
+
+        return new RedirectResponse($this->link($classe->id) . '/editar?ok=icone', Response::HTTP_SEE_OTHER);
+    }
+
+    private function formularioDeIcone(SessaoAtiva $sessao, Classe $classe): string
+    {
+        $opcoes = '<option value=""' . ($classe->icone === '' ? ' selected' : '') . '>Sem ícone</option>';
+        foreach (IconesDeClasse::opcoes() as $chave => $rotulo) {
+            $opcoes .= '<option value="' . Pagina::h($chave) . '"' . ($classe->icone === $chave ? ' selected' : '') . '>' . Pagina::h($rotulo) . '</option>';
+        }
+
+        return '<form method="post" action="' . $this->link($classe->id) . '/icone" class="mb-4">' . $this->campoCsrf($sessao)
+            . $this->card('Ícone', '<div class="d-flex align-items-end gap-2"><div><label class="form-label" for="icone">Ícone na listagem do painel</label>'
+                . '<select class="form-select" id="icone" name="icone">' . $opcoes . '</select></div>'
+                . '<span class="fs-4" aria-hidden="true">' . IconesDeClasse::svg($classe->icone, 24) . '</span>'
+                . '<button type="submit" class="btn btn-outline-primary">Salvar ícone</button></div>')
+            . '</form>';
     }
 
     private function lista(SessaoAtiva $sessao, Request $requisicao): Response
@@ -146,7 +176,7 @@ final class TelasDeClasses
         foreach ($classes as $c) {
             $arquivados = count(array_filter($c->propriedades, static fn (array $p): bool => $p['arquivada'] ?? false));
             $ativos = count($c->propriedades) - $arquivados;
-            $corpo .= '<tr><td><code>' . Pagina::h($c->nome) . '</code>'
+            $corpo .= '<tr><td>' . IconesDeClasse::svg($c->icone) . ' <code>' . Pagina::h($c->nome) . '</code>'
                 . ($c->fixa ? ' <span class="badge text-bg-dark" title="Tipo essencial: não se apaga e mantém os campos de base">fixa</span>' : '') . '</td>'
                 . '<td>' . ($c->descricao === '' ? '<span class="text-body-secondary">—</span>' : Pagina::h(mb_strimwidth($c->descricao, 0, 160, '…'))) . '</td>'
                 . '<td>' . $ativos . ($arquivados > 0 ? ' <span class="text-body-secondary">(+' . $arquivados . ' arquivado' . ($arquivados > 1 ? 's' : '') . ')</span>' : '') . '</td>';
@@ -655,6 +685,7 @@ final class TelasDeClasses
         $total = $this->servicos->classes->contarObjetos($classe->id);
         $corpo = $aviso . $this->erro($erro)
             . ($classe->fixa ? $this->alerta('info', 'Este é um tipo <strong>fixo</strong> (essencial ao sistema): não pode ser apagado nem renomeado, e os campos de base dele não podem ser removidos nem arquivados. Acrescentar campos é permitido.', '', true) : '')
+            . $this->formularioDeIcone($sessao, $classe)
             . '<form method="post" action="' . $this->link($classe->id) . '/editar"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>'
             . $this->campoCsrf($sessao) . '<input type="hidden" name="versao" value="' . $classe->versao . '">'
             . $this->card('Sobre o tipo', $this->camposDaClasse($r['descricao'], $r['aceita_filhos'], $r['filhas'], $todas, $classe->nome))
@@ -896,7 +927,8 @@ final class TelasDeClasses
         return match ($requisicao->query->all()['ok'] ?? null) {
             'criada' => '<div class="alert alert-success" role="status">Tipo de conteúdo criado. Agora adicione os campos dele.</div>',
             'salva' => '<div class="alert alert-success" role="status">Alterações salvas.</div>',
-            'nada' => '<div class="alert alert-secondary" role="status">Nada mudou.</div>',
+            'icone' => '<div class="alert alert-success" role="status">Ícone atualizado.</div>',
+            'nada' =>'<div class="alert alert-secondary" role="status">Nada mudou.</div>',
             default => '',
         };
     }

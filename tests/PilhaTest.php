@@ -132,7 +132,7 @@ final class PilhaTest extends TestCase
     public function testMigracaoCriaATabela(): void
     {
         self::assertSame(0, $this->s->pilha->contar($this->ids['admin']));
-        self::assertContains(23, array_map(static fn (int $v): int => $v, [(int) $this->s->conexao()->fetchOne('SELECT MAX(versao) FROM schema_versao')]));
+        self::assertContains(24, array_map(static fn (int $v): int => $v, [(int) $this->s->conexao()->fetchOne('SELECT MAX(versao) FROM schema_versao')]));
     }
 
     public function testSepararCopiarNaoMudaNada(): void

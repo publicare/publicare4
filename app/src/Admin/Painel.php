@@ -65,6 +65,8 @@ final class Painel
         $rotaDeRevisao = TelasDeRevisao::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeNavegacao = TelasDeNavegacao::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDePilha = TelasDePilha::rota(self::PREFIXO, $caminho, $metodo);
+        $rotaDeVencidos = TelasDeVencidos::rota(self::PREFIXO, $caminho, $metodo);
+        $rotaDeLixeira = TelasDeLixeira::rota(self::PREFIXO, $caminho, $metodo);
         $resposta = match (true) {
             $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s)),
             ApiDeAcoes::atende($caminho, $metodo) => $this->api($requisicao, $caminho),
@@ -79,6 +81,8 @@ final class Painel
             $rotaDeRevisao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeRevisao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeRevisao, $requisicao)),
             $rotaDeNavegacao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeNavegacao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeNavegacao, $requisicao)),
             $rotaDePilha !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDePilha($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDePilha, $requisicao)),
+            $rotaDeVencidos !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeVencidos($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeVencidos, $requisicao)),
+            $rotaDeLixeira !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeLixeira($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeLixeira, $requisicao)),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'GET' => $this->formularioDeEntrar($requisicao),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'POST' => $this->entrar($requisicao),
             $caminho === self::PREFIXO . '/sair' && $metodo === 'POST' => $this->sair($requisicao),

@@ -30,7 +30,7 @@ final class Conversor
         'protegido' => 'área protegida: depende da autenticação (fase 3)',
         'executar' => 'executava script PHP; vira módulo com interface estável (ADR 0005)',
         'iconeblob' => 'ícone por tipo de arquivo: não existe no PBL4',
-        'iconeclasse' => 'ícone da classe: não existe no PBL4',
+        'iconeclasse' => 'ícone da classe: no PBL4 é o campo da classe, definido no painel (ADR 0026), não pelo molde',
     ];
     /** `srcblob`/`linkblob`/`downloadblob` eram o mesmo link no PBL3; no PBL4 inline/anexo é decidido pelo servidor. */
     private const BLOB_INFO = ['srcblob' => 'url', 'linkblob' => 'url', 'downloadblob' => 'url', 'tamanhoblob' => 'tamanho', 'tipoblob' => 'tipo'];

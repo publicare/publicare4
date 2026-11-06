@@ -30,6 +30,17 @@ final class Auditoria
         ]);
     }
 
+    /** @return list<array{quando: string, ator: string, acao: string, objeto_id: ?int, detalhe: ?string}> o que foi guardado deste objeto, mais recentes primeiro */
+    public function doObjeto(int $objetoId, int $limite = 100): array
+    {
+        $linhas = $this->conexao->fetchAllAssociative('SELECT quando, ator, acao, objeto_id, detalhe FROM auditoria WHERE objeto_id = ? ORDER BY id DESC LIMIT ' . max(1, min(500, $limite)), [$objetoId]);
+
+        return array_map(static fn (array $l): array => [
+            'quando' => (string) $l['quando'], 'ator' => (string) $l['ator'], 'acao' => (string) $l['acao'],
+            'objeto_id' => (int) $l['objeto_id'], 'detalhe' => $l['detalhe'] === null ? null : (string) $l['detalhe'],
+        ], $linhas);
+    }
+
     /** @return list<array{quando: string, ator: string, acao: string, objeto_id: ?int, detalhe: ?string}> mais recentes primeiro */
     public function recentes(int $limite = 50): array
     {

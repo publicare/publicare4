@@ -33,6 +33,7 @@ final class Classe
         public readonly array $filhas = [],
         public readonly int $versao = 1,
         public readonly bool $fixa = false,
+        public readonly string $icone = '',
     ) {
     }
 

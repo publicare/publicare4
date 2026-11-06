@@ -56,6 +56,8 @@ final class Pagina
         'tirar' => 'M18 6 6 18 M6 6l12 12',
         'restaurar' => 'M1 4v6h6 M3.51 15a9 9 0 1 0 2.13-9.36L1 10',
         'historico' => 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2',
+        'log' => 'M4 6h16 M4 12h16 M4 18h10',
+        'qr' => 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h3v3h-3z M20 14v7 M14 20h3',
         'arquivos' => 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8',
         'aprovar' => 'M20 6 9 17l-5-5',
         'devolver' => 'M9 14 4 9l5-5 M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11',
@@ -229,6 +231,8 @@ final class Pagina
         $secao = match (true) {
             str_starts_with($caminho, '/_pbl/classes'), str_starts_with($caminho, '/_pbl/modelos') => 'classes',
             str_starts_with($caminho, '/_pbl/conteudo') => 'conteudo',
+            str_starts_with($caminho, '/_pbl/vencidos') => 'vencidos',
+            str_starts_with($caminho, '/_pbl/lixeira') => 'lixeira',
             str_starts_with($caminho, '/_pbl/contas') => 'contas',
             str_starts_with($caminho, '/_pbl/atualizacao') => 'atualizacao',
             str_starts_with($caminho, '/_pbl/tarefas') => 'tarefas',
@@ -239,6 +243,8 @@ final class Pagina
         [$pendencias, $revisor, $envia] = self::$revisao;
         $itens = ['inicio' => ['/_pbl/', 'Sites e conteúdo']];
         $itens['conteudo'] = ['/_pbl/conteudo', 'Conteúdo'];
+        $itens['vencidos'] = ['/_pbl/vencidos', 'Vencidos'];
+        $itens['lixeira'] = ['/_pbl/lixeira', 'Lixeira'];
         if ($revisor) {
             $itens['pendencias'] = ['/_pbl/pendencias', 'Pendências' . ($pendencias > 0 ? ' <span class="badge text-bg-warning" title="Aguardando revisão">' . $pendencias . '</span>' : '')];
         }
