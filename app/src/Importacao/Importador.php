@@ -32,6 +32,8 @@ final class Importador
     /** @var array<int, string> */
     private array $peles = [];
     private ?string $hashInutilizavel = null;
+    /** Um link do PBL3 que aponta para outro objeto só conhece o alvo na segunda passada; até lá ele guarda este endereço, trocado ao resolver. */
+    private const DESTINO_PROVISORIO = 'https://importado.invalid/';
 
     public function __construct(
         private readonly Servicos $servicos,
@@ -347,6 +349,9 @@ final class Importador
                 $dados[$destino['nome']] = $convertido;
             }
         }
+        if ($classe->nome === 'link' && !isset($dados['destino_externo']) && !isset($dados['destino_interno'])) {
+            $dados['destino_externo'] = self::DESTINO_PROVISORIO;
+        }
         $titulo = mb_substr(trim($this->utf8((string) ($l['titulo'] ?? ''))), 0, 300);
         if ($titulo === '') {
             $titulo = '(sem título)';
@@ -617,6 +622,11 @@ final class Importador
             $apos = end($pagina)['id'];
             $destinoDe = array_column($pagina, 'destino', 'origem');
             $linhas = $this->origem->valores('tbl_objref', array_keys($destinoDe));
+            foreach ($this->origem->valores('tbl_integer', array_keys($destinoDe)) as $r) {
+                if (($plano->propriedades[(int) $r['cod_propriedade']]['tipo'] ?? null) === 'ref') {
+                    $linhas[] = $r;
+                }
+            }
             $alvos = $this->ids->varios(MapaDeIds::OBJETO, array_values(array_filter(array_map(static fn (array $r): int => (int) $r['valor'], $linhas))));
             $this->destino->transactional(function () use ($linhas, $destinoDe, $alvos, $plano): void {
                 $feitas = [];
@@ -653,6 +663,11 @@ final class Importador
         $dados = json_decode((string) $linha['dados'], true);
         $dados = is_array($dados) ? $dados : [];
         $dados[$nome] = $alvo;
+        $provisorio = $nome === 'destino_interno' && ($dados['destino_externo'] ?? null) === self::DESTINO_PROVISORIO;
+        if ($provisorio) {
+            unset($dados['destino_externo']);
+            $this->destino->delete('objeto_indice', ['objeto_id' => $objetoId, 'chave' => 'destino_externo']);
+        }
         $this->destino->update('objeto', ['dados' => json_encode($dados, JSON_THROW_ON_ERROR)], ['id' => $objetoId]);
         $this->destino->delete('objeto_indice', ['objeto_id' => $objetoId, 'chave' => $nome]);
         $this->destino->insert('objeto_indice', ['objeto_id' => $objetoId, 'chave' => $nome, 'texto' => null, 'texto_norm' => null, 'numero' => (float) $alvo]);
@@ -661,6 +676,9 @@ final class Importador
             $d = json_decode((string) $versao['dados'], true);
             $d = is_array($d) ? $d : [];
             $d[$nome] = $alvo;
+            if ($provisorio) {
+                unset($d['destino_externo']);
+            }
             $this->destino->update('objeto_versao', ['dados' => json_encode($d, JSON_THROW_ON_ERROR)], ['id' => $versao['id']]);
         }
     }

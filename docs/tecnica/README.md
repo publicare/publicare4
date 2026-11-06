@@ -10,6 +10,7 @@ Para quem **instala, opera e desenvolve** o PBL4. Se você quer entender o proje
 | [Cron central](cron.md) | a linha única `bin/pbl cron`, tarefas, pseudo-cron e como conferir |
 | [Atualização](atualizacao.md) | `bin/pbl atualizar`, pacote, assinatura e publicação de versões |
 | [Linha de comando](cli.md) | Comandos de `bin/pbl` |
+| [Como migrar um site do PBL3](migrar-do-pbl3.md) | Importar conteúdo, arquivos e contas de uma base do PBL3 |
 | [Linguagem de moldes PBL4](../linguagem-pbl4.md) | Gramática, comandos, ordenação e conversão do PBL3 |
 | [Licenças de terceiros](terceiros.md) | Arquivos de terceiros distribuídos (Bootstrap) e suas licenças |
 | [Segurança](seguranca.md) | Defesas em vigor, modelo de ameaças e como relatar falhas |

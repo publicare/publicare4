@@ -76,7 +76,7 @@ final class ImportadorPbl3Test extends TestCase
     {
         $r = $this->importar($this->sintetico());
 
-        self::assertSame(5, $r->total('objetos importados'), 'raiz, página, subpágina, produto e lixeira: o órfão fica de fora');
+        self::assertSame(6, $r->total('objetos importados'), 'raiz, página, subpágina, produto e lixeira: o órfão fica de fora');
         $c = Servicos::doBancoInstalado($this->caminhos)->conexao();
         $pagina = $c->fetchAssociative("SELECT * FROM objeto WHERE titulo = 'Página um'");
         self::assertIsArray($pagina);
@@ -102,6 +102,11 @@ final class ImportadorPbl3Test extends TestCase
         self::assertStringStartsWith('2024-02-29', (string) $d['lancamento']);
         self::assertSame(1, $this->contar("SELECT COUNT(*) FROM classe WHERE nome = 'produto'"));
         self::assertSame(0, $this->contar("SELECT COUNT(*) FROM objeto WHERE titulo = 'Órfão'"));
+        $atalho = $c->fetchAssociative("SELECT dados FROM objeto WHERE titulo = 'Atalho'");
+        self::assertIsArray($atalho);
+        $da = json_decode((string) $atalho['dados'], true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame((int) $produto['id'], (int) $da['destino_interno'], 'interlink (inteiro no PBL3) vira link interno remapeado');
+        self::assertArrayNotHasKey('destino_externo', $da, 'o endereço provisório sai quando o alvo é resolvido');
     }
 
     public function testMenuPesoPeleDatasELixeira(): void
@@ -216,7 +221,7 @@ final class ImportadorPbl3Test extends TestCase
 
         $r = $this->importar($this->sintetico(), simular: true, opcoes: new Opcoes(simular: true, uploads: $this->uploads));
 
-        self::assertSame(5, $r->total('objetos importados'));
+        self::assertSame(6, $r->total('objetos importados'));
         self::assertSame($antes, [$this->contar('SELECT COUNT(*) FROM objeto'), $this->contar('SELECT COUNT(*) FROM usuario'), $this->contar('SELECT COUNT(*) FROM classe'), $this->contar('SELECT COUNT(*) FROM importacao_pbl3')]);
         self::assertSame(0, $this->contar('SELECT COUNT(*) FROM arquivo'));
         self::assertSame([], glob($this->raiz . '/storage/*/*') ?: [], 'nenhum arquivo copiado');
@@ -231,7 +236,7 @@ final class ImportadorPbl3Test extends TestCase
         $this->arquivos();
         $r = $this->importar($base, mapa: $mapa, opcoes: new Opcoes(simular: false, uploads: $this->uploads));
 
-        self::assertSame(5, $r->total('objetos importados'));
+        self::assertSame(6, $r->total('objetos importados'));
         self::assertSame(3, $r->total('usuários importados'));
         self::assertGreaterThanOrEqual(1, $r->total('arquivos importados'), 'a coluna cod_obeto do tbl_blob foi reconhecida');
     }

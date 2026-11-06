@@ -57,6 +57,8 @@ final class Pbl3Sintetico
         $this->inserir('classe', ['cod_classe' => 1, 'nome' => 'Pasta', 'prefixo' => 'folder', 'descricao' => '', 'temfilhos' => 1]);
         $this->inserir('classe', ['cod_classe' => 2, 'nome' => 'Documento', 'prefixo' => 'document', 'descricao' => '', 'temfilhos' => 1]);
         $this->inserir('classe', ['cod_classe' => 3, 'nome' => 'Produto da loja', 'prefixo' => 'produto', 'descricao' => 'Item à venda', 'temfilhos' => 0]);
+        $this->inserir('classe', ['cod_classe' => 4, 'nome' => 'Interlink', 'prefixo' => 'interlink', 'descricao' => '', 'temfilhos' => 0]);
+        $this->inserir('propriedade', ['cod_propriedade' => 13, 'cod_classe' => 4, 'cod_tipodado' => 4, 'nome' => 'endereco', 'posicao' => 1, 'rotulo' => 'Objeto']);
         $this->inserir('propriedade', ['cod_propriedade' => 10, 'cod_classe' => 2, 'cod_tipodado' => 8, 'nome' => 'texto', 'posicao' => 1, 'rotulo' => 'Texto']);
         $this->inserir('propriedade', ['cod_propriedade' => 11, 'cod_classe' => 2, 'cod_tipodado' => 7, 'nome' => 'resumo', 'posicao' => 2, 'rotulo' => 'Resumo']);
         $this->inserir('propriedade', ['cod_propriedade' => 12, 'cod_classe' => 2, 'cod_tipodado' => 7, 'nome' => 'palavras', 'posicao' => 3, 'rotulo' => 'Palavras']);
@@ -73,6 +75,8 @@ final class Pbl3Sintetico
         $this->objeto(3, 1, 3, 'Caneca', 'loja/caneca', ['status' => 2, 'usuario' => 2]);
         $this->objeto(4, 2, 2, 'Subpágina', 'pagina-um', ['status' => 4]);
         $this->objeto(5, 1, 2, 'Rascunho antigo', 'rascunho', ['status' => 1, 'apagado' => 1]);
+        $this->objeto(7, 1, 4, 'Atalho', 'atalho', ['status' => 2]);
+        $this->inserir('tbl_integer', ['cod_objeto' => 7, 'cod_propriedade' => 13, 'valor' => '3']);
         $this->objeto(6, 99, 2, 'Órfão', 'orfao', ['status' => 2]);
 
         $this->inserir('tbl_text', ['cod_objeto' => 2, 'cod_propriedade' => 10, 'valor' => '<p>Olá <script>alert(1)</script>mundo</p>']);

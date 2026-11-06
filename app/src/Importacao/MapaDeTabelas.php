@@ -39,7 +39,7 @@ final class MapaDeTabelas
      *
      * @var array<string, list<string>>
      */
-    public const OPCIONAIS = ['objeto' => ['incluirmenu', 'objetosistema']];
+    public const OPCIONAIS = ['objeto' => ['incluirmenu', 'objetosistema', 'url_amigavel', 'versao', 'apagado', 'peso', 'data_publicacao', 'data_validade', 'cod_pele', 'cod_status', 'descricao'], 'classe' => ['descricao', 'temfilhos'], 'propriedade' => ['cod_referencia_classe', 'campo_ref', 'posicao', 'descricao', 'rotulo', 'obrigatorio'], 'usuario' => ['email', 'valido', 'nome']];
 
     /** Tabelas sem as quais não há o que importar; as outras só deixam de ser lidas, com aviso. */
     public const OBRIGATORIAS = ['classe', 'propriedade', 'objeto'];

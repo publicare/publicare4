@@ -80,7 +80,7 @@ O Publicare 4 está nos **primeiros passos**. Hoje ele serve a quem **desenvolve
 | Editor de peles completo (hoje tem histórico, rascunho/pré-visualização e realce só leitura; faltam arquivos de CSS e imagens, importar/exportar pele, pele filha) | 🔨 |
 | Galeria de peles prontas para instalar | 🗓️ |
 | Formulários com aprovação em etapas, aviso por e-mail do fluxo de revisão, anexos, captcha, prazos, vagas e participante identificado; editor visual de formulários | 🗓️ |
-| Importar um site feito no Publicare antigo | 🗓️ |
+| Importar um site feito no Publicare antigo (`bin/pbl importar-pbl3`, [guia](../tecnica/migrar-do-pbl3.md)): conteúdo, arquivos, contas e tags; senhas precisam ser redefinidas | ✅ |
 | Inscrição paga e outros pagamentos | 💡 |
 | Peles avançadas e comunidade de autores | 💡 |
 

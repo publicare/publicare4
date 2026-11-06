@@ -28,7 +28,7 @@ final class PlanoDeClasses
         'arquivo' => ['arquivo', ['conteudo' => 'arquivo']],
         'link' => ['link', ['endereco' => 'destino_externo']],
         'interlink' => ['link', ['endereco' => 'destino_interno']],
-        'noticia' => ['noticia', ['texto' => 'corpo', 'resumo' => 'resumo']],
+        'noticia' => ['noticia', ['texto' => 'corpo', 'resumo' => 'resumo', 'imagem' => 'imagem_destaque']],
     ];
 
     /** Tipos do PBL4 que aceitam cada tipo de dado do PBL3. */
@@ -36,7 +36,7 @@ final class PlanoDeClasses
         'blob' => ['imagem', 'arquivo'],
         'boolean' => ['booleano'],
         'date' => ['data'],
-        'integer' => ['numero'],
+        'integer' => ['numero', 'ref'],
         'float' => ['numero'],
         'objref' => ['ref'],
         'string' => ['texto', 'html'],
