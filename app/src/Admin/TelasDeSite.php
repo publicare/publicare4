@@ -189,9 +189,9 @@ final class TelasDeSite
         foreach ($regras as $r) {
             $corpo .= '<tr><td><code>' . Pagina::h($r['origem']) . '</code></td><td><code>' . Pagina::h($r['destino']) . '</code></td><td>' . $r['codigo'] . '</td>'
                 . '<td>' . ($r['prefixo'] ? 'Tudo abaixo do endereço' : 'Só o endereço') . '</td><td class="text-end">'
-                . '<a class="btn btn-sm btn-outline-secondary" href="' . $this->linkRedir($site) . '/' . $r['id'] . '/editar">Editar</a> '
-                . '<form class="d-inline" method="post" action="' . $this->linkRedir($site) . '/' . $r['id'] . '/remover">' . $this->campoCsrf($sessao)
-                . '<button type="submit" class="btn btn-sm btn-outline-danger">Remover</button></form></td></tr>';
+                . '<div class="pbl-linha-acoes">' . Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $this->linkRedir($site) . '/' . $r['id'] . '/editar', 'item' => $r['origem']])
+                . '<form method="post" action="' . $this->linkRedir($site) . '/' . $r['id'] . '/remover">' . $this->campoCsrf($sessao)
+                . Pagina::botaoIcone('excluir', 'Remover', 'btn-danger bg-gradient', ['item' => $r['origem']]) . '</form></div></td></tr>';
         }
         $corpo .= $regras === [] ? '<tr><td colspan="5" class="text-body-secondary">Nenhuma regra ainda.</td></tr>' : '';
         $corpo .= '</tbody></table></div><h2 class="h5 mt-4">Nova regra</h2>' . $this->formRegra($sessao, $site, null, ['codigo' => '301'], null);
@@ -481,10 +481,10 @@ final class TelasDeSite
             $ativa = $p === $site->pele;
             $corpo .= '<tr><td><code>' . Pagina::h($p) . '</code></td><td>' . count($this->peles->moldes($p)) . '</td><td>'
                 . ($ativa ? '<span class="badge text-bg-success">Ativa neste site</span>' : '<span class="text-body-secondary">—</span>') . '</td><td class="text-end">'
-                . '<a class="btn btn-sm btn-outline-secondary" href="' . $this->linkPeles($site) . '/' . $p . '">Ver arquivos</a> '
+                . '<div class="pbl-linha-acoes">' . Pagina::botaoIcone('arquivos', 'Ver arquivos', 'btn-outline-secondary', ['href' => $this->linkPeles($site) . '/' . $p, 'item' => $p])
                 . ($ativa ? '' : '<form class="d-inline-flex gap-1 align-items-end" method="post" action="' . $this->linkPeles($site) . '/ativar">' . $this->campoCsrf($sessao)
-                    . '<input type="hidden" name="pele" value="' . Pagina::h($p) . '">' . $this->campoSenha($sessao, 'campo-senha-pele-' . md5($p)) . '<button type="submit" class="btn btn-sm btn-outline-primary">Usar neste site</button></form>')
-                . '</td></tr>';
+                    . '<input type="hidden" name="pele" value="' . Pagina::h($p) . '">' . $this->campoSenha($sessao, 'campo-senha-pele-' . md5($p)) . Pagina::botaoIcone('ativar', 'Usar neste site', 'btn-success bg-gradient', ['item' => $p]) . '</form>')
+                . '</div></td></tr>';
         }
         $corpo .= '</tbody></table></div>';
 
@@ -518,9 +518,9 @@ final class TelasDeSite
             . '<th scope="col">Molde</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
         foreach ($this->peles->moldes($pele) as $m) {
             $corpo .= '<tr><td><code>' . Pagina::h($m) . '.pbl</code>' . ($this->peles->rascunho($pele, $m) !== null ? ' <span class="badge text-bg-info">rascunho</span>' : '') . '</td><td class="text-end">'
-                . '<a class="btn btn-sm btn-outline-secondary" href="' . $base . '/molde?nome=' . rawurlencode($m) . '">Editar</a> '
-                . '<a class="btn btn-sm btn-outline-secondary" href="' . $base . '/molde/historico?nome=' . rawurlencode($m) . '">Histórico</a> '
-                . '<a class="btn btn-sm btn-outline-danger" href="' . $base . '/apagar?nome=' . rawurlencode($m) . '">Apagar</a></td></tr>';
+                . '<div class="pbl-linha-acoes">' . Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $base . '/molde?nome=' . rawurlencode($m), 'item' => $m])
+                . Pagina::botaoIcone('historico', 'Histórico', 'btn-outline-secondary', ['href' => $base . '/molde/historico?nome=' . rawurlencode($m), 'item' => $m])
+                . Pagina::botaoIcone('excluir', 'Apagar', 'btn-danger bg-gradient', ['href' => $base . '/apagar?nome=' . rawurlencode($m), 'item' => $m]) . '</div></td></tr>';
         }
         $corpo .= '</tbody></table></div><p><a href="' . $this->linkPeles($site) . '">Voltar às peles</a></p>';
 
@@ -786,12 +786,13 @@ final class TelasDeSite
                 $quem = $nomes[$v['usuario_id']] ??= $this->nomeDeUsuario($v['usuario_id']);
             }
             $eAVersaoAtual = $atual !== null && hash_equals(hash('sha256', $atual), $v['hash']);
-            $acoes = '<a class="btn btn-sm btn-outline-secondary" href="' . $base . '/molde/historico?nome=' . rawurlencode($nome) . '&ver=' . $v['versao'] . '">Ver</a> ';
+            $acoes = '<div class="pbl-linha-acoes">' . Pagina::botaoIcone('detalhes', 'Ver', 'btn-outline-secondary', ['href' => $base . '/molde/historico?nome=' . rawurlencode($nome) . '&ver=' . $v['versao'], 'item' => 'versão ' . $v['versao']]);
             $acoes .= $eAVersaoAtual ? '<span class="badge text-bg-secondary">atual</span>' : '<form class="d-inline-flex gap-1 align-items-end" method="post" action="' . $base . '/molde/voltar">' . $this->campoCsrf($sessao)
                 . '<input type="hidden" name="nome" value="' . Pagina::h($nome) . '"><input type="hidden" name="versao" value="' . $v['versao'] . '">'
                 . '<input type="hidden" name="base" value="' . Pagina::h($atual === null ? '' : hash('sha256', $atual)) . '">'
                 . $this->campoSenha($sessao, 'h-senha-' . $v['versao'])
-                . '<button type="submit" class="btn btn-sm btn-outline-primary">Voltar a esta versão</button></form>';
+                . Pagina::botaoIcone('restaurar', 'Voltar a esta versão', 'btn-outline-primary', ['item' => (string) $v['versao']]) . '</form>';
+            $acoes .= '</div>';
             $corpo .= '<tr><td>' . $v['versao'] . '</td><td>' . Pagina::h($this->dataLegivel($v['criado_em'])) . '</td><td>' . Pagina::h($quem) . '</td>'
                 . '<td>' . Pagina::h($v['acao']) . '</td><td class="text-end">' . $acoes . '</td></tr>';
         }

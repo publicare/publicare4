@@ -163,7 +163,7 @@ final class TelasDePilha
                     . '<td>' . Pagina::h($this->servicos->classes->porId($o->classeId)->nome ?? '?') . '</td>'
                     . '<td>' . ($pai === null ? '—' : Pagina::h($pai->titulo)) . '</td>'
                     . '<td class="text-end"><form method="post" action="' . Painel::PREFIXO . '/pilha/remover" class="d-inline">' . $csrf . '<input type="hidden" name="id" value="' . $o->id . '">'
-                    . '<button type="submit" class="btn btn-sm btn-outline-secondary">Tirar da pilha<span class="visually-hidden"> ' . Pagina::h($o->titulo) . '</span></button></form></td></tr>';
+                    . Pagina::botaoIcone('tirar', 'Tirar da pilha', 'btn-outline-secondary', ['item' => $o->titulo]) . '</form></td></tr>';
             }
             $corpo .= Pagina::alerta('info', ($modo === Pilha::RECORTAR ? 'Recortados: ' : 'Copiados: ') . count($itens) . ($modo === Pilha::RECORTAR ? ' (saem do lugar de hoje só quando você colar).' : ' (nada muda até você colar).'))
                 . '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Itens na pilha</caption>'

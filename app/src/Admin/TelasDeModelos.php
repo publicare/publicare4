@@ -101,7 +101,7 @@ final class TelasDeModelos
                 } else {
                     $corpo .= '<input type="hidden" name="site" value="' . ($sites[0]->id ?? 0) . '">';
                 }
-                $corpo .= '<button type="submit" class="btn btn-sm btn-primary">Ativar<span class="visually-hidden"> ' . Pagina::h($m['titulo']) . '</span></button></form>';
+                $corpo .= '' . Pagina::botaoIcone('ativar', 'Ativar', 'btn-success bg-gradient', ['item' => $m['titulo']]) . '</form>';
             }
             $corpo .= '</td></tr>';
         }

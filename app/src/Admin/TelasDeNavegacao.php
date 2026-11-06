@@ -291,15 +291,15 @@ final class TelasDeNavegacao
             $botoes .= '<span class="btn btn-outline-secondary disabled" aria-disabled="true">Subir um nível</span>';
         }
         if ($o->status !== self::LIXEIRA && $this->pode($sessao, Acao::Editar, $o)) {
-            $botoes .= '<a class="btn btn-primary" href="' . $this->objeto($o->id) . '/editar">Editar este objeto</a>';
+            $botoes .= Pagina::botaoIcone('editar', 'Editar este objeto', 'btn-primary bg-gradient', ['href' => $this->objeto($o->id) . '/editar', 'tamanho' => '']);
         }
         if ($o->status !== self::LIXEIRA && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o) && $this->aceitaFilhos($o)) {
-            $botoes .= '<a class="btn btn-success bg-gradient" href="' . $this->objeto($o->id) . '/novo">Criar filho</a>';
+            $botoes .= Pagina::botaoIcone('mais', 'Criar filho', 'btn-success bg-gradient', ['href' => $this->objeto($o->id) . '/novo', 'tamanho' => '']);
         }
-        $botoes .= '<a class="btn btn-outline-secondary" href="' . $this->objeto($o->id) . '">Detalhes</a>';
+        $botoes .= Pagina::botaoIcone('detalhes', 'Detalhes', 'btn-outline-secondary', ['href' => $this->objeto($o->id), 'tamanho' => '']);
         $publica = $this->urlPublica($o);
         if ($publica !== null) {
-            $botoes .= '<a class="btn btn-outline-secondary" href="' . Pagina::h($publica) . '" target="_blank" rel="noopener">Ver página pública</a>';
+            $botoes .= Pagina::botaoIcone('externo', 'Ver página pública', 'btn-outline-secondary', ['href' => $publica, 'externo' => true, 'tamanho' => '']);
         }
 
         return '<div class="pbl-barra-acoes">' . $botoes . '</div>';
@@ -377,57 +377,56 @@ final class TelasDeNavegacao
             . '<div><label for="campo-lote" class="form-label mb-0">Com os selecionados</label><select id="campo-lote" name="acao" class="form-select form-select-sm">'
             . '<option value="publicar">Publicar</option><option value="despublicar">Despublicar</option><option value="enviar">Enviar para revisão</option><option value="excluir">Mandar para a lixeira</option></select></div>'
             . '<button type="submit" class="btn btn-sm btn-outline-primary">Aplicar aos selecionados</button>'
-            . '<button type="submit" class="btn btn-sm btn-outline-secondary" name="modo" value="copiar" formaction="' . Painel::PREFIXO . '/pilha/adicionar">Copiar para a pilha</button>'
-            . '<button type="submit" class="btn btn-sm btn-outline-secondary" name="modo" value="recortar" formaction="' . Painel::PREFIXO . '/pilha/adicionar">Recortar para a pilha</button>'
-            . '<span class="small text-body-secondary">Para mover, recorte para a pilha ou abra "Mais" na linha.</span></form>';
+            . Pagina::botaoIcone('copiar', 'Copiar para a pilha', 'btn-outline-secondary', ['extra' => 'name="modo" value="copiar" formaction="' . Painel::PREFIXO . '/pilha/adicionar"'])
+            . Pagina::botaoIcone('recortar', 'Recortar para a pilha', 'btn-outline-secondary', ['extra' => 'name="modo" value="recortar" formaction="' . Painel::PREFIXO . '/pilha/adicionar"'])
+            . '<span class="small text-body-secondary">Para mover, recorte para a pilha ou use o ícone de mover na linha.</span></form>';
     }
 
     private function acoesDaLinha(SessaoAtiva $sessao, Objeto $x, int $filhos, int $nivel, string $volta, string $csrf): string
     {
         $naLixeira = $x->status === self::LIXEIRA;
         $b = '';
+        $item = $x->titulo;
         if (!$naLixeira && $this->pode($sessao, Acao::Editar, $x)) {
-            $b .= '<a class="btn btn-sm btn-primary" href="' . $this->objeto($x->id) . '/editar">Editar</a> ';
+            $b .= Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $this->objeto($x->id) . '/editar', 'item' => $item]);
         }
-        $b .= '<a class="btn btn-sm btn-outline-secondary" href="' . $this->link($x->id) . '">' . ($filhos > 0 ? 'Abrir (' . $filhos . ')' : 'Abrir') . '</a> ';
+        $b .= Pagina::botaoIcone('abrir', $filhos > 0 ? 'Abrir (' . $filhos . ')' : 'Abrir', 'btn-outline-secondary', ['href' => $this->link($x->id), 'item' => $item]);
         $publica = $this->urlPublica($x);
         $publicar = !$naLixeira && $this->pode($sessao, Acao::Publicar, $x);
         if ($publicar && $x->status === 'publicado') {
-            $b .= $this->formularioUnico('despublicar', 'Despublicar', 'btn-warning bg-gradient', $x, $nivel, $volta, $csrf) . ' ';
+            $b .= $this->formularioUnico('despublicar', 'Despublicar', 'despublicar', 'btn-warning bg-gradient', $x, $nivel, $volta, $csrf);
         } elseif ($publicar && in_array($x->status, ['privado', 'rejeitado', 'submetido'], true)) {
-            $b .= $this->formularioUnico('publicar', 'Publicar', 'btn-success bg-gradient', $x, $nivel, $volta, $csrf) . ' ';
+            $b .= $this->formularioUnico('publicar', 'Publicar', 'publicar', 'btn-success bg-gradient', $x, $nivel, $volta, $csrf);
         } elseif (!$naLixeira && in_array($x->status, ['privado', 'rejeitado'], true) && $this->pode($sessao, Acao::Editar, $x)) {
-            $b .= $this->formularioUnico('enviar', $x->status === 'rejeitado' ? 'Reenviar para revisão' : 'Enviar para revisão', 'btn-success bg-gradient', $x, $nivel, $volta, $csrf) . ' ';
+            $b .= $this->formularioUnico('enviar', $x->status === 'rejeitado' ? 'Reenviar para revisão' : 'Enviar para revisão', 'enviar', 'btn-success bg-gradient', $x, $nivel, $volta, $csrf);
         }
-        $mais = '';
         if ($publica !== null) {
-            $mais .= '<li><a class="dropdown-item" href="' . Pagina::h($publica) . '" target="_blank" rel="noopener">Ver página pública</a></li>';
+            $b .= Pagina::botaoIcone('externo', 'Ver página pública', 'btn-outline-secondary', ['href' => $publica, 'externo' => true, 'item' => $item]);
         }
-        $mais .= '<li><a class="dropdown-item" href="' . $this->objeto($x->id) . '/versoes">Histórico</a></li>';
+        $b .= Pagina::botaoIcone('historico', 'Histórico', 'btn-outline-secondary', ['href' => $this->objeto($x->id) . '/versoes', 'item' => $item]);
         if (!$naLixeira && $x->paiId !== null) {
-            $mais .= '<li>' . $this->formularioDePilha('copiar', 'Copiar para a pilha', $x, $nivel, $csrf) . '</li>';
+            $b .= $this->formularioDePilha('copiar', 'Copiar para a pilha', 'copiar', $x, $nivel, $csrf);
             if ($this->pode($sessao, Acao::Editar, $x)) {
-                $mais .= '<li>' . $this->formularioDePilha('recortar', 'Recortar para a pilha', $x, $nivel, $csrf) . '</li>';
+                $b .= $this->formularioDePilha('recortar', 'Recortar para a pilha', 'recortar', $x, $nivel, $csrf);
             }
         }
         if (!$naLixeira && $x->paiId !== null && $this->pode($sessao, Acao::Apagar, $x)) {
-            $mais .= '<li><a class="dropdown-item" href="' . $this->objeto($x->id) . '/mover">Mover</a></li>'
-                . '<li><a class="dropdown-item text-danger" href="' . $this->objeto($x->id) . '/apagar">Excluir (lixeira)</a></li>';
+            $b .= Pagina::botaoIcone('mover', 'Mover', 'btn-outline-secondary', ['href' => $this->objeto($x->id) . '/mover', 'item' => $item])
+                . Pagina::botaoIcone('excluir', 'Excluir (lixeira)', 'btn-danger bg-gradient', ['href' => $this->objeto($x->id) . '/apagar', 'item' => $item]);
         }
         if ($naLixeira && $this->pode($sessao, Acao::Apagar, $x)) {
-            $mais .= '<li><form method="post" action="' . $this->objeto($x->id) . '/recuperar">' . $csrf . '<input type="hidden" name="versao" value="' . $x->versao . '">'
-                . '<button type="submit" class="dropdown-item">Tirar da lixeira</button></form></li>';
+            $b .= '<form method="post" action="' . $this->objeto($x->id) . '/recuperar">' . $csrf . '<input type="hidden" name="versao" value="' . $x->versao . '">'
+                . Pagina::botaoIcone('restaurar', 'Tirar da lixeira', 'btn-outline-dark', ['item' => $item]) . '</form>';
         }
 
-        return '<div class="pbl-linha-acoes">' . $b . '<span class="dropdown d-inline-block"><button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Mais'
-            . '<span class="visually-hidden"> ações de ' . Pagina::h($x->titulo) . '</span></button><ul class="dropdown-menu dropdown-menu-end">' . $mais . '</ul></span></div>';
+        return '<div class="pbl-linha-acoes">' . $b . '</div>';
     }
 
-    private function formularioDePilha(string $modo, string $rotulo, Objeto $x, int $nivel, string $csrf): string
+    private function formularioDePilha(string $modo, string $rotulo, string $icone, Objeto $x, int $nivel, string $csrf): string
     {
         return '<form method="post" action="' . Painel::PREFIXO . '/pilha/adicionar">' . $csrf
             . '<input type="hidden" name="modo" value="' . $modo . '"><input type="hidden" name="ids[]" value="' . $x->id . '"><input type="hidden" name="versao[' . $x->id . ']" value="' . $x->versao . '">'
-            . '<input type="hidden" name="nivel" value="' . $nivel . '"><button type="submit" class="dropdown-item">' . Pagina::h($rotulo) . '<span class="visually-hidden"> ' . Pagina::h($x->titulo) . '</span></button></form>';
+            . '<input type="hidden" name="nivel" value="' . $nivel . '">' . Pagina::botaoIcone($icone, $rotulo, 'btn-outline-secondary', ['item' => $x->titulo]) . '</form>';
     }
 
     /**
@@ -443,7 +442,7 @@ final class TelasDeNavegacao
         $recortar = $itens[0]['modo'] === 'recortar';
         $botoes = '';
         if ($atual->status !== self::LIXEIRA && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $atual) && $atual->siteId === $itens[0]['site_id']) {
-            $botoes .= '<a class="btn btn-sm btn-success bg-gradient" href="' . Painel::PREFIXO . '/pilha/colar/' . $atual->id . '">Colar aqui</a> ';
+            $botoes .= Pagina::botaoIcone('colar', 'Colar aqui', 'btn-success bg-gradient', ['href' => Painel::PREFIXO . '/pilha/colar/' . $atual->id]);
         }
         $botoes .= '<a class="btn btn-sm btn-outline-secondary" href="' . Painel::PREFIXO . '/pilha">Ver a pilha</a> '
             . '<form method="post" action="' . Painel::PREFIXO . '/pilha/esvaziar" class="d-inline">' . $this->campoCsrf($sessao) . '<input type="hidden" name="nivel" value="' . $atual->id . '">'
@@ -454,12 +453,12 @@ final class TelasDeNavegacao
             . '<span class="ms-auto d-flex flex-wrap align-items-center gap-2">' . $botoes . Pagina::ajuda('ajuda-pilha', 'Pilha', TelasDePilha::ajudaDaPilha()) . '</span></div>';
     }
 
-    private function formularioUnico(string $acao, string $rotulo, string $classe, Objeto $x, int $nivel, string $volta, string $csrf): string
+    private function formularioUnico(string $acao, string $rotulo, string $icone, string $classe, Objeto $x, int $nivel, string $volta, string $csrf): string
     {
         return '<form method="post" action="' . Painel::PREFIXO . '/conteudo/acao" class="d-inline">' . $csrf
             . '<input type="hidden" name="acao" value="' . $acao . '"><input type="hidden" name="ids[]" value="' . $x->id . '"><input type="hidden" name="versao[' . $x->id . ']" value="' . $x->versao . '">'
             . '<input type="hidden" name="nivel" value="' . $nivel . '"><input type="hidden" name="volta" value="' . Pagina::h($volta) . '">'
-            . '<button type="submit" class="btn btn-sm ' . $classe . '">' . Pagina::h($rotulo) . '<span class="visually-hidden"> ' . Pagina::h($x->titulo) . '</span></button></form>';
+            . '' . Pagina::botaoIcone($icone, $rotulo, $classe, ['item' => $x->titulo]) . '</form>';
     }
 
     /** @param array{q: string, estado: string, classe: int|null, ordem: string, inicio: int, por: int} $f */
