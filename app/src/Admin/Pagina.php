@@ -165,6 +165,8 @@ final class Pagina
         $secao = match (true) {
             str_starts_with($caminho, '/_pbl/classes'), str_starts_with($caminho, '/_pbl/modelos') => 'classes',
             str_starts_with($caminho, '/_pbl/conteudo') => 'conteudo',
+            str_starts_with($caminho, '/_pbl/vencidos') => 'vencidos',
+            str_starts_with($caminho, '/_pbl/lixeira') => 'lixeira',
             str_starts_with($caminho, '/_pbl/contas') => 'contas',
             str_starts_with($caminho, '/_pbl/atualizacao') => 'atualizacao',
             str_starts_with($caminho, '/_pbl/tarefas') => 'tarefas',
@@ -175,6 +177,8 @@ final class Pagina
         [$pendencias, $revisor, $envia] = self::$revisao;
         $itens = ['inicio' => ['/_pbl/', 'Sites e conteúdo']];
         $itens['conteudo'] = ['/_pbl/conteudo', 'Conteúdo'];
+        $itens['vencidos'] = ['/_pbl/vencidos', 'Vencidos'];
+        $itens['lixeira'] = ['/_pbl/lixeira', 'Lixeira'];
         if ($revisor) {
             $itens['pendencias'] = ['/_pbl/pendencias', 'Pendências' . ($pendencias > 0 ? ' <span class="badge text-bg-warning" title="Aguardando revisão">' . $pendencias . '</span>' : '')];
         }

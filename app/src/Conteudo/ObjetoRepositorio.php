@@ -29,12 +29,14 @@ final class ObjetoRepositorio
     public const STATUS = ['privado', 'submetido', 'rejeitado', 'publicado', 'apagado'];
 
     private readonly IndexadorDeObjeto $buscador;
+    private readonly BuscaInterface $busca;
     private readonly TagRepositorio $tags;
 
     public function __construct(private readonly Connection $conexao, private readonly ?Auditoria $auditoria = null, ?BuscaInterface $busca = null)
     {
         $this->tags = new TagRepositorio($conexao);
-        $this->buscador = new IndexadorDeObjeto($busca ?? new BuscaSql($conexao), new ClasseRepositorio($conexao));
+        $this->busca = $busca ?? new BuscaSql($conexao);
+        $this->buscador = new IndexadorDeObjeto($this->busca, new ClasseRepositorio($conexao));
     }
 
     /**
@@ -649,6 +651,92 @@ final class ObjetoRepositorio
             }
 
             return $this->atualizar($id, ['status' => $status], $motivo, $versaoEsperada, false, $usuarioId);
+        });
+    }
+
+    /**
+     * Publicados cuja validade já passou, na subárvore (inclui o próprio `$caminhoRaiz`), os de validade mais antiga primeiro.
+     *
+     * @return list<Objeto>
+     */
+    public function vencidosDaSubarvore(int $siteId, string $caminhoRaiz, string $agoraIso, int $limite): array
+    {
+        $linhas = $this->conexao->fetchAllAssociative(
+            "SELECT * FROM objeto WHERE site_id = ? AND caminho LIKE ? ESCAPE '!' AND status = 'publicado' AND data_validade IS NOT NULL AND data_validade < ? ORDER BY data_validade, id LIMIT " . max(1, min(500, $limite)),
+            [$siteId, $this->escaparLike($caminhoRaiz) . '%', $agoraIso],
+        );
+
+        return array_map($this->hidratar(...), $linhas);
+    }
+
+    public function contarVencidosDaSubarvore(int $siteId, string $caminhoRaiz, string $agoraIso): int
+    {
+        return (int) $this->conexao->fetchOne(
+            "SELECT COUNT(*) FROM objeto WHERE site_id = ? AND caminho LIKE ? ESCAPE '!' AND status = 'publicado' AND data_validade IS NOT NULL AND data_validade < ?",
+            [$siteId, $this->escaparLike($caminhoRaiz) . '%', $agoraIso],
+        );
+    }
+
+    /**
+     * Itens da lixeira na subárvore, os mais recentemente alterados primeiro. Só traz o que não é raiz de site.
+     *
+     * @return list<Objeto>
+     */
+    public function daLixeiraDaSubarvore(int $siteId, string $caminhoRaiz, int $limite): array
+    {
+        $linhas = $this->conexao->fetchAllAssociative(
+            "SELECT * FROM objeto WHERE site_id = ? AND caminho LIKE ? ESCAPE '!' AND status = 'apagado' AND pai_id IS NOT NULL ORDER BY atualizado_em DESC, id DESC LIMIT " . max(1, min(500, $limite)),
+            [$siteId, $this->escaparLike($caminhoRaiz) . '%'],
+        );
+
+        return array_map($this->hidratar(...), $linhas);
+    }
+
+    public function contarDaLixeiraDaSubarvore(int $siteId, string $caminhoRaiz): int
+    {
+        return (int) $this->conexao->fetchOne(
+            "SELECT COUNT(*) FROM objeto WHERE site_id = ? AND caminho LIKE ? ESCAPE '!' AND status = 'apagado' AND pai_id IS NOT NULL",
+            [$siteId, $this->escaparLike($caminhoRaiz) . '%'],
+        );
+    }
+
+    /**
+     * Apaga **de vez** um item da lixeira e tudo que está dentro dele (que, pela regra da lixeira, também está nela): versões, índices
+     * de busca, tags, histórico de endereços, papéis, passos de revisão e pilha. A auditoria (só acrescenta) e os arquivos enviados
+     * ficam: a linha de `arquivo` vira órfã e sai no `bin/pbl limpar-uploads`. Não desfaz.
+     *
+     * @return int quantos objetos foram removidos (o item e os de dentro)
+     * @throws ConflitoDeVersao a versão mudou desde que a tela abriu
+     * @throws ConflitoDeArvore o item não está na lixeira, é raiz de site ou tem algo fora da lixeira dentro dele
+     */
+    public function apagarDefinitivamente(int $id, int $versaoEsperada, ?int $usuarioId = null): int
+    {
+        return $this->conexao->transactional(function () use ($id, $versaoEsperada, $usuarioId): int {
+            $this->travar($id);
+            $o = $this->porId($id) ?? throw new \InvalidArgumentException("Objeto {$id} não existe");
+            if ($o->status !== 'apagado' || $o->paiId === null) {
+                throw new ConflitoDeArvore('Só se apaga de vez o que está na lixeira');
+            }
+            if ($o->versao !== $versaoEsperada) {
+                throw new ConflitoDeVersao($versaoEsperada, $o->versao);
+            }
+            $alvos = $this->todosDaSubarvore($o->siteId, $o->caminho);
+            foreach ($alvos as $a) {
+                if ($a->status !== 'apagado') {
+                    throw new ConflitoDeArvore('Há conteúdo fora da lixeira dentro dele');
+                }
+            }
+            foreach ($alvos as $a) {
+                $this->busca->remover($a->id);
+                $this->tags->esquecerObjeto($a->siteId, $a->id);
+                foreach (['objeto_indice', 'objeto_termo', 'objeto_versao', 'url_historico', 'acesso', 'revisao', 'pilha'] as $tabela) {
+                    $this->conexao->delete($tabela, ['objeto_id' => $a->id]);
+                }
+                $this->conexao->delete('objeto', ['id' => $a->id]);
+                $this->auditar('objeto.apagar_definitivo', $usuarioId, $a->id, ['titulo' => mb_substr($a->titulo, 0, 100), 'classe_id' => $a->classeId, 'raiz_do_lote' => $o->id]);
+            }
+
+            return count($alvos);
         });
     }
 

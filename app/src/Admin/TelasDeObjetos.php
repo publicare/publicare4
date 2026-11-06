@@ -48,6 +48,7 @@ final class TelasDeObjetos
     public const MAX_HTML = 200000;
     /** Até quantas versões a tela de histórico mostra (as mais novas). */
     public const MAX_VERSOES = 200;
+    public const MAX_LOG = 200;
     /** Motivo gravado na versão e na auditoria: fixo, nunca texto digitado. */
     public const MOTIVO = 'administracao';
     /** Fuso em que as datas de publicação e validade são digitadas e mostradas (gravadas em UTC). */
@@ -56,7 +57,7 @@ final class TelasDeObjetos
     /** Sub-rota de `/_pbl/objeto/{id}` => métodos aceitos. O resto é 404. */
     private const ROTAS = [
         '' => ['GET'], 'editar' => ['GET', 'POST'], 'novo' => ['GET', 'POST'], 'estado' => ['GET', 'POST'],
-        'mover' => ['GET', 'POST'], 'apagar' => ['GET', 'POST'], 'recuperar' => ['POST'], 'versoes' => ['GET'], 'restaurar' => ['POST'], 'envios' => ['GET'], 'previa' => ['GET'],
+        'mover' => ['GET', 'POST'], 'apagar' => ['GET', 'POST'], 'recuperar' => ['POST'], 'versoes' => ['GET'], 'log' => ['GET'], 'restaurar' => ['POST'], 'envios' => ['GET'], 'previa' => ['GET'],
     ];
     /** Ordens da lista de filhos: chave da URL => [rótulo, ordem da Consulta]. Só estas chegam ao motor. */
     private const ORDENS = [
@@ -101,6 +102,7 @@ final class TelasDeObjetos
             'apagar' => $post ? $this->apagar($sessao, $id, $r) : $this->confirmarApagar($sessao, $id),
             'recuperar' => $this->recuperar($sessao, $id, $r),
             'versoes' => $this->versoes($sessao, $id),
+            'log' => $this->log($sessao, $id),
             'envios' => $this->envios($sessao, $id, $r),
             'previa' => $this->previa($sessao, $id, $r),
             default => $this->restaurar($sessao, $id, $r),
@@ -501,6 +503,7 @@ final class TelasDeObjetos
             $outras[] = ['Envios recebidos', $this->link($o->id) . '/envios', false];
         }
         $outras[] = ['Histórico de versões', $this->link($o->id) . '/versoes', false];
+        $outras[] = ['Registro de atividade', $this->link($o->id) . '/log', false];
         if (!$naLixeira && $o->paiId !== null && $this->pode($sessao, Acao::Apagar, $o)) {
             $outras[] = ['Mover', $this->link($o->id) . '/mover', false];
             $outras[] = ['Mandar para a lixeira', $this->link($o->id) . '/apagar', true];
@@ -1993,6 +1996,70 @@ final class TelasDeObjetos
         $corpo .= Pagina::acoes('', [['Voltar', $this->link($o->id)]]);
 
         return Pagina::resposta('Histórico: ' . $o->titulo, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', 'Cada vez que o conteúdo é salvo, a versão anterior fica guardada. Restaurar traz de volta o título, a descrição, o endereço, o peso e os campos daquela versão, gravados como uma versão nova; o estado e as datas de publicação continuam como estão.');
+    }
+
+    /** Registro de atividade do objeto (somente leitura): a auditoria filtrada por ele e os passos do fluxo de revisão. */
+    private function log(SessaoAtiva $sessao, int $id): Response
+    {
+        $o = $this->servicos->objetos->porId($id);
+        if ($o === null || !$this->pode($sessao, Acao::Ver, $o)) {
+            return $this->semAcesso($sessao);
+        }
+        $nomes = [];
+        $quem = function (string $ator) use (&$nomes): string {
+            if (preg_match('/^usuario:([1-9][0-9]*)$/D', $ator, $m) !== 1) {
+                return $ator === 'cli' ? 'linha de comando' : ($ator === 'sistema' ? 'sistema' : $ator);
+            }
+
+            return $nomes[(int) $m[1]] ??= $this->servicos->usuarios->porId((int) $m[1])->nome ?? ('pessoa nº ' . $m[1]);
+        };
+        $eventos = $this->servicos->auditoria->doObjeto($o->id, self::MAX_LOG);
+        $corpo = $this->migalhas($sessao, $o) . '<h2 class="h5">Auditoria</h2>';
+        if ($eventos === []) {
+            $corpo .= '<p class="text-body-secondary">Nada registrado para este conteúdo.</p>';
+        } else {
+            $corpo .= '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Registro de atividade</caption>'
+                . '<thead><tr><th scope="col">Quando</th><th scope="col">Quem</th><th scope="col">Ação</th><th scope="col">Detalhe</th></tr></thead><tbody>';
+            foreach ($eventos as $e) {
+                $corpo .= '<tr><td>' . Pagina::h($this->dataLegivel($e['quando'])) . '</td><td>' . Pagina::h($quem($e['ator'])) . '</td>'
+                    . '<td><code>' . Pagina::h($e['acao']) . '</code></td><td>' . Pagina::h($this->detalheLegivel($e['detalhe'])) . '</td></tr>';
+            }
+            $corpo .= '</tbody></table></div>';
+        }
+        $corpo .= '<h2 class="h5 mt-4">Fluxo de revisão</h2>';
+        $passos = $this->servicos->revisao->historico($o->id, self::MAX_LOG);
+        if ($passos === []) {
+            $corpo .= '<p class="text-body-secondary">Este conteúdo nunca passou pela revisão.</p>';
+        } else {
+            $corpo .= '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Fluxo de revisão</caption>'
+                . '<thead><tr><th scope="col">Quando</th><th scope="col">Quem</th><th scope="col">Passo</th><th scope="col">Motivo</th></tr></thead><tbody>';
+            foreach ($passos as $p) {
+                $corpo .= '<tr><td>' . Pagina::h($this->dataLegivel($p['quando'])) . '</td><td>' . Pagina::h($p['quem']) . '</td>'
+                    . '<td>' . Pagina::h($p['acao']) . '</td><td>' . Pagina::h($p['motivo'] ?? '') . '</td></tr>';
+            }
+            $corpo .= '</tbody></table></div>';
+        }
+        $corpo .= Pagina::acoes('', [['Voltar', $this->link($o->id)], ['Histórico de versões', $this->link($o->id) . '/versoes']]);
+
+        return Pagina::resposta('Registro de atividade: ' . $o->titulo, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', 'Tudo que a auditoria guardou sobre este conteúdo (criar, editar, mudar de estado, mover, lixeira, acessos negados) e os passos do fluxo de revisão. Só leitura: a auditoria não se edita.');
+    }
+
+    /** O JSON do detalhe da auditoria como "chave: valor" (texto; o chamador escapa). */
+    private function detalheLegivel(?string $json): string
+    {
+        if ($json === null || $json === '') {
+            return '';
+        }
+        $d = json_decode($json, true);
+        if (!is_array($d)) {
+            return mb_substr($json, 0, 300);
+        }
+        $partes = [];
+        foreach ($d as $chave => $valor) {
+            $partes[] = $chave . ': ' . (is_scalar($valor) || $valor === null ? mb_substr((string) $valor, 0, 120) : mb_substr((string) json_encode($valor, JSON_UNESCAPED_UNICODE), 0, 120));
+        }
+
+        return implode('; ', $partes);
     }
 
     private function restaurar(SessaoAtiva $sessao, int $id, Request $r): Response
