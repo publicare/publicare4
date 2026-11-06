@@ -72,7 +72,10 @@ final class OrigemPbl3
         return $saida;
     }
 
-    /** @return list<array<string, mixed>> */
+    /**
+     * @param list<int> $ids
+     * @return list<array<string, mixed>>
+     */
     public function objetosPorIds(array $ids): array
     {
         if ($ids === []) {
@@ -235,7 +238,7 @@ final class OrigemPbl3
         $ordenar = implode(', ', array_map(fn (string $c): string => $this->col($tabela, trim($c)), explode(',', $ordem)));
         $sql = 'SELECT ' . implode(', ', $lista) . ' FROM ' . $this->tabela($tabela) . ($onde === '' ? '' : ' ' . $onde) . ' ORDER BY ' . $ordenar . ($limite === null ? '' : ' LIMIT ' . max(1, $limite));
 
-        return array_values($this->conexao->fetchAllAssociative($sql, $parametros, $tipos));
+        return $this->conexao->fetchAllAssociative($sql, $parametros, $tipos);
     }
 
     private function tabela(string $logica): string
