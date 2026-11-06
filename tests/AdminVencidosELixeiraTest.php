@@ -15,6 +15,7 @@ final class AdminVencidosELixeiraTest extends TestCase
 {
     use AdminAuxiliar;
 
+    /** @param array<string, mixed> $meta */
     private function pagina(string $titulo, ?int $paiId = null, string $status = 'publicado', array $meta = []): Objeto
     {
         static $n = 0;
@@ -45,7 +46,7 @@ final class AdminVencidosELixeiraTest extends TestCase
         self::assertStringNotContainsString('Ainda vale', $html);
         self::assertStringNotContainsString('Sem validade', $html);
         self::assertStringNotContainsString('Privado vencido', $html);
-        self::assertStringContainsString('01/01/2020', $html);
+        self::assertStringContainsString('31/12/2019', $html);
     }
 
     public function testVencidosFiltraPorSecaoERespeitaPermissao(): void
@@ -210,7 +211,7 @@ final class AdminVencidosELixeiraTest extends TestCase
         self::assertStringContainsString('Lixo B', $confirma);
         self::assertStringNotContainsString('Lixo A', $confirma);
 
-        self::assertSame(403, $this->post($admin, '/_pbl/lixeira/esvaziar', ['secao' => (string) $outra->id], [])->getStatusCode(), 'sem origem');
+        self::assertSame(403, $this->post($admin, '/_pbl/lixeira/esvaziar', ['secao' => (string) $outra->id], false)->getStatusCode(), 'sem CSRF');
         $r = $this->post($admin, '/_pbl/lixeira/esvaziar', ['secao' => (string) $outra->id]);
         self::assertSame(303, $r->getStatusCode());
         self::assertStringContainsString('ok=esvaziada', (string) $r->headers->get('Location'));

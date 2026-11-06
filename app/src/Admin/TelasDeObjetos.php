@@ -2064,7 +2064,7 @@ final class TelasDeObjetos
         try {
             $svg = CodigoQr::svg($url);
         } catch (\InvalidArgumentException $e) {
-            return Pagina::resposta('QR code: ' . $o->titulo, $corpo . $this->alerta('warning', $e->getMessage() . '.') . $voltar, Response::HTTP_OK, false, $this->barra($sessao));
+            return Pagina::resposta('QR code: ' . $o->titulo, $corpo . Pagina::alerta('warning', $e->getMessage() . '.') . $voltar, Response::HTTP_OK, false, $this->barra($sessao));
         }
         if (($r->query->all()['formato'] ?? null) === 'svg') {
             return new Response($svg, Response::HTTP_OK, ['Content-Type' => 'image/svg+xml; charset=UTF-8', 'Content-Disposition' => 'attachment; filename="qr-' . $o->id . '.svg"', 'X-Content-Type-Options' => 'nosniff']);

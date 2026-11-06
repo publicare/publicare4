@@ -27,17 +27,17 @@ final class CodigoQr
 
     private int $tamanho = 0;
 
-    /** @var list<list<bool>> */
+    /** @var array<int, array<int, bool>> */
     private array $modulos = [];
 
-    /** @var list<list<bool>> */
+    /** @var array<int, array<int, bool>> */
     private array $funcao = [];
 
     /**
      * A matriz de módulos (true = escuro), sem a margem.
      *
      * @param int|null $mascara 0 a 7 para forçar a máscara (testes); null escolhe a de menor penalidade
-     * @return list<list<bool>>
+     * @return array<int, array<int, bool>>
      * @throws \InvalidArgumentException se o texto não cabe na versão 10
      */
     public static function matriz(string $texto, ?int $mascara = null): array
@@ -200,7 +200,7 @@ final class CodigoQr
         return $r;
     }
 
-    /** @return list<int> coeficientes do polinômio gerador de grau $grau, sem o termo líder */
+    /** @return array<int, int> coeficientes do polinômio gerador de grau $grau, sem o termo líder */
     private static function gerador(int $grau): array
     {
         $g = array_fill(0, $grau, 0);
@@ -220,9 +220,9 @@ final class CodigoQr
     }
 
     /**
-     * @param list<int> $dados
-     * @param list<int> $gerador
-     * @return list<int>
+     * @param array<int, int> $dados
+     * @param array<int, int> $gerador
+     * @return array<int, int>
      */
     private static function resto(array $dados, array $gerador): array
     {
