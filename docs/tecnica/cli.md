@@ -14,6 +14,7 @@ No ambiente de desenvolvimento: `make pbl ARGS="<comando> …"`. Em um servidor:
 | `demo-popular [--site=ID] [--forcar] [--sem-publicar]` | popula o site com o "Instituto Exemplo" (conteúdo fictício rico) e publica; inclui `/onepage` e `/portal` (peles `onepage` e `portal`); recusa sites com mais de 30 conteúdos sem `--forcar`. Só para desenvolvimento e demonstração |
 | `instalar … [--modelos=evento,faq\|todos]` | (opção) ativa modelos opcionais já na instalação |
 | `converter-moldes <origem> <destino> [--seguro]` | converte moldes do PBL3 em moldes PBL4 e escreve `RELATORIO.md` |
+| `importar-pbl3 --origem-sqlite=ARQ\|--origem-mysql=host/banco [--gravar] [--raiz=N] [--uploads=DIR] …` | importa conteúdo, arquivos, contas e tags de uma base do PBL3 (só leitura na origem; simula sem `--gravar`). Passo a passo em [migrar-do-pbl3](migrar-do-pbl3.md), decisões no [ADR 0027](../adr/0027-importador-pbl3.md) |
 | `limpar-uploads [--simular]` | apaga arquivos de propriedade `arquivo`/`imagem` que nenhum objeto, nem versão antiga, referencia mais (carência de 1 hora). `--simular` só mostra o que seria apagado. Pensado para o cron, de vez em quando ([fluxo 7](../fluxos/07-upload-blobs.md), [ADR 0014](../adr/0014-upload-de-arquivos.md)) |
 
 ## `usuario`
