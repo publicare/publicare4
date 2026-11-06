@@ -224,6 +224,7 @@ final class ImportadorPbl3Test extends TestCase
         self::assertSame(6, $r->total('objetos importados'));
         self::assertSame($antes, [$this->contar('SELECT COUNT(*) FROM objeto'), $this->contar('SELECT COUNT(*) FROM usuario'), $this->contar('SELECT COUNT(*) FROM classe'), $this->contar('SELECT COUNT(*) FROM importacao_pbl3')]);
         self::assertSame(0, $this->contar('SELECT COUNT(*) FROM arquivo'));
+        self::assertSame([], array_filter(array_keys($r->avisos()), static fn (string $a): bool => str_starts_with($a, 'objeto não importado')), 'a simulação não reprova objetos com arquivo obrigatório');
         self::assertSame([], glob($this->raiz . '/storage/*/*') ?: [], 'nenhum arquivo copiado');
     }
 

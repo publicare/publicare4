@@ -439,6 +439,7 @@ final class Importador
                 }
                 if ($this->opcoes->simular) {
                     $this->relatorio->contar('arquivos que seriam importados');
+                    $extra[$p['nome']] = $this->arquivoDeSimulacao($objetoId, $p, $nome);
                     continue;
                 }
                 $id = $this->enviarArquivo($caminho, $nome, $p, $objetoId, $autor, $codBlob);
@@ -449,6 +450,24 @@ final class Importador
 
             return $extra;
         };
+    }
+
+    /**
+     * Na simulação o arquivo não é copiado, mas a validação do objeto exige uma linha de `arquivo`: cria uma, desfeita junto com
+     * a transação da simulação, para que objetos com arquivo obrigatório não sejam reprovados à toa.
+     *
+     * @param array{nome: string, tipo: string, tipo3: string} $p
+     */
+    private function arquivoDeSimulacao(int $objetoId, array $p, string $nome): int
+    {
+        $ext = strtolower(pathinfo(str_replace('\\', '/', $nome), PATHINFO_EXTENSION));
+        $this->destino->insert('arquivo', [
+            'site_id' => $this->siteId, 'objeto_id' => $objetoId, 'propriedade' => $p['nome'], 'chave' => 'simulacao-' . $objetoId . '-' . $p['nome'],
+            'nome' => 'simulacao', 'extensao' => $ext, 'mime' => 'application/octet-stream', 'tamanho' => 0, 'sha256' => str_repeat('0', 64),
+            'largura' => null, 'altura' => null, 'sanitizada' => 0, 'criado_em' => gmdate('c'), 'criado_por' => null,
+        ]);
+
+        return (int) $this->destino->lastInsertId();
     }
 
     /** @param array{nome: string, tipo: string, tipo3: string} $p */
