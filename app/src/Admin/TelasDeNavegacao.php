@@ -275,7 +275,7 @@ final class TelasDeNavegacao
 
     private function selosDoAtual(Objeto $o, string $agora): string
     {
-        return '<p class="pbl-selos"><span class="badge text-bg-light border">' . Pagina::h($this->nomeDaClasse($o->classeId)) . '</span> '
+        return '<p class="pbl-selos"><span class="badge text-bg-light border">' . $this->iconeDaClasse($o->classeId) . Pagina::h($this->nomeDaClasse($o->classeId)) . '</span> '
             . $this->selo($o, $agora) . '</p>'
             . ($o->descricao === '' ? '' : '<p class="text-body-secondary">' . Pagina::h($o->descricao) . '</p>');
     }
@@ -354,7 +354,7 @@ final class TelasDeNavegacao
             $res = $resumos[$x->id] ?? ['atualizado_em' => '', 'alterado_por' => null, 'filhos' => 0];
             $linhas .= '<tr><td>' . ($lote ? '<input class="form-check-input" type="checkbox" name="ids[]" value="' . $x->id . '" form="lote" aria-label="Selecionar ' . Pagina::h($x->titulo) . '">'
                 . '<input type="hidden" name="versao[' . $x->id . ']" value="' . $x->versao . '" form="lote">' : '') . '</td>'
-                . '<td><span class="badge text-bg-light border" title="Tipo">' . Pagina::h($this->nomeDaClasse($x->classeId)) . '</span></td>'
+                . '<td><span class="badge text-bg-light border" title="Tipo">' . $this->iconeDaClasse($x->classeId) . Pagina::h($this->nomeDaClasse($x->classeId)) . '</span></td>'
                 . '<td><a class="fw-semibold" href="' . $this->link($x->id) . '">' . Pagina::h($x->titulo) . '</a></td>'
                 . '<td>' . $this->selo($x, $agora) . '</td>'
                 . '<td>' . Pagina::h($this->data($res['atualizado_em'])) . '</td>'
@@ -766,6 +766,16 @@ final class TelasDeNavegacao
     private function nomeDe(int $usuarioId): string
     {
         return $this->nomesDeUsuario[$usuarioId] ??= $this->servicos->usuarios->porId($usuarioId)->nome ?? 'conta removida';
+    }
+
+    /** @var array<int, string> */
+    private array $iconesDeClasse = [];
+
+    private function iconeDaClasse(int $classeId): string
+    {
+        $this->iconesDeClasse[$classeId] ??= IconesDeClasse::svg($this->servicos->classes->porId($classeId)->icone ?? '');
+
+        return $this->iconesDeClasse[$classeId] === '' ? '' : $this->iconesDeClasse[$classeId] . ' ';
     }
 
     private function nomeDaClasse(int $classeId): string

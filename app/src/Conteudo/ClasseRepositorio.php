@@ -206,8 +206,25 @@ final class ClasseRepositorio
                 throw new ConflitoDeVersao($versaoEsperada, (int) $this->conexao->fetchOne('SELECT versao FROM classe WHERE id = ?', [$id]));
             }
 
-            return new Classe($id, $atual->nome, $novas, $descricao, $aceita, $filhas, $versaoEsperada + 1, $atual->fixa);
+            return new Classe($id, $atual->nome, $novas, $descricao, $aceita, $filhas, $versaoEsperada + 1, $atual->fixa, $atual->icone);
         });
+    }
+
+    /**
+     * Define o ícone da classe (chave do conjunto fechado do painel; vazio remove). Não mexe na versão: é só apresentação,
+     * não muda a estrutura que os moldes e os formulários leem.
+     *
+     * @throws \InvalidArgumentException se a chave não existe
+     */
+    public function definirIcone(int $id, string $icone): Classe
+    {
+        if (!\Pbl\Admin\IconesDeClasse::valido($icone)) {
+            throw new \InvalidArgumentException('Ícone desconhecido');
+        }
+        $atual = $this->porId($id) ?? throw new \InvalidArgumentException("Classe {$id} não existe");
+        $this->conexao->update('classe', ['icone' => $icone === '' ? null : $icone], ['id' => $id]);
+
+        return $this->porId($atual->id) ?? $atual;
     }
 
     /**
@@ -424,6 +441,7 @@ final class ClasseRepositorio
             is_array($filhas) ? array_values(array_map('strval', $filhas)) : [],
             (int) ($linha['versao'] ?? 1),
             (int) ($linha['fixa'] ?? 0) === 1,
+            (string) ($linha['icone'] ?? ''),
         );
     }
 }
