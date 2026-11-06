@@ -25,7 +25,7 @@ final class M021Test extends TestCase
         $c->executeStatement('DELETE FROM schema_versao WHERE versao >= 21');
 
         $n = (int) $c->fetchOne('SELECT COUNT(*) FROM classe');
-        self::assertSame([21, 22, 23, 24], (new Migrador($c))->migrar());
+        self::assertSame([21, 22, 23, 24, 25], (new Migrador($c))->migrar());
         self::assertSame($n, (int) $c->fetchOne('SELECT COUNT(*) FROM classe'), 'não cria classe');
         $depois = json_decode((string) $c->fetchOne("SELECT propriedades FROM classe WHERE nome = 'formulario'"), true);
         $nomes = array_column($depois, 'nome');
@@ -33,7 +33,7 @@ final class M021Test extends TestCase
         self::assertSame(count($nomes), count(array_unique($nomes)));
 
         $c->executeStatement('DELETE FROM schema_versao WHERE versao >= 21');
-        self::assertSame([21, 22, 23, 24], (new Migrador($c))->migrar());
+        self::assertSame([21, 22, 23, 24, 25], (new Migrador($c))->migrar());
         self::assertSame($depois, json_decode((string) $c->fetchOne("SELECT propriedades FROM classe WHERE nome = 'formulario'"), true), 'idempotente');
     }
 
