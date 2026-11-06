@@ -36,6 +36,72 @@ final class Pagina
     }
 
     /**
+     * Ícones dos botões de ação (traço simples, 24x24, estilo Feather/Lucide). Os seis primeiros são os mesmos da barra de edição pública
+     * (`pbl-barra.js`); o mapa é o único lugar do painel que desenha ícone de botão.
+     */
+    public const ICONES = [
+        'conteudo' => 'M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01',
+        'editar' => 'M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
+        'publicar' => 'M20 6 9 17l-5-5',
+        'despublicar' => 'M8 5v14 M16 5v14',
+        'mover' => 'M7 4v16 M3 8l4-4 4 4 M17 20V4 M13 16l4 4 4-4',
+        'excluir' => 'M3 6h18 M8 6V4h8v2 M6 6l1 14h10l1-14 M10 11v6 M14 11v6',
+        'abrir' => 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z',
+        'detalhes' => 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+        'externo' => 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6 M15 3h6v6 M10 14 21 3',
+        'mais' => 'M12 5v14 M5 12h14',
+        'copiar' => 'M11 9h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1',
+        'recortar' => 'M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M6 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M20 4 8.12 15.88 M14.47 14.48 20 20 M8.12 8.12 12 12',
+        'colar' => 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2 M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z',
+        'tirar' => 'M18 6 6 18 M6 6l12 12',
+        'restaurar' => 'M1 4v6h6 M3.51 15a9 9 0 1 0 2.13-9.36L1 10',
+        'historico' => 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2',
+        'log' => 'M4 6h16 M4 12h16 M4 18h10',
+        'qr' => 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h3v3h-3z M20 14v7 M14 20h3',
+        'arquivos' => 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8',
+        'aprovar' => 'M20 6 9 17l-5-5',
+        'devolver' => 'M9 14 4 9l5-5 M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11',
+        'enviar' => 'M22 2 11 13 M22 2l-7 20-4-9-9-4z',
+        'retirar' => 'M19 12H5 M12 19l-7-7 7-7',
+        'ativar' => 'M22 11.08V12a10 10 0 1 1-5.93-9.14 M22 4 12 14.01l-3-3',
+        'executar' => 'M5 3l14 9-14 9z',
+        'principal' => 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z',
+        'alternar' => 'M17 1l4 4-4 4 M3 11V9a4 4 0 0 1 4-4h14 M7 23l-4-4 4-4 M21 13v2a4 4 0 0 1-4 4H3',
+    ];
+
+    /** `<svg>` inline de um ícone de `ICONES` (16px, `currentColor`, decorativo). Nome desconhecido: vazio. */
+    public static function icone(string $nome): string
+    {
+        if (!isset(self::ICONES[$nome])) {
+            return '';
+        }
+
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="' . self::ICONES[$nome] . '"/></svg>';
+    }
+
+    /**
+     * Botão de ação só com ícone (modelo da barra de edição pública). Com `href` vira `<a>`; sem ele, `<button type="submit">`.
+     * O rótulo continua no HTML em `visually-hidden` (leitor de tela e busca), no `title` e, com `item`, no `aria-label`
+     * ("Editar: Título"). `$classe` = cor por função (`btn-primary bg-gradient`, `btn-outline-danger`...).
+     *
+     * @param array{href?: string, item?: string, extra?: string, externo?: bool, tamanho?: string} $o `extra` = atributos já escapados (ex.: `name="modo" value="copiar"`)
+     */
+    public static function botaoIcone(string $icone, string $rotulo, string $classe, array $o = []): string
+    {
+        $item = $o['item'] ?? '';
+        $tamanho = $o['tamanho'] ?? 'btn-sm';
+        $completo = $rotulo . ($item === '' ? '' : ': ' . $item);
+        $attrs = ' class="btn ' . ($tamanho === '' ? '' : $tamanho . ' ') . self::h($classe) . ' pbl-btn-icone" title="' . self::h($rotulo) . '"'
+            . ($item === '' ? '' : ' aria-label="' . self::h($completo) . '"') . (($o['extra'] ?? '') === '' ? '' : ' ' . $o['extra']);
+        $miolo = self::icone($icone) . '<span class="visually-hidden">' . self::h($item === '' ? $rotulo : $rotulo . ' ' . $item) . '</span>';
+        if (isset($o['href'])) {
+            return '<a' . $attrs . ' href="' . self::h($o['href']) . '"' . (($o['externo'] ?? false) ? ' target="_blank" rel="noopener"' : '') . '>' . $miolo . '</a>';
+        }
+
+        return '<button type="submit"' . $attrs . '>' . $miolo . '</button>';
+    }
+
+    /**
      * URL de um arquivo estático da administração com `?v=` (hash curto do conteúdo): o servidor/CDN guarda esses arquivos por
      * anos, então sem a versão na URL um ajuste de CSS nunca chegaria a quem já abriu o painel. Arquivo ausente: versão do produto.
      */

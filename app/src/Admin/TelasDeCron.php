@@ -161,7 +161,7 @@ final class TelasDeCron
                 . '<td>' . ($programada || $e['verificada_em'] > 0 ? self::data($proxima) : 'na próxima rodada') . '</td>'
                 . '<td>' . $badge . ($e['resumo'] === '' ? '' : '<div class="form-text mt-0">' . Pagina::h($e['resumo']) . ($e['duracao_ms'] > 0 ? ' (' . $e['duracao_ms'] . ' ms)' : '') . '</div>') . '</td>'
                 . '<td><form method="post" action="' . Painel::PREFIXO . '/tarefas/executar">' . $this->campoCsrf($sessao)
-                . '<input type="hidden" name="tarefa" value="' . Pagina::h($t->id()) . '"><button class="btn btn-sm btn-outline-primary" type="submit">Executar agora</button></form></td></tr>';
+                . '<input type="hidden" name="tarefa" value="' . Pagina::h($t->id()) . '">' . Pagina::botaoIcone('executar', 'Executar agora', 'btn-outline-primary', ['item' => $t->id()]) . '</form></td></tr>';
         }
         $tabela = '<div class="table-responsive"><table class="table align-middle"><caption class="visually-hidden">Tarefas agendadas</caption>'
             . '<thead><tr><th scope="col">Tarefa</th><th scope="col">Frequência</th><th scope="col">Última execução</th><th scope="col">Próxima</th><th scope="col">Resultado</th><th scope="col"><span class="visually-hidden">Ação</span></th></tr></thead>'

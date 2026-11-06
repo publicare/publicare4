@@ -307,7 +307,7 @@ final class TelasDeContas
                     . '<td>Este conteúdo e tudo abaixo dele</td>'
                     . '<td class="text-end"><form method="post" action="' . $base . '/revogar" class="d-flex gap-1 align-items-end justify-content-end">' . $csrf . '<input type="hidden" name="objeto" value="' . $a['objeto_id'] . '">'
                     . $this->campoSenha($sessao, 'campo-senha-revogar-' . $a['objeto_id'])
-                    . '<button type="submit" class="btn btn-sm btn-outline-danger">Revogar<span class="visually-hidden"> o papel em ' . ($o === null ? 'conteúdo ' . $a['objeto_id'] : Pagina::h($o->titulo)) . '</span></button></form></td></tr>';
+                    . Pagina::botaoIcone('excluir', 'Revogar o papel em', 'btn-danger bg-gradient', ['item' => $o === null ? 'conteúdo ' . $a['objeto_id'] : $o->titulo]) . '</form></td></tr>';
             }
             $corpo .= '</tbody></table></div>';
             if (!$c->administrador && $melhorPorSite !== []) {

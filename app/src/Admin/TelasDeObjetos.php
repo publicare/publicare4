@@ -234,7 +234,7 @@ final class TelasDeObjetos
         if ($o->status === self::LIXEIRA) {
             $corpo .= Pagina::alerta('warning', 'Este conteúdo está na lixeira: fora do ar e sem edição. ' . ($this->pode($sessao, Acao::Apagar, $o)
                 ? '<form method="post" action="' . $this->link($o->id) . '/recuperar" class="d-inline">' . $this->camposOcultos($sessao, $o->versao)
-                    . '<button type="submit" class="btn btn-sm btn-outline-dark">Tirar da lixeira</button></form>' : ''), '', true);
+                    . '' . Pagina::botaoIcone('restaurar', 'Tirar da lixeira', 'btn-outline-dark') . '</form>' : ''), '', true);
         }
         $corpo .= $this->selos($o, $agora) . $this->botoes($sessao, $o) . TelasDeRevisao::bloco($this->servicos, $this->csrf, $sessao, $o) . $this->tabelaDeDados($sessao, $o, $agora);
 
@@ -248,7 +248,7 @@ final class TelasDeObjetos
                 $quando = $f->visivel($agora) ? $f->status : $this->estadoLegivel($f, $agora, true);
                 $tipo = $this->nomeDaClasse($f->classeId);
                 $editar = $f->status !== self::LIXEIRA && $this->pode($sessao, Acao::Editar, $f)
-                    ? '<a class="btn btn-sm btn-outline-primary" href="' . $this->link($f->id) . '/editar">Editar</a>' : '';
+                    ? Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $this->link($f->id) . '/editar', 'item' => $f->titulo]) : '';
                 $cartoes .= '<li class="list-group-item pbl-filho"><div class="pbl-filho-corpo"><a class="pbl-filho-titulo" href="' . $this->link($f->id) . '">' . Pagina::h($f->titulo) . '</a>'
                     . '<div class="pbl-filho-meta"><span class="badge text-bg-light border">' . Pagina::h($tipo) . '</span> <span class="badge ' . $this->classeDoEstado($f, $agora) . '">' . Pagina::h($quando) . '</span>'
                     . ' <span class="text-body-secondary small">peso ' . $f->peso . '</span></div></div>' . $editar . '</li>';
@@ -486,38 +486,31 @@ final class TelasDeObjetos
     }
 
     /**
-     * Ações que a pessoa pode fazer aqui (esconder é só conforto: cada rota confere de novo). "Editar" fica sempre à vista; as demais
-     * ficam em linha no desktop e num dropdown "Mais ações" (Bootstrap) no celular.
+     * Ações que a pessoa pode fazer aqui (esconder é só conforto: cada rota confere de novo). Botões só de ícone, em uma linha que quebra
+     * conforme a largura; o rótulo fica no `title` e em texto para leitor de tela.
      */
     private function botoes(SessaoAtiva $sessao, Objeto $o): string
     {
-        $outras = [];
         $naLixeira = $o->status === self::LIXEIRA;
-        $editar = !$naLixeira && $this->pode($sessao, Acao::Editar, $o) ? '<a class="btn btn-primary" href="' . $this->link($o->id) . '/editar">Editar</a>' : '';
+        $b = '';
+        if (!$naLixeira && $this->pode($sessao, Acao::Editar, $o)) {
+            $b .= Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $this->link($o->id) . '/editar', 'tamanho' => '']);
+        }
         if (!$naLixeira && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o) && $this->classesAceitas($o) !== []) {
-            $outras[] = ['Criar conteúdo aqui dentro', $this->link($o->id) . '/novo', false];
+            $b .= Pagina::botaoIcone('mais', 'Criar conteúdo aqui dentro', 'btn-success bg-gradient', ['href' => $this->link($o->id) . '/novo', 'tamanho' => '']);
         }
         if (!$naLixeira && $this->pode($sessao, Acao::Publicar, $o)) {
-            $outras[] = ['Publicar ou tirar do ar', $this->link($o->id) . '/estado', false];
+            $b .= Pagina::botaoIcone('publicar', 'Publicar ou tirar do ar', 'btn-outline-success', ['href' => $this->link($o->id) . '/estado', 'tamanho' => '']);
         }
         if ($this->nomeDaClasse($o->classeId) === \Pbl\Formularios\FormularioRepositorio::CLASSE) {
-            $outras[] = ['Envios recebidos', $this->link($o->id) . '/envios', false];
+            $b .= Pagina::botaoIcone('conteudo', 'Envios recebidos', 'btn-outline-primary', ['href' => $this->link($o->id) . '/envios', 'tamanho' => '']);
         }
-        $outras[] = ['Histórico de versões', $this->link($o->id) . '/versoes', false];
-        $outras[] = ['Registro de atividade', $this->link($o->id) . '/log', false];
-        $outras[] = ['QR code', $this->link($o->id) . '/qr', false];
+        $b .= Pagina::botaoIcone('historico', 'Histórico de versões', 'btn-outline-secondary', ['href' => $this->link($o->id) . '/versoes', 'tamanho' => '']);
+        $b .= Pagina::botaoIcone('log', 'Registro de atividade', 'btn-outline-secondary', ['href' => $this->link($o->id) . '/log', 'tamanho' => '']);
+        $b .= Pagina::botaoIcone('qr', 'QR code', 'btn-outline-secondary', ['href' => $this->link($o->id) . '/qr', 'tamanho' => '']);
         if (!$naLixeira && $o->paiId !== null && $this->pode($sessao, Acao::Apagar, $o)) {
-            $outras[] = ['Mover', $this->link($o->id) . '/mover', false];
-            $outras[] = ['Mandar para a lixeira', $this->link($o->id) . '/apagar', true];
+            $b .= Pagina::botaoIcone('mover', 'Mover', 'btn-outline-secondary', ['href' => $this->link($o->id) . '/mover', 'tamanho' => '']);
         }
-
-        $desktop = '';
-        $menu = '';
-        foreach ($outras as [$rotulo, $href, $perigo]) {
-            $desktop .= '<a class="btn ' . ($perigo ? 'btn-outline-danger' : 'btn-outline-secondary') . '" href="' . Pagina::h($href) . '">' . Pagina::h($rotulo) . '</a>';
-            $menu .= '<li><a class="dropdown-item' . ($perigo ? ' text-danger' : '') . '" href="' . Pagina::h($href) . '">' . Pagina::h($rotulo) . '</a></li>';
-        }
-
         if (!$naLixeira && $o->paiId !== null) {
             $csrf = '<input type="hidden" name="_csrf" value="' . Pagina::h($this->csrf->daSessao($sessao->idHash)) . '">';
             $modos = [['copiar', 'Copiar para a pilha']];
@@ -527,19 +520,17 @@ final class TelasDeObjetos
             foreach ($modos as [$modo, $rotulo]) {
                 $campos = $csrf . '<input type="hidden" name="modo" value="' . $modo . '"><input type="hidden" name="ids[]" value="' . $o->id . '"><input type="hidden" name="versao[' . $o->id . ']" value="' . $o->versao . '">'
                     . '<input type="hidden" name="nivel" value="' . $o->id . '"><input type="hidden" name="tela" value="objeto">';
-                $desktop .= '<form method="post" action="' . Painel::PREFIXO . '/pilha/adicionar" class="d-inline">' . $campos . '<button type="submit" class="btn btn-outline-secondary">' . Pagina::h($rotulo) . '</button></form>';
-                $menu .= '<li><form method="post" action="' . Painel::PREFIXO . '/pilha/adicionar">' . $campos . '<button type="submit" class="dropdown-item">' . Pagina::h($rotulo) . '</button></form></li>';
+                $b .= '<form method="post" action="' . Painel::PREFIXO . '/pilha/adicionar">' . $campos . Pagina::botaoIcone($modo, $rotulo, 'btn-outline-secondary', ['tamanho' => '']) . '</form>';
             }
         }
         if (!$naLixeira && $this->servicos->pilha->contar($sessao->usuario->id) > 0 && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o)) {
-            $desktop .= '<a class="btn btn-success bg-gradient" href="' . Painel::PREFIXO . '/pilha/colar/' . $o->id . '">Colar aqui</a>';
-            $menu .= '<li><a class="dropdown-item" href="' . Painel::PREFIXO . '/pilha/colar/' . $o->id . '">Colar aqui</a></li>';
+            $b .= Pagina::botaoIcone('colar', 'Colar aqui', 'btn-success bg-gradient', ['href' => Painel::PREFIXO . '/pilha/colar/' . $o->id, 'tamanho' => '']);
+        }
+        if (!$naLixeira && $o->paiId !== null && $this->pode($sessao, Acao::Apagar, $o)) {
+            $b .= Pagina::botaoIcone('excluir', 'Mandar para a lixeira', 'btn-danger bg-gradient', ['href' => $this->link($o->id) . '/apagar', 'tamanho' => '']);
         }
 
-        return '<div class="pbl-barra-acoes">' . $editar
-            . '<div class="dropdown d-md-none"><button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Mais ações</button>'
-            . '<ul class="dropdown-menu dropdown-menu-end">' . $menu . '</ul></div>'
-            . '<div class="d-none d-md-flex flex-wrap gap-2">' . $desktop . '</div></div>';
+        return '<div class="pbl-barra-acoes">' . $b . '</div>';
     }
 
     /** @param list<Classe> $classes */
@@ -1986,7 +1977,7 @@ final class TelasDeObjetos
             if ($podeRestaurar && $v['versao'] !== $o->versao) {
                 $acao = '<form method="post" action="' . $this->link($o->id) . '/restaurar">' . $this->camposOcultos($sessao, $o->versao)
                     . '<input type="hidden" name="alvo" value="' . $v['versao'] . '">'
-                    . '<button type="submit" class="btn btn-sm btn-outline-primary">Restaurar a versão ' . $v['versao'] . '</button></form>';
+                    . '' . Pagina::botaoIcone('restaurar', 'Restaurar a versão ' . $v['versao'], 'btn-outline-primary') . '</form>';
             }
             $corpo .= '<tr><td>' . $v['versao'] . '</td><td>' . Pagina::h($this->dataLegivel($v['criado_em'])) . '</td><td>' . Pagina::h($quem) . '</td>'
                 . '<td>' . Pagina::h($v['titulo']) . '</td><td>' . Pagina::h($v['status']) . '</td><td>' . Pagina::h($v['motivo']) . '</td><td>' . $acao . '</td></tr>';

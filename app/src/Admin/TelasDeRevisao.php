@@ -195,8 +195,8 @@ final class TelasDeRevisao
             . '<div class="small text-body-secondary"><span class="badge text-bg-light border">' . Pagina::h($this->classe($o)) . '</span>' . $dentro . '</div>'
             . '<div class="small text-body-secondary">' . $quem . '</div></div>'
             . '<div class="d-flex flex-wrap gap-2 align-items-start">'
-            . '<form method="post" action="' . $base . '/aprovar">' . $campos . '<button type="submit" class="btn btn-success bg-gradient">Aprovar e publicar</button></form>'
-            . '<details class="pbl-devolver"><summary class="btn btn-warning bg-gradient">Devolver…</summary>'
+            . '<form method="post" action="' . $base . '/aprovar">' . $campos . Pagina::botaoIcone('aprovar', 'Aprovar e publicar', 'btn-success bg-gradient', ['item' => $o->titulo, 'tamanho' => '']) . '</form>'
+            . '<details class="pbl-devolver"><summary class="btn btn-sm btn-warning bg-gradient pbl-btn-icone" title="Devolver" aria-label="Devolver: ' . Pagina::h($o->titulo) . '">' . Pagina::icone('devolver') . '<span class="visually-hidden">Devolver…</span></summary>'
             . '<form method="post" action="' . $base . '/devolver" class="mt-2">' . $campos
             . Pagina::campo($idMotivo, 'motivo', 'Motivo da devolução', '', ['tipo' => 'textarea', 'linhas' => 3, 'obrigatorio' => true, 'maxlength' => FluxoDeRevisao::MOTIVO_MAX, 'ajuda' => 'A pessoa que enviou lê este texto. Obrigatório.'])
             . '<button type="submit" class="btn btn-warning bg-gradient">Devolver ao autor</button></form></details></div></li>';
@@ -280,17 +280,17 @@ final class TelasDeRevisao
         $botoes = '';
         $podeEditar = $this->servicos->permissoes->pode($u, Acao::Editar, $o) && ($o->status !== 'submetido' || $this->servicos->permissoes->pode($u, Acao::Publicar, $o));
         if ($podeEditar) {
-            $botoes .= '<a class="btn btn-sm btn-outline-primary" href="' . $link . '/editar">Editar</a>';
+            $botoes .= Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $link . '/editar', 'item' => $o->titulo]);
         }
         $podeEditarSimples = $this->servicos->permissoes->pode($u, Acao::Editar, $o);
         if ($o->status === 'rejeitado' && $podeEditarSimples) {
-            $botoes .= '<form method="post" action="' . $base . '/reenviar">' . $campos . '<button type="submit" class="btn btn-sm btn-success bg-gradient">Reenviar para revisão</button></form>';
+            $botoes .= '<form method="post" action="' . $base . '/reenviar">' . $campos . '' . Pagina::botaoIcone('enviar', 'Reenviar para revisão', 'btn-success bg-gradient', ['item' => $o->titulo]) . '</form>';
         }
         if ($o->status === 'privado' && $podeEditarSimples) {
-            $botoes .= '<form method="post" action="' . $base . '/enviar">' . $campos . '<button type="submit" class="btn btn-sm btn-success bg-gradient">Enviar para revisão</button></form>';
+            $botoes .= '<form method="post" action="' . $base . '/enviar">' . $campos . '' . Pagina::botaoIcone('enviar', 'Enviar para revisão', 'btn-success bg-gradient', ['item' => $o->titulo]) . '</form>';
         }
         if ($this->servicos->revisao->podeRetirar($u, $o)) {
-            $botoes .= '<form method="post" action="' . $base . '/retirar">' . $campos . '<button type="submit" class="btn btn-sm btn-outline-secondary">Retirar envio</button></form>';
+            $botoes .= '<form method="post" action="' . $base . '/retirar">' . $campos . '' . Pagina::botaoIcone('retirar', 'Retirar envio', 'btn-outline-secondary', ['item' => $o->titulo]) . '</form>';
         }
         $detalhe = '';
         if ($o->status === 'rejeitado') {
@@ -322,14 +322,14 @@ final class TelasDeRevisao
         $revisor = $perm->pode($u, Acao::Publicar, $o);
         if (in_array($o->status, ['privado', 'rejeitado'], true) && !$revisor && $perm->pode($u, Acao::Editar, $o)) {
             $reenvio = $o->status === 'rejeitado';
-            $acoes .= '<form method="post" action="' . $base . '/' . ($reenvio ? 'reenviar' : 'enviar') . '">' . $campos . '<button type="submit" class="btn btn-success bg-gradient">' . ($reenvio ? 'Reenviar para revisão' : 'Enviar para revisão') . '</button></form>';
+            $acoes .= '<form method="post" action="' . $base . '/' . ($reenvio ? 'reenviar' : 'enviar') . '">' . $campos . '' . Pagina::botaoIcone('enviar', $reenvio ? 'Reenviar para revisão' : 'Enviar para revisão', 'btn-success bg-gradient', ['tamanho' => '']) . '</form>';
         }
         if ($revisao->podeRetirar($u, $o)) {
-            $acoes .= '<form method="post" action="' . $base . '/retirar">' . $campos . '<button type="submit" class="btn btn-outline-secondary">Retirar envio</button></form>';
+            $acoes .= '<form method="post" action="' . $base . '/retirar">' . $campos . '' . Pagina::botaoIcone('retirar', 'Retirar envio', 'btn-outline-secondary', ['tamanho' => '']) . '</form>';
         }
         if ($o->status === 'submetido' && $revisor) {
-            $acoes .= '<form method="post" action="' . $base . '/aprovar">' . $campos . '<button type="submit" class="btn btn-success bg-gradient">Aprovar e publicar</button></form>'
-                . '<details class="pbl-devolver"><summary class="btn btn-warning bg-gradient">Devolver…</summary><form method="post" action="' . $base . '/devolver" class="mt-2">' . $campos
+            $acoes .= '<form method="post" action="' . $base . '/aprovar">' . $campos . Pagina::botaoIcone('aprovar', 'Aprovar e publicar', 'btn-success bg-gradient', ['tamanho' => '']) . '</form>'
+                . '<details class="pbl-devolver"><summary class="btn btn-warning bg-gradient pbl-btn-icone" title="Devolver">' . Pagina::icone('devolver') . '<span class="visually-hidden">Devolver…</span></summary><form method="post" action="' . $base . '/devolver" class="mt-2">' . $campos
                 . Pagina::campo('motivo-objeto', 'motivo', 'Motivo da devolução', '', ['tipo' => 'textarea', 'linhas' => 3, 'obrigatorio' => true, 'maxlength' => FluxoDeRevisao::MOTIVO_MAX])
                 . '<button type="submit" class="btn btn-warning bg-gradient">Devolver ao autor</button></form></details>';
         }

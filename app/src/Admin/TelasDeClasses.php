@@ -182,8 +182,8 @@ final class TelasDeClasses
                 . '<td>' . $ativos . ($arquivados > 0 ? ' <span class="text-body-secondary">(+' . $arquivados . ' arquivado' . ($arquivados > 1 ? 's' : '') . ')</span>' : '') . '</td>';
             if ($modela) {
                 $corpo .= '<td>' . ($usos[$c->id] ?? 0) . '</td><td class="text-end text-nowrap">'
-                    . '<a class="btn btn-sm btn-outline-primary" href="' . $this->link($c->id) . '/editar">Editar<span class="visually-hidden"> ' . Pagina::h($c->nome) . '</span></a> '
-                    . ($c->fixa ? '' : '<a class="btn btn-sm btn-outline-danger" href="' . $this->link($c->id) . '/apagar">Apagar<span class="visually-hidden"> ' . Pagina::h($c->nome) . '</span></a>') . '</td>';
+                    . '<div class="pbl-linha-acoes">' . Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $this->link($c->id) . '/editar', 'item' => $c->nome])
+                    . ($c->fixa ? '' : Pagina::botaoIcone('excluir', 'Apagar', 'btn-danger bg-gradient', ['href' => $this->link($c->id) . '/apagar', 'item' => $c->nome])) . '</div></td>';
             }
             $corpo .= '</tr>';
         }
