@@ -11,7 +11,9 @@ use Pbl\Conteudo\ClasseRepositorio;
 /**
  * Decide, para cada classe e propriedade do PBL3, onde ela vai parar no PBL4 (ADR 0027): as classes de fábrica do PBL3 (pasta,
  * documento, imagem, arquivo, link, interlink, notícia) caem nas classes padrão do PBL4; qualquer outra vira uma classe nova.
- * Propriedades sem lugar numa classe padrão são descartadas e contadas no relatório.
+ * Nenhum campo com valor se perde: a propriedade do PBL3 que não tem par na classe padrão vira uma propriedade extra dessa classe
+ * (criada na primeira importação, reaproveitada nas seguintes). Só é descartado o que não cabe de jeito nenhum (limite de
+ * propriedades por classe) e o relatório diz o motivo.
  */
 final class PlanoDeClasses
 {
@@ -47,7 +49,7 @@ final class PlanoDeClasses
     public array $classes = [];
     /** @var array<int, array{nome: string, tipo: string, tipo3: string}> cod_propriedade => propriedade de destino */
     public array $propriedades = [];
-    /** @var array<int, string> cod_propriedade => "classe.propriedade" do que foi descartado */
+    /** @var array<int, string> cod_propriedade => "classe.propriedade (motivo)" do que foi descartado */
     public array $descartadas = [];
     /** @var array<int, true> propriedades `incluirmenu` (viram o `no_menu` do objeto) */
     public array $menu = [];
@@ -76,8 +78,8 @@ final class PlanoDeClasses
             $padrao = self::PADRAO[$chave] ?? null;
             $existente = $padrao === null ? null : $destino->porNome($padrao[0]);
             if ($padrao !== null && $existente !== null) {
-                $plano->classes[$cod] = ['classe' => $existente, 'padrao' => true];
-                $plano->mapearPadrao($existente, $padrao[1], $propriedades, $nomeOrigem);
+                $classe = $plano->mapearPadrao($existente, $padrao[1], $propriedades, $nomeOrigem, $estatisticas, $destino, $relatorio);
+                $plano->classes[$cod] = ['classe' => $classe, 'padrao' => true];
                 $relatorio->contar('classes do PBL3 mapeadas para classes padrão');
                 continue;
             }
@@ -90,14 +92,17 @@ final class PlanoDeClasses
     /**
      * @param array<string, string> $de
      * @param list<array<string, mixed>> $propriedades
+     * @param array<int, array{imagens: int, outros: int}> $estatisticas
      */
-    private function mapearPadrao(Classe $classe, array $de, array $propriedades, string $nomeOrigem): void
+    private function mapearPadrao(Classe $classe, array $de, array $propriedades, string $nomeOrigem, array $estatisticas, ClasseRepositorio $destino, Relatorio $relatorio): Classe
     {
         $definidas = [];
         foreach ($classe->propriedades as $p) {
             $definidas[$p['nome']] = $p['tipo'];
         }
         $usadas = [];
+        $ocupados = [];
+        $extras = [];
         foreach ($propriedades as $p) {
             $cod = (int) $p['cod_propriedade'];
             $nome = Texto::normalizar((string) $p['nome']);
@@ -108,12 +113,98 @@ final class PlanoDeClasses
             }
             $alvo = $de[$nome] ?? null;
             if ($alvo === null || isset($usadas[$alvo]) || !isset($definidas[$alvo]) || !in_array($definidas[$alvo], self::COMPATIVEL[$tipo3], true)) {
-                $this->descartadas[$cod] = $nomeOrigem . '.' . $nome;
+                $extras[$cod] = $this->extra($p, $nomeOrigem, $estatisticas[$cod] ?? null, $relatorio);
                 continue;
             }
             $usadas[$alvo] = true;
+            $ocupados[$alvo] = true;
             $this->propriedades[$cod] = ['nome' => $alvo, 'tipo' => $definidas[$alvo], 'tipo3' => $tipo3];
         }
+
+        return $this->acrescentar($classe, $extras, $ocupados, $nomeOrigem, $destino, $relatorio);
+    }
+
+    /**
+     * Propriedade do PBL3 que vai virar (ou reaproveitar) uma propriedade extra do destino.
+     *
+     * @param array<string, mixed> $p
+     * @param ?array{imagens: int, outros: int} $estatistica
+     * @return array{nome: string, tipo: string, tipo3: string, rotulo: string, origem: string}
+     */
+    private function extra(array $p, string $nomeOrigem, ?array $estatistica, Relatorio $relatorio): array
+    {
+        $tipo3 = self::TIPOS_PBL3[(int) $p['cod_tipodado']] ?? 'string';
+        $nome = Conversao::nomeTecnico((string) $p['nome'], 'campo');
+        if ((int) ($p['obrigatorio'] ?? 0) === 1) {
+            $relatorio->avisar('propriedade obrigatória no PBL3 importada como opcional', $nomeOrigem . '.' . $nome);
+        }
+
+        return [
+            'nome' => $nome, 'tipo' => self::tipoDeDestino($tipo3, $estatistica), 'tipo3' => $tipo3,
+            'rotulo' => self::limpar((string) ($p['rotulo'] ?? ''), ClasseRepositorio::MAX_ROTULO), 'origem' => $nomeOrigem . '.' . $nome,
+        ];
+    }
+
+    /**
+     * Garante no destino uma propriedade para cada extra: reaproveita a de mesmo nome e tipo que não esteja em uso (é o que torna a
+     * importação repetível) ou acrescenta ao fim da classe, com sufixo `_campo` se o nome é reservado ou tem outro tipo. Só o que não
+     * cabe no limite de propriedades da classe é descartado. Nunca remove nem altera uma propriedade que já existe.
+     *
+     * @param array<int, array{nome: string, tipo: string, tipo3: string, rotulo: string, origem: string}> $extras
+     * @param array<string, true> $ocupados nomes do destino que outra propriedade do PBL3 já ocupa
+     */
+    private function acrescentar(Classe $classe, array $extras, array $ocupados, string $nomeOrigem, ClasseRepositorio $destino, Relatorio $relatorio): Classe
+    {
+        if ($extras === []) {
+            return $classe;
+        }
+        $lista = $classe->propriedades;
+        $indice = [];
+        foreach ($lista as $i => $p) {
+            $indice[$p['nome']] = $i;
+        }
+        $criadas = 0;
+        foreach ($extras as $cod => $e) {
+            $escolhido = null;
+            for ($k = 0; $k < 30 && $escolhido === null; ++$k) {
+                $nome = $k === 0 ? $e['nome'] : substr($e['nome'], 0, 56) . '_campo' . ($k === 1 ? '' : (string) ($k - 1));
+                if (in_array($nome, ClasseRepositorio::RESERVADOS, true) || isset($ocupados[$nome])) {
+                    continue;
+                }
+                $i = $indice[$nome] ?? null;
+                if ($i === null) {
+                    if (count($lista) >= ClasseRepositorio::MAX_PROPRIEDADES) {
+                        break;
+                    }
+                    $nova = ['nome' => $nome, 'tipo' => $e['tipo'], 'indexavel' => in_array($e['tipo'], ['texto', 'numero', 'booleano', 'data'], true)];
+                    if ($e['rotulo'] !== '') {
+                        $nova['rotulo'] = $e['rotulo'];
+                    }
+                    $indice[$nome] = count($lista);
+                    $lista[] = $nova;
+                    ++$criadas;
+                    $relatorio->avisar('propriedade extra criada na classe do PBL4 (campo do PBL3 sem par)', $classe->nome . '.' . $nome);
+                    $escolhido = $nome;
+                } elseif ($lista[$i]['tipo'] === $e['tipo'] && !($lista[$i]['arquivada'] ?? false)) {
+                    $escolhido = $nome;
+                }
+            }
+            if ($escolhido === null) {
+                $this->descartadas[$cod] = $e['origem'] . ' (a classe ' . $classe->nome . ' já está no limite de ' . ClasseRepositorio::MAX_PROPRIEDADES . ' propriedades)';
+                continue;
+            }
+            if ($escolhido !== $e['nome']) {
+                $relatorio->avisar('propriedade renomeada (nome reservado ou repetido)', $nomeOrigem . '.' . $e['nome'] . ' => ' . $escolhido);
+            }
+            $ocupados[$escolhido] = true;
+            $this->propriedades[$cod] = ['nome' => $escolhido, 'tipo' => $e['tipo'], 'tipo3' => $e['tipo3']];
+        }
+        if ($criadas > 0) {
+            $classe = $destino->atualizar($classe->id, $classe->versao, $lista, ['descricao' => $classe->descricao, 'aceita_filhos' => $classe->aceitaFilhos, 'filhas' => $classe->filhas]);
+            $relatorio->contar('propriedades extras criadas em classes existentes', $criadas);
+        }
+
+        return $classe;
     }
 
     /**
@@ -133,8 +224,8 @@ final class PlanoDeClasses
                 $this->menu[$codP] = true;
                 continue;
             }
-            if ($original === 'menu_proprio' || count($definicao) >= ClasseRepositorio::MAX_PROPRIEDADES) {
-                $this->descartadas[$codP] = $nomeOrigem . '.' . $original;
+            if (count($definicao) >= ClasseRepositorio::MAX_PROPRIEDADES) {
+                $this->descartadas[$codP] = $nomeOrigem . '.' . $original . ' (a classe já está no limite de ' . ClasseRepositorio::MAX_PROPRIEDADES . ' propriedades)';
                 continue;
             }
             $tipo3 = self::TIPOS_PBL3[(int) $p['cod_tipodado']] ?? 'string';
@@ -155,7 +246,7 @@ final class PlanoDeClasses
                 $nova['rotulo'] = $rotulo;
             }
             $definicao[] = $nova;
-            $planejado[$codP] = ['nome' => $nome, 'tipo' => $tipo, 'tipo3' => $tipo3];
+            $planejado[$codP] = ['nome' => $nome, 'tipo' => $tipo, 'tipo3' => $tipo3, 'rotulo' => $rotulo, 'origem' => $nomeOrigem . '.' . $nome];
             if ((int) ($p['obrigatorio'] ?? 0) === 1) {
                 $relatorio->avisar('propriedade obrigatória no PBL3 importada como opcional', $nomeOrigem . '.' . $nome);
             }
@@ -177,23 +268,14 @@ final class PlanoDeClasses
             $existente = $destino->criar($nomeClasse, $definicao, ['descricao' => self::limpar((string) ($c['descricao'] ?? ''), ClasseRepositorio::MAX_DESCRICAO), 'aceita_filhos' => true, 'filhas' => []]);
             $ids->gravar(MapaDeIds::CLASSE, $cod, $existente->id);
             $relatorio->contar('classes criadas');
-        } else {
-            $definidas = [];
-            foreach ($existente->propriedades as $p) {
-                $definidas[$p['nome']] = $p['tipo'];
-            }
             foreach ($planejado as $codP => $p) {
-                if (($definidas[$p['nome']] ?? null) !== $p['tipo']) {
-                    unset($planejado[$codP]);
-                    $this->descartadas[$codP] = $nomeOrigem . '.' . $p['nome'];
-                }
+                $this->propriedades[$codP] = $p;
             }
+        } else {
+            $existente = $this->acrescentar($existente, $planejado, [], $nomeOrigem, $destino, $relatorio);
             $relatorio->contar('classes já importadas (reaproveitadas)');
         }
         $this->classes[$cod] = ['classe' => $existente, 'padrao' => false];
-        foreach ($planejado as $codP => $p) {
-            $this->propriedades[$codP] = $p;
-        }
         $relatorio->contar('propriedades importadas', count($planejado));
     }
 

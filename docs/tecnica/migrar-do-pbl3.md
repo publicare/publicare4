@@ -69,7 +69,8 @@ Avisos (N):
 O que olhar:
 
 - **objeto não importado**: o tipo não aceita aquele filho, valor recusado ou classe desconhecida. A subárvore daquele objeto fica de fora; o aviso diz qual objeto.
-- **propriedade do PBL3 sem lugar no PBL4 (descartada)**: campos de classes de fábrica que não têm equivalente.
+- **propriedade extra criada na classe do PBL4**: campo de classe de fábrica (subtítulo e veículo de notícia, crédito de imagem, texto de pasta...) que não tem par na classe padrão. Ele vira uma propriedade extra da classe, com o valor guardado em cada objeto. Na simulação é a lista do que seria criado.
+- **propriedade do PBL3 sem lugar no PBL4 (descartada)**: só quando a classe de destino já está no limite de 100 propriedades; o aviso diz o motivo.
 - **propriedade renomeada** e **obrigatória importada como opcional**: informativos.
 - **arquivo ausente**: o `uploadpath` não tem o arquivo. Imagens e arquivos para download exigem o arquivo: **sem `--uploads` (ou com o arquivo ausente) esses objetos não são importados**. Informe sempre `--uploads` numa importação real.
 - **perfil do PBL3 sem equivalente**: acesso descartado; conceda de novo com `bin/pbl usuario conceder`.
@@ -89,7 +90,7 @@ Se o relatório está aceitável, rode o mesmo comando com `--gravar`. É seguro
 
 ## Limites conhecidos
 
-Campos extras das classes de fábrica sem lugar nas classes padrão do PBL4 (por exemplo subtítulo, veículo, autor e destaque de notícia, crédito de imagem) são descartados e contados no relatório. Hashes de senha, moldes e `script_exibir`, logs e workflow antigos, `classexfilhos` e perfis fora de Administrador/Editor/Autor/Restrito não são importados; a lista completa e o motivo de cada um estão no ADR 0027. Bases muito antigas (sem `url_amigavel`, `versaoobjeto` ou `incluirmenu`) são aceitas: o que falta é só deixado de lado.
+Campos extras das classes de fábrica (por exemplo subtítulo, veículo, autor e destaque de notícia, crédito de imagem, texto de pasta) **são preservados**: viram propriedades extras da classe padrão do PBL4 (aparecem em "Tipos de conteúdo" e os moldes os leem por `<@campo@>`); os moldes padrão não os exibem, então ajuste o molde se quiser mostrá-los. Hashes de senha, moldes e `script_exibir`, logs e workflow antigos, `classexfilhos` e perfis fora de Administrador/Editor/Autor/Restrito não são importados; a lista completa e o motivo de cada um estão no ADR 0027. Bases muito antigas (sem `url_amigavel`, `versaoobjeto` ou `incluirmenu`) são aceitas: o que falta é só deixado de lado.
 
 ## Desempenho
 
