@@ -228,6 +228,123 @@ final class ImportadorPbl3Test extends TestCase
         self::assertSame([], glob($this->raiz . '/storage/*/*') ?: [], 'nenhum arquivo copiado');
     }
 
+    private function baseDeFabrica(): Pbl3Sintetico
+    {
+        $base = new Pbl3Sintetico();
+        $base->inserir('classe', ['cod_classe' => 1, 'nome' => 'Diretório', 'prefixo' => 'folder', 'descricao' => '', 'temfilhos' => 1]);
+        $base->inserir('classe', ['cod_classe' => 4, 'nome' => 'Imagem', 'prefixo' => 'imagem', 'descricao' => '', 'temfilhos' => 0]);
+        $base->inserir('classe', ['cod_classe' => 6, 'nome' => 'Link', 'prefixo' => 'link', 'descricao' => '', 'temfilhos' => 0]);
+        $base->inserir('classe', ['cod_classe' => 10, 'nome' => 'Notícia', 'prefixo' => 'noticia', 'descricao' => '', 'temfilhos' => 1]);
+        $props = [
+            [1, 1, 8, 'texto', 'Texto'], [2, 4, 7, 'credito', 'Crédito'], [3, 6, 7, 'descricao', 'Descrição'], [4, 6, 7, 'endereco', 'Endereço'],
+            [5, 10, 8, 'texto', 'Texto'], [6, 10, 7, 'subtitulo', 'Sub-Título'], [7, 10, 7, 'veiculo', 'Veículo'], [8, 10, 7, 'autor', 'Autor'],
+            [9, 10, 7, 'link', 'Link para a original'], [10, 10, 2, 'destaque', 'Destaque'], [11, 10, 8, 'resumo', 'Resumo'], [12, 1, 2, 'menu_proprio', 'Menu próprio'],
+        ];
+        foreach ($props as [$cod, $classe, $tipo, $nome, $rotulo]) {
+            $base->inserir('propriedade', ['cod_propriedade' => $cod, 'cod_classe' => $classe, 'cod_tipodado' => $tipo, 'nome' => $nome, 'posicao' => $cod, 'rotulo' => $rotulo]);
+        }
+        $base->objeto(1, 0, 1, 'Raiz inventada', 'raiz');
+        $base->objeto(2, 1, 1, 'Seção', 'secao');
+        $base->objeto(3, 2, 10, 'Notícia inventada', 'noticia-inventada');
+        $base->objeto(4, 2, 6, 'Atalho externo', 'atalho-externo');
+        $base->inserir('tbl_text', ['cod_objeto' => 2, 'cod_propriedade' => 1, 'valor' => '<p>Apresentação da seção</p>']);
+        $base->inserir('tbl_boolean', ['cod_objeto' => 2, 'cod_propriedade' => 12, 'valor' => '1']);
+        $base->inserir('tbl_string', ['cod_objeto' => 3, 'cod_propriedade' => 6, 'valor' => 'Subtítulo inventado']);
+        $base->inserir('tbl_string', ['cod_objeto' => 3, 'cod_propriedade' => 7, 'valor' => 'Veículo inventado']);
+        $base->inserir('tbl_string', ['cod_objeto' => 3, 'cod_propriedade' => 8, 'valor' => 'Autora inventada']);
+        $base->inserir('tbl_string', ['cod_objeto' => 3, 'cod_propriedade' => 9, 'valor' => 'https://exemplo.invalid/original']);
+        $base->inserir('tbl_boolean', ['cod_objeto' => 3, 'cod_propriedade' => 10, 'valor' => '1']);
+        $base->inserir('tbl_text', ['cod_objeto' => 3, 'cod_propriedade' => 5, 'valor' => '<p>Texto da notícia</p>']);
+        $base->inserir('tbl_text', ['cod_objeto' => 3, 'cod_propriedade' => 11, 'valor' => 'Resumo inventado']);
+        $base->inserir('tbl_string', ['cod_objeto' => 4, 'cod_propriedade' => 4, 'valor' => 'https://exemplo.invalid/']);
+        $base->inserir('tbl_string', ['cod_objeto' => 4, 'cod_propriedade' => 3, 'valor' => 'Descrição própria do atalho']);
+
+        return $base;
+    }
+
+    /** @return array<string, string> nome => tipo das propriedades da classe */
+    private function propriedadesDe(string $classe): array
+    {
+        $json = Servicos::doBancoInstalado($this->caminhos)->conexao()->fetchOne('SELECT propriedades FROM classe WHERE nome = ?', [$classe]);
+        $saida = [];
+        foreach (json_decode((string) $json, true, 512, JSON_THROW_ON_ERROR) as $p) {
+            $saida[$p['nome']] = $p['tipo'];
+        }
+
+        return $saida;
+    }
+
+    public function testCamposExtrasDeClassesDeFabricaSaoPreservados(): void
+    {
+        $r = $this->importar($this->baseDeFabrica());
+
+        self::assertArrayNotHasKey('propriedade do PBL3 sem lugar no PBL4 (descartada)', $r->avisos());
+        self::assertSame(0, $r->total('valores de propriedades descartadas'));
+        self::assertSame('html', $this->propriedadesDe('pasta')['texto']);
+        self::assertSame('booleano', $this->propriedadesDe('pasta')['menu_proprio']);
+        self::assertSame('texto', $this->propriedadesDe('imagem')['credito']);
+        $noticia = $this->propriedadesDe('noticia');
+        self::assertSame('texto', $noticia['subtitulo']);
+        self::assertSame('texto', $noticia['veiculo']);
+        self::assertSame('texto', $noticia['autor']);
+        self::assertSame('texto', $noticia['link']);
+        self::assertSame('booleano', $noticia['destaque']);
+        self::assertSame('texto', $this->propriedadesDe('link')['descricao_campo'], 'descricao é nome reservado: ganha sufixo');
+
+        $c = Servicos::doBancoInstalado($this->caminhos)->conexao();
+        $n = json_decode((string) $c->fetchOne("SELECT dados FROM objeto WHERE titulo = 'Notícia inventada'"), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('Subtítulo inventado', $n['subtitulo']);
+        self::assertSame('Veículo inventado', $n['veiculo']);
+        self::assertSame('Autora inventada', $n['autor']);
+        self::assertSame('https://exemplo.invalid/original', $n['link']);
+        self::assertEquals(1, $n['destaque']);
+        self::assertSame('Resumo inventado', $n['resumo']);
+        $pasta = json_decode((string) $c->fetchOne("SELECT dados FROM objeto WHERE titulo = 'Seção'"), true, 512, JSON_THROW_ON_ERROR);
+        self::assertStringContainsString('Apresentação da seção', (string) $pasta['texto']);
+        self::assertEquals(1, $pasta['menu_proprio']);
+        $atalho = json_decode((string) $c->fetchOne("SELECT dados FROM objeto WHERE titulo = 'Atalho externo'"), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('Descrição própria do atalho', $atalho['descricao_campo']);
+        self::assertSame(1, $this->contar("SELECT COUNT(*) FROM objeto_indice WHERE chave = 'subtitulo'"), 'campo de texto extra entra no índice de busca');
+    }
+
+    public function testCamposExtrasNaoDuplicamAoReimportar(): void
+    {
+        $this->importar($this->baseDeFabrica());
+        $antes = [$this->propriedadesDe('noticia'), $this->propriedadesDe('pasta'), $this->propriedadesDe('imagem'), $this->propriedadesDe('link')];
+        $versao = $this->contar("SELECT versao FROM classe WHERE nome = 'noticia'");
+
+        $r = $this->importar($this->baseDeFabrica());
+
+        self::assertSame($antes, [$this->propriedadesDe('noticia'), $this->propriedadesDe('pasta'), $this->propriedadesDe('imagem'), $this->propriedadesDe('link')]);
+        self::assertSame($versao, $this->contar("SELECT versao FROM classe WHERE nome = 'noticia'"), 'nada a acrescentar: a classe não muda');
+        self::assertSame(0, $r->total('propriedades extras criadas em classes existentes'));
+    }
+
+    public function testCamposExtrasNovosChegamEmNovaRodada(): void
+    {
+        $base = $this->baseDeFabrica();
+        $this->importar($base);
+        $base->inserir('propriedade', ['cod_propriedade' => 20, 'cod_classe' => 10, 'cod_tipodado' => 7, 'nome' => 'cidade', 'posicao' => 20, 'rotulo' => 'Cidade']);
+        $base->objeto(5, 2, 10, 'Outra notícia', 'outra-noticia');
+        $base->inserir('tbl_string', ['cod_objeto' => 5, 'cod_propriedade' => 20, 'valor' => 'Cidade inventada']);
+
+        $r = $this->importar($base);
+
+        self::assertSame(1, $r->total('propriedades extras criadas em classes existentes'));
+        $dados = json_decode((string) Servicos::doBancoInstalado($this->caminhos)->conexao()->fetchOne("SELECT dados FROM objeto WHERE titulo = 'Outra notícia'"), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('Cidade inventada', $dados['cidade']);
+    }
+
+    public function testSimularInformaPropriedadesExtrasSemCriarNada(): void
+    {
+        $r = $this->importar($this->baseDeFabrica(), simular: true);
+
+        self::assertArrayHasKey('propriedade extra criada na classe do PBL4 (campo do PBL3 sem par)', $r->avisos());
+        self::assertGreaterThanOrEqual(8, $r->total('propriedades extras criadas em classes existentes'));
+        self::assertArrayNotHasKey('texto', $this->propriedadesDe('pasta'));
+        self::assertArrayNotHasKey('subtitulo', $this->propriedadesDe('noticia'));
+    }
+
     public function testNomesFisicosMapeadosEColunaComErroDeDigitacao(): void
     {
         $base = new Pbl3Sintetico(['objeto' => 'obj_site', 'usuario' => 'contas'], 'cod_obeto');
