@@ -81,6 +81,20 @@ final class PeleEMoldePorObjetoTest extends TestCase
         self::assertNotSame([], array_filter($r['avisos'], static fn (string $a): bool => str_contains($a, 'portal/rodape.pbl')));
     }
 
+    public function testVersoesAntigasDosAssetsDaPeleBasicaEstaoEmAnteriores(): void
+    {
+        $json = json_decode((string) file_get_contents($this->caminhos->app() . '/recursos/peles/anteriores.json'), true);
+        self::assertIsArray($json);
+        foreach ([
+            'basica/assets/pbl-pele.js' => ['2e9ff5d76dc9b51771ddc47a02c4507563af52bb5ae2312da1b11b1132012d0e', '5dff3f6872f0df9e721c79e393e493bb5d2bf458b0481d275aef43185ef1659a', 'aaf3ae8bf0190eefbc6104a28999d28ed6f5ee6e25356bf5264a6ef0d2c4923e', 'cc2728bb30533cc7af1cf291e7b50b676cea4577c443620717694164869bbc81'],
+            'basica/assets/pele.css' => ['199f1357c0ecdc293744a587ca00da50e54dd911131d1d5ae83bf4a0a1bd5e0f', '1d30a0188bfcd338262509d3b29737fdbb6871ffb69ef8177dab9790ef522757', '5acf59b669e29b5d2e44bf9907e04cb18323077c4a026e896a24b804152bd62e', 'd3306a984e527f3c38cdfcbc5d2cd613129f12d0b627270ec9d2a624ee54588a'],
+        ] as $chave => $hashes) {
+            foreach ($hashes as $h) {
+                self::assertContains($h, $json[$chave] ?? [], "{$chave}: versão antiga {$h} não registrada");
+            }
+        }
+    }
+
     public function testMoldeHomeNaRaizEMoldeDoObjetoVence(): void
     {
         $this->sincronizarPeles();

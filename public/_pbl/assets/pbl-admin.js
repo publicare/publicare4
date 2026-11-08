@@ -2,6 +2,14 @@
 (function () {
   'use strict';
 
+  /** Mensagem em português para uma falha do fetch: erro de rede (TypeError) vira texto claro; o resto mantém a mensagem. */
+  function mensagemDeFalha(erro) {
+    if (erro instanceof TypeError) {
+      return 'Sem conexão com o servidor.';
+    }
+    return erro && erro.message ? erro.message : 'Falha de comunicação com o servidor.';
+  }
+
   /* data-pbl-visivel-se="id-do-select:valor1,valor2": o elemento só aparece quando o select tem um desses valores. */
   document.querySelectorAll('[data-pbl-visivel-se]').forEach(function (el) {
     var partes = (el.getAttribute('data-pbl-visivel-se') || '').split(':');
@@ -159,7 +167,7 @@
               window.setTimeout(function () { lote('continuar'); }, 1500);
               return;
             }
-            terminar((erro && erro.message ? erro.message : 'Falha de conexão.') + ' Clique em Continuar para retomar de onde parou.', 'text-danger');
+            terminar(mensagemDeFalha(erro) + ' Clique em Continuar para retomar de onde parou.', 'text-danger');
           });
       }
       mostrar('Começando…');
