@@ -189,3 +189,24 @@ main .form-check { flex-wrap: wrap; }
 .pbl-btn-icone { display: inline-flex; align-items: center; justify-content: center; min-width: 2rem; min-height: 2rem; padding-left: .5rem; padding-right: .5rem; }
 .pbl-btn-icone svg { flex: none; }
 @media (max-width: 767.98px) { main .pbl-btn-icone { min-width: 44px; } }
+
+/* Assistente de instalação (/_pbl/instalar): passos e barra de progresso, sem estilo em linha (CSP). */
+.pbl-passos { margin-bottom: 1.25rem; }
+.pbl-progresso { display: block; width: 100%; height: .75rem; accent-color: #0b5ed7; }
+.pbl-passos-lista { display: flex; flex-wrap: wrap; gap: .25rem .75rem; list-style: none; margin: .5rem 0 0; padding: 0; font-size: .875rem; }
+.pbl-passo { display: flex; align-items: center; gap: .35rem; color: #495057; }
+.pbl-passo-n { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 1px solid #6c757d; font-size: .8rem; }
+.pbl-passo-atual { color: #0a58ca; font-weight: 600; }
+.pbl-passo-atual .pbl-passo-n { background: #0b5ed7; border-color: #0b5ed7; color: #fff; }
+.pbl-passo-feito .pbl-passo-n { background: #198754; border-color: #198754; color: #fff; }
+.pbl-passo-a-fazer { color: #6c757d; }
+@media (max-width: 575.98px) { .pbl-passo-titulo { display: none; } .pbl-passo-atual .pbl-passo-titulo { display: inline; } }
+.pbl-forca { min-height: 1.5rem; margin: -.5rem 0 1rem; font-size: .9rem; }
+.pbl-forca-fraca { color: #b02a37; }
+.pbl-forca-media { color: #8a5a00; }
+.pbl-forca-boa, .pbl-forca-forte { color: #146c43; }
+.pbl-revisao dt { font-weight: 600; }
+.pbl-revisao dd { margin: 0 0 .5rem; overflow-wrap: anywhere; }
+.pbl-cron { background: #f1f3f5; padding: .5rem .75rem; border-radius: .375rem; overflow-x: auto; margin: .5rem 0; }
+.pbl-painel[hidden], .pbl-nav-js[hidden] { display: none !important; }
+@media (max-width: 575.98px) { .pbl-acoes-instalar { flex-direction: column-reverse; } }

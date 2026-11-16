@@ -115,12 +115,8 @@ final class InstaladorWeb
         }
         @unlink($this->caminhos->dados() . '/' . self::ARQUIVO_DE_POSSE);
 
-        return Pagina::resposta('PBL4 instalado', Pagina::alerta('success', 'Tudo pronto.') . $aviso . '<ul>'
-            . '<li><a href="/">Ver o site</a></li><li><a href="/_pbl/entrar">Entrar na administração</a> com o login <strong>' . Pagina::h($campos['login']) . '</strong></li></ul>'
-            . '<h2 class="h5">Antes de seguir</h2><ul>'
-            . '<li>Use <strong>HTTPS</strong> no endereço do site (o login só fica totalmente protegido assim). Se o site fica atrás de um proxy (como o Cloudflare), crie <code>dados/config/rede.json</code> para o login funcionar (veja o guia de instalação).</li>'
-            . '<li>Confirme que só a pasta <code>public/</code> é a raiz do site no servidor.</li>'
-            . '<li>Guarde a senha em um gerenciador de senhas. O PBL4 não consegue recuperá-la.</li></ul>', Response::HTTP_OK, $seguro);
+        return Pagina::resposta('PBL4 instalado', PassosDoInstalador::barra(PassosDoInstalador::PRONTO)
+            . ProximosPassos::html($this->caminhos, $campos['login'], $aviso, (string) $requisicao->server->get('DOCUMENT_ROOT', ''), $seguro), Response::HTTP_OK, $seguro);
     }
 
     /**
@@ -131,33 +127,61 @@ final class InstaladorWeb
         $linhas = '';
         foreach ($requisitos->verificar() as $item) {
             $marca = $item['ok'] ? '✔' : ($item['obrigatorio'] ? '✘' : '⚠');
-            $linhas .= '<tr><td class="text-center ' . ($item['ok'] ? 'ok' : ($item['obrigatorio'] ? 'no' : 'aviso')) . '">' . $marca . '</td><td><strong>' . Pagina::h($item['nome']) . '</strong><br>' . Pagina::h($item['detalhe']) . '</td></tr>';
+            $legenda = $item['ok'] ? 'Certo' : ($item['obrigatorio'] ? 'Corrigir' : 'Aviso');
+            $linhas .= '<tr><td class="text-center ' . ($item['ok'] ? 'ok' : ($item['obrigatorio'] ? 'no' : 'aviso')) . '"><span aria-hidden="true">' . $marca . '</span><span class="visually-hidden">' . $legenda . '</span></td>'
+                . '<td><strong>' . Pagina::h($item['nome']) . '</strong><br>' . Pagina::h($item['detalhe']) . '</td></tr>';
         }
-        $corpo = '<h2 class="h5">1. Requisitos do servidor</h2><div class="table-responsive"><table class="table table-sm pbl-requisitos"><caption class="visually-hidden">Requisitos do servidor</caption><tbody>' . $linhas . '</tbody></table></div>';
+        $tabela = '<div class="table-responsive"><table class="table table-sm pbl-requisitos"><caption class="visually-hidden">Requisitos do servidor</caption><tbody>' . $linhas . '</tbody></table></div>';
+        $titulo1 = '<h2 class="h5" id="passo-1-titulo" tabindex="-1">1. Boas-vindas e requisitos do servidor</h2>'
+            . '<p>Vamos instalar o Publicare 4 em poucos passos. Primeiro, conferimos se o servidor tem o que é preciso (<strong>Requisitos do servidor</strong>).</p>';
+        $barra = PassosDoInstalador::barra(PassosDoInstalador::REQUISITOS);
         if (!$requisitos->tudoCerto() || $csrf === null) {
-            return Pagina::resposta('Instalar o PBL4', $corpo . Pagina::alerta('danger', 'Corrija os itens marcados com ✘ e recarregue esta página. Os marcados com ⚠ são avisos: não impedem a instalação.'), $status, $seguro);
+            return Pagina::resposta('Instalar o PBL4', $barra . $titulo1 . $tabela . Pagina::alerta('danger', 'Corrija os itens marcados com ✘ e recarregue esta página. Os marcados com ⚠ são avisos: não impedem a instalação.'), $status, $seguro);
         }
-        $corpo .= '<h2 class="h5 mt-4">2. Prove que você é o dono do servidor</h2>';
         if (!$this->temPosse()) {
-            return Pagina::resposta('Instalar o PBL4', $corpo
+            return Pagina::resposta('Instalar o PBL4', $barra . $titulo1 . $tabela
+                . '<h2 class="h5 mt-4">Prove que você é o dono do servidor</h2>'
                 . '<p>Para ninguém mais poder instalar no seu lugar, crie um arquivo <strong>vazio</strong> chamado <code>' . self::ARQUIVO_DE_POSSE
-                . '</code> dentro da pasta <code>dados/</code> do site (por FTP ou pelo painel da hospedagem) e recarregue esta página.</p>', $status, $seguro);
+                . '</code> dentro da pasta <code>dados/</code> do site (por FTP ou pelo painel da hospedagem) e recarregue esta página.</p>'
+                . '<p class="text-body-secondary">Se você instalou com o <code>instalar.php</code>, este arquivo já foi criado por ele: se esta mensagem aparece, ele ainda não existe; crie-o à mão.</p>', $status, $seguro);
         }
+        $erroPasso = $erro === null ? null : PassosDoInstalador::passoDoErro($erro);
+        $passoInicial = $erroPasso ?? PassosDoInstalador::REQUISITOS;
         $modelosMarcados = array_values(array_filter(explode(',', $campos['modelos'] ?? '')));
-        $v = static fn (string $campo, string $padrao = ''): string => Pagina::h($campos[$campo] ?? $padrao);
-        $corpo .= '<p class="ok">✔ Arquivo encontrado.</p><h2 class="h5 mt-4">3. Seu site e a conta de administrador</h2>'
-            . ($erro === null ? '' : Pagina::alerta('danger', $erro, 'erro-formulario'))
-            . '<form method="post" action="' . self::PREFIXO . '" autocomplete="off"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>'
+        $v = static fn (string $campo, string $padrao = ''): string => $campos[$campo] ?? $padrao;
+        $nav = static fn (string $classe = ''): string => '<div class="pbl-nav-js d-grid d-sm-flex gap-2 mt-3' . $classe . '" hidden>'
+            . '<button type="button" class="btn btn-outline-secondary btn-lg" data-pbl-voltar>Voltar</button>'
+            . '<button type="button" class="btn btn-primary btn-lg" data-pbl-proximo>Continuar</button></div>';
+        $painel = static fn (int $n, string $conteudo, string $extra = ''): string => '<section class="pbl-painel" data-passo="' . $n . '" aria-labelledby="passo-' . $n . '-titulo"' . $extra . '>' . $conteudo . '</section>';
+        $h2 = static fn (int $n, string $texto): string => '<h2 class="h5" id="passo-' . $n . '-titulo" tabindex="-1">' . $n . '. ' . Pagina::h($texto) . '</h2>';
+
+        $erroHtml = $erro === null ? '' : Pagina::alerta('danger', $erro . ' ' . PassosDoInstalador::comoCorrigir($erro) . ' (Passo ' . $erroPasso . ': ' . (PassosDoInstalador::TITULOS[$erroPasso] ?? '') . '.)', 'erro-formulario');
+        $corpo = PassosDoInstalador::barra($passoInicial) . $erroHtml
+            . '<form method="post" action="' . self::PREFIXO . '" autocomplete="off" data-pbl-instalar data-passo-inicial="' . $passoInicial . '"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>'
             . '<input type="hidden" name="_csrf" value="' . Pagina::h($csrf->paraEntrar()) . '">'
-            . Pagina::card('O site', Pagina::campo('i-site', 'site', 'Nome do site', $campos['site'] ?? '', ['maxlength' => 200, 'obrigatorio' => true])
-                . Pagina::campo('i-dominio', 'dominio', 'Endereço (domínio) do site', $campos['dominio'] ?? $requisicao->getHost(), ['maxlength' => 253, 'obrigatorio' => true, 'grupo' => 'mb-0']))
-            . Pagina::card('Conta de administrador', Pagina::campo('i-login', 'login', 'Login do administrador', $campos['login'] ?? '', ['maxlength' => 64, 'obrigatorio' => true, 'autocomplete' => 'username'])
-                . Pagina::campo('i-nome', 'nome', 'Nome', $campos['nome'] ?? '', ['maxlength' => 200])
-                . Pagina::campo('i-email', 'email', 'E-mail', $campos['email'] ?? '', ['tipo' => 'email', 'maxlength' => 255, 'obrigatorio' => true])
-                . Pagina::campo('i-senha', 'senha', 'Senha', '', ['tipo' => 'password', 'obrigatorio' => true, 'autocomplete' => 'new-password', 'ajuda' => 'Mínimo de ' . SenhaPolitica::MINIMO . ' caracteres.'])
-                . Pagina::campo('i-senha2', 'senha2', 'Repita a senha', '', ['tipo' => 'password', 'obrigatorio' => true, 'autocomplete' => 'new-password', 'grupo' => 'mb-0']))
-            . Pagina::card('Modelos opcionais', '<p class="text-body-secondary">Tipos de conteúdo extras, com exemplos. Dá para ligar depois, em Modelos, na administração.</p>' . $this->caixasDeModelos($modelosMarcados))
-            . Pagina::acoes('Instalar') . '</form>';
+            . $painel(1, $titulo1 . $tabela . '<p class="ok"><span aria-hidden="true">✔</span> Arquivo encontrado: <code>' . self::ARQUIVO_DE_POSSE . '</code>. Você provou que é o dono do servidor.</p>' . $nav(' pbl-nav-primeiro'))
+            . $painel(2, $h2(2, 'Seu site: nome e endereço')
+                . '<p class="text-body-secondary">O nome aparece no topo do site (exemplo: Prefeitura de Exemplo). O endereço (domínio) é o que as pessoas digitam no navegador: só o endereço, sem https:// nem barra no fim (exemplo: www.meusite.org.br). Já preenchemos com o que você usou para chegar aqui.</p>'
+                . Pagina::campo('i-site', 'site', 'Nome do site', $v('site'), ['maxlength' => 200, 'obrigatorio' => true, 'ajuda' => 'Exemplo: Prefeitura de Exemplo.'])
+                . Pagina::campo('i-dominio', 'dominio', 'Endereço (domínio) do site', $v('dominio', $requisicao->getHost()), ['maxlength' => 253, 'obrigatorio' => true, 'ajuda' => 'Só o endereço, sem https:// nem barra no fim. Já preenchemos com o que você usou para chegar aqui.'])
+                . $nav())
+            . $painel(3, $h2(3, 'Conta do administrador')
+                . '<p class="text-body-secondary">Esta é a conta com acesso a tudo; você poderá criar outras depois. O login tem de 3 a 64 letras minúsculas, números, ponto, hífen ou sublinhado, sem espaços (exemplo: ana.silva). A senha precisa de pelo menos ' . SenhaPolitica::MINIMO . ' caracteres: uma frase longa vale mais que símbolos.</p>'
+                . Pagina::campo('i-login', 'login', 'Login do administrador', $v('login'), ['maxlength' => 64, 'obrigatorio' => true, 'autocomplete' => 'username', 'ajuda' => 'De 3 a 64 letras minúsculas, números, ponto, hífen ou sublinhado. Exemplo: ana.silva.'])
+                . Pagina::campo('i-nome', 'nome', 'Nome', $v('nome'), ['maxlength' => 200, 'autocomplete' => 'name', 'ajuda' => 'Opcional: como você quer ser chamado.'])
+                . Pagina::campo('i-email', 'email', 'E-mail', $v('email'), ['tipo' => 'email', 'maxlength' => 255, 'obrigatorio' => true, 'autocomplete' => 'email'])
+                . Pagina::campo('i-senha', 'senha', 'Senha', '', ['tipo' => 'password', 'obrigatorio' => true, 'autocomplete' => 'new-password', 'ajuda' => 'Mínimo de ' . SenhaPolitica::MINIMO . ' caracteres. Uma frase longa vale mais que símbolos.'])
+                . '<p class="pbl-forca" id="pbl-forca" aria-live="polite" data-pbl-forca></p>'
+                . Pagina::campo('i-senha2', 'senha2', 'Repita a senha', '', ['tipo' => 'password', 'obrigatorio' => true, 'autocomplete' => 'new-password'])
+                . '<div class="form-check mb-3 pbl-mostrar-js" hidden><input class="form-check-input" type="checkbox" id="i-mostrar" data-pbl-mostrar-senha><label class="form-check-label" for="i-mostrar">Mostrar a senha enquanto digito</label></div>'
+                . $nav())
+            . $painel(4, $h2(4, 'Modelos opcionais')
+                . '<p class="text-body-secondary">Tipos de conteúdo extras, com exemplos. Pode pular: dá para ligar depois, em Modelos, na administração.</p>' . $this->caixasDeModelos($modelosMarcados) . $nav())
+            . $painel(5, $h2(5, 'Revisão e instalar')
+                . '<p>Confira os dados. Se algo estiver errado, use <strong>Voltar</strong>. Ao clicar em <strong>Instalar</strong>, o Publicare cria o banco, o site e a sua conta. Se algo falhar, nada fica pela metade e você pode tentar de novo.</p>'
+                . '<dl class="pbl-revisao" data-pbl-revisao><dt>Resumo</dt><dd>Confira os campos dos passos anteriores e clique em Instalar.</dd></dl>'
+                . '<div class="pbl-acoes pbl-acoes-instalar"><button type="button" class="btn btn-outline-secondary btn-lg" data-pbl-voltar hidden>Voltar</button><button type="submit" class="btn btn-success btn-lg">Instalar</button></div>')
+            . '</form><noscript><p class="text-body-secondary mt-3">Sem JavaScript, todos os passos aparecem de uma vez: preencha tudo e clique em Instalar no fim.</p></noscript>';
 
         return Pagina::resposta('Instalar o PBL4', $corpo, $status, $seguro);
     }
@@ -168,7 +192,7 @@ final class InstaladorWeb
         $html = '';
         foreach (Modelos::catalogo() as $m) {
             $id = 'i-modelo-' . $m['nome'];
-            $html .= '<div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="' . $id . '" name="modelos[]" value="' . Pagina::h($m['nome']) . '"' . (in_array($m['nome'], $marcados, true) ? ' checked' : '') . '>'
+            $html .= '<div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="' . $id . '" name="modelos[]" value="' . Pagina::h($m['nome']) . '"' . (in_array($m['nome'], $marcados, true) ? ' checked' : '') . '>'
                 . '<label class="form-check-label" for="' . $id . '"><strong>' . Pagina::h($m['titulo']) . '</strong><br><span class="text-body-secondary">' . Pagina::h($m['descricao']) . '</span></label></div>';
         }
 
