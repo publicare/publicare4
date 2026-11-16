@@ -40,7 +40,7 @@ final class ContaComandosTest extends TestCase
         self::assertSame(0, $t->execute(['login' => 'admin', '--gerar' => true]));
 
         self::assertSame(1, preg_match('/anote em lugar seguro\): (\S{24})$/m', $t->getDisplay(), $m));
-        $nova = $m[1];
+        $nova = (string) ($m[1] ?? '');
         $s2 = Servicos::doBancoInstalado($this->caminhos);
         self::assertNotNull($s2->usuarios->autenticar('admin', $nova));
         self::assertNull($s2->usuarios->autenticar('admin', self::SENHA));
