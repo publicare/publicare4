@@ -1,0 +1,110 @@
+name: Release
+
+# Empacota a versão da tag e cria um RASCUNHO no GitHub Releases com o .zip e o latest.json SEM assinatura.
+# A chave privada NUNCA passa por aqui (ADR 0019): o dono baixa o latest.json, assina na máquina dele e publica
+# (bin/assinar-release.sh; docs/releases.md). Manualmente (workflow_dispatch) é só um ensaio: empacota uma tag existente e
+# não publica nada.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag existente a ensaiar (ex.: v0.1.0). Não publica nada.'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event_name == 'push' && github.ref || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  empacotar:
+    name: Empacotar (sem assinar)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      versao: ${{ steps.conferir.outputs.versao }}
+      canal: ${{ steps.conferir.outputs.canal }}
+    env:
+      TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'push' && github.ref || format('refs/tags/{0}', inputs.tag) }}
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_sqlite, sodium, gd, zip
+          coverage: none
+          tools: composer:v2
+      - name: Conferir a tag, a versão e o CHANGELOG
+        id: conferir
+        run: |
+          .github/scripts/conferir-release.sh "$TAG" . "$RUNNER_TEMP/notas.md" | tee -a "$GITHUB_OUTPUT"
+      - name: Preparar a pasta (código da tag + dependências de produção)
+        run: |
+          mkdir -p "$RUNNER_TEMP/preparada"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/preparada"
+          cd "$RUNNER_TEMP/preparada"
+          composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+      - name: Empacotar (sem assinar)
+        env:
+          VERSAO: ${{ steps.conferir.outputs.versao }}
+          CANAL: ${{ steps.conferir.outputs.canal }}
+          SEGURANCA: ${{ steps.conferir.outputs.seguranca }}
+          REPO: ${{ github.repository }}
+        run: |
+          extra=()
+          if [ "$SEGURANCA" = "true" ]; then extra+=(--seguranca); fi
+          php bin/pbl empacotar "$RUNNER_TEMP/preparada" "$RUNNER_TEMP/saida" \
+            --sem-assinar --canal="$CANAL" \
+            --resumo="PBL4 $VERSAO" \
+            --notas="https://github.com/$REPO/releases/tag/$TAG" \
+            "${extra[@]}"
+          if [ -e "$RUNNER_TEMP/saida/latest.json.sig" ]; then
+            echo "::error::Saiu uma assinatura no CI: a assinatura é só do dono." >&2
+            exit 1
+          fi
+          cp "$RUNNER_TEMP/notas.md" "$RUNNER_TEMP/saida/notas.md"
+          ls -l "$RUNNER_TEMP/saida"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pbl4-release
+          path: ${{ runner.temp }}/saida/
+          if-no-files-found: error
+          retention-days: 7
+
+  rascunho:
+    name: Rascunho no GitHub Releases
+    if: github.event_name == 'push'
+    needs: empacotar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+      VERSAO: ${{ needs.empacotar.outputs.versao }}
+      CANAL: ${{ needs.empacotar.outputs.canal }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pbl4-release
+          path: saida
+      - name: Criar o rascunho (não publica; não sobrescreve release existente)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          flags=()
+          if [ "$CANAL" = "beta" ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" --draft --verify-tag \
+            --title "PBL4 $VERSAO" --notes-file saida/notas.md \
+            "${flags[@]}" \
+            "saida/pbl4-$VERSAO.zip" saida/latest.json
+          echo "Rascunho criado. O dono assina e publica com bin/assinar-release.sh (docs/releases.md)."
