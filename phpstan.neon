@@ -3,3 +3,4 @@ parameters:
     paths:
         - app/src
         - tests
+        - infra/instalador
