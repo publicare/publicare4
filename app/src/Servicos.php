@@ -116,6 +116,11 @@ final class Servicos
         return new Csrf($this->segredo(), $relogio);
     }
 
+    public function dadosDeConta(): \Pbl\Privacidade\DadosDeConta
+    {
+        return new \Pbl\Privacidade\DadosDeConta($this->conexao, $this->auditoria, $this->limiteDeTentativas());
+    }
+
     public function limiteDeTentativas(?\Closure $relogio = null): LimiteDeTentativas
     {
         return new LimiteDeTentativas($this->conexao, $this->segredo(), $relogio);

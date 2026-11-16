@@ -47,6 +47,16 @@ make pbl ARGS="conta-destravar admin --ip=203.0.113.5"
 
 `conta-senha` aplica a política de senha, encerra as sessões da conta, destrava o login e audita `senha.trocar` sem a senha. `usuario senha` continua valendo para o dia a dia. Detalhes em [segurança](seguranca.md#senha-perdida-e-login-travado-s-05).
 
+## `conta-exportar` e `conta-anonimizar` (LGPD)
+
+```bash
+make pbl ARGS="conta-exportar bia"                    # JSON com os dados da conta, sem a senha
+make pbl ARGS="conta-anonimizar bia"                  # só explica; nada é alterado
+make pbl ARGS="conta-anonimizar bia --confirmar"      # anonimiza, sem volta
+```
+
+Ver [LGPD](lgpd.md). A retenção da auditoria roda no cron (tarefa `retencao`).
+
 ## `dominio` e `redirecionamento`
 
 Os domínios também se gerenciam pelo navegador (`/_pbl/site/{id}/dominios`); aqui ficam os comandos, que também alcançam o redirecionamento de endereços antigos (ainda sem tela).
