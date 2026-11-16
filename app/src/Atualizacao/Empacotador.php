@@ -12,7 +12,7 @@ namespace Pbl\Atualizacao;
 final class Empacotador
 {
     /**
-     * @param array{atualizar_a_partir_de?: string, seguranca?: bool, resumo?: string, notas?: string, url_base?: string, data?: string, nova_chave_de_uso?: string, chaves_revogadas?: list<string>} $opcoes
+     * @param array{atualizar_a_partir_de?: string, seguranca?: bool, resumo?: string, notas?: string, url_base?: string, data?: string, nova_chave_de_uso?: string, chaves_revogadas?: list<string>, instaladores?: array<string, string>} $opcoes
      * @param string|null $chavePrivadaHex null = não assina (o CI monta o pacote; o dono assina depois com `bin/pbl assinar`, ADR 0019)
      * @return array{zip: string, manifesto: string, assinatura: string|null, versao: string}
      */
@@ -65,6 +65,10 @@ final class Empacotador
         if (($opcoes['chaves_revogadas'] ?? []) !== []) {
             $chaves['revogadas'] = $opcoes['chaves_revogadas'];
         }
+        $instaladores = [];
+        foreach ($opcoes['instaladores'] ?? [] as $arquivo => $sha) {
+            $instaladores[$arquivo] = ['sha256' => $sha];
+        }
         $manifesto = json_encode([
             'formato' => Manifesto::FORMATO,
             'canal' => $canal,
@@ -77,7 +81,7 @@ final class Empacotador
             'resumo' => $opcoes['resumo'] ?? '',
             'notas' => $opcoes['notas'] ?? '',
             'pacote' => ['url' => $urlBase . "pbl4-{$versao}.zip", 'tamanho' => (int) filesize($zipCaminho), 'sha256' => (string) hash_file('sha256', $zipCaminho)],
-        ] + ($chaves === [] ? [] : ['chaves' => $chaves]), JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
+        ] + ($chaves === [] ? [] : ['chaves' => $chaves]) + ($instaladores === [] ? [] : ['instaladores' => $instaladores]), JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
         // Confere que o que vamos assinar passa na mesma validação de quem vai atualizar.
         Manifesto::analisar($manifesto);
 

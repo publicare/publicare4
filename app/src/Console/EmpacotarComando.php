@@ -29,6 +29,7 @@ final class EmpacotarComando extends Command
         $this->addOption('seguranca', null, InputOption::VALUE_NONE, 'Marca a versão como correção de segurança');
         $this->addOption('resumo', null, InputOption::VALUE_REQUIRED, 'Resumo de uma linha', '');
         $this->addOption('url-base-pacote', null, InputOption::VALUE_REQUIRED, 'Base do endereço do pacote no manifesto: /pacotes/ (caminho absoluto, mesmo host do manifesto) ou https://host/caminho/', '');
+        $this->addOption('instaladores', null, InputOption::VALUE_REQUIRED, 'Pasta com o instalar.php e o instalar.sh desta release: o SHA-256 de cada um entra no manifesto (antes de assinar)');
         $this->addOption('notas', null, InputOption::VALUE_REQUIRED, 'Endereço https das notas da versão', '');
     }
 
@@ -54,6 +55,20 @@ final class EmpacotarComando extends Command
         $revogar = $input->getOption('revogar');
         if (is_array($revogar) && $revogar !== []) {
             $extra['chaves_revogadas'] = array_values(array_map('strval', $revogar));
+        }
+        $pastaInstaladores = (string) $input->getOption('instaladores');
+        if ($pastaInstaladores !== '') {
+            $hashes = [];
+            foreach (['instalar.php', 'instalar.sh'] as $nome) {
+                $h = is_file("{$pastaInstaladores}/{$nome}") ? hash_file('sha256', "{$pastaInstaladores}/{$nome}") : false;
+                if ($h === false) {
+                    $output->writeln("<error>--instaladores: falta {$nome} em {$pastaInstaladores}.</error>");
+
+                    return Command::FAILURE;
+                }
+                $hashes[$nome] = $h;
+            }
+            $extra['instaladores'] = $hashes;
         }
         try {
             $r = (new Empacotador())->empacotar(

@@ -47,4 +47,16 @@ final class InfraAtualizacoesTest extends TestCase
         self::assertStringContainsString('passo manual do dono', $r);
         self::assertStringContainsString('--url-base-pacote=/pacotes/', $r);
     }
+
+    public function testWorkerServeOsInstaladoresComoTextoSemExecutarNada(): void
+    {
+        $j = $this->arquivo('worker.js');
+
+        self::assertStringContainsString("'/instalar.php', '/instalar.sh'", $j);
+        self::assertStringContainsString('latest/download/${caminho.slice(1)}', $j);
+        self::assertStringContainsString("'text/plain; charset=utf-8'", $j);
+        self::assertStringNotContainsString('eval(', $j);
+        self::assertStringContainsString('O deploy do Worker é do dono', $this->arquivo('README.md'));
+        self::assertStringContainsString('/instalar.php', $this->arquivo('README.md'));
+    }
 }

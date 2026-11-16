@@ -7,6 +7,7 @@
 //   /latest.json, /latest.json.sig            -> assets da última release ESTÁVEL
 //   /latest-beta.json, /latest-beta.json.sig  -> assets da última PRÉ-LANÇAMENTO publicada
 //   /pacotes/pbl4-<versão>.zip                -> asset da release v<versão>
+//   /instalar.php, /instalar.sh               -> instaladores da última release ESTÁVEL (servidos como text/plain: nunca executados aqui)
 
 const NOME_PACOTE = /^pbl4-(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\.zip$/;
 const CANAIS = {
@@ -15,6 +16,7 @@ const CANAIS = {
   '/latest-beta.json': 'beta',
   '/latest-beta.json.sig': 'beta',
 };
+const INSTALADORES = ['/instalar.php', '/instalar.sh'];
 const PADRAO_REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
 function resposta(corpo, status, extra = {}) {
@@ -70,6 +72,10 @@ export default {
         alvo = `${base}/download/${tag}/${arquivo}`;
       }
       return origem(alvo, segundos, manifesto, arquivo.endsWith('.json') ? 'application/json' : 'text/plain');
+    }
+    if (INSTALADORES.includes(caminho)) {
+      // text/plain + nosniff: o navegador mostra/baixa o arquivo, e o Worker nunca o interpreta. O SHA-256 vem no latest.json assinado.
+      return origem(`${base}/latest/download/${caminho.slice(1)}`, segundos, manifesto, 'text/plain; charset=utf-8');
     }
     if (caminho.startsWith('/pacotes/')) {
       const arquivo = caminho.slice('/pacotes/'.length);
