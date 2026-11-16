@@ -324,9 +324,7 @@ final class AdminUploadTest extends TestCase
 
     public function testMiniaturaDeImagemPublicadaFunciona(): void
     {
-        if (!extension_loaded('gd')) {
-            self::markTestSkipped('sem GD');
-        }
+        self::assertTrue(extension_loaded('gd'), 'A extensão gd é obrigatória (composer.json e CI).');
         $o = $this->criarAlbum();
         $this->s->objetos->atualizar($o->id, ['status' => 'publicado']);
         $arquivo = $this->s->uploads()->enviar(new UploadedFile($this->arquivoTemporario($this->pngValido()), 'capa.png', 'image/png', null, true), $this->album->propriedades[0], $this->site->id, $o->id, null);
