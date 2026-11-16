@@ -79,7 +79,7 @@ bin/assinar-release.sh vX.Y.Z --chave-privada=/volume-cifrado/pbl4/uso.privada
 - Migrações de banco: sim/não (`bin/pbl` aplica sozinho; faça backup antes).
 
 ### Requisitos
-PHP 8.2+, SQLite/MySQL/PostgreSQL.
+PHP 8.2+ e SQLite. MySQL e PostgreSQL chegam na 0.2 ([ADR 0028](adr/0028-suporte-mysql-postgresql.md)).
 
 ### Obrigado
 Quem contribuiu nesta versão.

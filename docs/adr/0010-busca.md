@@ -8,7 +8,7 @@ Quem pesquisa num portal digita sem acento, em maiúsculas, em outra ordem das p
 
 ## Decisão
 
-Busca em **três níveis**, cada um útil sozinho, todos **dentro do banco** (SQLite, MySQL ou PostgreSQL) e sem serviço externo na instalação padrão.
+Busca em **três níveis**, cada um útil sozinho, todos **dentro do banco** (SQLite; MySQL e PostgreSQL a partir da 0.2, [ADR 0028](0028-suporte-mysql-postgresql.md)) e sem serviço externo na instalação padrão.
 
 ### Nível A — normalizar (implementado)
 `Pbl\Busca\Texto::normalizar()`: minúsculas, sem acentos, espaços reduzidos, feito **em PHP** na gravação e na consulta, com mapa próprio. O resultado é igual nos três bancos e não depende de `intl` nem de `unaccent`. Guardado em `objeto.titulo_norm` e `objeto_indice.texto_norm` (colunas novas; `titulo_busca`, a antiga, não é reescrita, para a versão anterior do código continuar funcionando se for preciso voltar atrás). A normalização pode alongar o texto (`ß`→`ss`), então as colunas têm o dobro do tamanho das originais; o operador `contem` e o parâmetro `busca` usam essas colunas.
@@ -26,12 +26,12 @@ Busca em **três níveis**, cada um útil sozinho, todos **dentro do banco** (SQ
 - Para cada palavra da consulta que **não é prefixo de nenhum termo visível**, busca candidatos no vocabulário visível com tamanho parecido (até 2 caracteres de diferença, teto de 300 candidatos avaliados), calcula a distância de Levenshtein em PHP (1 para termos de até 5 letras, 2 para os maiores) e escolhe o mais próximo (desempate pelos pontos, like uma frequência). Palavra já encontrável fica como está. Se **qualquer** palavra não tem candidato dentro do limiar, a função inteira devolve nada: uma sugestão parcial ou arriscada é pior que nenhuma.
 - Devolve "você quis dizer…" (`BuscaInterface::sugerir`); **não** busca automaticamente pelo termo corrigido — quem usa o molde decide (`%SUGESTAO`, ver [linguagem-pbl4.md](../linguagem-pbl4.md)), por exemplo montando um link para a busca corrigida.
 - **Opcional por site** (`site.busca_tolerancia`, migração 12), desligada por padrão: analisar candidatos e calcular Levenshtein a cada busca sem resultado é mais caro que a busca comum, e nem todo portal quer correção automática. Liga/desliga pelo painel (`/_pbl/site/{id}/busca`).
-- Portável entre SQLite, MySQL e PostgreSQL: só `SELECT`/`GROUP BY`/`LENGTH` e PHP puro; sem DDL em tempo de execução, sem extensão do banco.
+- Desenhado para ser portável entre SQLite, MySQL e PostgreSQL (os dois últimos entram na 0.2, ADR 0028): só `SELECT`/`GROUP BY`/`LENGTH` e PHP puro; sem DDL em tempo de execução, sem extensão do banco.
 - Fonética do português (Soundex e afins) fica de fora: dá muito falso positivo.
 - **Ponto de extensão para portais grandes**: `BuscaInterface::sugerir` pode sempre devolver `null` num driver de escala (FTS5, `tsvector`, FULLTEXT, Meilisearch) sem quebrar nada — a sugestão é um extra do nível C, não um requisito do nível B. Um driver de escala que queira sugestão própria (por exemplo, a correção nativa do Meilisearch) implementa o método com sua própria lógica; não há, ainda, um driver assim neste repositório.
 
 ### Escala
-Interface `BuscaInterface` com o driver padrão (acima) e drivers opcionais para portais grandes (FTS5 do SQLite, `tsvector` do PostgreSQL, FULLTEXT do MySQL, Meilisearch), escolhidos por configuração, sem mudar os moldes (`localizar busca=…`, comando de busca).
+Interface `BuscaInterface` com o driver padrão (acima) e drivers opcionais para portais grandes (FTS5 do SQLite, `tsvector` do PostgreSQL e FULLTEXT do MySQL, previstos para a 0.2, e Meilisearch), escolhidos por configuração, sem mudar os moldes (`localizar busca=…`, comando de busca).
 
 ## Segurança e privacidade
 

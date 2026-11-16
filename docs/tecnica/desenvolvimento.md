@@ -22,7 +22,7 @@ make qa            # testes + análise estática
 | `make subir` / `make parar` | servidor de desenvolvimento em <http://localhost:8080> / para o ambiente |
 | `make shell` | shell dentro do container |
 
-Para conferir a hospedagem num servidor de verdade: `docker compose --profile apache up -d --build apache apache-public` (Apache, portas 8081 e 8082) ou `docker compose --profile nginx up -d --build nginx` (nginx + PHP-FPM, porta 8083); veja [Instalação e hospedagem](instalacao.md). Para testar outros bancos: `docker compose --profile mysql up -d` ou `--profile postgres` (hoje os testes automáticos usam SQLite).
+Para conferir a hospedagem num servidor de verdade: `docker compose --profile apache up -d --build apache apache-public` (Apache, portas 8081 e 8082) ou `docker compose --profile nginx up -d --build nginx` (nginx + PHP-FPM, porta 8083); veja [Instalação e hospedagem](instalacao.md). Os testes automáticos do 0.1.0 usam só SQLite; os perfis `mysql` e `postgres` do compose servem a experimentos, pois MySQL e PostgreSQL só chegam na 0.2 ([ADR 0028](../adr/0028-suporte-mysql-postgresql.md)).
 
 ## Ver funcionando
 

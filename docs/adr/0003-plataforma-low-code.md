@@ -31,7 +31,7 @@ O que passar do limite usa pontos de extensão (módulos com interface estável 
 - **Tabelas físicas por classe** (alto volume): recurso opcional e desligado por padrão, com credencial de migração separada fora da config do site e **modo de revisão** que só exporta o SQL para um DBA aplicar. Identificadores gerados, tipos em lista fechada, sem `DROP` pela interface, pré-visualização, backup e auditoria.
 - **SQLite** como padrão de instalação leiga (zero configuração); MySQL 8 e PostgreSQL para portais grandes (meta da 0.2; o 0.1.0 só tem SQLite, ver [ADR 0028](0028-suporte-mysql-postgresql.md)). Oracle sem suporte declarado.
 - **Nomes físicos configuráveis** (prefixo/mapa lógico→físico) como opção de instalação, não como requisito do núcleo.
-- Sem cluster/sharding agora. Escala, na ordem: índices e cache de página publicada, busca fora do banco, particionamento (Postgres), réplica de leitura.
+- Sem cluster/sharding agora. Escala, na ordem: índices e cache de página publicada, busca fora do banco, particionamento (Postgres, na 0.2), réplica de leitura.
 
 ### 3. Referências entre objetos
 - Uma propriedade de referência guarda o **id** (e opcionalmente um *snapshot* de campos de exibição, p.ex. título).
