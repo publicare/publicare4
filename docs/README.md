@@ -48,6 +48,7 @@ Objetivos: amadurecer o núcleo e a linguagem de moldes; instalador web para que
 - [0025 — Pilha: copiar, recortar e colar objetos](adr/0025-pilha-copiar-recortar-colar.md) (aceito)
 - [0026 — Itens menores do PBL3: vencidos, lixeira, registro, ícone e QR code](adr/0026-itens-menores-do-pbl3.md) (aceito)
 - [0027 — Importador de bases do PBL3](adr/0027-importador-pbl3.md) (aceito)
+- [0028 — Suporte a MySQL e PostgreSQL](adr/0028-suporte-mysql-postgresql.md) (proposto; meta da 0.2)
 - [0001 — Sem framework full-stack](adr/0001-base-p3-sem-framework.md) (parcialmente substituído)
 - [0002 — Schema: evolução aditiva](adr/0002-schema-evolucao-aditiva.md) (substituído)
 
