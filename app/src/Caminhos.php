@@ -113,5 +113,24 @@ final class Caminhos
                 throw new \RuntimeException("Não foi possível criar a pasta {$pasta}");
             }
         }
+        $this->protegerDados();
+    }
+
+    /**
+     * Grava `dados/.htaccess` (Apache) para que banco, segredo e uploads nunca saiam pelo servidor web, mesmo se `dados/`
+     * ficar dentro da raiz pública. Não sobrescreve um arquivo que já exista (o dono pode tê-lo ajustado).
+     */
+    private function protegerDados(): void
+    {
+        $arquivo = $this->dados() . '/.htaccess';
+        if (is_file($arquivo)) {
+            return;
+        }
+        $regra = "# Gerado pelo PBL4: nada daqui é público.\n"
+            . "<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n"
+            . "<IfModule !mod_authz_core.c>\n    Deny from all\n</IfModule>\n";
+        if (file_put_contents($arquivo, $regra) === false) {
+            throw new \RuntimeException("Não foi possível gravar {$arquivo}");
+        }
     }
 }
