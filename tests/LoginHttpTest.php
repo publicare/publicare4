@@ -189,7 +189,8 @@ final class LoginHttpTest extends TestCase
 
         self::assertSame(429, $existe->getStatusCode());
         self::assertSame(429, $inexiste->getStatusCode());
-        self::assertSame($existe->headers->get('Retry-After'), $inexiste->headers->get('Retry-After'));
+        // as duas respostas saem em instantes diferentes: o relógio pode virar o segundo entre elas
+        self::assertEqualsWithDelta((int) $existe->headers->get('Retry-After'), (int) $inexiste->headers->get('Retry-After'), 1);
         self::assertStringNotContainsString('ana', (string) $existe->getContent());
         self::assertSame(
             preg_replace('/name="_csrf" value="[^"]*"/', '', (string) $existe->getContent()),

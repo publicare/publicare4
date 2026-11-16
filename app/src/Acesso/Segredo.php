@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pbl\Acesso;
 
+use Pbl\Arquivos\GravacaoAtomica;
 use Pbl\Caminhos;
 
 /**
@@ -21,24 +22,12 @@ final class Segredo
                 return $valor;
             }
         }
-        if (!is_dir($caminhos->config()) && !mkdir($caminhos->config(), 0750, true) && !is_dir($caminhos->config())) {
-            throw new \RuntimeException('Não foi possível criar ' . $caminhos->config());
-        }
         $novo = bin2hex(random_bytes(32));
-        $temporario = $arquivo . '.' . bin2hex(random_bytes(4)) . '.tmp';
-        // umask restritivo só em volta da gravação: o temporário nasce 0600, sem janela legível por outros usuários.
-        $antes = umask(0177);
         try {
-            $gravou = file_put_contents($temporario, $novo . "\n");
-        } finally {
-            umask($antes);
-        }
-        if ($gravou === false) {
-            @unlink($temporario);
+            GravacaoAtomica::gravar($arquivo, $novo . "\n");
+        } catch (\RuntimeException) {
             throw new \RuntimeException('Não foi possível gravar o segredo em ' . $arquivo);
         }
-        chmod($temporario, 0600);
-        rename($temporario, $arquivo);
 
         return $novo;
     }

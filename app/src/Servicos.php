@@ -18,6 +18,7 @@ use Pbl\Acesso\Segredo;
 use Pbl\Acesso\SessaoRepositorio;
 use Pbl\Acesso\Permissoes;
 use Pbl\Acesso\UsuarioRepositorio;
+use Pbl\Banco\CarregadorDeConfigBanco;
 use Pbl\Banco\Conexao;
 use Pbl\Consulta\MotorDeConsulta;
 use Pbl\Conteudo\ClasseRepositorio;
@@ -155,10 +156,11 @@ final class Servicos
 
     public static function doBancoInstalado(Caminhos $caminhos): self
     {
-        if (!is_file($caminhos->banco())) {
+        $config = (new CarregadorDeConfigBanco($caminhos))->carregar();
+        if ($config->ehSqlite() && !is_file($config->nome)) {
             throw new \RuntimeException('PBL4 não está instalado. Rode: bin/pbl instalar');
         }
 
-        return new self($caminhos, Conexao::sqlite($caminhos->banco()));
+        return new self($caminhos, Conexao::abrir($config));
     }
 }

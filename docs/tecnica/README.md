@@ -9,6 +9,7 @@ Para quem **instala, opera e desenvolve** o PBL4. Se você quer entender o proje
 | [Instalação e hospedagem](instalacao.md) | Requisitos, assistente web, Apache, nginx, proxy |
 | [Cron central](cron.md) | a linha única `bin/pbl cron`, tarefas, pseudo-cron e como conferir |
 | [Atualização](atualizacao.md) | `bin/pbl atualizar`, pacote, assinatura e publicação de versões |
+| [Banco de dados](banco-de-dados.md) | Camada de dialeto, `banco.json` e variáveis `PBL_BANCO_*` (fundação do ADR 0028) |
 | [Linha de comando](cli.md) | Comandos de `bin/pbl` |
 | [Como migrar um site do PBL3](migrar-do-pbl3.md) | Importar conteúdo, arquivos e contas de uma base do PBL3 |
 | [Linguagem de moldes PBL4](../linguagem-pbl4.md) | Gramática, comandos, ordenação e conversão do PBL3 |
