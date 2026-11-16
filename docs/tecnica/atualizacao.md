@@ -94,17 +94,24 @@ php bin/pbl gerar-chaves --saida=/volume-cifrado/pbl4 --nome=uso
 php bin/pbl gerar-chaves --saida=/midia-fria/pbl4 --nome=recuperacao
 # as duas PÚBLICAS vão em app/src/Atualizacao/Chaves.php (USO e RECUPERACAO; já embutidas em 2026-11-16)
 
-# CI: monta o pacote e o manifesto SEM assinar e publica como rascunho no GitHub Releases
+# CI (.github/workflows/release.yml, ao empurrar a tag vX.Y.Z): monta o pacote e o manifesto SEM assinar
+# e cria o rascunho no GitHub Releases
 php bin/pbl empacotar PASTA_PREPARADA SAIDA --sem-assinar --canal=estavel --resumo="…" --notas=https://…
-# dono: baixa o latest.json do rascunho, assina localmente e publica latest.json + latest.json.sig
-php bin/pbl assinar latest.json --chave-privada=/volume-cifrado/pbl4/uso.privada
+# dono, na máquina dele: baixa o rascunho, assina, confere contra Chaves.php e publica (o manifesto por último)
+bin/assinar-release.sh vX.Y.Z --chave-privada=/volume-cifrado/pbl4/uso.privada
 ```
+
+O script equivale a: `gh release download` → `php bin/pbl assinar latest.json --chave-privada=ARQ` → `php bin/pbl verificar-assinatura latest.json` (usa `Chaves::PUBLICAS` menos as revogadas; `--canal=teste` usa `Chaves::TESTE`; sai com erro se não confere) → `gh release upload` de `latest.json` e `latest.json.sig` → `gh release edit --draft=false`. Passo a passo e tabela CI × dono em [releases](../releases.md).
+
+**Pendência: endereço de canal.** O produto não traz endereço de atualizações: cada instalação precisa de `url` em `dados/config/atualizacao.json`. O endereço de download das releases do GitHub (`…/releases/latest/download/latest.json`) **não funciona direto**: ele redireciona para outro servidor e o `BaixadorHttps` recusa redirecionamento para outro host; além disso o `pacote.url` do manifesto é relativo e é resolvido no **mesmo host** do manifesto. Por isso o dono precisa de um endereço que sirva `latest.json`, `latest.json.sig` e o `.zip` no mesmo host (previsto: `https://atualizacoes.publicare.org/latest.json`, que **ainda não existe**; pode ser um espelho ou proxy das releases) e de um manifesto próprio para o canal `beta`, porque o `latest` do GitHub ignora pré-lançamentos. Enquanto isso não existir, nenhuma instalação acha a versão publicada.
+
+**Ensaio do pacote.** `tests/PipelineDoPacoteTest.php` empacota, assina e verifica um pacote com um par de chaves descartável (canal `teste`), e prova que o manifesto adulterado e as chaves reais embutidas o recusam; `tests/ChavesDeConfiancaTest.php` e `tests/AtualizadorTest.php` cobrem o resto da verificação.
 
 O canal `teste` (demo e versões de teste) é assinado por uma chave **separada** (`Chaves::TESTE`), que pode ficar no CI (`empacotar --canal=teste --chave-privada=…`); instalações de produção não confiam nela e as chaves de produção não valem nesse canal.
 
 A pasta preparada é o projeto com `composer install --no-dev --optimize-autoloader`. O empacotador leva **só** `app/ vendor/ bin/ public/ composer.* .htaccess LICENSE NOTICE`, lê a versão de `app/src/Versao.php`, recusa `-dev` e pré-lançamento no canal estável, grava hashes de todos os arquivos, gera o zip de forma reproduzível e assina o manifesto. Publique o `.zip` primeiro e o `latest.json` + `.sig` por último.
 
-**Chaves.** As chaves públicas de uso e de recuperação **já estão embutidas** em `app/src/Atualizacao/Chaves.php` (as privadas ficam com o dono, offline). `Chaves::USO` e `Chaves::RECUPERACAO` (mais `REVOGADAS` e `TESTE`) são as únicas chaves em que a instalação confia; o `Atualizador` aceita assinatura de qualquer chave confiável. **Trocar a chave de uso** ou **revogar** chaves é feito por um manifesto com o bloco `"chaves": {"uso": "…", "revogadas": ["…"]}` (`empacotar --nova-chave-de-uso=… --revogar=…`) **assinado pela chave de recuperação**; com assinatura da chave de uso, o `Atualizador` recusa. O efeito fica em `dados/config/chaves-confiaveis.json`. A chave de recuperação só muda com uma versão nova do produto. O endereço do manifesto é `url` em `dados/config/atualizacao.json` (padrão previsto: `https://atualizacoes.publicare.org/latest.json`; nada fixa o endereço do GitHub); manifesto com TTL curto, pacotes imutáveis com cache longo.
+**Chaves.** As chaves públicas de uso e de recuperação **já estão embutidas** em `app/src/Atualizacao/Chaves.php` (as privadas ficam com o dono, offline). `Chaves::USO` e `Chaves::RECUPERACAO` (mais `REVOGADAS` e `TESTE`) são as únicas chaves em que a instalação confia; o `Atualizador` aceita assinatura de qualquer chave confiável. **Trocar a chave de uso** ou **revogar** chaves é feito por um manifesto com o bloco `"chaves": {"uso": "…", "revogadas": ["…"]}` (`empacotar --nova-chave-de-uso=… --revogar=…`) **assinado pela chave de recuperação**; com assinatura da chave de uso, o `Atualizador` recusa. O efeito fica em `dados/config/chaves-confiaveis.json`. A chave de recuperação só muda com uma versão nova do produto. O endereço do manifesto é `url` em `dados/config/atualizacao.json` (endereço previsto, ainda inexistente: `https://atualizacoes.publicare.org/latest.json`; nada fixa o endereço do GitHub, que também não funciona direto: veja a pendência em "Para quem publica versões"); manifesto com TTL curto, pacotes imutáveis com cache longo.
 
 ## Defesas
 

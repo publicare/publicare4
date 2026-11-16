@@ -19,15 +19,32 @@ O CHANGELOG segue o formato [Keep a Changelog](https://keepachangelog.com/pt-BR/
    - em `app/src/Versao.php`, trocar `X.Y.Z-dev` por `X.Y.Z`;
    - `make qa` e a pipeline verdes.
 3. **Mergear** o PR de release na `main`.
-4. **Criar a tag e a release** (sobre o commit do merge):
+4. **Criar e empurrar a tag** (sobre o commit do merge):
    ```bash
    git switch main && git pull
    git tag -a vX.Y.Z -m "PBL4 X.Y.Z"
    git push origin vX.Y.Z
-   gh release create vX.Y.Z --title "PBL4 X.Y.Z" --notes-file notas.md   # --prerelease para beta/rc
    ```
-5. **Voltar a versão de desenvolvimento**: PR pequeno trocando para `X.Y.(Z+1)-dev` (ou a próxima MINOR).
-6. Quando existir o atualizador ([ADR 0006](adr/0006-atualizador-automatico.md)): empacotar, **assinar** e publicar o manifesto `latest.json` do canal correspondente por último.
+   O workflow [`release.yml`](../.github/workflows/release.yml) roda sozinho (veja a tabela abaixo) e deixa um **rascunho** da release com o `.zip` e o `latest.json` **sem assinatura**. Tags com `-` (`-rc.1`, `-beta.1`) vão para o canal `beta` e o rascunho sai marcado como pré-lançamento.
+5. **Assinar e publicar (só o dono, na máquina dele)**, com a chave de uso num arquivo local (permissão 600; nunca em variável de ambiente, no CI ou na nuvem):
+   ```bash
+   gh auth login                 # uma vez
+   bin/assinar-release.sh vX.Y.Z --chave-privada=/volume-cifrado/pbl4/uso.privada
+   ```
+   O script recusa se a release já não for rascunho, baixa o `latest.json` e o `.zip`, confere versão, tamanho e SHA-256, assina (`php bin/pbl assinar`), **confere a assinatura contra as chaves públicas embutidas** (`php bin/pbl verificar-assinatura`; se não confere, para sem subir nada), sobe `latest.json` e `latest.json.sig` e só então publica a release. O manifesto vai por último: o rascunho não é visível ao público, então a publicação libera pacote, manifesto e assinatura de uma vez.
+6. **Voltar a versão de desenvolvimento**: PR pequeno trocando para `X.Y.(Z+1)-dev` (ou a próxima MINOR).
+7. **Endereço de canal**: as instalações só enxergam a versão se o `latest.json` estiver no endereço configurado em `dados/config/atualizacao.json` (`url`). **Ainda não existe esse endereço**; veja a pendência em [atualização](tecnica/atualizacao.md#para-quem-publica-versões).
+
+### O que o CI faz e o que só o dono faz
+
+| Passo | Quem | Onde |
+|---|---|---|
+| Conferir a tag × `Versao.php` × seção do `CHANGELOG.md` | CI | `.github/scripts/conferir-release.sh` |
+| `composer install --no-dev --optimize-autoloader` numa pasta preparada e `bin/pbl empacotar … --sem-assinar --canal=estavel\|beta` | CI | `release.yml` (PHP 8.2, permissões só de leitura) |
+| Criar o **rascunho** com `.zip` + `latest.json` (única etapa com `contents: write`) | CI | `release.yml`, só em push de tag |
+| Assinar, verificar e publicar | **dono** | `bin/assinar-release.sh` |
+
+O CI nunca tem chave de assinatura (só o `GITHUB_TOKEN` automático). `--seguranca` é ligado quando a seção da versão no CHANGELOG tem uma subseção "Segurança" com conteúdo; `--a-partir-de` fica no padrão `0.0.0` (para outro valor, empacote à mão). Ensaio sem publicar: Actions → Release → "Run workflow" com uma tag existente; o resultado fica só como artefato.
 
 ## Modelo de release notes
 
@@ -59,6 +76,7 @@ Quem contribuiu nesta versão.
 ## Conferências antes de publicar
 
 - [ ] Pipeline verde na `main`
-- [ ] `CHANGELOG.md` e `Versao::ATUAL` com o mesmo número
+- [ ] `CHANGELOG.md` e `Versao::ATUAL` com o mesmo número (o workflow confere)
+- [ ] A assinatura confere com as chaves embutidas (`bin/assinar-release.sh` faz isso antes de publicar)
 - [ ] Seção "Atenção ao atualizar" revisada (quebras, migrações)
 - [ ] Nenhum nome de cliente, órgão ou dado de terceiros nas notas
