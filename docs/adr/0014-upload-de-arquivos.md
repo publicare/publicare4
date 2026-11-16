@@ -118,8 +118,7 @@ claro na própria tela (`TelasDeClasses::erroDeArquivo`, antes de chegar ao repo
 - Cabeçalhos: `Content-Type` sempre da tabela fechada `TiposDeArquivo` (nunca do que foi detectado no upload, embora sejam
   o mesmo valor), `X-Content-Type-Options: nosniff`, `Content-Disposition` (`inline` só para o que é feito para abrir no
   navegador — imagem e PDF —, `attachment` para o resto; nome ASCII saneado em `filename` e o nome de verdade em
-  `filename*`, RFC 5987), `Cache-Control: public, max-age=31536000, immutable` (o conteúdo nunca muda depois de gravado:
-  trocar o arquivo cria uma linha nova), `ETag` do `sha256` e suporte a **um trecho de `Range`** (`BinaryFileResponse` do
+  `filename*`, RFC 5987), `Cache-Control: public, max-age=300, must-revalidate` (revisão de 2026-11-16, S-14: um arquivo despublicado ou apagado deixa de ser servido em minutos; antes era `max-age=31536000, immutable`), `ETag` do `sha256` com resposta `304` e suporte a **um trecho de `Range`** (`BinaryFileResponse` do
   Symfony).
 - Miniatura: só de imagem, só com GD, gerada sob demanda e cacheada em `dados/cache/miniaturas/` (nunca no `docroot`, como
   o resto do cache); tamanho só de `ServicoDeMiniaturas::TAMANHOS` (nunca o que vier na URL, para não gerar um arquivo por
