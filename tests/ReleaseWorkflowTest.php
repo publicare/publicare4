@@ -251,4 +251,33 @@ final class ReleaseWorkflowTest extends TestCase
         self::assertSame(2, substr_count($publicar, 'saida/instalar.php saida/instalar.sh'), 'caminho assinado e rascunho');
         self::assertStringNotContainsString('secrets.PBL4_CHAVE', $empacotar, 'o empacotar nunca toca na chave');
     }
+
+    public function testPublicarDependeDoEmpacotarEDoAssinarEAssinarDependeDoEmpacotar(): void
+    {
+        self::assertStringContainsString("\n    needs: [empacotar, assinar]\n", $this->job('publicar'));
+        self::assertStringContainsString("\n    needs: empacotar\n", $this->job('assinar'));
+        self::assertStringContainsString("\n    environment: release\n", $this->job('assinar'), 'sem a aprovação do dono o assinar não roda');
+    }
+
+    /** Regressão contra esquecer a subseção Segurança ou a data na versão que está no repositório (rc.2 ou qualquer pré-lançamento). */
+    public function testConferenciaAceitaAVersaoRealDoRepositorioQuandoNaoEDesenvolvimento(): void
+    {
+        $atual = \Pbl\Versao::ATUAL;
+        if (str_ends_with($atual, '-dev') || str_contains($atual, '-dev.')) {
+            self::markTestSkipped('A versão do repositório é de desenvolvimento; a conferência só vale no commit de release.');
+        }
+        $pasta = Ajuda::pastaTemporaria();
+        $this->limpar[] = $pasta;
+        $notas = $pasta . '/notas.md';
+        $p = proc_open([self::RAIZ . '/.github/scripts/conferir-release.sh', 'v' . $atual, self::RAIZ, $notas], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        self::assertIsResource($p);
+        $out = (string) stream_get_contents($pipes[1]);
+        $err = (string) stream_get_contents($pipes[2]);
+        self::assertSame(0, proc_close($p), $err);
+        $canal = str_contains($atual, '-') ? 'beta' : 'estavel';
+        self::assertStringContainsString("versao={$atual}\ncanal={$canal}\n", $out);
+        self::assertFileExists($notas);
+        $texto = (string) file_get_contents($notas);
+        self::assertStringContainsString('> **Em resumo', $texto, 'as notas da release abrem com o resumo em linguagem simples');
+    }
 }

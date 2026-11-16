@@ -325,6 +325,15 @@ final class ReversorTest extends TestCase
 
         $a = $this->reversor($raiz, '0.2.0')->avaliar();
         self::assertFalse($a->possivel);
+        if ($campo === 'codigo_sha256') {
+            self::assertStringContainsString('não traz o SHA-256 do código guardado', $a->motivo);
+            try {
+                $this->reversor($raiz, '0.2.0')->reverter('cli');
+                self::fail('deveria recusar');
+            } catch (ErroDeAtualizacao $e) {
+                self::assertStringContainsString('não traz o SHA-256 do código guardado', $e->getMessage());
+            }
+        }
         self::assertSame('novo', file_get_contents($raiz . '/app/src/marcador.txt'));
     }
 

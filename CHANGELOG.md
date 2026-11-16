@@ -6,6 +6,20 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.2] - 2026-11-16
+
+> **Em resumo:** segunda versão candidata do 0.1.0, no canal de testes (beta). Ela é o alvo do teste de atualização a partir da rc.1. O que mudou desde a rc.1, em linguagem simples:
+>
+> - **Instalação mais fácil e segura:** `instalar.php` (para hospedagem comum) e `instalar.sh` (para terminal) conferem a assinatura do pacote antes de instalar, e o assistente de instalação agora tem 6 passos, com textos simples e bom no celular.
+> - **Demo mais segura:** a senha do administrador da demo agora é aleatória a cada reinício, e voltar atrás numa atualização confere se o código e o banco guardados estão íntegros.
+> - **Login mais seguro:** o travamento depois de senhas erradas é progressivo (não deixa mais um estranho trancar a conta do dono), e o dono recupera o acesso pelo terminal com `bin/pbl conta-senha` e `bin/pbl conta-destravar`.
+> - **Site público mais protegido:** cabeçalhos de segurança em todas as respostas e HSTS (força o uso de HTTPS).
+> - **Privacidade (LGPD):** prazo de retenção configurável para dados de auditoria, e comandos para exportar e anonimizar uma conta.
+> - **Página de "não instalado":** quem abre um site ainda sem instalação vê uma explicação em português de como instalar.
+> - **Base para outros bancos de dados:** a camada de dialeto e o arquivo `banco.json` são só a fundação; o PBL4 continua funcionando **apenas com SQLite** (outros bancos ficam para a 0.2).
+>
+> Atenção ao atualizar: há migração de banco aplicada sozinha; o atualizador guarda uma cópia para você poder voltar atrás.
+
 ### Adicionado
 - **Instalação em 2 etapas:** (1) `instalar.php`, instalador de **arquivo único** (sem Composer): confere requisitos em português, baixa o manifesto do canal, **verifica a assinatura Ed25519 com as chaves embutidas** (nunca de rede, parâmetro ou arquivo), confere tamanho e SHA-256 do pacote, extrai com proteção contra zip-slip, link simbólico e bomba de zip (leitor de zip próprio, sem exigir a extensão `zip`), move com desfazer, cria `dados/` (0750) e a prova de posse, sonda se as pastas internas estão expostas e se apaga; recusa rodar em site já instalado e exige o arquivo `instalar.liberar` ao lado para qualquer ação que grave. `instalar.sh` (POSIX sh) é o equivalente de terminal (senha só oculta, por ambiente ou stdin). O arquivo de produção é **gerado** por `bin/gerar-instalador` a partir de `infra/instalador/instalar.php` e `Chaves::*`; os testes usam um perfil de teste com chaves de teste. (2) O assistente `/_pbl/instalar` agora tem **6 passos** com barra de progresso, textos simples, acessível e bom no celular, força da senha, erros que explicam como corrigir e tela final com cron, cópia de segurança, atualização e login. Ver [instalação](docs/tecnica/instalacao.md) e [como instalar](docs/usuario/instalar.md).
 - **Publicação dos instaladores:** o `release.yml` inclui `instalar.php` e `instalar.sh` como assets, com SHA-256 no resumo da release e no manifesto assinado (campo opcional `instaladores`; `bin/pbl empacotar --instaladores=`), e o Worker passa a servir `/instalar.php` e `/instalar.sh` (o deploy do Worker continua sendo do dono).
@@ -23,13 +37,21 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - **Página de "não instalado":** com o site ainda sem instalação, qualquer endereço mostra uma página HTML em português (503, `no-store`, `noindex`, sem login nem detalhes do servidor) que explica `bin/pbl instalar` e o assistente `/_pbl/instalar` (com o arquivo `dados/instalar.liberar`), no lugar do texto puro `PBL4 não está instalado`. Se a trava de instalação existe mas o banco sumiu, continua indisponibilidade genérica, sem mandar instalar por cima.
 - **Travamento do login progressivo (S-05):** o limite deixou de ser um bloqueio duro de 5 falhas por login (que deixava qualquer estranho trancar a conta do dono). Agora há três contadores (par login+origem: 5; login: 20; origem: 30, IPv6 por /64), com atraso que começa em 30 s e dobra a cada falha, até 15 min, sempre com `Retry-After` e resposta genérica. A falha é registrada antes de conferir a senha. O modo elevado passou a ter contadores próprios (não gasta mais o do login). Os testes de bloqueio por 5 falhas foram revisados por isso.
 - **Senha do administrador da demo (S-03/R9):** deixou de ser um valor fixo no código e na documentação. Cada reinício da demo gera uma senha aleatória (`random_bytes`, 32 hexadecimais), gravada em `dados/demo/senha-admin` (modo 0600, gravação atômica) e nunca em log, saída ou página. Novo comando `bin/pbl demo-senha` (também `demo:senha`) mostra a senha atual, só na linha de comando e só com a demo ligada; sem o arquivo ele manda rodar `demo-resetar --agora`. O valor antigo foi tirado deste arquivo e de `docs/`; **quem tem demo instalada deve reiniciá-la** (`bin/pbl demo-resetar --agora`) para trocar a senha antiga. A conta `autor`/`editor` da demo continua com a senha documentada (fora desta rodada). Ver [segurança](docs/tecnica/seguranca.md#demo-e-reversão-s-03-g8).
-- **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.1` (primeira release pelo pipeline automático, assinada no CI).
+- **Preparo da 0.1.0-rc.2:** `Versao::ATUAL` em `0.1.0-rc.2`, seção própria no CHANGELOG com resumo em linguagem simples, teste de atualização rc.1 → rc.2 de ponta a ponta (canal beta, servidor local, migração, trava, reversão com SHA-256 e registro sem hash recusado) e passo a passo do dono em [releases](docs/releases.md).
 
 ### Corrigido
 - **Voltar atrás confere o código guardado (G8/S-11):** a atualização passa a gravar no `aplicada.json` o SHA-256 do código guardado em `dados/atualizacao/anterior/` (`codigo_sha256`, ao lado do `backup_sha256` da cópia do banco), e `Reversor::avaliar` confere os dois antes de qualquer mudança. Hash diferente ou ausente: recusa com mensagem clara e sem tocar em nada. Registro de atualização feita antes desta versão (sem `codigo_sha256`) é **recusado** (restaure à mão ou atualize de novo).
 - **`Segredo`:** o arquivo do segredo do site era gravado com a permissão padrão e só depois recebia `chmod 0600`, deixando uma janela legível por outros usuários; agora o temporário nasce 0600 (umask restritiva só em volta da gravação) e uma falha de escrita lança erro em vez de publicar arquivo vazio.
 - **Documentação do 0.1.0:** nenhum documento sugere mais que MySQL ou PostgreSQL funcionam hoje; o 0.1.0 usa só SQLite, e os dois bancos chegam na 0.2 ([ADR 0028](docs/adr/0028-suporte-mysql-postgresql.md)). Ajustados `docs/releases.md`, `docs/tecnica/`, `docs/usuario/`, `docs/fluxos/` e as notas nos ADRs 0001, 0002, 0010, 0012 e 0014.
 - **Workflow de release:** o passo de empacotar rodava `bin/pbl` na raiz do repositório, onde não há `vendor/`, e falhava no ensaio da `v0.1.0-rc.1`; agora usa o `bin/pbl` da pasta preparada (com as dependências de produção).
+
+### Segurança
+- Cabeçalhos de segurança e HSTS no site público (CSP estrita, `X-Content-Type-Options` e demais): veja "Adicionado".
+- Travamento progressivo do login por par login+origem, por login e por origem, sem deixar um estranho trancar a conta do dono; recuperação só pela linha de comando (`conta-senha`, `conta-destravar`).
+- A senha do administrador da demo deixou de ser fixa: é aleatória a cada reinício, gravada com modo 0600 e nunca em log.
+- Voltar atrás numa atualização confere o SHA-256 do código e do banco guardados antes de mexer em qualquer coisa; registros antigos sem o hash são recusados.
+- `Segredo`: o arquivo nasce com permissão 0600, sem janela legível por outros usuários.
+- Os instaladores verificam a assinatura Ed25519 do manifesto com chaves embutidas, e o SHA-256 de cada instalador vai no manifesto assinado.
 
 ## [0.1.0-rc.1] - 2026-11-16
 

@@ -30,6 +30,27 @@ O CHANGELOG segue o formato [Keep a Changelog](https://keepachangelog.com/pt-BR/
 6. **Voltar a versão de desenvolvimento**: PR pequeno trocando para `X.Y.(Z+1)-dev` (ou a próxima MINOR).
 7. **Endereço de canal**: as instalações só enxergam a versão se o `latest.json` estiver no endereço configurado em `dados/config/atualizacao.json` (`url`). O Worker de [`infra/atualizacoes/`](../infra/atualizacoes/README.md) serve as releases nesse endereço; o deploy e o DNS são do dono (veja [atualização](tecnica/atualizacao.md#para-quem-publica-versões)).
 
+### Passo a passo da 0.1.0-rc.2 (segunda candidata, canal beta)
+
+A rc.1 está instalada na homologação; a rc.2 é o alvo do **teste de atualização**. O PR `release-0.1.0-rc.2` já faz o passo 2 (CHANGELOG com a seção `[0.1.0-rc.2] - 2026-11-16`, uma nova "Não lançado" vazia, `Versao::ATUAL = '0.1.0-rc.2'` e a subseção "Segurança", que liga `--seguranca`). O teste automático rc.1 → rc.2 está em `tests/AtualizacaoRc1ParaRc2Test.php`.
+
+O que o **dono** faz depois, nesta ordem:
+
+1. **Revisar e mesclar** o PR `release-0.1.0-rc.2` na `main` (CI verde em PHP 8.2, 8.3 e 8.4).
+2. **Fazer o deploy do Worker** de [`infra/atualizacoes/`](../infra/atualizacoes/README.md) (se ainda não foi feito) e apontar o domínio para ele.
+3. **Criar e empurrar a tag** sobre o commit do merge (nunca antes do merge):
+   ```bash
+   git switch main && git pull
+   git tag -a v0.1.0-rc.2 -m "PBL4 0.1.0-rc.2"
+   git push origin v0.1.0-rc.2
+   ```
+   O `conferir-release.sh` aceita `v0.1.0-rc.2` (tag com hífen: canal `beta`, release de pré-lançamento, sem virar a "última").
+4. **Aprovar o job `assinar`**: Actions → a execução do Release → *Review deployments* → marcar o Environment `release` → *Approve and deploy*. Confira antes que o commit e a tag são os esperados. O job usa só o segredo `PBL4_CHAVE_USO`, assina, confere contra `Chaves::USO` e libera o `publicar`.
+5. **Conferir a release** no GitHub: `pbl4-0.1.0-rc.2.zip`, `latest-beta.json` e `latest-beta.json.sig`, `instalar.php` e `instalar.sh`, com o SHA-256 dos instaladores no resumo do job e nas notas.
+6. **Conferir o endpoint do canal beta** depois do deploy do Worker: `https://atualizacoes.publicare.org/latest-beta.json` (endereço previsto do Worker; e o `.sig` ao lado) deve devolver a `0.1.0-rc.2`, com `"canal": "beta"`; `/instalar.php` e `/instalar.sh` devem baixar os instaladores.
+7. **Teste de atualização na homologação** (rc.1 instalada): pôr em `dados/config/atualizacao.json` `{"url": "https://atualizacoes.publicare.org/latest-beta.json", "canal": "beta", "verificar": true}` (o canal estável recusa o manifesto beta), rodar `php bin/pbl atualizar --verificar` e depois `php bin/pbl atualizar` (ou o painel), conferir a versão, a migração e o site; depois testar **voltar atrás** (`php bin/pbl reverter --confirmar`) e atualizar de novo.
+8. **Voltar a versão de desenvolvimento** em PR à parte (passo 6 acima), depois de a rc.2 publicada.
+
 ### O que o CI faz e o que só o dono faz
 
 | Passo | Quem | Onde |
