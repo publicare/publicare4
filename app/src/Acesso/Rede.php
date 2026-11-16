@@ -5,17 +5,29 @@ declare(strict_types=1);
 namespace Pbl\Acesso;
 
 use Pbl\Caminhos;
+use Symfony\Component\HttpFoundation\IpUtils;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
  * O que depende de como o site está exposto. Atrás de um proxy (Cloudflare, nginx), o IP real e o HTTPS chegam em cabeçalhos
  * que só podem ser confiados se o administrador disser que o proxy existe: `dados/config/rede.json`, por exemplo
- * `{"cabecalho_ip": "CF-Connecting-IP", "confiar_proto": true}`. Sem o arquivo, vale só o que o servidor enxerga.
+ * `{"cabecalho_ip": "CF-Connecting-IP", "confiar_proto": true, "proxies_confiaveis": ["173.245.48.0/20"]}`. Sem o arquivo, vale só o
+ * que o servidor enxerga.
+ *
+ * `proxies_confiaveis` (IPs ou CIDR) diz quais conexões podem informar o IP pelo `cabecalho_ip`: o cabeçalho só vale se o
+ * `REMOTE_ADDR` estiver na lista; quem chega direto ao servidor não consegue forjá-lo. Lista vazia (ou sem nenhum item válido)
+ * significa que nenhum proxy é confiável e o cabeçalho é ignorado. Sem a chave, o comportamento antigo continua (o cabeçalho vale
+ * de qualquer origem) e o sistema avisa no log, uma vez, que isso é forjável.
  */
 final class Rede
 {
     /** @var array{cabecalho_ip?: string, confiar_proto?: bool} */
     private array $config = [];
+
+    /** @var list<string>|null null = a chave `proxies_confiaveis` não foi declarada */
+    private ?array $proxiesConfiaveis = null;
+
+    private bool $avisouSemLista = false;
 
     public function __construct(Caminhos $caminhos)
     {
@@ -27,13 +39,43 @@ final class Rede
                     $this->config['cabecalho_ip'] = $dados['cabecalho_ip'];
                 }
                 $this->config['confiar_proto'] = ($dados['confiar_proto'] ?? false) === true;
+                if (array_key_exists('proxies_confiaveis', $dados)) {
+                    $this->proxiesConfiaveis = self::itensValidos($dados['proxies_confiaveis']);
+                }
             }
         }
     }
 
+    /** @return list<string> só os IPs e CIDR bem formados; qualquer outra coisa vira lista vazia */
+    private static function itensValidos(mixed $itens): array
+    {
+        if (!is_array($itens)) {
+            return [];
+        }
+        $validos = [];
+        foreach ($itens as $item) {
+            if (!is_string($item)) {
+                continue;
+            }
+            $item = trim($item);
+            $partes = explode('/', $item, 2);
+            $ip = $partes[0];
+            $v6 = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
+            if (!$v6 && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+                continue;
+            }
+            if (isset($partes[1]) && (preg_match('/^[0-9]{1,3}$/D', $partes[1]) !== 1 || (int) $partes[1] > ($v6 ? 128 : 32))) {
+                continue;
+            }
+            $validos[] = $item;
+        }
+
+        return $validos;
+    }
+
     public function ip(Request $requisicao): string
     {
-        if (isset($this->config['cabecalho_ip'])) {
+        if (isset($this->config['cabecalho_ip']) && $this->conexaoPodeInformarOIp($requisicao)) {
             $valor = trim((string) $requisicao->headers->get($this->config['cabecalho_ip'], ''));
             if (filter_var($valor, FILTER_VALIDATE_IP) !== false) {
                 return $valor;
@@ -41,6 +83,20 @@ final class Rede
         }
 
         return $requisicao->server->getString('REMOTE_ADDR', '0.0.0.0');
+    }
+
+    private function conexaoPodeInformarOIp(Request $requisicao): bool
+    {
+        if ($this->proxiesConfiaveis === null) {
+            if (!$this->avisouSemLista) {
+                $this->avisouSemLista = true;
+                error_log('PBL4: rede.json define "cabecalho_ip" sem "proxies_confiaveis"; qualquer cliente que alcance o servidor direto pode forjar o IP. Liste os proxies em "proxies_confiaveis".');
+            }
+
+            return true;
+        }
+
+        return $this->proxiesConfiaveis !== [] && IpUtils::checkIp($requisicao->server->getString('REMOTE_ADDR', ''), $this->proxiesConfiaveis);
     }
 
     /**

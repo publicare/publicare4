@@ -64,12 +64,11 @@ final class ImportadorPbl3Test extends TestCase
         mkdir($this->uploads . '/0001', 0775, true);
         mkdir($this->uploads . '/0000', 0775, true);
         file_put_contents($this->uploads . '/0000/7.pdf', "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
-        if (extension_loaded('gd')) {
-            $im = imagecreatetruecolor(4, 4);
-            ob_start();
-            imagepng($im);
-            file_put_contents($this->uploads . '/0001/1500.png', (string) ob_get_clean());
-        }
+        self::assertTrue(extension_loaded('gd'), 'A extensão gd é obrigatória (composer.json e CI).');
+        $im = imagecreatetruecolor(4, 4);
+        ob_start();
+        imagepng($im);
+        file_put_contents($this->uploads . '/0001/1500.png', (string) ob_get_clean());
     }
 
     public function testImportaArvoreClassesTiposEValores(): void
@@ -180,9 +179,8 @@ final class ImportadorPbl3Test extends TestCase
         $this->arquivos();
         $r = $this->importar($this->sintetico(), opcoes: new Opcoes(simular: false, uploads: $this->uploads));
 
-        $esperados = extension_loaded('gd') ? 2 : 1;
-        self::assertSame($esperados, $r->total('arquivos importados'));
-        self::assertSame($esperados, $this->contar('SELECT COUNT(*) FROM arquivo'));
+        self::assertSame(2, $r->total('arquivos importados'));
+        self::assertSame(2, $this->contar('SELECT COUNT(*) FROM arquivo'));
     }
 
     public function testRepetirNaoDuplicaERetoma(): void

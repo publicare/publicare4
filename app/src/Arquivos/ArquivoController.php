@@ -105,10 +105,12 @@ final class ArquivoController
         $resposta = new BinaryFileResponse($caminho, Response::HTTP_OK, [], true, null, false, true);
         $resposta->headers->set('Content-Type', $mime);
         $resposta->headers->set('X-Content-Type-Options', 'nosniff');
-        $resposta->headers->set('Cache-Control', 'public, max-age=31536000, immutable');
+        $resposta->headers->set('Cache-Control', 'public, max-age=300, must-revalidate');
         $resposta->setEtag($etag);
         $resposta->setContentDisposition($inline ? ResponseHeaderBag::DISPOSITION_INLINE : ResponseHeaderBag::DISPOSITION_ATTACHMENT, $this->nomeAscii($nomeParaBaixar), $this->nomeAscii($nomeParaBaixar));
-        // prepare() decide 304 (ETag/data) e Range (trecho único) a partir da requisição; o index.php só chama send().
+        // O BinaryFileResponse::prepare() não decide o 304: isNotModified() compara If-None-Match com o ETag acima (e vira 304 sem corpo).
+        $resposta->isNotModified($requisicao);
+        // prepare() decide Range (trecho único) e finaliza os cabeçalhos; o index.php só chama send().
         $resposta->prepare($requisicao);
 
         return $resposta;

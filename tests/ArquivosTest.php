@@ -166,9 +166,7 @@ final class ArquivosTest extends TestCase
 
     public function testEnviaImagemValidaERecodificaComGd(): void
     {
-        if (!extension_loaded('gd')) {
-            self::markTestSkipped('sem GD');
-        }
+        self::assertTrue(extension_loaded('gd'), 'A extensão gd é obrigatória (composer.json e CI).');
         $servico = $this->s->uploads();
         $arquivo = $servico->enviar(new UploadedFile($this->arquivoTemporario($this->jpegValido(30, 15)), 'foto de verdade.jpg', 'image/jpeg', null, true), $this->propriedadeImagem(), 1, 1, null);
         self::assertSame('jpg', $arquivo->extensao);
@@ -250,9 +248,7 @@ final class ArquivosTest extends TestCase
 
     public function testXlsxEhIdentificadoPeloConteudoDoPacoteNaoPeloPrimeiroCandidato(): void
     {
-        if (!extension_loaded('zip')) {
-            self::markTestSkipped('sem a extensão zip');
-        }
+        self::assertTrue(extension_loaded('zip'), 'A extensão zip é obrigatória (composer.json e CI).');
         $servico = $this->s->uploads();
         $caminho = $this->zipComEntrada('xl/workbook.xml', '<workbook/>');
         $arquivo = $servico->enviar(new UploadedFile($caminho, 'planilha.xlsx', 'application/octet-stream', null, true), $this->propriedadeArquivo(), 1, 1, null);
@@ -261,9 +257,7 @@ final class ArquivosTest extends TestCase
 
     public function testPptxEhIdentificadoPeloConteudoDoPacote(): void
     {
-        if (!extension_loaded('zip')) {
-            self::markTestSkipped('sem a extensão zip');
-        }
+        self::assertTrue(extension_loaded('zip'), 'A extensão zip é obrigatória (composer.json e CI).');
         $servico = $this->s->uploads();
         $caminho = $this->zipComEntrada('ppt/presentation.xml', '<presentation/>');
         $arquivo = $servico->enviar(new UploadedFile($caminho, 'slides.pptx', 'application/zip', null, true), $this->propriedadeArquivo(), 1, 1, null);
@@ -272,9 +266,7 @@ final class ArquivosTest extends TestCase
 
     public function testOdtEhIdentificadoPeloArquivoMimetype(): void
     {
-        if (!extension_loaded('zip')) {
-            self::markTestSkipped('sem a extensão zip');
-        }
+        self::assertTrue(extension_loaded('zip'), 'A extensão zip é obrigatória (composer.json e CI).');
         $servico = $this->s->uploads();
         $caminho = $this->zipComEntrada('mimetype', 'application/vnd.oasis.opendocument.text');
         $arquivo = $servico->enviar(new UploadedFile($caminho, 'texto.odt', 'application/octet-stream', null, true), $this->propriedadeArquivo(), 1, 1, null);
@@ -283,9 +275,7 @@ final class ArquivosTest extends TestCase
 
     public function testZipGenericoSemFormatoConhecidoDentroERecusadoComoAmbiguo(): void
     {
-        if (!extension_loaded('zip')) {
-            self::markTestSkipped('sem a extensão zip');
-        }
+        self::assertTrue(extension_loaded('zip'), 'A extensão zip é obrigatória (composer.json e CI).');
         $servico = $this->s->uploads();
         // Um .zip de verdade, mas nada dentro que identifique docx/xlsx/pptx/odt/ods/odp: não dá para saber o que é.
         $caminho = $this->zipComEntrada('qualquer-coisa.bin', 'dados quaisquer');
@@ -299,9 +289,7 @@ final class ArquivosTest extends TestCase
 
     public function testXlsxDisfarcadoDeDocxEhRecusadoQuandoSoDocxEhAceito(): void
     {
-        if (!extension_loaded('zip')) {
-            self::markTestSkipped('sem a extensão zip');
-        }
+        self::assertTrue(extension_loaded('zip'), 'A extensão zip é obrigatória (composer.json e CI).');
         $servico = $this->s->uploads();
         // O pacote é de verdade um xlsx, mas a propriedade só aceita docx: mesmo identificando certo, não é o tipo aceito aqui.
         $caminho = $this->zipComEntrada('xl/workbook.xml', '<workbook/>');
@@ -368,9 +356,7 @@ final class ArquivosTest extends TestCase
 
     public function testMiniaturaGeraArquivoMenorECacheiaSemGerarDeNovo(): void
     {
-        if (!extension_loaded('gd')) {
-            self::markTestSkipped('sem GD');
-        }
+        self::assertTrue(extension_loaded('gd'), 'A extensão gd é obrigatória (composer.json e CI).');
         $servico = $this->s->uploads();
         $arquivo = $servico->enviar(new UploadedFile($this->arquivoTemporario($this->jpegValido(500, 300)), 'grande.jpg', 'image/jpeg', null, true), $this->propriedadeImagem(), 1, 1, null);
         $miniaturas = $this->s->miniaturas();

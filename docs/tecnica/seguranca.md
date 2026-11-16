@@ -162,8 +162,10 @@ Com `"confiar_proto": true`, a conferência de origem usa o esquema e a porta qu
 O IP real e o HTTPS chegam em cabeçalhos que só podem ser confiados se você disser que o proxy existe. Crie `dados/config/rede.json`:
 
 ```json
-{"cabecalho_ip": "CF-Connecting-IP", "confiar_proto": true}
+{"cabecalho_ip": "CF-Connecting-IP", "confiar_proto": true, "proxies_confiaveis": ["173.245.48.0/20", "10.0.0.5"]}
 ```
+
+`proxies_confiaveis` (IPs ou CIDR) lista as conexões autorizadas a informar o IP pelo `cabecalho_ip`: o cabeçalho só vale se o endereço da conexão estiver na lista. Lista vazia, ou sem nenhum item válido, ignora o cabeçalho. **Sem a chave**, o cabeçalho vale de qualquer origem (comportamento anterior, mantido para não quebrar quem já usa) e o PBL4 avisa no log: qualquer cliente que alcance o servidor sem passar pelo proxy pode forjar o IP e escapar do limite de tentativas. Preencha a lista.
 
 Sem o arquivo, vale só o que o servidor enxerga (o IP do proxy, o que faria o limite de tentativas tratar todos os visitantes como um só). Use **HTTPS** na administração: sem ele o cookie não recebe `Secure` nem o prefixo `__Host-`.
 

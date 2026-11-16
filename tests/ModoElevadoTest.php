@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Pbl\Testes;
 
+use Pbl\Acesso\Csrf;
 use Pbl\Acesso\ModoElevado;
+use Pbl\Acesso\Rede;
 use Pbl\Caminhos;
 use Pbl\Instalacao\Instalador;
 use Pbl\Servicos;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * `ModoElevado` isolado (ADR 0011 §11, ADR 0012 §13, fase 5h): confirmação de senha, janela de 10 min, limite de
@@ -135,6 +138,41 @@ final class ModoElevadoTest extends TestCase
         self::assertNull($this->s->modoElevado()->confirmar($sessao, self::SENHA, '203.0.113.1', 'teste'));
         $this->s->sessoes()->encerrar($token);
         self::assertNull($this->s->sessoes()->validar($token));
+    }
+
+    public function testExigirReautenticacaoRepassaSempreExigirComOModoJaAberto(): void
+    {
+        $sessao = $this->sessao();
+        $this->s->modoElevado()->abrirParaTestes($sessao);
+        $tela = $this->telaComAuxiliares();
+        $ip = ['REMOTE_ADDR' => '203.0.113.1'];
+
+        $errada = $tela->exigir($sessao, Request::create('/x', 'POST', ['senha' => 'senha errada'], [], [], $ip), true);
+        self::assertNotNull($errada, 'com sempreExigir a senha é conferida mesmo com o modo elevado aberto');
+        self::assertSame(401, $errada['status']);
+
+        $certa = $tela->exigir($sessao, Request::create('/x', 'POST', ['senha' => self::SENHA], [], [], $ip), true);
+        self::assertNull($certa);
+
+        $semExigir = $tela->exigir($sessao, Request::create('/x', 'POST', ['senha' => 'qualquer'], [], [], $ip), false);
+        self::assertNull($semExigir, 'sem sempreExigir o modo aberto continua dispensando a senha');
+    }
+
+    public function testExigirReautenticacaoSemModoAbertoConfereASenha(): void
+    {
+        $sessao = $this->sessao();
+        $tela = $this->telaComAuxiliares();
+        $ip = ['REMOTE_ADDR' => '203.0.113.1'];
+
+        $falha = $tela->exigir($sessao, Request::create('/x', 'POST', ['senha' => 'senha errada'], [], [], $ip), false);
+        self::assertSame(401, $falha['status'] ?? null);
+        self::assertNull($tela->exigir($sessao, Request::create('/x', 'POST', ['senha' => self::SENHA], [], [], $ip), false));
+        self::assertTrue($this->s->modoElevado()->ativo($sessao));
+    }
+
+    private function telaComAuxiliares(): TelaComAuxiliares
+    {
+        return new TelaComAuxiliares($this->s, new Rede($this->caminhos), new Csrf('segredo-de-teste'));
     }
 
     private function sessao(): \Pbl\Acesso\SessaoAtiva

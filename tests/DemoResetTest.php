@@ -150,9 +150,7 @@ final class DemoResetTest extends TestCase
 
     public function testReinicioCompletoRecriaContasEMantemConfig(): void
     {
-        if (!extension_loaded("gd")) {
-            self::markTestSkipped("O conteúdo de exemplo precisa da extensão GD (presente na imagem de produção e no CI).");
-        }
+        self::assertTrue(extension_loaded('gd'), 'A extensão gd é obrigatória (composer.json e CI).');
         $this->ligarDemo();
         file_put_contents($this->caminhos->config() . '/rede.json', '{"x":1}');
         $segredo = glob($this->caminhos->config() . '/segredo*') ?: [];

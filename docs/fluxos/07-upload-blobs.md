@@ -69,7 +69,7 @@ flowchart TD
   qualquer outro caso (privado, fora do ar, de outro site, inexistente) dá 404, sem distinguir o motivo. `Content-Type` vem
   sempre da tabela fechada de `TiposDeArquivo` (nunca do que foi detectado), com `X-Content-Type-Options: nosniff`,
   `Content-Disposition` (`inline` para o que é feito para abrir no navegador — imagem e pdf —, `attachment` para o resto, nome
-  saneado e em ASCII + `filename*` RFC 5987), `ETag`/`Cache-Control: immutable` e suporte a `Range` de um trecho (via
+  saneado e em ASCII + `filename*` RFC 5987), `ETag` (com `304` por `If-None-Match`), `Cache-Control: public, max-age=300, must-revalidate` e suporte a `Range` de um trecho (via
   `BinaryFileResponse::prepare`, embutido no Symfony).
 - **Miniaturas** (`GET /_pbl/arquivo/{id}/miniatura/{tamanho}`, tamanho só de `ServicoDeMiniaturas::TAMANHOS`): só de imagem e
   só com GD; geradas sob demanda e cacheadas em `dados/cache/miniaturas/`. Sem GD, a tela mostra o arquivo original.

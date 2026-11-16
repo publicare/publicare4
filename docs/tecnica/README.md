@@ -20,7 +20,7 @@ Para quem **instala, opera e desenvolve** o PBL4. Se você quer entender o proje
 
 ## Requisitos
 
-- **Produto**: PHP 8.2+ (extensões `pdo`, `mbstring`, `sodium`), SQLite (padrão), MySQL 8 ou PostgreSQL (previstos).
+- **Produto**: PHP 8.2+ (extensões `pdo`, `mbstring`, `sodium`, `gd`, `zip`, além de `dom`, `fileinfo` e `libxml`), SQLite (padrão), MySQL 8 ou PostgreSQL (previstos).
 - **Desenvolvimento**: Docker e `make`. O computador não precisa ter PHP.
 
 ## Estado
