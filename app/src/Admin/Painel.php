@@ -174,14 +174,15 @@ final class Painel
 
             return $r;
         }
+        // a falha entra no contador antes da conferência, para pedidos em paralelo não escaparem do limite
+        $this->limite->registrarFalha($login, $ip);
         $usuario = $this->servicos->usuarios->autenticar($login, $senha);
         if ($usuario === null) {
-            $this->limite->registrarFalha($login, $ip);
             $this->servicos->auditoria->registrar('login.falha', 'anonimo', null, null, [], $ipHash);
 
             return $this->formularioDeEntrar($requisicao, 'Login ou senha inválidos.', Response::HTTP_UNAUTHORIZED);
         }
-        $this->limite->limparLogin($login);
+        $this->limite->perdoar($login, $ip);
         // Sessão antiga que veio no cookie não é reaproveitada: token novo a cada login (contra fixação de sessão).
         $antigo = $this->tokenDoCookie($requisicao);
         if ($antigo !== null) {

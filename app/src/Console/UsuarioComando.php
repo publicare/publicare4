@@ -9,12 +9,10 @@ use Pbl\Caminhos;
 use Pbl\Servicos;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\Question;
 
 #[AsCommand(name: 'usuario', description: 'Contas da equipe: criar, senha, ativar, desativar, listar, conceder, revogar, acessos, auditoria')]
 final class UsuarioComando extends Command
@@ -105,22 +103,6 @@ final class UsuarioComando extends Command
     /** A senha vem da entrada padrão (`--senha-stdin`) ou de uma pergunta oculta com confirmação; nunca de um argumento. */
     private function senha(InputInterface $input, OutputInterface $output): string
     {
-        if ($input->getOption('senha-stdin')) {
-            $linha = stream_get_line(STDIN, 2048, "\n");
-            if ($linha === false || $linha === '') {
-                throw new \InvalidArgumentException('Nenhuma senha na entrada padrão');
-            }
-
-            return rtrim($linha, "\r");
-        }
-        $ajudante = new QuestionHelper();
-        $pergunta = (new Question('Senha: '))->setHidden(true)->setHiddenFallback(true);
-        $senha = (string) $ajudante->ask($input, $output, $pergunta);
-        $confirmacao = (string) $ajudante->ask($input, $output, (new Question('Repita a senha: '))->setHidden(true)->setHiddenFallback(true));
-        if (!hash_equals($senha, $confirmacao)) {
-            throw new \InvalidArgumentException('As senhas não conferem');
-        }
-
-        return $senha;
+        return SenhaNoTerminal::ler($input, $output);
     }
 }

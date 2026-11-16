@@ -7,6 +7,7 @@ namespace Pbl\Cron;
 use Pbl\Caminhos;
 use Pbl\Cron\Tarefas\AgendadosTarefa;
 use Pbl\Cron\Tarefas\LimpezaTarefa;
+use Pbl\Cron\Tarefas\RetencaoTarefa;
 use Pbl\Cron\Tarefas\ReinicioDaDemoTarefa;
 use Pbl\Cron\Tarefas\RepublicacaoTarefa;
 use Pbl\Cron\Tarefas\UploadsOrfaosTarefa;
@@ -28,6 +29,7 @@ final class Catalogo
             new AgendadosTarefa(),
             new RepublicacaoTarefa(),
             new LimpezaTarefa(),
+            new RetencaoTarefa(),
             new VerificarAtualizacaoTarefa(),
             new UploadsOrfaosTarefa(),
             ...($caminhos !== null && ConfigDaDemo::ativa($caminhos) ? [new ReinicioDaDemoTarefa()] : []),

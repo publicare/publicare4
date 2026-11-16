@@ -35,7 +35,11 @@ Cada pessoa recebe um **papel numa seção** do site: leitor (só vê), autor (c
 
 ## Como o login é protegido?
 
-A senha é guardada de um jeito que nem a equipe consegue ler; cada login cria uma sessão nova, que vence sozinha por inatividade ou depois de 12 horas; depois de 5 senhas erradas o login é bloqueado por alguns minutos (mesmo trocando de navegador); e os formulários são protegidos contra pedidos forjados por outros sites. A mensagem de erro é a mesma tanto para login que não existe quanto para senha errada, para não revelar quem tem conta. Ative sempre o HTTPS no site.
+A senha é guardada de um jeito que nem a equipe consegue ler; cada login cria uma sessão nova, que vence sozinha por inatividade ou depois de 12 horas; depois de algumas senhas erradas o login espera um tempo (que cresce a cada erro, até 15 minutos) antes de aceitar nova tentativa, mesmo trocando de navegador; e os formulários são protegidos contra pedidos forjados por outros sites. A mensagem de erro é a mesma tanto para login que não existe quanto para senha errada, para não revelar quem tem conta. Ative sempre o HTTPS no site.
+
+## Perdi a senha do administrador (ou o login ficou travado). E agora?
+
+Quem cuida do servidor resolve pela linha de comando, na pasta do PBL4: `bin/pbl conta-senha SEU_LOGIN --gerar` cria uma senha nova e a mostra uma única vez (anote em lugar seguro e troque depois, se quiser). Se só ficou travado por tentativas erradas, `bin/pbl conta-destravar SEU_LOGIN` libera sem mudar a senha. Não existe recuperação por e-mail nem pelo navegador.
 
 ## O que já dá para fazer pela administração?
 

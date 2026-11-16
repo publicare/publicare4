@@ -96,7 +96,7 @@ final class CronCentralTest extends TestCase
     {
         $ids = array_map(static fn (Tarefa $t): string => $t->id(), Catalogo::padrao());
 
-        self::assertSame(['agendados', 'republicacao', 'limpeza', 'verificar-atualizacao', 'uploads-orfaos'], $ids);
+        self::assertSame(['agendados', 'republicacao', 'limpeza', 'retencao', 'verificar-atualizacao', 'uploads-orfaos'], $ids);
         foreach (Catalogo::padrao() as $t) {
             self::assertGreaterThanOrEqual(60, $t->intervalo());
             self::assertNotSame('', $t->nome());

@@ -124,17 +124,17 @@ final class SessaoCsrfRedeTest extends TestCase
     public function testLimiteBloqueiaDepoisDe5FalhasPorLoginELiberaAposAJanela(): void
     {
         $limite = new LimiteDeTentativas($this->con, str_repeat('c', 64), fn (): int => $this->t);
-        for ($i = 0; $i < LimiteDeTentativas::POR_LOGIN - 1; $i++) {
+        for ($i = 0; $i < LimiteDeTentativas::POR_PAR - 1; $i++) {
             $limite->registrarFalha('ana', '10.0.0.1');
         }
         self::assertNull($limite->bloqueadoPor('ana', '10.0.0.1'), '4 falhas ainda não bloqueiam');
         $limite->registrarFalha('ana', '10.0.0.1');
 
-        $espera = $limite->bloqueadoPor('ANA ', '10.0.0.9');
-        self::assertNotNull($espera, 'o login é bloqueado de qualquer IP, sem diferenciar maiúsculas');
-        self::assertGreaterThan(0, $espera);
-        self::assertLessThanOrEqual(LimiteDeTentativas::JANELA, $espera);
-        self::assertNull($limite->bloqueadoPor('bia', '10.0.0.9'), 'outro login não é afetado');
+        $espera = $limite->bloqueadoPor('ANA ', '10.0.0.1');
+        self::assertNotNull($espera, 'o par login+origem é bloqueado, sem diferenciar maiúsculas');
+        self::assertSame(LimiteDeTentativas::ATRASO_BASE, $espera);
+        self::assertNull($limite->bloqueadoPor('ana', '10.0.0.9'), 'S-05: 5 falhas de uma origem não trancam o login para as outras');
+        self::assertNull($limite->bloqueadoPor('bia', '10.0.0.1'), 'outro login não é afetado');
 
         $this->t += LimiteDeTentativas::JANELA + 1;
         self::assertNull($limite->bloqueadoPor('ana', '10.0.0.1'), 'a janela passou');
@@ -153,7 +153,7 @@ final class SessaoCsrfRedeTest extends TestCase
         for ($i = 0; $i < 4; $i++) {
             $limite2->registrarFalha('ana', '10.1.1.1');
         }
-        $limite2->limparLogin('ana');
+        $limite2->perdoar('ana', '10.1.1.1');
         $limite2->registrarFalha('ana', '10.1.1.1');
         self::assertNull($limite2->bloqueadoPor('ana', '10.1.1.1'), 'depois de um acerto o contador do login recomeça');
     }
