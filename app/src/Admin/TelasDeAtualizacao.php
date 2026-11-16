@@ -75,7 +75,7 @@ final class TelasDeAtualizacao
      * Aviso de versão nova na página inicial do painel (`TelasDeConteudo::inicio`), só para o administrador geral. **Nunca
      * consulta a rede aqui**: só lê o cache de 24 h que a tela "Atualização" (ou `bin/pbl verificar-atualizacao`, pelo cron) já
      * gravou. Cache vencido ou inexistente: mostra "verificar" com link para a tela, que aí sim pode consultar. Sem endereço
-     * configurado, verificação desligada ou sem chave de assinatura embutida: nada aparece (não há o que avisar).
+     * configurado, verificação desligada ou build sem chave de assinatura embutida: nada aparece (não há o que avisar).
      *
      * @param list<string>|null $chaves só para os testes; em produção vale `Chaves::PUBLICAS`
      * @param (\Closure(): int)|null $relogio só para os testes
@@ -433,7 +433,7 @@ final class TelasDeAtualizacao
         $r .= match ($k['situacao']) {
             'sem_url' => $aviso('warning', 'Nenhum endereço de atualizações configurado. Para ligar a consulta, crie o arquivo <code>dados/config/atualizacao.json</code> no servidor com o endereço do <code>latest.json</code> do canal que você usa, por exemplo <code>{"url": "https://…/latest.json", "canal": "estavel"}</code>. O PBL4 não traz endereço pronto.'),
             'desligada' => $aviso('secondary', 'A verificação de atualizações está desligada (<code>"verificar": false</code> em <code>dados/config/atualizacao.json</code>). Nada é consultado.'),
-            'sem_chave' => $aviso('warning', '<strong>Nenhuma chave de assinatura instalada; atualizações recusadas.</strong> Este PBL4 só aceita pacotes assinados e ainda não traz a chave pública de ninguém, então não consulta nem aplica atualizações. A chave virá numa versão do próprio PBL4.'),
+            'sem_chave' => $aviso('warning', '<strong>Nenhuma chave de assinatura instalada; atualizações recusadas.</strong> Este PBL4 só aceita pacotes assinados e este build não traz chave pública de assinatura, então não consulta nem aplica atualizações. Instale uma versão oficial do PBL4, que já traz as chaves.'),
             'erro' => $botao . $aviso('danger', 'Não foi possível consultar o canal: ' . Pagina::h($k['texto']) . ($k['quando'] > 0 ? ' (' . gmdate('d/m/Y H:i', $k['quando']) . ' UTC)' : '')),
             default => $botao . $this->resultado($k),
         };

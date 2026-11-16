@@ -23,7 +23,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  * Para o cron (ADR 0006, fluxo 11): atualiza o cache de 24 h que a página inicial do painel e a tela "Atualização" leem — nenhuma
  * das duas faz consulta de rede ao renderizar. **Idempotente**: se o cache ainda vale, não consulta nada (mesma regra de
  * `EstadoDoPainel::verificacaoRecente`); **silencioso quando não há versão nova**, para não poluir o log do cron. Sem endereço
- * configurado, verificação desligada ou sem chave de assinatura embutida (`Chaves::PUBLICAS` vazia): não consulta nada.
+ * configurado, verificação desligada ou build sem chave de assinatura embutida (`Chaves::PUBLICAS` vazia, o que não ocorre nas versões oficiais): não consulta nada.
  */
 #[AsCommand(name: 'verificar-atualizacao', description: 'Atualiza o cache de 24h da verificação de versão nova (para cron); idempotente e silencioso se nada mudou')]
 final class VerificarAtualizacaoComando extends Command

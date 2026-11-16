@@ -209,7 +209,10 @@ final class AtualizadorTest extends TestCase
         [, $manifesto] = $this->publicar('0.2.0');
         $this->expectException(ErroDeAtualizacao::class);
         $this->expectExceptionMessage('chave de assinatura');
-        $this->atualizador($this->projeto('0.1.0', 'velho'), '0.1.0', null, [])->verificar($manifesto);
+        // build sem chaves: nem as de uso nem a de recuperação (que o construtor soma à confiança) estão presentes
+        $semChaves = new Atualizador(new Caminhos($this->projeto('0.1.0', 'velho')), new BaixadorLocal(), [], '0.1.0', static function (): void {
+        }, '8.3.0', [], [], []);
+        $semChaves->verificar($manifesto);
     }
 
     public function testPacoteTrocadoPorOutroComMesmoNomeNaoConfereComOManifesto(): void

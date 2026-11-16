@@ -79,7 +79,7 @@ Só o administrador geral. A tela mostra versão instalada, canal, endereço e a
 - **Uma operação por vez, de qualquer origem**: o próprio `Atualizador::aplicar`/`Reversor::reverter` pega um `flock` em `dados/atualizacao.lock` (fora de `dados/atualizacao/`); CLI, painel e cron concorrentes recebem "Outra atualização em andamento". Além disso, no painel, enquanto houver `estado.json` sem `codigo` (e com menos de 1 hora), outro clique recebe 409. A decisão é feita sob `flock`.
 - **Durante a troca** o site todo (inclusive esta tela) responde 503; recarregue depois.
 - **Requisitos do servidor**: `proc_open` e `sh` disponíveis, o PHP de linha de comando achável (sob FPM/Apache, indique em `php`), pasta do PBL4 gravável pelo usuário do PHP, extensão `zip`. Se faltar algo a tela diz o quê; a alternativa é sempre a linha de comando. Não funciona em Windows (usa `sh`).
-- **Sem chave de assinatura** (`Chaves::USO`/`RECUPERACAO` vazias, como hoje): a tela diz "Nenhuma chave de assinatura instalada; atualizações recusadas." e não consulta nem aplica (nem avalia reverter: sem chave, também não há como ter atualizado por aqui).
+- **Build sem chave de assinatura** (`Chaves::USO`/`RECUPERACAO` vazias; **não é o caso das versões oficiais**, que trazem as chaves desde 2026-11-16): a tela diz "Nenhuma chave de assinatura instalada; atualizações recusadas." e não consulta nem aplica (nem avalia reverter: sem chave, também não há como ter atualizado por aqui).
 - **Voltar atrás**: se a atualização falha, o código anterior volta sozinho. **Depois** de concluída, o botão "Voltar para a X" cobre o caso comum, direto pelo painel; a tela só mostra o motivo (em vez do botão) quando o `Reversor` diz que não é seguro.
 
 Código: `Admin/TelasDeAtualizacao`, `Atualizacao/EstadoDoPainel`, `Atualizacao/LancadorDeProcesso`, `Atualizacao/Reversor`. Cobertura: `tests/AdminAtualizacaoTest.php` (permissão, CSRF, origem, senha errada e limite, trava, cache, estados, processo real em segundo plano, botão de reverter), `tests/ReversorTest.php`, `tests/ReverterComandoTest.php`, `tests/VerificarAtualizacaoComandoTest.php`.
@@ -92,7 +92,7 @@ Custódia, fluxo de release e incidentes: [ADR 0019](../adr/0019-custodia-da-cha
 # uma vez, na máquina do dono, OFFLINE (a privada nunca vai ao rock64, ao CI ou à nuvem)
 php bin/pbl gerar-chaves --saida=/volume-cifrado/pbl4 --nome=uso
 php bin/pbl gerar-chaves --saida=/midia-fria/pbl4 --nome=recuperacao
-# as duas PÚBLICAS vão em app/src/Atualizacao/Chaves.php (USO e RECUPERACAO)
+# as duas PÚBLICAS vão em app/src/Atualizacao/Chaves.php (USO e RECUPERACAO; já embutidas em 2026-11-16)
 
 # CI: monta o pacote e o manifesto SEM assinar e publica como rascunho no GitHub Releases
 php bin/pbl empacotar PASTA_PREPARADA SAIDA --sem-assinar --canal=estavel --resumo="…" --notas=https://…
@@ -104,7 +104,7 @@ O canal `teste` (demo e versões de teste) é assinado por uma chave **separada*
 
 A pasta preparada é o projeto com `composer install --no-dev --optimize-autoloader`. O empacotador leva **só** `app/ vendor/ bin/ public/ composer.* .htaccess LICENSE NOTICE`, lê a versão de `app/src/Versao.php`, recusa `-dev` e pré-lançamento no canal estável, grava hashes de todos os arquivos, gera o zip de forma reproduzível e assina o manifesto. Publique o `.zip` primeiro e o `latest.json` + `.sig` por último.
 
-**Chaves.** `Chaves::USO` e `Chaves::RECUPERACAO` (mais `REVOGADAS` e `TESTE`) são as únicas chaves em que a instalação confia; o `Atualizador` aceita assinatura de qualquer chave confiável. **Trocar a chave de uso** ou **revogar** chaves é feito por um manifesto com o bloco `"chaves": {"uso": "…", "revogadas": ["…"]}` (`empacotar --nova-chave-de-uso=… --revogar=…`) **assinado pela chave de recuperação**; com assinatura da chave de uso, o `Atualizador` recusa. O efeito fica em `dados/config/chaves-confiaveis.json`. A chave de recuperação só muda com uma versão nova do produto. O endereço do manifesto é `url` em `dados/config/atualizacao.json` (padrão previsto: `https://atualizacoes.publicare.org/latest.json`; nada fixa o endereço do GitHub); manifesto com TTL curto, pacotes imutáveis com cache longo.
+**Chaves.** As chaves públicas de uso e de recuperação **já estão embutidas** em `app/src/Atualizacao/Chaves.php` (as privadas ficam com o dono, offline). `Chaves::USO` e `Chaves::RECUPERACAO` (mais `REVOGADAS` e `TESTE`) são as únicas chaves em que a instalação confia; o `Atualizador` aceita assinatura de qualquer chave confiável. **Trocar a chave de uso** ou **revogar** chaves é feito por um manifesto com o bloco `"chaves": {"uso": "…", "revogadas": ["…"]}` (`empacotar --nova-chave-de-uso=… --revogar=…`) **assinado pela chave de recuperação**; com assinatura da chave de uso, o `Atualizador` recusa. O efeito fica em `dados/config/chaves-confiaveis.json`. A chave de recuperação só muda com uma versão nova do produto. O endereço do manifesto é `url` em `dados/config/atualizacao.json` (padrão previsto: `https://atualizacoes.publicare.org/latest.json`; nada fixa o endereço do GitHub); manifesto com TTL curto, pacotes imutáveis com cache longo.
 
 ## Defesas
 
@@ -116,7 +116,7 @@ A pasta preparada é o projeto com `composer install --no-dev --optimize-autoloa
 | Zip-slip, link simbólico, zip bomb | nomes normalizados e restritos a pastas permitidas; sem links; teto de arquivos e de bytes contado na leitura |
 | Redirecionamento ou SSRF | HTTPS, sem usuário/porta, redirecionamento só no mesmo host, pacote só no host do manifesto |
 | Atualização que quebra o site | manutenção, cópia do banco, conferência com o código novo, volta atrás automática |
-| Sem chave embutida | o atualizador se recusa a aplicar qualquer coisa |
+| Build sem chave embutida (lista vazia; as versões oficiais trazem as chaves) | o atualizador se recusa a aplicar qualquer coisa |
 | Voltar atrás numa instalação que já mudou desde a atualização registrada | `Reversor::avaliar` confere versão instalada, código guardado, SHA-256 e versão de esquema da cópia do banco antes de tocar em qualquer coisa; recusa com o motivo em vez de arriscar |
 | Voltar atrás sem querer perder dados | exige `--confirmar` (ou a confirmação marcada e a senha de novo, no painel); sem isso só mostra o que faria |
 | Volta atrás que falha no meio | copia o banco de hoje antes de trocar qualquer coisa; se falhar depois, devolve código e banco de hoje |
