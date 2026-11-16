@@ -12,7 +12,7 @@ Dois candidatos a base: o `publicare3` (20k linhas, 49 telas de admin, workflow,
 2. **O rascunho p4 é descartado.** Aproveita-se só Docker e a ideia de DBAL.
 3. **Sem Laravel/Symfony full-stack.** O produto precisa instalar por FTP em hospedagem compartilhada, por leigo; o ORM briga com EAV + `campo_ref`; o PBL é a identidade do produto e concorreria com Blade/Twig.
 4. **Peças soltas via Composer**: `symfony/http-foundation`, `doctrine/dbal` (no lugar do ADOdb), `symfony/console` (instalador CLI/migrações), `pimple/pimple`, `phpunit`, `phpstan`. O `vendor/` vai pronto no zip de distribuição.
-5. **Alvo PHP 8.2+**; bancos suportados: MySQL 8 e PostgreSQL. Oracle fica sem suporte declarado até haver cliente (não testável no ambiente de dev).
+5. **Alvo PHP 8.2+**; bancos-alvo: MySQL 8 e PostgreSQL (meta; o 0.1.0 só tem SQLite, ver [ADR 0028](0028-suporte-mysql-postgresql.md)). Oracle fica sem suporte declarado até haver cliente (não testável no ambiente de dev).
 
 ## Consequências
 

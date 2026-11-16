@@ -8,7 +8,7 @@
 - Poder **enviar arquivos** (por FTP ou pelo gerenciador de arquivos do painel) e **apontar o site para uma pasta**.
 - Um **endereço** (domínio) já apontando para a hospedagem. Se for só para testar, serve `localhost`.
 
-Você não precisa criar banco de dados: o Publicare usa um arquivo (SQLite) por padrão.
+Você não precisa criar banco de dados: o Publicare usa um arquivo (SQLite). No 0.1.0 o banco é sempre o SQLite; MySQL e PostgreSQL chegam na 0.2.
 
 ## Passo a passo
 

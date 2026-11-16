@@ -82,7 +82,7 @@ objeto só ganha um id depois do `INSERT`. A solução é um **gancho dentro da 
    ainda não há valor possível) e entram de novo, já com os dados mesclados, depois do `$aposInserir` — a mesma proteção
    da edição, só que em dois momentos da mesma transação.
 5. **O que não é transacional**: o arquivo físico em disco (`ArmazenamentoDeArquivos::gravar`) é gravado **antes** do
-   `INSERT` na tabela `arquivo` e não participa da transação do banco (é o sistema de arquivos, não o SQLite/Postgres). Se
+   `INSERT` na tabela `arquivo` e não participa da transação do banco (é o sistema de arquivos, não o SQLite; vale igual para o Postgres da 0.2). Se
    a transação do banco for desfeita depois disso, o conteúdo gravado fica **órfão de fábrica**: sem nenhuma linha em
    `arquivo` apontando para ele, nunca listado por `bin/pbl limpar-uploads` (que varre `arquivo`, não o disco), e
    reaproveitado de graça se alguém enviar o mesmo conteúdo depois (dedup por `sha256`+extensão). Não é um vazamento ativo

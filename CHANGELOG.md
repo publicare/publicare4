@@ -6,10 +6,17 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Adicionado
+- **ADR 0028 (proposto): suporte a MySQL e PostgreSQL na 0.2**, com as decisões D1 a D14 e seus padrões ([ADR 0028](docs/adr/0028-suporte-mysql-postgresql.md)). O 0.1.0 continua só com SQLite.
+- **Teste de documentação** (`DocumentacaoTest`): falha se um documento fora da lista de exceções citar MySQL ou PostgreSQL sem qualificador de futuro (0.2, ADR 0028) ou de origem PBL3.
+- **Plano do multi-banco** em `docs/plano.md`: projetos a0 a h com dependências e estimativas, apontando para o ADR 0028.
+
 ### Alterado
 - **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.1` (primeira release pelo pipeline automático, assinada no CI).
 
 ### Corrigido
+- **`Segredo`:** o arquivo do segredo do site era gravado com a permissão padrão e só depois recebia `chmod 0600`, deixando uma janela legível por outros usuários; agora o temporário nasce 0600 (umask restritiva só em volta da gravação) e uma falha de escrita lança erro em vez de publicar arquivo vazio.
+- **Documentação do 0.1.0:** nenhum documento sugere mais que MySQL ou PostgreSQL funcionam hoje; o 0.1.0 usa só SQLite, e os dois bancos chegam na 0.2 ([ADR 0028](docs/adr/0028-suporte-mysql-postgresql.md)). Ajustados `docs/releases.md`, `docs/tecnica/`, `docs/usuario/`, `docs/fluxos/` e as notas nos ADRs 0001, 0002, 0010, 0012 e 0014.
 - **Workflow de release:** o passo de empacotar rodava `bin/pbl` na raiz do repositório, onde não há `vendor/`, e falhava no ensaio da `v0.1.0-rc.1`; agora usa o `bin/pbl` da pasta preparada (com as dependências de produção).
 
 ## [0.1.0-rc.1] - 2026-11-16

@@ -11,7 +11,7 @@
 ### Cache que existia (em outras camadas)
 | Camada | O que cacheia | Onde | Observação |
 |---|---|---|---|
-| **QuickCache** | página inteira já renderizada (HTML em gzip, arquivos `qcc-<hash>` em `quickcache/cache-dados/`, com data de expiração), só para visitante não logado e fora da raiz; a requisição serve o arquivo e pula o `Parse` | disco, MySQL ou template (`quickcache/type/*`) | ligado por `ATIVA_CACHE` em 2.7.x/2.8.x; linha comentada em `iniciar.php` da 2.9.2, ainda citado como "adicionado novamente" na 2.9.0 (histórico a esclarecer) |
+| **QuickCache** | página inteira já renderizada (HTML em gzip, arquivos `qcc-<hash>` em `quickcache/cache-dados/`, com data de expiração), só para visitante não logado e fora da raiz; a requisição serve o arquivo e pula o `Parse` | disco, MySQL (no PBL3) ou template (`quickcache/type/*`) | ligado por `ATIVA_CACHE` em 2.7.x/2.8.x; linha comentada em `iniciar.php` da 2.9.2, ainda citado como "adicionado novamente" na 2.9.0 (histórico a esclarecer) |
 | **Cache de consultas** (ADOdb `CacheExecute`) | resultado de SQL por tempo | disco (`/tmp/adodb`) ou **memcached** | memcached "ativado" na 2.9.4; `ATIVA_CACHE_BANCO`; no p3 vira `bd.cache`, `cachetipo` (`disco`/`memoria`), `cachehost`, `cacheporta`; `CacheFlush` ao alterar conteúdo |
 | **Cache de imagem** | miniatura redimensionada | disco | 2.9.0 |
 

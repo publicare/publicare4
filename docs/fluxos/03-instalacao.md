@@ -4,11 +4,11 @@
 
 - `verifica_instalacao.php` só checa PHP ≥ 5.5 e algumas extensões (o código usa `public const`, que exige PHP 7.1+).
 - Não existem `index.php`, `.htaccess` nem exemplo de `config/global.php` (formato só deduzível do código: `bd`, `portal`, `email`, `login`).
-- `Schema::verifica()` tenta criar o banco mas está quebrado (`xd()` dá `die`); `Schema/Mysql.php` e `Pgsql.php` são stubs.
+- `Schema::verifica()` tenta criar o banco mas está quebrado (`xd()` dá `die`); `Schema/Mysql.php` e `Pgsql.php` são stubs (histórico do PBL3).
 - `db/dados_iniciais.sql` não cria admin (objeto raiz referencia `cod_usuario=1` inexistente), nem `infoperfil`, pele ou templates.
 - Passos manuais do leigo: composer, vhost + rewrite, escrever `config`, criar banco, importar SQL, inserir admin com `md5()`, criar `html/template/*`.
 
-> **Implementado (fase 4a):** o assistente em `/_pbl/instalar` (requisitos, prova de posse, site e administrador, instalar, lembretes de segurança), a instalação atômica, o `bin/pbl instalar` com administrador e os `.htaccess`. **Falta:** escolher MySQL/PostgreSQL, a galeria de peles no passo 5 (fase 5), o pacote `.zip` com `vendor/` (release `0.1.0`) e o atualizador (próximo).
+> **Implementado (fase 4a):** o assistente em `/_pbl/instalar` (requisitos, prova de posse, site e administrador, instalar, lembretes de segurança), a instalação atômica, o `bin/pbl instalar` com administrador e os `.htaccess`. **Falta:** escolher MySQL/PostgreSQL (0.2, ADR 0028), a galeria de peles no passo 5 (fase 5), o pacote `.zip` com `vendor/` (release `0.1.0`) e o atualizador (próximo).
 
 ## PBL4: assistente web em 6 passos (e `bin/pbl instalar` equivalente em CLI)
 
@@ -16,7 +16,7 @@
 flowchart TD
     S[Acesso sem configuração] --> I[/instalar/]
     I --> R1[1 Requisitos: PHP, extensões, escrita em config/ uploads/ cache/]
-    R1 --> R2[2 Banco: SQLite padrão, ou MySQL/Postgres; testar conexão, criar se permitido]
+    R1 --> R2[2 Banco: SQLite padrão (0.1.0); MySQL/Postgres na 0.2, ADR 0028; testar conexão, criar se permitido]
     R2 --> R3[3 Portal: nome, URL detectada, idioma]
     R3 --> R4[4 Administrador: login, e-mail, senha forte]
     R4 --> R5[5 Pele inicial: galeria pública com prévias, ou pele básica embutida]
@@ -29,7 +29,7 @@ Requisitos:
 - **Nenhum conhecimento de PBL**: o passo 5 entrega um portal funcionando com uma pele pronta, editável depois pelo editor (fluxo 4).
 - **Pele inicial pela galeria**: o passo 5 consulta o catálogo público (ADR 0007), mostra miniaturas e prévias e instala a escolhida como ponto de partida. Sem internet (ou catálogo fora do ar), oferece só a **pele básica embutida no pacote**; o usuário troca depois pela galeria. No futuro a mesma tela pode exibir peles avançadas pagas e de comunidade (ADR 0008), sempre depois das gratuitas.
 - **Roda em hospedagem compartilhada**: distribuição em zip com `vendor/` incluso; sem terminal. Requisitos mostrados em linguagem clara, com o que fazer em cada falha.
-- **Banco**: SQLite sem nenhuma configuração é o caminho de leigo; MySQL/Postgres para portais grandes. O usuário de banco da aplicação só precisa de `SELECT/INSERT/UPDATE/DELETE` (sem DDL em runtime, ADR 0003); as migrações usam credencial própria só durante instalação/atualização.
+- **Banco**: SQLite sem nenhuma configuração é o caminho de leigo; MySQL/Postgres para portais grandes ficam para a 0.2 ([ADR 0028](../adr/0028-suporte-mysql-postgresql.md); o 0.1.0 só tem SQLite). O usuário de banco da aplicação só precisa de `SELECT/INSERT/UPDATE/DELETE` (sem DDL em runtime, ADR 0003); as migrações usam credencial própria só durante instalação/atualização.
 - **Migrações** (ADR 0003) executam dentro de transação quando o driver permite; falha não deixa meio-instalado.
 - **Seeds completos**: tipos de dado, perfis, status, `infoperfil`, classes base, usuário admin (hash seguro), site e domínio, objeto raiz, pele padrão e templates.
 - **Modelos prontos** escolhidos no passo 5: portal institucional, consulta pública, evento com inscrição, biblioteca, cadastro com aprovação (fluxo 10).

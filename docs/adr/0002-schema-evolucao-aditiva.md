@@ -12,9 +12,9 @@ Manter o modelo do p3 (nomes, tipos, EAV, `parentesco`, `versaoobjeto`, `campo_r
 ### Corrigir
 | # | Item | Ação |
 |---|---|---|
-| 1 | Dois dumps divergentes (`db/` e `docs/db`), MySQL com `CREATE SCHEMA`/`USE`/`VISIBLE` | Schema passa a ser **migrações PHP versionadas (DBAL)** gerando MySQL e Postgres; tabela `schema_versao` |
+| 1 | Dois dumps divergentes (`db/` e `docs/db`), MySQL com `CREATE SCHEMA`/`USE`/`VISIBLE` | Schema passa a ser **migrações PHP versionadas (DBAL)** gerando MySQL e Postgres (meta da 0.2, ADR 0028; hoje só SQLite); tabela `schema_versao` |
 | 2 | `usuario.senha varchar(32)` (md5) | Alargar para 255; `password_hash` com rehash no login |
-| 3 | `ix_objeto_descricao` (btree em `text`) | Remover (estoura no Postgres) |
+| 3 | `ix_objeto_descricao` (btree em `text`) | Remover (estouraria no Postgres, previsto na 0.2) |
 | 4 | Índices simples separados nas `tbl_*` | Índice composto `(cod_objeto, cod_propriedade)` |
 | 5 | Integridade | Confirmar e adicionar FKs; unique para `url_amigavel` e valor único por (objeto, propriedade) quando a propriedade não é multivalorada; fim do `SELECT MAX()` como insertId |
 | 6 | `versaoobjeto.data_criacao` é `timestamp`, resto é `bigint` epoch | Padronizar |

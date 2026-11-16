@@ -31,10 +31,30 @@ Primeiro critério de validação: um site real hoje em PBL3 rodando no PBL4 (vi
 | **8 — Pagamentos e módulos** | Interface de gateway, cobrança, webhooks idempotentes, conector simulado, pontos de extensão (ADR 0005) | evento com inscrição paga ponta a ponta com conector de teste |
 | **9 — Importador PBL3** | **feito** ([ADR 0027](adr/0027-importador-pbl3.md), [guia](tecnica/migrar-do-pbl3.md)): `bin/pbl importar-pbl3` com conteúdo, classes (`incluirmenu` vira `no_menu`), versões (só o título), usuários (sem senhas), blobs e tags; simulação, idempotência e retomada. Testado com bases sintéticas e, localmente, com bases reais antigas e atuais (só contagens). Campos extras de classes de fábrica (subtítulo/veículo de notícia, crédito de imagem etc.) são preservados como propriedades extras (revisão do ADR em 2026-11-07). Pendente: conferência de um site real migrado de ponta a ponta | site real migrado e conferido |
 
+## Multi-banco (0.2)
+
+O 0.1.0 usa só SQLite. MySQL 8 e PostgreSQL 16 são a meta da 0.2, conforme o [ADR 0028](adr/0028-suporte-mysql-postgresql.md) (proposto; decisões D1 a D14 com padrões adotados, D11 a informar). A correção prévia z0 (este ADR e a documentação) fica fora da tabela. Cadeia crítica: a0 → a1 → b → d1 → e1 → f → g. Calendário: cerca de 12 semanas com 2 devs (suposição; a capacidade real não foi informada). Estimativas em dias-pessoa, ±40%; soma de 55,5 d.
+
+| Proj. | Escopo | Est. (d) | Depende de |
+|---|---|---|---|
+| a0 | Harness e CI com 3 bancos | 4 | – |
+| a1 | Núcleo: `Dialeto`, `FabricaDeConexao`, `banco.json` | 4 | a0, D2, D3 |
+| b | Migrações portáveis | 5 | a1, D9 |
+| c | Repositórios, consultas e busca | 5 | a1 |
+| d1 | Sonda e usuário de operação | 3 | a1, b |
+| d2 | Assistente web | 5 | d1 |
+| d3 | CLI de instalação | 3 | d1 |
+| e1 | Pré-voo e lançador seguro | 4 | b, d1 |
+| e2 | Painel, CLI e 503 | 4 | e1 |
+| e3 | Usuário de migração (condicional a D4) | 2 | e1 |
+| f | Backup, reversor, atualizador, demo | 7 | b, e1, D7 |
+| g | Migração entre bancos | 7 | c, f |
+| h | Documentação | 2,5 | todos, em fatias |
+
 ## Questões em aberto
 
 1. **Multi-subsite**: resolvido no desenho (domínio → raiz, `caminho` materializado, URL canônica; fluxos 1 e 9). Falta validar com sites reais: curinga e migração de objetos entre sites.
-2. **Nomes físicos** (opção de instalação, ADR 0003): mapa lógico→físico na configuração. Testar com prefixos arbitrários sem depender de Oracle.
+2. **Nomes físicos** (opção de instalação, ADR 0003): mapa lógico→físico na configuração. Testar com prefixos arbitrários sem depender de Oracle. Prefixo e schema para banco compartilhado: D3 do [ADR 0028](adr/0028-suporte-mysql-postgresql.md) (sem prefixo na 0.2).
 3. **Corpus real**: existe em repositórios **privados** do mantenedor (centenas de moldes PBL e dumps). Não entra neste repo público; ver nota abaixo.
 4. **Branch mais recente do p3**: `master` (2021-03), `psr4`, `3.6.0`, `v3.x`; confirmar de qual partir.
 5. **Peles por FTP**: política de sincronização com `pele_arquivo`.

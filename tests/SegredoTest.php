@@ -29,4 +29,23 @@ final class SegredoTest extends TestCase
             Ajuda::apagar($raiz);
         }
     }
+
+    public function testNaoMudaAUmaskDoProcessoENaoDeixaTemporarios(): void
+    {
+        $raiz = sys_get_temp_dir() . '/pbl4-seg-' . bin2hex(random_bytes(4));
+        mkdir($raiz);
+        $original = umask(0022);
+        try {
+            $c = new Caminhos($raiz);
+
+            Segredo::obter($c);
+
+            self::assertSame(0022, umask(), 'a umask do processo é restaurada');
+            self::assertSame(['segredo'], array_values(array_diff(scandir($c->config()) ?: [], ['.', '..'])));
+            self::assertSame(0600, fileperms($c->config() . '/segredo') & 0777);
+        } finally {
+            umask($original);
+            Ajuda::apagar($raiz);
+        }
+    }
 }
