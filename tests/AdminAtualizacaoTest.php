@@ -191,6 +191,7 @@ final class AdminAtualizacaoTest extends TestCase
         RegistroDaAtualizacao::gravar($this->caminhos, [
             'de' => $de, 'para' => $para, 'em' => $em === 0 ? $this->agora - 100 : $em,
             'backup' => basename($backup), 'backup_sha256' => (string) hash_file('sha256', $backup),
+            'codigo_sha256' => \Pbl\Atualizacao\ResumoDeArvore::dosItens($pasta . '/anterior', ['app']),
             'schema_antes' => null, 'schema_depois' => CopiaDeBanco::versaoDoEsquema($this->caminhos->banco()),
             'itens' => ['app'], 'sem_anterior' => [],
             'revertida' => false, 'revertida_em' => 0,

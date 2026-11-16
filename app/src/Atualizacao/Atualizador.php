@@ -193,10 +193,12 @@ final class Atualizador
     private function registrar(string $trabalho, string $para, string $backup, array $trocados): void
     {
         try {
+            $guardados = array_values(array_filter($trocados, static fn (string $i): bool => file_exists("{$trabalho}/anterior/{$i}") || is_link("{$trabalho}/anterior/{$i}")));
             RegistroDaAtualizacao::gravar($this->caminhos, [
                 'de' => $this->versaoAtual, 'para' => $para, 'em' => time(),
                 'backup' => $backup === '' ? '' : basename($backup),
                 'backup_sha256' => $backup === '' ? '' : (string) hash_file('sha256', $backup),
+                'codigo_sha256' => ResumoDeArvore::dosItens("{$trabalho}/anterior", $guardados),
                 'schema_antes' => $backup === '' ? null : CopiaDeBanco::versaoDoEsquema($backup),
                 'schema_depois' => CopiaDeBanco::versaoDoEsquema($this->caminhos->banco()),
                 'itens' => $trocados,
