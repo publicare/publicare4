@@ -22,19 +22,64 @@ final class CaminhosTest extends TestCase
 
     public function testGarantirDadosCriaPastasSoEmDados(): void
     {
+        $raiz = $this->raizTemporaria();
+        try {
+            $c = new Caminhos($raiz);
+
+            $c->garantirDados();
+
+            self::assertDirectoryExists($c->cache());
+            self::assertDirectoryExists($c->uploads());
+            self::assertDirectoryDoesNotExist($c->app());
+        } finally {
+            Ajuda::apagar($raiz);
+        }
+    }
+
+    public function testGarantirDadosProtegeADadosComHtaccess(): void
+    {
+        $raiz = $this->raizTemporaria();
+        try {
+            $c = new Caminhos($raiz);
+
+            $c->garantirDados();
+
+            $arquivo = $c->dados() . '/.htaccess';
+            self::assertFileExists($arquivo);
+            self::assertStringContainsString('Require all denied', (string) file_get_contents($arquivo));
+
+            file_put_contents($arquivo, "# ajustado pelo dono\n");
+            $c->garantirDados();
+            self::assertSame("# ajustado pelo dono\n", file_get_contents($arquivo), 'não sobrescreve');
+        } finally {
+            Ajuda::apagar($raiz);
+        }
+    }
+
+    public function testGarantirDadosCriaPastasSemPermissaoParaOutros(): void
+    {
+        $raiz = $this->raizTemporaria();
+        $umask = umask(0);
+        try {
+            $c = new Caminhos($raiz);
+
+            $c->garantirDados();
+
+            foreach ([$c->config(), $c->cache(), $c->uploads(), $c->peles()] as $pasta) {
+                self::assertSame(0750, fileperms($pasta) & 0777, $pasta);
+            }
+        } finally {
+            umask($umask);
+            Ajuda::apagar($raiz);
+        }
+    }
+
+    private function raizTemporaria(): string
+    {
         $raiz = sys_get_temp_dir() . '/pbl4-' . bin2hex(random_bytes(4));
         mkdir($raiz);
-        $c = new Caminhos($raiz);
 
-        $c->garantirDados();
-
-        self::assertDirectoryExists($c->cache());
-        self::assertDirectoryExists($c->uploads());
-        self::assertDirectoryDoesNotExist($c->app());
-
-        foreach ([$c->config(), $c->cache(), $c->uploads(), $c->peles(), $c->dados(), $raiz] as $p) {
-            @rmdir($p);
-        }
+        return $raiz;
     }
 
     /** @return iterable<string, array{string, bool}> */
