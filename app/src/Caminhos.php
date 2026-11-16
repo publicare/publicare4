@@ -109,7 +109,7 @@ final class Caminhos
     public function garantirDados(): void
     {
         foreach ([$this->config(), $this->cache(), $this->uploads(), $this->peles()] as $pasta) {
-            if (!is_dir($pasta) && !mkdir($pasta, 0775, true) && !is_dir($pasta)) {
+            if (!is_dir($pasta) && !mkdir($pasta, 0750, true) && !is_dir($pasta)) {
                 throw new \RuntimeException("Não foi possível criar a pasta {$pasta}");
             }
         }

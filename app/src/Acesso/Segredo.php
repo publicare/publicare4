@@ -21,7 +21,7 @@ final class Segredo
                 return $valor;
             }
         }
-        if (!is_dir($caminhos->config()) && !mkdir($caminhos->config(), 0775, true) && !is_dir($caminhos->config())) {
+        if (!is_dir($caminhos->config()) && !mkdir($caminhos->config(), 0750, true) && !is_dir($caminhos->config())) {
             throw new \RuntimeException('Não foi possível criar ' . $caminhos->config());
         }
         $novo = bin2hex(random_bytes(32));
