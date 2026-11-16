@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pbl\Demo;
 
+use Pbl\Banco\Copia\CopiaSqlite;
 use Pbl\Atualizacao\Manutencao;
 use Pbl\Caminhos;
 use Pbl\Console\DemoPopularComando;
@@ -189,7 +190,7 @@ final class ReiniciadorDaDemo
         try {
             $s = Servicos::doBancoInstalado($this->caminhos);
             try {
-                $s->conexao()->executeQuery('PRAGMA wal_checkpoint(TRUNCATE)')->free();
+                CopiaSqlite::fecharWal($s->conexao());
             } finally {
                 $s->conexao()->close();
             }

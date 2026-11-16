@@ -142,6 +142,44 @@ final class MenuDoSite
         @unlink($this->arquivo($site->id) . '.pendente');
     }
 
+    /**
+     * Resolve o destino interno dos links no PHP (o JSON de `dados` não é lido pelo SQL, que fica portável entre bancos):
+     * só conta destino publicado e vigente do mesmo site.
+     *
+     * @param list<array<string, mixed>> $linhas
+     * @return list<array<string, mixed>>
+     */
+    private function comDestinosInternos(int $siteId, array $linhas, string $agora): array
+    {
+        $pedidos = [];
+        foreach ($linhas as $i => $l) {
+            if ($l['classe'] === 'link' && is_string($l['dados'] ?? null)) {
+                $dados = json_decode($l['dados'], true);
+                $id = is_array($dados) && is_scalar($dados['destino_interno'] ?? null) ? (int) $dados['destino_interno'] : 0;
+                if ($id > 0) {
+                    $pedidos[$i] = $id;
+                }
+            }
+        }
+        if ($pedidos === []) {
+            return $linhas;
+        }
+        $this->consultas++;
+        $urls = $this->conexao->fetchAllKeyValue(
+            "SELECT id, url_amigavel FROM objeto
+              WHERE site_id = ? AND status = 'publicado' AND id IN (?)
+                AND (data_publicacao IS NULL OR data_publicacao <= ?)
+                AND (data_validade IS NULL OR data_validade >= ?)",
+            [$siteId, array_values(array_unique($pedidos)), $agora, $agora],
+            [\Doctrine\DBAL\ParameterType::INTEGER, \Doctrine\DBAL\ArrayParameterType::INTEGER, \Doctrine\DBAL\ParameterType::STRING, \Doctrine\DBAL\ParameterType::STRING],
+        );
+        foreach ($pedidos as $i => $id) {
+            $linhas[$i]['destino_url'] = $urls[$id] ?? null;
+        }
+
+        return $linhas;
+    }
+
     /** @return Snapshot */
     private function construir(Site $site): array
     {
@@ -152,20 +190,16 @@ final class MenuDoSite
         $agora = gmdate('c');
         $this->consultas++;
         $linhas = $this->conexao->fetchAllAssociative(
-            "SELECT o.id, o.pai_id, o.titulo, o.rotulo_menu, o.url_amigavel, o.dados, o.pele, o.no_menu, c.nome AS classe,
-                    d.url_amigavel AS destino_url
+            "SELECT o.id, o.pai_id, o.titulo, o.rotulo_menu, o.url_amigavel, o.dados, o.pele, o.no_menu, c.nome AS classe
                FROM objeto o
                JOIN classe c ON c.id = o.classe_id
-               LEFT JOIN objeto d ON c.nome = 'link' AND d.site_id = o.site_id AND d.status = 'publicado'
-                    AND (d.data_publicacao IS NULL OR d.data_publicacao <= ?)
-                    AND (d.data_validade IS NULL OR d.data_validade >= ?)
-                    AND d.id = CAST(json_extract(o.dados, '\$.destino_interno') AS INTEGER)
               WHERE o.site_id = ? AND (o.no_menu = 1 OR (o.pele IS NOT NULL AND o.pele != '')) AND o.status = 'publicado'
                 AND (o.data_publicacao IS NULL OR o.data_publicacao <= ?)
                 AND (o.data_validade IS NULL OR o.data_validade >= ?)
               ORDER BY o.peso, o.titulo, o.id",
-            [$agora, $agora, $site->id, $agora, $agora],
+            [$site->id, $agora, $agora],
         );
+        $linhas = $this->comDestinosInternos($site->id, $linhas, $agora);
         // Pele salva que não existe mais no disco não é fronteira: o objeto herda a do ancestral/site (como `Aparencia::da`).
         $existe = [];
         foreach ($linhas as &$l) {

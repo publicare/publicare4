@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Atualizacao;
 
 use Pbl\Banco\Conexao;
+use Pbl\Banco\Copia\CopiaSqlite;
 
 /** Cópia consistente do banco SQLite e leitura da versão do esquema (a maior migração aplicada). */
 final class CopiaDeBanco
@@ -13,8 +14,7 @@ final class CopiaDeBanco
     public static function copiar(string $origem, string $destino): void
     {
         try {
-            // VACUUM INTO gera uma cópia consistente mesmo com o arquivo aberto por outro processo (SQLite 3.27+).
-            Conexao::sqlite($origem)->executeStatement('VACUUM INTO ' . "'" . str_replace("'", "''", $destino) . "'");
+            CopiaSqlite::copiarConsistente($origem, $destino);
         } catch (\Throwable) {
             @unlink($destino);
             if (!@copy($origem, $destino)) {
@@ -42,10 +42,6 @@ final class CopiaDeBanco
     /** O arquivo abre como SQLite e passa na checagem de integridade do próprio SQLite. */
     public static function integro(string $arquivo): bool
     {
-        try {
-            return Conexao::sqlite($arquivo)->fetchOne('PRAGMA integrity_check') === 'ok';
-        } catch (\Throwable) {
-            return false;
-        }
+        return CopiaSqlite::integro($arquivo);
     }
 }

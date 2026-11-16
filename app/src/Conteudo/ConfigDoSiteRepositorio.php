@@ -134,11 +134,12 @@ final class ConfigDoSiteRepositorio
                     continue;
                 }
                 $json = json_encode($valor, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                $this->conexao->executeStatement(
-                    'INSERT INTO site_config (site_id, chave, valor, atualizado_em) VALUES (?, ?, ?, ?)
-                     ON CONFLICT (site_id, chave) DO UPDATE SET valor = excluded.valor, atualizado_em = excluded.atualizado_em',
-                    [$siteId, $chave, $json, gmdate('c')],
-                );
+                // Atualiza e, se a chave não existia, insere: SQL portável entre bancos, dentro da transação.
+                $agora = gmdate('c');
+                $atualizadas = $this->conexao->update('site_config', ['valor' => $json, 'atualizado_em' => $agora], ['site_id' => $siteId, 'chave' => $chave]);
+                if ($atualizadas === 0) {
+                    $this->conexao->insert('site_config', ['site_id' => $siteId, 'chave' => $chave, 'valor' => $json, 'atualizado_em' => $agora]);
+                }
             }
             unset($this->memoria[$siteId]);
 
