@@ -5,7 +5,13 @@ declare(strict_types=1);
 namespace Pbl\Atualizacao;
 
 use Pbl\Acesso\Auditoria;
+use Pbl\Banco\ConfigBanco;
+use Pbl\Banco\ConfigDeBancoInvalida;
 use Pbl\Banco\Conexao;
+use Pbl\Banco\Dialeto\DialetoBase;
+use Pbl\Banco\Dialeto\DialetoSqlite;
+use Pbl\Banco\Dialeto\Dialetos;
+use Pbl\Banco\ErroDeConexao;
 use Pbl\Caminhos;
 use Pbl\Versao;
 
@@ -318,7 +324,7 @@ final class Reversor
     /** Carrega agora o que será usado depois da troca de pastas, quando o autoload já aponta para o código antigo. */
     private static function precarregar(): void
     {
-        foreach ([ErroDeAtualizacao::class, Manutencao::class, RegistroDaAtualizacao::class, Revertida::class, Avaliacao::class, Trava::class, CopiaDeBanco::class, Conexao::class, Auditoria::class, Semver::class, ResumoDeArvore::class] as $classe) {
+        foreach ([ErroDeAtualizacao::class, Manutencao::class, RegistroDaAtualizacao::class, Revertida::class, Avaliacao::class, Trava::class, CopiaDeBanco::class, Conexao::class, ConfigBanco::class, ConfigDeBancoInvalida::class, ErroDeConexao::class, Dialetos::class, DialetoBase::class, DialetoSqlite::class, Auditoria::class, Semver::class, ResumoDeArvore::class] as $classe) {
             class_exists($classe);
         }
     }
