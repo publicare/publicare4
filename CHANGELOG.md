@@ -7,11 +7,13 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 ## [Não lançado]
 
 ### Adicionado
+- **`bin/pbl conta-senha` e `conta-destravar` (S-05):** recuperação de acesso só na linha de comando. `conta-senha <login>` pede a senha de forma oculta ou, com `--gerar`, cria uma e a mostra uma única vez; encerra as sessões e destrava o login. `conta-destravar <login> [--ip=…]` libera o login (e a origem) sem mexer na senha. Auditoria (`senha.trocar`, `conta.destravar`, ator `cli`) sem a senha. Ver [segurança](docs/tecnica/seguranca.md#senha-perdida-e-login-travado-s-05).
 - **ADR 0028 (proposto): suporte a MySQL e PostgreSQL na 0.2**, com as decisões D1 a D14 e seus padrões ([ADR 0028](docs/adr/0028-suporte-mysql-postgresql.md)). O 0.1.0 continua só com SQLite.
 - **Teste de documentação** (`DocumentacaoTest`): falha se um documento fora da lista de exceções citar MySQL ou PostgreSQL sem qualificador de futuro (0.2, ADR 0028) ou de origem PBL3.
 - **Plano do multi-banco** em `docs/plano.md`: projetos a0 a h com dependências e estimativas, apontando para o ADR 0028.
 
 ### Alterado
+- **Travamento do login progressivo (S-05):** o limite deixou de ser um bloqueio duro de 5 falhas por login (que deixava qualquer estranho trancar a conta do dono). Agora há três contadores (par login+origem: 5; login: 20; origem: 30, IPv6 por /64), com atraso que começa em 30 s e dobra a cada falha, até 15 min, sempre com `Retry-After` e resposta genérica. A falha é registrada antes de conferir a senha. O modo elevado passou a ter contadores próprios (não gasta mais o do login). Os testes de bloqueio por 5 falhas foram revisados por isso.
 - **Senha do administrador da demo (S-03/R9):** deixou de ser um valor fixo no código e na documentação. Cada reinício da demo gera uma senha aleatória (`random_bytes`, 32 hexadecimais), gravada em `dados/demo/senha-admin` (modo 0600, gravação atômica) e nunca em log, saída ou página. Novo comando `bin/pbl demo-senha` (também `demo:senha`) mostra a senha atual, só na linha de comando e só com a demo ligada; sem o arquivo ele manda rodar `demo-resetar --agora`. O valor antigo foi tirado deste arquivo e de `docs/`; **quem tem demo instalada deve reiniciá-la** (`bin/pbl demo-resetar --agora`) para trocar a senha antiga. A conta `autor`/`editor` da demo continua com a senha documentada (fora desta rodada). Ver [segurança](docs/tecnica/seguranca.md#demo-e-reversão-s-03-g8).
 - **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.1` (primeira release pelo pipeline automático, assinada no CI).
 

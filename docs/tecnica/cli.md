@@ -36,6 +36,17 @@ make pbl ARGS="usuario auditoria"                  # as últimas 50 ações regi
 - Cada ação fica na auditoria com o ator `cli`.
 - As mesmas operações existem pelo navegador para o administrador geral (`/_pbl/contas`), com regras a mais: a tela não desativa a própria conta nem a última de administrador ativa (a linha de comando não tem essa trava).
 
+## `conta-senha` e `conta-destravar` (recuperação de acesso)
+
+```bash
+make pbl ARGS="conta-senha admin --gerar"      # senha aleatória, mostrada uma única vez
+make pbl ARGS="conta-senha admin"              # ou pergunta oculta com confirmação (também --senha-stdin)
+make pbl ARGS="conta-destravar admin"          # libera o login travado por tentativas erradas
+make pbl ARGS="conta-destravar admin --ip=203.0.113.5"
+```
+
+`conta-senha` aplica a política de senha, encerra as sessões da conta, destrava o login e audita `senha.trocar` sem a senha. `usuario senha` continua valendo para o dia a dia. Detalhes em [segurança](seguranca.md#senha-perdida-e-login-travado-s-05).
+
 ## `dominio` e `redirecionamento`
 
 Os domínios também se gerenciam pelo navegador (`/_pbl/site/{id}/dominios`); aqui ficam os comandos, que também alcançam o redirecionamento de endereços antigos (ainda sem tela).

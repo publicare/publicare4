@@ -164,10 +164,10 @@ final class LoginHttpTest extends TestCase
     public function testCincoFalhasBloqueiamMesmoComASenhaCertaERetryAfter(): void
     {
         for ($i = 0; $i < 5; $i++) {
-            self::assertSame(401, $this->entrar('ana', "errada numero {$i} !!", true, "198.51.100.{$i}")->getStatusCode());
+            self::assertSame(401, $this->entrar('ana', "errada numero {$i} !!")->getStatusCode());
         }
 
-        $bloqueado = $this->entrar('ana', self::SENHA, true, '198.51.100.99');
+        $bloqueado = $this->entrar('ana', self::SENHA);
 
         self::assertSame(429, $bloqueado->getStatusCode());
         self::assertGreaterThan(0, (int) $bloqueado->headers->get('Retry-After'));
@@ -175,7 +175,35 @@ final class LoginHttpTest extends TestCase
 
         // passada a janela, volta a funcionar
         Conexao::sqlite($this->caminhos->banco())->executeStatement('UPDATE tentativa_login SET quando = quando - 1000');
-        self::assertSame(303, $this->entrar('ana', self::SENHA, true, '198.51.100.99')->getStatusCode());
+        self::assertSame(303, $this->entrar('ana', self::SENHA)->getStatusCode());
+    }
+
+    public function testBloqueioNaoRevelaSeAContaExisteERetryAfterVemNosDois(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->entrar('ana', "errada numero {$i} !!");
+            $this->entrar('fantasma', "errada numero {$i} !!");
+        }
+        $existe = $this->entrar('ana', self::SENHA);
+        $inexiste = $this->entrar('fantasma', self::SENHA);
+
+        self::assertSame(429, $existe->getStatusCode());
+        self::assertSame(429, $inexiste->getStatusCode());
+        self::assertSame($existe->headers->get('Retry-After'), $inexiste->headers->get('Retry-After'));
+        self::assertStringNotContainsString('ana', (string) $existe->getContent());
+        self::assertSame(
+            preg_replace('/name="_csrf" value="[^"]*"/', '', (string) $existe->getContent()),
+            preg_replace('/name="_csrf" value="[^"]*"/', '', (string) $inexiste->getContent()),
+        );
+    }
+
+    public function testCincoFalhasDeUmaOrigemNaoTrancamAContaParaOutra(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->entrar('ana', "errada numero {$i} !!", true, '203.0.113.50');
+        }
+        self::assertSame(429, $this->entrar('ana', self::SENHA, true, '203.0.113.50')->getStatusCode());
+        self::assertSame(303, $this->entrar('ana', self::SENHA, true, '198.51.100.77')->getStatusCode(), 'S-05: o dono entra de outra rede');
     }
 
     public function testBloqueioNaoSeContornaDescartandoOCookie(): void

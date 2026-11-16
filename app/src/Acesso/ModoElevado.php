@@ -53,20 +53,21 @@ final class ModoElevado
             return null;
         }
         $u = $sessao->usuario;
-        $espera = $this->limite->bloqueadoPor($u->login, $ip);
+        $espera = $this->limite->bloqueadoPor($u->login, $ip, LimiteDeTentativas::ESPACO_ELEVADO);
         if ($espera !== null) {
             $this->auditoria->registrar($prefixoAcao . '.bloqueado', 'usuario:' . $u->id, $u->id, null, [], $this->limite->hashDoIp($ip));
 
             return ['mensagem' => 'Muitas tentativas de senha. Aguarde alguns minutos e tente de novo.', 'status' => 429, 'retryAfter' => $espera];
         }
+        // a falha entra no contador antes da conferência, para pedidos em paralelo não escaparem do limite
+        $this->limite->registrarFalha($u->login, $ip, LimiteDeTentativas::ESPACO_ELEVADO);
         $confere = $this->usuarios->autenticar($u->login, mb_substr($senha, 0, 1024));
         if ($confere === null || $confere->id !== $u->id) {
-            $this->limite->registrarFalha($u->login, $ip);
             $this->auditoria->registrar($prefixoAcao . '.senha_errada', 'usuario:' . $u->id, $u->id, null, [], $this->limite->hashDoIp($ip));
 
             return ['mensagem' => 'Senha incorreta.', 'status' => 401, 'retryAfter' => null];
         }
-        $this->limite->limparLogin($u->login);
+        $this->limite->perdoar($u->login, $ip, LimiteDeTentativas::ESPACO_ELEVADO);
         $this->elevar($sessao);
 
         return null;
