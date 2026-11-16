@@ -14,6 +14,7 @@ use Pbl\Http\CabecalhosDeSeguranca;
 use Pbl\Instalacao\Instalador;
 use Pbl\Conteudo\Site;
 use Pbl\Instalacao\InstaladorWeb;
+use Pbl\Instalacao\PaginaNaoInstalado;
 use Pbl\Publicacao\PaginasDinamicas;
 use Pbl\Publicacao\SitemapERobots;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
@@ -63,7 +64,12 @@ final class Aplicacao
         try {
             $servicos = $this->servicos ?? Servicos::doBancoInstalado($this->caminhos);
         } catch (\RuntimeException) {
-            return $this->texto('PBL4 não está instalado', Response::HTTP_SERVICE_UNAVAILABLE);
+            if (!(new Instalador($this->caminhos))->instalado()) {
+                return PaginaNaoInstalado::resposta();
+            }
+
+            // A trava de instalação existe mas o banco sumiu: não mandar "instalar" por cima de uma instalação existente.
+            return $this->texto('PBL4 indisponível: o banco de dados não foi encontrado. Fale com quem cuida do servidor.', Response::HTTP_SERVICE_UNAVAILABLE);
         }
 
         try {

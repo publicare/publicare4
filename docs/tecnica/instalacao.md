@@ -2,6 +2,8 @@
 
 Para quem instala em um servidor. Quem só quer um passo a passo simples: [Como instalar](../usuario/instalar.md).
 
+**Antes de instalar,** abrir o site mostra uma página em português (status 503, sem login) que explica as duas formas de instalar: `bin/pbl instalar` e o assistente em `/_pbl/instalar`. Se a trava de instalação existir mas o banco sumir, a página **não** manda instalar: mostra uma indisponibilidade genérica.
+
 ## Requisitos
 
 PHP 8.2+ com `pdo_sqlite` (pacote `php8.x-sqlite3` em Debian/Ubuntu), `mbstring`, `sodium`, `json`, `ctype`, `dom` (para limpar o HTML dos campos) e `fileinfo` (para identificar de verdade o tipo de um arquivo enviado); pasta `dados/` gravável e dentro do `open_basedir` do PHP, se houver. **GD é opcional**: sem ela, upload de imagem ainda funciona (com uma verificação mais fraca, sem recodificar) e não há miniaturas. O 0.1.0 usa só SQLite (o instalador cria sempre um arquivo SQLite). MySQL e PostgreSQL chegam na 0.2, conforme o [ADR 0028](../adr/0028-suporte-mysql-postgresql.md).
