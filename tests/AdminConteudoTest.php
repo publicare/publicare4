@@ -333,7 +333,7 @@ final class AdminConteudoTest extends TestCase
 
     public function testPaginaInicialNaoQuebraComOAvisoDeVersaoEEditorNaoOVe(): void
     {
-        // Chaves::PUBLICAS é vazia (produção, hoje): o aviso de versão nova nunca aparece por aqui, mas a página tem de continuar OK.
+        // sem `url` configurada: o aviso de versão nova nunca aparece por aqui, mas a página tem de continuar OK.
         self::assertSame(200, $this->req('GET', '/_pbl/', $this->token('admin'))->getStatusCode());
         $h = (string) $this->req('GET', '/_pbl/', $this->token('editor'))->getContent();
         self::assertStringNotContainsString('Nova versão disponível', $h);

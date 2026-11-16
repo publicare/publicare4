@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Pbl\Atualizacao;
 
 /**
- * Chaves públicas de assinatura em que o PBL4 confia (ADR 0019). **Vazias até a primeira release**: o dono gera os pares offline
- * (`bin/pbl gerar-chaves`, a privada nunca entra no repositório, no CI nem no servidor) e cola aqui só as públicas.
- * Enquanto não houver nenhuma, o atualizador se recusa a aplicar qualquer pacote.
+ * Chaves públicas de assinatura em que o PBL4 confia (ADR 0019). **`USO` e `RECUPERACAO` já estão embutidas** (são públicas, vão no
+ * repositório). As privadas foram geradas offline pelo dono (`bin/pbl gerar-chaves`) e nunca entram no repositório, no CI nem no servidor.
+ * Um build sem nenhuma chave (lista vazia) faz o atualizador recusar qualquer pacote.
  *
  * - `USO`: a chave do dia a dia, que assina os manifestos de cada versão.
  * - `RECUPERACAO`: guardada em mídia fria; só ela assina a **troca da chave de uso** e a **revogação** de chaves (no manifesto).
@@ -20,10 +20,10 @@ namespace Pbl\Atualizacao;
 final class Chaves
 {
     /** @var list<string> */
-    public const USO = [];
+    public const USO = ['862a04bc8a5c8166d31a691ff4416198ea251fb4da2a72197c53a4c0e6aa0ce8'];
 
     /** @var list<string> */
-    public const RECUPERACAO = [];
+    public const RECUPERACAO = ['aa8837093423b48935588a6a6fcebf3e3f1a6c5a52cdb1cafe3a4c6e06a70411'];
 
     /** @var list<string> */
     public const REVOGADAS = [];

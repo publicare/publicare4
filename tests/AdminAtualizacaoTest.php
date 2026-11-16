@@ -267,7 +267,7 @@ final class AdminAtualizacaoTest extends TestCase
         self::assertSame(0, $this->baixador->consultas);
     }
 
-    public function testSemChaveDeAssinaturaDizClaramenteERecusa(): void
+    public function testBuildSemChavesDizClaramenteERecusa(): void
     {
         $this->preparar();
         $r = $this->tela('admin', 'GET', '/_pbl/atualizacao', [], []);
@@ -280,16 +280,17 @@ final class AdminAtualizacaoTest extends TestCase
         self::assertSame(0, $this->lancador->chamadas);
     }
 
-    public function testChaveDeProducaoVaziaDeVerdadeNaoQuebraATelaPadrao(): void
+    public function testComAsChavesEmbutidasATelaPadraoNaoMostraOAvisoDeSemChave(): void
     {
         $this->preparar();
-        // Sem injeção: valem Chaves::PUBLICAS (vazia) e o baixador HTTPS; nenhuma rede é tocada.
+        // Sem injeção: valem Chaves::PUBLICAS (embutidas) e o baixador HTTPS; o endereço de teste não é https, então nenhuma rede é tocada.
         $sessao = $this->s->sessoes()->validar($this->token('admin'));
         self::assertNotNull($sessao);
         $t = new TelasDeAtualizacao($this->s, new \Pbl\Acesso\Rede($this->caminhos), $this->s->csrf());
         $r = $t->tratar($sessao, 'ver', Request::create('https://www.exemplo.org/_pbl/atualizacao'));
         self::assertSame(200, $r->getStatusCode());
-        self::assertStringContainsString('Nenhuma chave de assinatura instalada; atualizações recusadas.', $this->html($r));
+        self::assertStringNotContainsString('Nenhuma chave de assinatura instalada', $this->html($r));
+        self::assertStringContainsString('Não foi possível consultar o canal', $this->html($r), 'a consulta foi tentada e barrada pelo HTTPS, não pela falta de chave');
     }
 
     public function testVerificacaoDesligadaNaoConsulta(): void

@@ -38,3 +38,7 @@ CLI (`bin/pbl atualizar`) e painel (`/_pbl/atualizacao`, fase 4c, [ADR 0012](001
 - Exige um pipeline de release (empacotar, assinar, publicar manifesto) e disciplina de migrações compatíveis.
 - Sites passam a poder receber correções de segurança rapidamente, o que é um dos principais ganhos do PBL4 sobre o PBL3.
 - A estrutura de pastas `app/` + `dados/` entra no desenho do instalador (fluxo 3).
+
+## Adendo (2026-11-16): chaves públicas embutidas
+
+As chaves públicas de uso e de recuperação (ADR 0019) foram embutidas em `app/src/Atualizacao/Chaves.php`; as privadas continuam só com o dono. Um build com as listas vazias ainda recusa qualquer pacote.

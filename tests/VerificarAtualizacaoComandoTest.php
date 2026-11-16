@@ -124,7 +124,7 @@ final class VerificarAtualizacaoComandoTest extends TestCase
         self::assertSame(0, $this->comando()->execute([]));
         self::assertNull($this->estado()->verificacaoRecente($manifesto, 'estavel', '0.1.0'));
 
-        // sem chave (Chaves::PUBLICAS é vazia por padrão em produção; aqui simulado explicitamente)
+        // build sem chaves (aqui simulado injetando listas vazias; o produto traz as chaves em Chaves.php)
         $this->configurar($manifesto);
         $t = new CommandTester(new VerificarAtualizacaoComando($this->caminhos, new BaixadorLocal(), [], '0.1.0'));
         self::assertSame(0, $t->execute([]));

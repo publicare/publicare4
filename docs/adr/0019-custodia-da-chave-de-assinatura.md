@@ -42,3 +42,7 @@ flowchart LR
 - A segurança da recuperação depende de guardar uma mídia fria com disciplina; a simplicidade da chave única foi trocada por poder se recuperar sem quebrar as instalações existentes.
 - Estas decisões se aplicam ao produto; o catálogo de peles e módulos terá chave própria (custódia a decidir no ADR 0007/0008).
 - Rotação de chave e revogação têm testes (`tests/ChavesDeConfiancaTest.php`).
+
+## Adendo (2026-11-16): chaves públicas embutidas
+
+O dono gerou os dois pares e as **públicas** de uso e de recuperação foram embutidas em `app/src/Atualizacao/Chaves.php` (`REVOGADAS` e `TESTE` seguem vazias). A privada nunca entra no repositório, no CI nem em logs. Falta a primeira release assinada e o endpoint de canal.
