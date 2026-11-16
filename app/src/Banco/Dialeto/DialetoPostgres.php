@@ -78,7 +78,8 @@ final class DialetoPostgres extends DialetoBase
         }
 
         return match (true) {
-            $estado === '28P01', $estado === '28000' => 'acesso',
+            // senha errada na conexão pode vir como 08006 (o PDO embrulha o FATAL): o texto decide antes do estado
+            $estado === '28P01', $estado === '28000', str_contains($texto, 'password authentication failed'), str_contains($texto, 'authentication failed'), str_contains($texto, 'no pg_hba.conf entry') => 'acesso',
             $estado === '42501' => 'permissao',
             $estado === '3D000' => 'banco',
             $estado === '42P01', $estado === '42703' => 'tabela',
