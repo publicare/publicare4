@@ -1,7 +1,8 @@
 name: Release
 
 # Release AUTOMÁTICA a partir da tag `v*` (ADR 0019, emenda de 2026-11-16): empacotar -> ASSINAR o latest*.json com a chave de USO ->
-# CONFERIR a assinatura contra Chaves::USO -> PUBLICAR (zip + manifesto + .sig). Se a conferência falhar, nada é publicado.
+# CONFERIR a assinatura contra Chaves::USO -> PUBLICAR (zip + manifesto + .sig + instalar.php + instalar.sh, com o SHA-256 dos
+# instaladores no resumo da release e no manifesto assinado). Se a conferência falhar, nada é publicado.
 # A chave de uso é o segredo PBL4_CHAVE_USO do Environment `release` (aprovação manual obrigatória; tags v* protegidas). Ela só existe
 # num arquivo 0600 durante o passo de assinatura e é apagada em seguida. A chave de RECUPERAÇÃO nunca entra no CI.
 # Sem o segredo (ensaio/fork): empacota e cria só um RASCUNHO, com aviso no resumo do job; o dono assina com bin/assinar-release.sh
@@ -54,6 +55,16 @@ jobs:
           git archive HEAD | tar -x -C "$RUNNER_TEMP/preparada"
           cd "$RUNNER_TEMP/preparada"
           composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+      - name: Gerar o instalar.php e conferir o instalar.sh (SHA-256 vai no manifesto, antes de assinar)
+        run: |
+          mkdir -p "$RUNNER_TEMP/instaladores"
+          # o instalar.php de produção é gerado do modelo com as chaves de Pbl\Atualizacao\Chaves (nunca de parâmetro)
+          php "$RUNNER_TEMP/preparada/bin/gerar-instalador" --conferir
+          php "$RUNNER_TEMP/preparada/bin/gerar-instalador" --saida="$RUNNER_TEMP/instaladores/instalar.php"
+          cp "$RUNNER_TEMP/preparada/infra/instalador/instalar.sh" "$RUNNER_TEMP/instaladores/instalar.sh"
+          php -l "$RUNNER_TEMP/instaladores/instalar.php"
+          sh -n "$RUNNER_TEMP/instaladores/instalar.sh"
+          shellcheck -s sh "$RUNNER_TEMP/instaladores/instalar.sh"
       - name: Empacotar (sem assinar aqui)
         env:
           VERSAO: ${{ steps.conferir.outputs.versao }}
@@ -67,12 +78,26 @@ jobs:
             --sem-assinar --canal="$CANAL" --url-base-pacote=/pacotes/ \
             --resumo="PBL4 $VERSAO" \
             --notas="https://github.com/$REPO/releases/tag/$TAG" \
+            --instaladores="$RUNNER_TEMP/instaladores" \
             "${extra[@]}"
           if [ -e "$RUNNER_TEMP/saida/latest.json.sig" ]; then
             echo "::error::Saiu uma assinatura no CI: a assinatura é só do dono." >&2
             exit 1
           fi
-          cp "$RUNNER_TEMP/notas.md" "$RUNNER_TEMP/saida/notas.md"
+          cp "$RUNNER_TEMP/instaladores/instalar.php" "$RUNNER_TEMP/instaladores/instalar.sh" "$RUNNER_TEMP/saida/"
+          php_sha=$(sha256sum "$RUNNER_TEMP/saida/instalar.php" | cut -d ' ' -f 1)
+          sh_sha=$(sha256sum "$RUNNER_TEMP/saida/instalar.sh" | cut -d ' ' -f 1)
+          {
+            cat "$RUNNER_TEMP/notas.md"
+            printf '\n### Instaladores (SHA-256)\n\n'
+            printf -- '- `instalar.php`: `%s`\n- `instalar.sh`: `%s`\n' "$php_sha" "$sh_sha"
+            printf '\nO mesmo valor está no `latest.json` assinado (campo `instaladores`).\n'
+          } > "$RUNNER_TEMP/saida/notas.md"
+          {
+            echo "### Instaladores (SHA-256)"
+            echo "- instalar.php: \`$php_sha\`"
+            echo "- instalar.sh: \`$sh_sha\`"
+          } >> "$GITHUB_STEP_SUMMARY"
           ls -l "$RUNNER_TEMP/saida"
       - uses: actions/upload-artifact@v4
         with:
@@ -190,7 +215,7 @@ jobs:
           # rascunho -> sobe o zip e o .sig -> o manifesto por último -> só então publica
           gh release create "$TAG" --draft --verify-tag \
             --title "PBL4 $VERSAO" --notes-file saida/notas.md \
-            "${flags[@]}" "saida/pbl4-$VERSAO.zip" saida/latest*.json.sig
+            "${flags[@]}" "saida/pbl4-$VERSAO.zip" saida/instalar.php saida/instalar.sh saida/latest*.json.sig
           gh release upload "$TAG" saida/latest*.json
           gh release edit "$TAG" --draft=false "${latest[@]}"
           echo "### Release $TAG publicada ($CANAL), assinada com a chave de uso e conferida contra Chaves::USO." >> "$GITHUB_STEP_SUMMARY"
@@ -202,7 +227,7 @@ jobs:
           gh release create "$TAG" --draft --verify-tag \
             --title "PBL4 $VERSAO" --notes-file saida/notas.md \
             "${flags[@]}" \
-            "saida/pbl4-$VERSAO.zip" saida/latest*.json
+            "saida/pbl4-$VERSAO.zip" saida/instalar.php saida/instalar.sh saida/latest*.json
           {
             echo "### ATENÇÃO: release NÃO publicada"
             echo "O segredo \`PBL4_CHAVE_USO\` não existe no Environment \`release\` (ensaio ou fork). Foi criado só um RASCUNHO, sem assinatura."

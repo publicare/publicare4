@@ -2,7 +2,7 @@
 
 Para quem instala em um servidor. Quem só quer um passo a passo simples: [Como instalar](../usuario/instalar.md).
 
-**Antes de instalar,** abrir o site mostra uma página em português (status 503, sem login) que explica as duas formas de instalar: `bin/pbl instalar` e o assistente em `/_pbl/instalar`. Se a trava de instalação existir mas o banco sumir, a página **não** manda instalar: mostra uma indisponibilidade genérica.
+**Antes de instalar,** abrir o site mostra uma página em português (status 503, sem login) que explica as formas de instalar: `instalar.php`, `bin/pbl instalar` e o assistente em `/_pbl/instalar`. Se a trava de instalação existir mas o banco sumir, a página **não** manda instalar: mostra uma indisponibilidade genérica.
 
 ## Requisitos
 
@@ -12,10 +12,54 @@ PHP 8.2+ com `pdo_sqlite` (pacote `php8.x-sqlite3` em Debian/Ubuntu), `mbstring`
 
 | Forma | Quando | Como |
 |---|---|---|
-| **Assistente no navegador** | hospedagem comum, quem não usa terminal | `https://site/_pbl/instalar` depois de criar `dados/instalar.liberar` (prova de posse) |
-| **Linha de comando** | quem tem terminal | `php bin/pbl instalar --nome=… --host=… --admin-login=… --admin-email=…` (a senha é pedida de forma oculta) |
+| **`instalar.php`** (etapa 1) + assistente (etapa 2) | hospedagem comum, só FTP/painel | envie o `instalar.php`, crie `instalar.liberar` ao lado e abra no navegador; ele leva ao assistente |
+| **`instalar.sh`** | terminal simples | `sh instalar.sh` numa pasta vazia: baixa o `instalar.php`, confere a assinatura e roda `bin/pbl instalar` |
+| **Assistente no navegador** (já com o código no servidor) | código enviado inteiro (zip do repositório, Git) | `https://site/_pbl/instalar` depois de criar `dados/instalar.liberar` (prova de posse) |
+| **Linha de comando** | quem tem terminal e o código | `php bin/pbl instalar --nome=… --host=… --admin-login=… --admin-email=…` (a senha é pedida de forma oculta) |
 
 O instalador é **atômico**: se algo falhar, o banco volta ao estado limpo e dá para tentar de novo. Ao terminar, grava `dados/config/instalado.lock`, publica as páginas de exemplo e some (a rota passa a dar 404).
+
+## Instalação em 2 etapas
+
+### Etapa 1: `instalar.php` (arquivo único)
+
+Fonte: `infra/instalador/instalar.php` (sintaxe de PHP 7.4 de propósito, para um PHP antigo mostrar "seu PHP é velho" em vez de erro de sintaxe). **Sem Composer, sem dependências.** Sequência:
+
+1. **Requisitos** (checklist em português, com "como corrigir"): PHP ≥ 8.2; `pdo_sqlite`, `mbstring`, `sodium`, `json`, `ctype`, `dom`, `fileinfo` (a lista é a de `Requisitos::EXTENSOES`, conferida por teste); escrita na pasta; `open_basedir`; `curl` ou `allow_url_fopen`+`openssl`. A extensão `zip` é opcional: o instalador tem leitor de zip próprio (só `gzinflate`).
+2. **Manifesto assinado:** baixa `https://atualizacoes.publicare.org/latest.json` (estável) ou `latest-beta.json` (só se pedido) e o `.sig`, e verifica a assinatura **Ed25519** com `PBLX_CHAVES_USO` e `PBLX_CHAVES_RECUPERACAO` embutidas. **Chaves vindas do manifesto (`chaves.uso`, `chaves.revogadas`) são ignoradas**: trocar de chave exige um `instalar.php` novo. As regras de validação são as de `Manifesto::analisar`.
+3. **Pacote:** baixa o `.zip` (só HTTPS, certificado verificado, mesmo host, no máximo 3 redirecionamentos, limite de bytes) e confere **tamanho e SHA-256** do manifesto antes de abrir.
+4. **Extração** em `.pbl-instalar-tmp-<aleatório>/` dentro da própria pasta: recusa `..`, caminho absoluto, `\`, byte nulo, link simbólico, nome fora de `Pacote::ITENS`, nomes repetidos, bomba de zip (o tamanho declarado é imposto na descompressão), criptografia e zip64; cada arquivo é conferido contra o `PACOTE.json`.
+5. **Mover** os itens com `rename`, com log de desfazer: falhou em qualquer passo, desfaz o que moveu e apaga o temporário. Um `.htaccess` (ou `composer.json` etc.) já existente é guardado como `*.antes-pbl4`. Se já existe `app/`, `vendor/`, `bin/` ou `public/`, recusa.
+6. **Layout e proteção:** cria `dados/` (0750) e passa a prova de posse para `dados/instalar.liberar`. Depois **pergunta ao próprio site** (por HTTP, só o código de resposta) se `/app/src/Versao.php` e `/dados/…` abrem; se abrir, **bloqueia** o avanço e explica (docroot em `public/`, regras de nginx); se não conseguir testar, avisa. Detecta Hestia (`public_html` com `private/` ao lado) e avisa; **nunca escreve fora da pasta do site**.
+7. **Apaga a si mesmo** e leva ao assistente (`/_pbl/instalar`). Se o `unlink` falhar, diz para apagar à mão.
+
+Segurança do `instalar.php`:
+
+- **Prova de posse própria:** qualquer ação que grava exige o arquivo vazio `instalar.liberar` ao lado dele (a página de requisitos é só leitura). Sem isso, qualquer um que alcançasse a URL entre o envio e a instalação poderia instalar. O arquivo é movido para `dados/instalar.liberar`, a posse da etapa 2.
+- CSRF sem sessão (cookie `Secure; HttpOnly; SameSite=Strict` + campo oculto, `hash_equals`) e conferência de `Origin` (ou `Referer`) contra o `Host`.
+- Nenhum `eval`/`exec`/`include` de conteúdo baixado; nada do pacote é executado antes de a assinatura conferir; mensagens de erro nunca trazem caminhos do servidor; `set_time_limit` e `memory_limit` ajustados; só `--beta` como argumento no terminal.
+- **Chaves não são parâmetro.** O arquivo distribuído é **gerado** do modelo por `bin/gerar-instalador` (`GeradorDoInstalador::producao`), que reescreve o bloco `CONFIG` com `Chaves::USO`/`Chaves::RECUPERACAO`. `bin/gerar-instalador --conferir` (no CI e no `release.yml`) falha se o modelo commitado diverge. Os testes usam `GeradorDoInstalador::paraTeste`, que gera um arquivo temporário com um par de chaves de **teste** e um transporte que lê de uma pasta de fixtures; isso nunca é distribuído.
+- Limite honesto: quem baixa o `instalar.php` confia no HTTPS e no SHA-256 publicado (resumo da release e campo `instaladores` do manifesto assinado). A assinatura Ed25519 protege o **pacote**. O `instalar.php` por si só não tem como provar a própria autenticidade.
+- A sondagem de exposição usa HTTPS sem verificar o certificado (o certificado do próprio site pode ainda ser autoassinado) e só olha o código de resposta; nada do que volta é usado.
+
+Terminal: `php instalar.php [--beta]` faz as mesmas etapas 1 a 5, sem posse nem CSRF (quem está no terminal já tem acesso), cria `dados/` e se apaga.
+
+### `instalar.sh`
+
+POSIX sh (`set -eu`, `shellcheck -s sh` no release). Baixa o **mesmo** `instalar.php` (curl `--proto '=https'` ou `wget --https-only`), confere o SHA-256 se `PBL_INSTALAR_SHA256` estiver definido, roda `php instalar.php` (que confere a assinatura) e depois `php bin/pbl instalar` com as respostas. **Senha:** prompt oculto do próprio `bin/pbl`, ou `PBL_ADMIN_SENHA`, ou entrada padrão (duas linhas); nunca por argumento. Sem `eval`, sem `curl | sh`.
+
+### Etapa 2: assistente web (`/_pbl/instalar`)
+
+Seis passos: *Boas-vindas e requisitos → Site: nome e domínio → Administrador → Modelos opcionais → Revisão e instalar → Pronto* (`PassosDoInstalador`). Mantém a prova de posse, o CSRF e a conferência de `Origin`.
+
+- **Um formulário só**, validado no servidor. `public/_pbl/assets/pbl-instalar.js` (sem script nem estilo em linha: a CSP é `script-src 'self'`) mostra um painel por vez, com Voltar/Continuar, foco no título do passo, revisão montada com `textContent` e medidor de força da senha (só orienta; a regra é `SenhaPolitica`). **Sem JavaScript todos os passos aparecem de uma vez** e o servidor devolve o erro apontando o passo.
+- Acessibilidade: `<progress>` com rótulo, `aria-current="step"` na lista, `aria-live` na força da senha e nos erros (`role="alert"`), alvos de toque grandes (`btn-lg`) e layout de coluna única no celular.
+- **Erros ensinam:** a mensagem original mais um "como corrigir" (`PassosDoInstalador::comoCorrigir`) e o formulário reabre no passo certo (`data-passo-inicial`).
+- **Tela final** (`ProximosPassos`): login, linha do cron (`* * * * * php <pasta>/bin/pbl cron >/dev/null 2>&1`), onde fica a cópia de segurança (`dados/` e `dados/backups/`), como atualizar (painel e `bin/pbl atualizar`) e o aviso sobre a raiz do site, **condicional ao layout** (raiz em `public/`, na pasta inteira ou desconhecida, a partir de `DOCUMENT_ROOT`).
+
+### Publicação
+
+O `release.yml` gera o `instalar.php` de produção (`bin/gerar-instalador`), confere `php -l`, `sh -n` e `shellcheck`, grava o SHA-256 dos dois arquivos no manifesto (`instaladores`, antes de assinar: `bin/pbl empacotar --instaladores=<pasta>`), no resumo do job e nas notas da release, e os publica como assets (caminho assinado e rascunho). O Worker (`infra/atualizacoes/`) serve `/instalar.php` e `/instalar.sh` como `text/plain`. **O deploy do Worker é do dono** ([README](../../infra/atualizacoes/README.md)). Veja também [atualização](atualizacao.md) e [releases](../releases.md).
 
 ### Por que a prova de posse
 

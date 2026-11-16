@@ -236,4 +236,19 @@ final class ReleaseWorkflowTest extends TestCase
         self::assertSame(1, $codigo);
         self::assertStringContainsString('CHANGELOG', $err);
     }
+
+    public function testInstaladoresSaoGeradosHasheadosNoManifestoENoResumoEPublicadosNosDoisCaminhos(): void
+    {
+        $empacotar = $this->job('empacotar');
+        self::assertStringContainsString('bin/gerar-instalador" --conferir', $empacotar);
+        self::assertStringContainsString('shellcheck -s sh', $empacotar);
+        self::assertStringContainsString('--instaladores="$RUNNER_TEMP/instaladores"', $empacotar, 'o SHA-256 entra no manifesto antes de assinar');
+        self::assertStringContainsString('sha256sum "$RUNNER_TEMP/saida/instalar.php"', $empacotar);
+        self::assertStringContainsString('>> "$GITHUB_STEP_SUMMARY"', $empacotar, 'SHA-256 no resumo');
+        self::assertStringContainsString('Instaladores (SHA-256)', $empacotar, 'e nas notas da release');
+
+        $publicar = $this->job('publicar');
+        self::assertSame(2, substr_count($publicar, 'saida/instalar.php saida/instalar.sh'), 'caminho assinado e rascunho');
+        self::assertStringNotContainsString('secrets.PBL4_CHAVE', $empacotar, 'o empacotar nunca toca na chave');
+    }
 }

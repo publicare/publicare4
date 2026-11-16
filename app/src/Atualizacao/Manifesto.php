@@ -27,6 +27,8 @@ final class Manifesto
         public readonly ?string $novaChaveDeUso = null,
         /** @var list<string> idem */
         public readonly array $chavesRevogadas = [],
+        /** @var array<string, string> SHA-256 dos instaladores publicados (`instalar.php`, `instalar.sh`); informativo, o pacote não depende deles */
+        public readonly array $instaladores = [],
     ) {
     }
 
@@ -91,13 +93,26 @@ final class Manifesto
             }
         }
 
+        $instaladores = [];
+        if (isset($d['instaladores'])) {
+            if (!is_array($d['instaladores']) || count($d['instaladores']) > 5) {
+                throw new ErroDeAtualizacao('Manifesto com bloco de instaladores inválido');
+            }
+            foreach ($d['instaladores'] as $nome => $i) {
+                if (!in_array($nome, ['instalar.php', 'instalar.sh'], true) || !is_array($i) || !is_string($i['sha256'] ?? null) || preg_match('/^[0-9a-f]{64}$/D', $i['sha256']) !== 1) {
+                    throw new ErroDeAtualizacao('Manifesto com instalador inválido');
+                }
+                $instaladores[$nome] = $i['sha256'];
+            }
+        }
+
         return new self(
             $canal, $versao, $data, $phpMinimo, $minimo,
             ($d['seguranca'] ?? false) === true, ($d['migracoes'] ?? false) === true,
             isset($d['resumo']) && is_string($d['resumo']) ? mb_substr($d['resumo'], 0, 300) : '',
             isset($d['notas']) && is_string($d['notas']) && str_starts_with($d['notas'], 'https://') ? mb_substr($d['notas'], 0, 300) : '',
             $p['url'], $p['tamanho'], $p['sha256'],
-            $novaChave, array_values(array_unique($revogadas)),
+            $novaChave, array_values(array_unique($revogadas)), $instaladores,
         );
     }
 }

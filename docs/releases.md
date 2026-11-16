@@ -58,6 +58,10 @@ bin/assinar-release.sh vX.Y.Z --chave-privada=/volume-cifrado/pbl4/uso.privada
 3. Fazer o deploy do Worker de `infra/atualizacoes/` e apontar o domínio para ele.
 4. Empurrar uma tag de ensaio (`vX.Y.Z-rc.1`), aprovar o job `assinar` e conferir a pré-lançamento no canal `beta`.
 
+### Instaladores (`instalar.php` e `instalar.sh`)
+
+O CI gera o `instalar.php` de produção com `bin/gerar-instalador` (chaves de `Pbl\Atualizacao\Chaves`; `--conferir` falha se o modelo `infra/instalador/instalar.php` divergir), confere `php -l`, `sh -n` e `shellcheck`, e publica os dois arquivos como assets. O SHA-256 de cada um vai **no `latest.json` assinado** (`instaladores`), no resumo do job e nas notas da release. **Trocou `Chaves::USO` ou `Chaves::RECUPERACAO`?** Rode `php bin/gerar-instalador --saida=infra/instalador/instalar.php` e commite. As rotas `/instalar.php` e `/instalar.sh` do Worker só existem depois do deploy do Worker (passo do dono).
+
 ## Modelo de release notes
 
 ```markdown

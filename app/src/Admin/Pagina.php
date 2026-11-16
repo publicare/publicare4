@@ -28,6 +28,9 @@ final class Pagina
     public const EDITOR_JS = self::ASSETS . '/pbl-editor.js';
     /** Marca que as telas põem no `<textarea>` de um campo `html`; a página usa para decidir carregar o editor. */
     public const MARCA_EDITOR = 'data-pbl-editor="';
+    /** Passos do assistente de instalação (só carregado na tela que traz `data-pbl-instalar`). */
+    public const INSTALAR_JS = self::ASSETS . '/pbl-instalar.js';
+    public const MARCA_INSTALAR = 'data-pbl-instalar';
     public const MARCA_PREVIA = 'data-pbl-previa="';
 
     public static function h(string $texto): string
@@ -153,10 +156,12 @@ final class Pagina
     public static function resposta(string $titulo, string $corpo, int $status = Response::HTTP_OK, bool $seguro = false, string $navegacao = '', array $migalhas = [], string $descricao = '', string $ajudaDaTela = ''): Response
     {
         $editor = str_contains($corpo, self::MARCA_EDITOR);
+        $instalar = str_contains($corpo, '<form method="post" action="/_pbl/instalar"') && str_contains($corpo, self::MARCA_INSTALAR);
         $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
             . '<meta name="robots" content="noindex"><title>' . self::h($titulo) . ' — PBL4</title>'
             . '<link rel="stylesheet" href="' . self::urlVersionada(self::BOOTSTRAP) . '"><link rel="stylesheet" href="' . self::urlVersionada(self::CSS) . '">'
             . '<script src="' . self::urlVersionada(self::BOOTSTRAP_JS) . '" defer></script><script src="' . self::urlVersionada(self::JS) . '" defer></script>'
+            . ($instalar ? '<script src="' . self::urlVersionada(self::INSTALAR_JS) . '" defer></script>' : '')
             . ($editor ? '<script src="' . self::urlVersionada(self::TINYMCE_JS) . '" defer></script><script src="' . self::urlVersionada(self::EDITOR_JS) . '" defer></script>' : '')
             . '</head><body>' . self::$avisoDeDemo . '<a class="visually-hidden-focusable" href="#conteudo">Pular para o conteúdo</a>'
             . ($navegacao === '' ? '' : '<header>' . $navegacao . '</header>')

@@ -9,6 +9,7 @@ redireciona os downloads; por isso este Worker segue o redirecionamento no servi
 | `/latest.json`, `/latest.json.sig` | assets da última release **estável** (`releases/latest/download/`) | 5 min (`CACHE_MANIFESTO_SEGUNDOS`) |
 | `/latest-beta.json`, `/latest-beta.json.sig` | assets da última **pré-lançamento** publicada (descoberta pela API de releases) | 5 min |
 | `/pacotes/pbl4-<versão>.zip` | asset da release `v<versão>` | 1 ano, `immutable` |
+| `/instalar.php`, `/instalar.sh` | assets da última release **estável** (`releases/latest/download/`), servidos como `text/plain` (o Worker nunca os interpreta) | 5 min |
 
 Qualquer outro caminho dá 404; só `GET` e `HEAD`. O nome do pacote é validado por expressão regular (sem `..`, `/` nem `%`).
 O manifesto aponta o pacote com `"url": "/pacotes/pbl4-X.zip"` (opção `--url-base-pacote=/pacotes/` do `bin/pbl empacotar`, já usada pelo
@@ -27,6 +28,9 @@ a instalação recusa e tenta de novo depois. Nada neste diretório guarda segre
 - O beta serve a pré-lançamento publicada mais recente, mesmo que exista uma estável mais nova.
 
 ## Deploy (passo manual do dono)
+
+> As rotas `/instalar.php` e `/instalar.sh` só passam a existir depois do `wrangler deploy`. **O deploy do Worker é do dono: nenhuma
+> mudança do repositório o executa.** Até lá, os dois arquivos podem ser baixados da página da release no GitHub.
 
 1. `cd infra/atualizacoes && npx wrangler deploy` (ajuste `GITHUB_REPO` se o repositório mudar).
 2. Aponte o domínio para o Worker (rota ou *custom domain* na Cloudflare) e coloque esse endereço no `url` de `dados/config/atualizacao.json`.
