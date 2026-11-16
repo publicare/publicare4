@@ -337,7 +337,7 @@ final class ReversorTest extends TestCase
 
         $this->reversor($raiz, '0.2.0')->reverter('cli');
         self::assertSame('velho', file_get_contents($raiz . '/app/src/marcador.txt'));
-        $depois = RegistroDaAtualizacao::ler(new Caminhos($raiz)) ?? self::fail();
+        $depois = RegistroDaAtualizacao::ler(new Caminhos($raiz));
         self::assertSame($registro['codigo_sha256'], $depois['codigo_sha256']);
     }
 }
