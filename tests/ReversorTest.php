@@ -254,4 +254,90 @@ final class ReversorTest extends TestCase
         self::assertSame('', $r->copiaDoBancoAtual);
         self::assertSame('velho', file_get_contents($raiz . '/app/src/marcador.txt'));
     }
+
+    public function testCodigoGuardadoAdulteradoRecusaReverterSemTocarEmNada(): void
+    {
+        $raiz = $this->aplicarAtualizacao('0.1.0', 'velho', '0.2.0', 'novo');
+        file_put_contents($raiz . '/dados/atualizacao/anterior/app/src/marcador.txt', 'codigo malicioso');
+
+        $r = $this->reversor($raiz, '0.2.0');
+        $a = $r->avaliar();
+        self::assertFalse($a->possivel);
+        self::assertStringContainsString('código guardado', $a->motivo);
+        self::assertStringContainsString('SHA-256', $a->motivo);
+        try {
+            $r->reverter('cli');
+            self::fail('deveria recusar');
+        } catch (ErroDeAtualizacao $e) {
+            self::assertStringContainsString('código guardado', $e->getMessage());
+        }
+        self::assertSame('novo', file_get_contents($raiz . '/app/src/marcador.txt'), 'nada foi tocado');
+        self::assertSame('codigo malicioso', file_get_contents($raiz . '/dados/atualizacao/anterior/app/src/marcador.txt'));
+        self::assertFileDoesNotExist($raiz . '/dados/atualizacao/revertida/app');
+        self::assertFalse(Manutencao::ativa(new Caminhos($raiz)));
+    }
+
+    public function testArquivoExtraPlantadoNoCodigoGuardadoRecusaReverter(): void
+    {
+        $raiz = $this->aplicarAtualizacao('0.1.0', 'velho', '0.2.0', 'novo');
+        file_put_contents($raiz . '/dados/atualizacao/anterior/app/src/backdoor.php', '<?php');
+
+        $a = $this->reversor($raiz, '0.2.0')->avaliar();
+        self::assertFalse($a->possivel);
+        self::assertStringContainsString('código guardado', $a->motivo);
+    }
+
+    public function testCopiaDoBancoAlteradaNaoTocaEmNada(): void
+    {
+        $raiz = $this->aplicarAtualizacao('0.1.0', 'velho', '0.2.0', 'novo');
+        $registro = RegistroDaAtualizacao::ler(new Caminhos($raiz)) ?? self::fail();
+        file_put_contents($raiz . '/dados/backups/' . $registro['backup'], 'adulterado');
+
+        try {
+            $this->reversor($raiz, '0.2.0')->reverter('cli');
+            self::fail('deveria recusar');
+        } catch (ErroDeAtualizacao $e) {
+            self::assertStringContainsString('SHA-256 não confere', $e->getMessage());
+        }
+        self::assertSame('novo', file_get_contents($raiz . '/app/src/marcador.txt'));
+        self::assertSame('novo', Conexao::sqlite($raiz . '/dados/pbl4.sqlite')->fetchOne('SELECT v FROM marca'));
+    }
+
+    /** @return array<string, array{string}> */
+    public static function hashesAusentes(): array
+    {
+        return ['codigo vazio' => ['codigo_sha256', ''], 'codigo ausente' => ['codigo_sha256', null], 'banco vazio' => ['backup_sha256', '']];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('hashesAusentes')]
+    public function testRegistroSemHashRecusaReverter(string $campo, ?string $valor): void
+    {
+        $raiz = $this->aplicarAtualizacao('0.1.0', 'velho', '0.2.0', 'novo');
+        $arquivo = RegistroDaAtualizacao::arquivo(new Caminhos($raiz));
+        $json = json_decode((string) file_get_contents($arquivo), true);
+        self::assertIsArray($json);
+        if ($valor === null) {
+            unset($json[$campo]);
+        } else {
+            $json[$campo] = $valor;
+        }
+        file_put_contents($arquivo, json_encode($json));
+
+        $a = $this->reversor($raiz, '0.2.0')->avaliar();
+        self::assertFalse($a->possivel);
+        self::assertSame('novo', file_get_contents($raiz . '/app/src/marcador.txt'));
+    }
+
+    public function testCaminhoFelizGravaOsDoisHashesNoRegistro(): void
+    {
+        $raiz = $this->aplicarAtualizacao('0.1.0', 'velho', '0.2.0', 'novo');
+        $registro = RegistroDaAtualizacao::ler(new Caminhos($raiz)) ?? self::fail();
+        self::assertMatchesRegularExpression('/^[0-9a-f]{64}$/D', $registro['backup_sha256']);
+        self::assertMatchesRegularExpression('/^[0-9a-f]{64}$/D', $registro['codigo_sha256']);
+
+        $this->reversor($raiz, '0.2.0')->reverter('cli');
+        self::assertSame('velho', file_get_contents($raiz . '/app/src/marcador.txt'));
+        $depois = RegistroDaAtualizacao::ler(new Caminhos($raiz)) ?? self::fail();
+        self::assertSame($registro['codigo_sha256'], $depois['codigo_sha256']);
+    }
 }
