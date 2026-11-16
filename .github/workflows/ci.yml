@@ -20,6 +20,36 @@ jobs:
     name: Testes e análise estática (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Bancos descartáveis para o teste de contrato de dialeto (ADR 0028 §9, D2). Credenciais de teste, só neste contêiner
+    # efêmero: não são segredo. A suíte principal continua em SQLite nesta etapa.
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-descartavel
+          MYSQL_DATABASE: pbl_ci
+          MYSQL_USER: pbl_ci
+          MYSQL_PASSWORD: ci-descartavel
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: pbl_ci
+          POSTGRES_USER: pbl_ci
+          POSTGRES_PASSWORD: ci-descartavel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U pbl_ci -d pbl_ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     strategy:
       fail-fast: false
       matrix:
@@ -29,7 +59,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring, pdo_sqlite, sodium, gd, zip
+          extensions: mbstring, pdo_sqlite, pdo_mysql, pdo_pgsql, sodium, gd, zip
           coverage: none
           tools: composer:v2
       - name: Cache do Composer
@@ -41,6 +71,34 @@ jobs:
       - run: composer install --no-interaction --no-progress --prefer-dist
       - name: Testes (PHPUnit)
         run: vendor/bin/phpunit
+      - name: Contrato de dialeto (SQLite)
+        run: vendor/bin/phpunit --group contrato-dialeto
+      - name: Contrato de dialeto (MySQL 8.4)
+        env:
+          PBL_BANCO_DRIVER: mysql
+          PBL_BANCO_HOST: 127.0.0.1
+          PBL_BANCO_NOME: pbl_ci
+          PBL_BANCO_USUARIO: pbl_ci
+          PBL_BANCO_SENHA: ci-descartavel
+        run: vendor/bin/phpunit --group contrato-dialeto --fail-on-skipped
+      - name: Contrato de dialeto (MySQL 8.4, TLS exigido; informativo até validar no CI)
+        continue-on-error: true
+        env:
+          PBL_BANCO_DRIVER: mysql
+          PBL_BANCO_HOST: 127.0.0.1
+          PBL_BANCO_NOME: pbl_ci
+          PBL_BANCO_USUARIO: pbl_ci
+          PBL_BANCO_SENHA: ci-descartavel
+          PBL_BANCO_TLS: exigir
+        run: vendor/bin/phpunit --group contrato-dialeto --fail-on-skipped
+      - name: Contrato de dialeto (PostgreSQL 16)
+        env:
+          PBL_BANCO_DRIVER: pgsql
+          PBL_BANCO_HOST: 127.0.0.1
+          PBL_BANCO_NOME: pbl_ci
+          PBL_BANCO_USUARIO: pbl_ci
+          PBL_BANCO_SENHA: ci-descartavel
+        run: vendor/bin/phpunit --group contrato-dialeto --fail-on-skipped
       - name: Análise estática (PHPStan nível 8)
         run: vendor/bin/phpstan analyse --memory-limit=512M --no-progress
 
