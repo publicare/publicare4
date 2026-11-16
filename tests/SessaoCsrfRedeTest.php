@@ -211,7 +211,7 @@ final class SessaoCsrfRedeTest extends TestCase
                 self::assertSame('203.0.113.9', $comConfig->ip($r), 'sem lista de proxies, mantém o comportamento atual');
                 $comConfig->ip($r);
             });
-            self::assertSame(1, substr_count($log, 'proxies_confiaveis'), 'avisa uma única vez');
+            self::assertSame(1, substr_count($log, 'PBL4: rede.json'), 'avisa uma única vez');
             self::assertStringNotContainsString('203.0.113.9', $log, 'o aviso não grava IP');
             $lixo = Request::create('https://www.exemplo.org/', 'GET', [], [], [], ['REMOTE_ADDR' => '10.0.0.1', 'HTTP_CF_CONNECTING_IP' => 'não é ip']);
             self::assertSame('10.0.0.1', $comConfig->ip($lixo), 'valor que não é IP volta ao endereço da conexão');
@@ -249,7 +249,7 @@ final class SessaoCsrfRedeTest extends TestCase
             $log = $this->capturarLog(function () use ($rede, $r, $esperado): void {
                 self::assertSame($esperado, $rede->ip($r));
             });
-            self::assertStringNotContainsString('proxies_confiaveis', $log, 'com a lista declarada não há aviso');
+            self::assertStringNotContainsString('PBL4: rede.json', $log, 'com a lista declarada não há aviso');
         } finally {
             Ajuda::apagar($raiz);
         }
