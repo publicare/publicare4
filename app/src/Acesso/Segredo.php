@@ -26,7 +26,17 @@ final class Segredo
         }
         $novo = bin2hex(random_bytes(32));
         $temporario = $arquivo . '.' . bin2hex(random_bytes(4)) . '.tmp';
-        file_put_contents($temporario, $novo . "\n");
+        // umask restritivo só em volta da gravação: o temporário nasce 0600, sem janela legível por outros usuários.
+        $antes = umask(0177);
+        try {
+            $gravou = file_put_contents($temporario, $novo . "\n");
+        } finally {
+            umask($antes);
+        }
+        if ($gravou === false) {
+            @unlink($temporario);
+            throw new \RuntimeException('Não foi possível gravar o segredo em ' . $arquivo);
+        }
         chmod($temporario, 0600);
         rename($temporario, $arquivo);
 

@@ -15,6 +15,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.1` (primeira release pelo pipeline automático, assinada no CI).
 
 ### Corrigido
+- **`Segredo`:** o arquivo do segredo do site era gravado com a permissão padrão e só depois recebia `chmod 0600`, deixando uma janela legível por outros usuários; agora o temporário nasce 0600 (umask restritiva só em volta da gravação) e uma falha de escrita lança erro em vez de publicar arquivo vazio.
 - **Documentação do 0.1.0:** nenhum documento sugere mais que MySQL ou PostgreSQL funcionam hoje; o 0.1.0 usa só SQLite, e os dois bancos chegam na 0.2 ([ADR 0028](docs/adr/0028-suporte-mysql-postgresql.md)). Ajustados `docs/releases.md`, `docs/tecnica/`, `docs/usuario/`, `docs/fluxos/` e as notas nos ADRs 0001, 0002, 0010, 0012 e 0014.
 - **Workflow de release:** o passo de empacotar rodava `bin/pbl` na raiz do repositório, onde não há `vendor/`, e falhava no ensaio da `v0.1.0-rc.1`; agora usa o `bin/pbl` da pasta preparada (com as dependências de produção).
 
