@@ -468,8 +468,10 @@ final class Pagina
         // img-src data: só porque o CSS do Bootstrap desenha alguns ícones de formulário como SVG embutido.
         $r->headers->set('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'" . ($editor ? " 'unsafe-inline'" : '') . "; img-src 'self' data:" . ($editor ? ' https:' : '') . "; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
         if ($seguro) {
-            $r->headers->set('Strict-Transport-Security', 'max-age=31536000');
+            // o `max-age` configurável (seguranca.json) é aplicado depois, por `Http\CabecalhosDeSeguranca::aplicar`, em toda resposta
+            $r->headers->set('Strict-Transport-Security', 'max-age=' . \Pbl\Http\CabecalhosDeSeguranca::HSTS_PADRAO);
         }
+        $r->headers->set('Permissions-Policy', \Pbl\Http\CabecalhosDeSeguranca::PERMISSOES);
 
         return $r;
     }

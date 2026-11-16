@@ -149,6 +149,21 @@ A edição de peles é a única superfície em que a administração **grava arq
 
 **Integridade da reversão (G8/S-11).** `Atualizador::registrar` grava em `aplicada.json` o `backup_sha256` (cópia do banco) e o `codigo_sha256` (resumo determinístico de `anterior/`, em `ResumoDeArvore`: caminho, tipo e SHA-256 de cada arquivo ou alvo de link, em ordem; permissões e datas não entram). `Reversor::avaliar` recalcula os dois antes de agir, e como `reverter` chama `avaliar` sob a trava e antes de ligar a manutenção, qualquer divergência (arquivo alterado, extra, removido ou cópia do banco adulterada) recusa a reversão sem tocar em nada (falha fechada). **Registro antigo, sem hash:** é recusado, sem opção de confirmação manual (o mais seguro); o registro vale só até a próxima atualização, então basta atualizar de novo ou restaurar à mão. Limite: o hash detecta adulteração acidental ou parcial, mas não protege contra quem escreve em `dados/` e também reescreve `aplicada.json`; assinar o registro fica como trabalho futuro.
 
+## Cabeçalhos de segurança: painel e site público (S-02)
+
+| | Painel (`/_pbl`) | Site público |
+|---|---|---|
+| Onde | `Admin\Pagina::protegida` | `Http\CabecalhosDeSeguranca`, em `Aplicacao::tratar` (toda resposta) |
+| CSP | `default-src 'none'; script-src 'self'; style-src 'self'` (+ `'unsafe-inline'` e `https:` só nas telas com editor); `form-action 'self'; base-uri 'none'; frame-ancestors 'none'` | `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'` |
+| Clique-jacking | `X-Frame-Options: DENY` | `frame-ancestors 'self'` |
+| Cache | `no-store` | o de cada resposta |
+| Comum | `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` (câmera, microfone, geolocalização, pagamento e USB desligados), HSTS |
+
+- **Por que sem nonce no site público:** as páginas são arquivos estáticos publicados, o mesmo HTML para todos; um nonce fixo não protege. Por isso a política é estática, `script-src 'self'` (as peles só carregam scripts de `assets/`; um teste confere que nenhuma tem `<script>` inline nem `on*=`) e `style-src` aceita `'unsafe-inline'` como concessão consciente (os moldes e o conteúdo usam `style=`). Quem precisar de embutir script ou iframe de terceiros deve hospedar o script como arquivo da pele.
+- **Não sobrescreve:** resposta que já tem CSP (formulário público, arquivos, assets de pele com `sandbox`, prévia de molde) mantém a sua.
+- **HSTS:** só em HTTPS (ou atrás de proxy com `"confiar_proto": true` em `rede.json` e `X-Forwarded-Proto: https`). Padrão `max-age=31536000`, **sem** `includeSubDomains` e sem `preload`. Em `dados/config/seguranca.json`: `{"hsts_max_age": 86400, "csp_publica_somente_relatorio": false}`. `hsts_max_age: 0` desliga; valor inválido volta ao padrão. Com `csp_publica_somente_relatorio: true` a política pública sai como `Content-Security-Policy-Report-Only` (não bloqueia), útil para testar uma pele própria.
+- Fora desta rodada: isolar o painel em subdomínio e `Sec-Fetch-Site` na API.
+
 ## Senha perdida e login travado (S-05)
 
 Quem tem acesso ao servidor recupera a conta, inclusive a do administrador, só pela linha de comando (não há "esqueci minha senha" por e-mail no 0.1.0):

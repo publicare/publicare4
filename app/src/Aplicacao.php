@@ -10,6 +10,7 @@ use Pbl\Arquivos\ArquivoController;
 use Pbl\Atualizacao\Manutencao;
 use Pbl\Conteudo\Dominio;
 use Pbl\Formularios\EnvioDeFormulario;
+use Pbl\Http\CabecalhosDeSeguranca;
 use Pbl\Instalacao\Instalador;
 use Pbl\Conteudo\Site;
 use Pbl\Instalacao\InstaladorWeb;
@@ -34,7 +35,16 @@ final class Aplicacao
     {
     }
 
+    /** Resolve o pedido e acrescenta os cabeçalhos de segurança do site público (S-02), sem sobrescrever os que a resposta já traz. */
     public function tratar(Request $requisicao): Response
+    {
+        $resposta = $this->resolver($requisicao);
+        $rede = new Rede($this->caminhos);
+
+        return CabecalhosDeSeguranca::dosCaminhos($this->caminhos)->aplicar($resposta, $rede->seguro($requisicao));
+    }
+
+    private function resolver(Request $requisicao): Response
     {
         if (Manutencao::ativa($this->caminhos)) {
             $r = new Response(
