@@ -1,6 +1,6 @@
 name: Release
 
-# Empacota a versão da tag e cria um RASCUNHO no GitHub Releases com o .zip e o latest.json SEM assinatura.
+# Empacota a versão da tag e cria um RASCUNHO no GitHub Releases com o .zip e o manifesto SEM assinatura (latest.json no canal estavel; latest-beta.json no beta).
 # A chave privada NUNCA passa por aqui (ADR 0019): o dono baixa o latest.json, assina na máquina dele e publica
 # (bin/assinar-release.sh; docs/releases.md). Manualmente (workflow_dispatch) é só um ensaio: empacota uma tag existente e
 # não publica nada.
@@ -106,5 +106,5 @@ jobs:
           gh release create "$TAG" --draft --verify-tag \
             --title "PBL4 $VERSAO" --notes-file saida/notas.md \
             "${flags[@]}" \
-            "saida/pbl4-$VERSAO.zip" saida/latest.json
+            "saida/pbl4-$VERSAO.zip" saida/latest*.json
           echo "Rascunho criado. O dono assina e publica com bin/assinar-release.sh (docs/releases.md)."

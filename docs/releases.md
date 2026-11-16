@@ -31,7 +31,7 @@ O CHANGELOG segue o formato [Keep a Changelog](https://keepachangelog.com/pt-BR/
    gh auth login                 # uma vez
    bin/assinar-release.sh vX.Y.Z --chave-privada=/volume-cifrado/pbl4/uso.privada
    ```
-   O script recusa se a release já não for rascunho, baixa o `latest.json` e o `.zip`, confere versão, tamanho e SHA-256, assina (`php bin/pbl assinar`), **confere a assinatura contra as chaves públicas embutidas** (`php bin/pbl verificar-assinatura`; se não confere, para sem subir nada), sobe `latest.json` e `latest.json.sig` e só então publica a release. O manifesto vai por último: o rascunho não é visível ao público, então a publicação libera pacote, manifesto e assinatura de uma vez.
+   O script recusa se a release já não for rascunho, baixa o manifesto (`latest.json`; `latest-beta.json` no canal beta) e o `.zip`, confere versão, tamanho e SHA-256, assina (`php bin/pbl assinar`), **confere a assinatura contra as chaves públicas embutidas** (`php bin/pbl verificar-assinatura`; se não confere, para sem subir nada), sobe o manifesto e a `.sig` e só então publica a release (pré-lançamento sai como pré-lançamento). O manifesto vai por último: o rascunho não é visível ao público, então a publicação libera pacote, manifesto e assinatura de uma vez.
 6. **Voltar a versão de desenvolvimento**: PR pequeno trocando para `X.Y.(Z+1)-dev` (ou a próxima MINOR).
 7. **Endereço de canal**: as instalações só enxergam a versão se o `latest.json` estiver no endereço configurado em `dados/config/atualizacao.json` (`url`). **Ainda não existe esse endereço**; veja a pendência em [atualização](tecnica/atualizacao.md#para-quem-publica-versões).
 

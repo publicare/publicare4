@@ -38,7 +38,7 @@ final class AssinarReleaseScriptTest extends TestCase
 echo "gh $*" >> "$GH_LOG"
 case "$1 $2" in
   "release view") if [[ "$*" == *isDraft* ]]; then cat "$GH_DIR/draft"; else echo false; fi ;;
-  "release download") cp "$GH_DIR"/latest.json "$GH_DIR"/pbl4-*.zip "${@: -1}/" ;;
+  "release download") cp "$GH_DIR"/latest*.json "$GH_DIR"/pbl4-*.zip "${@: -1}/" ;;
   "release upload") for f in "${@:4}"; do if [ -f "$f" ]; then cp "$f" "$GH_DIR/subido-$(basename "$f")"; fi; done ;;
 esac
 SH);
@@ -102,6 +102,15 @@ PHP);
             [$this->par['publica']],
         ));
         self::assertStringNotContainsString($this->par['privada'], $out . $err . $log);
+    }
+
+    public function testManifestoDoCanalBetaTambemEAssinadoESobe(): void
+    {
+        rename($this->pasta . '/rascunho/latest.json', $this->pasta . '/rascunho/latest-beta.json');
+        [$codigo, $out, $err] = $this->rodar($this->par['publica'], 'v0.1.0', '--chave-privada=' . $this->pasta . '/chave.privada', '--sim');
+
+        self::assertSame(0, $codigo, $err . $out);
+        self::assertFileExists($this->pasta . '/rascunho/subido-latest-beta.json.sig');
     }
 
     public function testChaveForaDasEmbutidasNaoSobeNemPublicaNada(): void

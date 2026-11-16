@@ -3,7 +3,7 @@
 #
 #   bin/assinar-release.sh vX.Y.Z --chave-privada=/caminho/uso.privada [--repo=dono/repo] [--sim]
 #
-# 1. confere que a release é um RASCUNHO e baixa o latest.json e o .zip dele (gh release download);
+# 1. confere que a release é um RASCUNHO e baixa o manifesto (latest.json; latest-beta.json no canal beta) e o .zip dele (gh release download);
 # 2. confere versão, tamanho e SHA-256 do .zip contra o manifesto;
 # 3. assina o latest.json com `php bin/pbl assinar` (a privada vem só de um ARQUIVO local; nunca de variável de ambiente);
 # 4. confere a assinatura contra as chaves públicas embutidas (`php bin/pbl verificar-assinatura`); se não confere, para sem subir nada;
@@ -46,12 +46,15 @@ trap 'rm -rf "$tmp"' EXIT
 [ "$(gh_ release view "$tag" --json isDraft -q .isDraft)" = "true" ] || die "a release $tag não é um rascunho (já publicada ou inexistente): recuso assinar"
 prerelease="$(gh_ release view "$tag" --json isPrerelease -q .isPrerelease)"
 
-gh_ release download "$tag" -p latest.json -p 'pbl4-*.zip' -D "$tmp"
-[ -f "$tmp/latest.json" ] || die "o rascunho não tem latest.json"
+gh_ release download "$tag" -p 'latest*.json' -p 'pbl4-*.zip' -D "$tmp"
+# o manifesto do canal estável é latest.json; o do beta, latest-beta.json
+manifestos=("$tmp"/latest*.json)
+[ "${#manifestos[@]}" -eq 1 ] && [ -f "${manifestos[0]}" ] || die "o rascunho deve ter exatamente um manifesto (latest.json ou latest-beta.json)"
+manifesto="${manifestos[0]}"
 
 # versão, nome, tamanho e hash do pacote, lidos do manifesto, conferidos contra o .zip baixado
 php -r '
-  $m = json_decode((string) file_get_contents($argv[1] . "/latest.json"), true, 512, JSON_THROW_ON_ERROR);
+  $m = json_decode((string) file_get_contents($argv[3]), true, 512, JSON_THROW_ON_ERROR);
   $zip = $argv[1] . "/" . basename((string) ($m["pacote"]["url"] ?? ""));
   if ($m["versao"] !== substr($argv[2], 1)) { fwrite(STDERR, "Erro: o manifesto é da versão {$m["versao"]}, não da tag.\n"); exit(1); }
   if (!is_file($zip)) { fwrite(STDERR, "Erro: o rascunho não tem o pacote {$m["pacote"]["url"]}.\n"); exit(1); }
@@ -59,18 +62,18 @@ php -r '
     fwrite(STDERR, "Erro: o .zip do rascunho não confere com o manifesto (tamanho ou SHA-256).\n"); exit(1);
   }
   echo "Manifesto da versão {$m["versao"]} (canal {$m["canal"]}); o pacote confere.\n";
-' "$tmp" "$tag"
+' "$tmp" "$tag" "$manifesto"
 
-pbl assinar "$tmp/latest.json" --chave-privada="$chave" >/dev/null || die "não consegui assinar"
-canal="$(php -r '$m = json_decode((string) file_get_contents($argv[1]), true); echo $m["canal"];' "$tmp/latest.json")"
-pbl verificar-assinatura "$tmp/latest.json" --canal="$canal" || die "a assinatura não confere com as chaves embutidas em Chaves.php: nada foi publicado"
+pbl assinar "$manifesto" --chave-privada="$chave" >/dev/null || die "não consegui assinar"
+canal="$(php -r '$m = json_decode((string) file_get_contents($argv[1]), true); echo $m["canal"];' "$manifesto")"
+pbl verificar-assinatura "$manifesto" --canal="$canal" || die "a assinatura não confere com as chaves embutidas em Chaves.php: nada foi publicado"
 
 if [ "$sim" -ne 1 ]; then
   read -r -p "Publicar $tag agora? [s/N] " r
   [ "$r" = "s" ] || [ "$r" = "S" ] || die "cancelado; o rascunho continua como estava"
 fi
 
-gh_ release upload "$tag" "$tmp/latest.json" "$tmp/latest.json.sig" --clobber
+gh_ release upload "$tag" "$manifesto" "$manifesto.sig" --clobber
 if [ "$prerelease" = "true" ]; then
   gh_ release edit "$tag" --draft=false --prerelease
 else
