@@ -104,6 +104,17 @@ PHP);
         self::assertStringNotContainsString($this->par['privada'], $out . $err . $log);
     }
 
+    public function testPacoteComUrlAbsolutaDoEndpointDeAtualizacoesTambemEAceito(): void
+    {
+        $m = json_decode((string) file_get_contents($this->pasta . '/rascunho/latest.json'), true);
+        $m['pacote']['url'] = '/pacotes/pbl4-0.1.0.zip';
+        file_put_contents($this->pasta . '/rascunho/latest.json', json_encode($m, JSON_THROW_ON_ERROR));
+        [$codigo, $out, $err] = $this->rodar($this->par['publica'], 'v0.1.0', '--chave-privada=' . $this->pasta . '/chave.privada', '--sim');
+
+        self::assertSame(0, $codigo, $err . $out);
+        self::assertFileExists($this->pasta . '/rascunho/subido-latest.json.sig');
+    }
+
     public function testManifestoDoCanalBetaTambemEAssinadoESobe(): void
     {
         rename($this->pasta . '/rascunho/latest.json', $this->pasta . '/rascunho/latest-beta.json');

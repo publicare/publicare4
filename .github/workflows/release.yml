@@ -1,9 +1,11 @@
 name: Release
 
-# Empacota a versão da tag e cria um RASCUNHO no GitHub Releases com o .zip e o manifesto SEM assinatura (latest.json no canal estavel; latest-beta.json no beta).
-# A chave privada NUNCA passa por aqui (ADR 0019): o dono baixa o latest.json, assina na máquina dele e publica
-# (bin/assinar-release.sh; docs/releases.md). Manualmente (workflow_dispatch) é só um ensaio: empacota uma tag existente e
-# não publica nada.
+# Release AUTOMÁTICA a partir da tag `v*` (ADR 0019, emenda de 2026-11-16): empacotar -> ASSINAR o latest*.json com a chave de USO ->
+# CONFERIR a assinatura contra Chaves::USO -> PUBLICAR (zip + manifesto + .sig). Se a conferência falhar, nada é publicado.
+# A chave de uso é o segredo PBL4_CHAVE_USO do Environment `release` (aprovação manual obrigatória; tags v* protegidas). Ela só existe
+# num arquivo 0600 durante o passo de assinatura e é apagada em seguida. A chave de RECUPERAÇÃO nunca entra no CI.
+# Sem o segredo (ensaio/fork): empacota e cria só um RASCUNHO, com aviso no resumo do job; o dono assina com bin/assinar-release.sh
+# (contingência, docs/releases.md). Manualmente (workflow_dispatch) é só um ensaio: empacota uma tag existente e não assina nem publica.
 on:
   push:
     tags: ['v*']
@@ -23,7 +25,7 @@ concurrency:
 
 jobs:
   empacotar:
-    name: Empacotar (sem assinar)
+    name: Empacotar (sem assinar; a assinatura é o job seguinte)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -52,7 +54,7 @@ jobs:
           git archive HEAD | tar -x -C "$RUNNER_TEMP/preparada"
           cd "$RUNNER_TEMP/preparada"
           composer install --no-dev --optimize-autoloader --no-interaction --no-progress
-      - name: Empacotar (sem assinar)
+      - name: Empacotar (sem assinar aqui)
         env:
           VERSAO: ${{ steps.conferir.outputs.versao }}
           CANAL: ${{ steps.conferir.outputs.canal }}
@@ -62,7 +64,7 @@ jobs:
           extra=()
           if [ "$SEGURANCA" = "true" ]; then extra+=(--seguranca); fi
           php bin/pbl empacotar "$RUNNER_TEMP/preparada" "$RUNNER_TEMP/saida" \
-            --sem-assinar --canal="$CANAL" \
+            --sem-assinar --canal="$CANAL" --url-base-pacote=/pacotes/ \
             --resumo="PBL4 $VERSAO" \
             --notas="https://github.com/$REPO/releases/tag/$TAG" \
             "${extra[@]}"
@@ -79,10 +81,84 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  rascunho:
-    name: Rascunho no GitHub Releases
-    if: github.event_name == 'push'
+  assinar:
+    name: Assinar e conferir (Environment release)
+    # Só tag v* (nunca ensaio manual, nunca branch). O Environment exige aprovação manual antes de o job rodar.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: empacotar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: read
+    outputs:
+      assinado: ${{ steps.marcar.outputs.assinado || 'false' }}
+    env:
+      CANAL: ${{ needs.empacotar.outputs.canal }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_sqlite, sodium, gd, zip
+          coverage: none
+          tools: composer:v2
+      - run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+      - uses: actions/download-artifact@v4
+        with:
+          name: pbl4-release
+          path: ${{ runner.temp }}/saida
+      - name: Gravar a chave de uso (arquivo 0600, só para o passo seguinte)
+        id: chave
+        env:
+          CHAVE_USO: ${{ secrets.PBL4_CHAVE_USO }}
+        run: |
+          if [ -z "$CHAVE_USO" ]; then
+            echo "tem_chave=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          umask 077
+          printf '%s\n' "$CHAVE_USO" > "$RUNNER_TEMP/uso.chave"
+          echo "tem_chave=true" >> "$GITHUB_OUTPUT"
+      - name: Assinar o manifesto com a chave de uso
+        if: steps.chave.outputs.tem_chave == 'true'
+        run: |
+          nome=latest.json
+          if [ "$CANAL" != "estavel" ]; then nome="latest-$CANAL.json"; fi
+          php bin/pbl assinar "$RUNNER_TEMP/saida/$nome" --chave-privada="$RUNNER_TEMP/uso.chave" > /dev/null
+      - name: Conferir a assinatura contra Chaves::USO
+        if: steps.chave.outputs.tem_chave == 'true'
+        run: |
+          nome=latest.json
+          if [ "$CANAL" != "estavel" ]; then nome="latest-$CANAL.json"; fi
+          php bin/pbl verificar-assinatura "$RUNNER_TEMP/saida/$nome" --canal="$CANAL"
+      - name: Marcar como assinado e conferido
+        id: marcar
+        if: steps.chave.outputs.tem_chave == 'true'
+        run: echo "assinado=true" >> "$GITHUB_OUTPUT"
+      - name: Apagar a chave
+        if: always()
+        run: rm -f "$RUNNER_TEMP/uso.chave"
+      - name: Avisar que não há segredo (ensaio/fork)
+        if: steps.chave.outputs.tem_chave == 'false'
+        run: |
+          echo "::warning::O segredo PBL4_CHAVE_USO não existe neste Environment: a release NÃO será assinada nem publicada; só um rascunho será criado."
+      - uses: actions/upload-artifact@v4
+        if: steps.marcar.outputs.assinado == 'true'
+        with:
+          name: pbl4-release-assinado
+          path: ${{ runner.temp }}/saida/
+          if-no-files-found: error
+          retention-days: 7
+
+  publicar:
+    name: Publicar (ou rascunho, sem segredo)
+    # always(): precisa rodar mesmo se `assinar` falhar, para recusar com clareza; só publica com assinado == 'true'.
+    if: always() && github.event_name == 'push' && needs.empacotar.result == 'success'
+    needs: [empacotar, assinar]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -91,15 +167,35 @@ jobs:
       TAG: ${{ github.ref_name }}
       VERSAO: ${{ needs.empacotar.outputs.versao }}
       CANAL: ${{ needs.empacotar.outputs.canal }}
+      ASSINAR_RESULTADO: ${{ needs.assinar.result }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
     steps:
+      - name: Recusar se a assinatura ou a conferência não passou
+        if: needs.assinar.result != 'success'
+        run: |
+          echo "::error::O job assinar terminou como '$ASSINAR_RESULTADO' (reprovado, falhou ou cancelado): nada foi publicado."
+          exit 1
       - uses: actions/download-artifact@v4
         with:
-          name: pbl4-release
+          name: ${{ needs.assinar.outputs.assinado == 'true' && 'pbl4-release-assinado' || 'pbl4-release' }}
           path: saida
-      - name: Criar o rascunho (não publica; não sobrescreve release existente)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
+      - name: Publicar a release assinada e conferida
+        if: needs.assinar.outputs.assinado == 'true'
+        run: |
+          test -s saida/latest*.json.sig || { echo "::error::Sem .sig: não publico."; exit 1; }
+          flags=()
+          latest=(--latest)
+          if [ "$CANAL" = "beta" ]; then flags+=(--prerelease); latest=(); fi
+          # rascunho -> sobe o zip e o .sig -> o manifesto por último -> só então publica
+          gh release create "$TAG" --draft --verify-tag \
+            --title "PBL4 $VERSAO" --notes-file saida/notas.md \
+            "${flags[@]}" "saida/pbl4-$VERSAO.zip" saida/latest*.json.sig
+          gh release upload "$TAG" saida/latest*.json
+          gh release edit "$TAG" --draft=false "${latest[@]}"
+          echo "### Release $TAG publicada ($CANAL), assinada com a chave de uso e conferida contra Chaves::USO." >> "$GITHUB_STEP_SUMMARY"
+      - name: Criar só o rascunho (sem o segredo PBL4_CHAVE_USO)
+        if: needs.assinar.outputs.assinado != 'true'
         run: |
           flags=()
           if [ "$CANAL" = "beta" ]; then flags+=(--prerelease); fi
@@ -107,4 +203,8 @@ jobs:
             --title "PBL4 $VERSAO" --notes-file saida/notas.md \
             "${flags[@]}" \
             "saida/pbl4-$VERSAO.zip" saida/latest*.json
-          echo "Rascunho criado. O dono assina e publica com bin/assinar-release.sh (docs/releases.md)."
+          {
+            echo "### ATENÇÃO: release NÃO publicada"
+            echo "O segredo \`PBL4_CHAVE_USO\` não existe no Environment \`release\` (ensaio ou fork). Foi criado só um RASCUNHO, sem assinatura."
+            echo "Para publicar, configure o segredo e empurre a tag de novo, ou assine localmente com \`bin/assinar-release.sh\` (docs/releases.md)."
+          } >> "$GITHUB_STEP_SUMMARY"
