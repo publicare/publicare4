@@ -139,7 +139,7 @@ trait AuxiliaresDeTela
             return ['mensagem' => 'Confirme sua senha para continuar.', 'status' => Response::HTTP_UNPROCESSABLE_ENTITY, 'retryAfter' => null];
         }
 
-        return $modo->confirmar($sessao, $senha, $this->rede->ip($requisicao), $prefixoAcao);
+        return $modo->confirmar($sessao, $senha, $this->rede->ip($requisicao), $prefixoAcao, $sempreExigir);
     }
 
     /**
