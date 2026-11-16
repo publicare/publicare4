@@ -281,7 +281,33 @@ final class AdminUploadTest extends TestCase
         self::assertSame('nosniff', $r->headers->get('X-Content-Type-Options'));
         self::assertStringContainsString('inline', (string) $r->headers->get('Content-Disposition'));
         self::assertNotNull($r->headers->get('ETag'));
-        self::assertStringContainsString('immutable', (string) $r->headers->get('Cache-Control'));
+        self::assertStringNotContainsString('immutable', (string) $r->headers->get('Cache-Control'));
+    }
+
+    public function testArquivoEntregaCacheControlRevalidavelEtagE304(): void
+    {
+        $o = $this->criarAlbum();
+        $this->s->objetos->atualizar($o->id, ['status' => 'publicado']);
+        $arquivo = $this->s->uploads()->enviar(new UploadedFile($this->arquivoTemporario("conteudo texto\n"), 'notas.txt', 'text/plain', null, true), $this->album->propriedades[1], $this->site->id, $o->id, null);
+        $caminho = '/_pbl/arquivo/' . $arquivo->id;
+
+        $r = $this->getPublico($caminho);
+        self::assertSame(200, $r->getStatusCode());
+        $cc = $r->headers->get('Cache-Control');
+        self::assertContains($cc, ['public, max-age=300, must-revalidate', 'max-age=300, must-revalidate, public'], 'Cache-Control: ' . $cc);
+        self::assertStringNotContainsString('immutable', (string) $cc);
+        $etag = $r->headers->get('ETag');
+        self::assertNotNull($etag);
+        self::assertStringContainsString($arquivo->sha256, $etag);
+
+        $r304 = $this->getPublico($caminho, ['HTTP_IF_NONE_MATCH' => $etag]);
+        self::assertSame(304, $r304->getStatusCode());
+        self::assertSame('', (string) $r304->getContent());
+        self::assertSame($etag, $r304->headers->get('ETag'));
+        self::assertStringContainsString('max-age=300', (string) $r304->headers->get('Cache-Control'));
+
+        $outro = $this->getPublico($caminho, ['HTTP_IF_NONE_MATCH' => '"outro"']);
+        self::assertSame(200, $outro->getStatusCode(), 'ETag diferente não dá 304');
     }
 
     public function testArquivoDocumentoEntregaComContentDispositionAttachment(): void
