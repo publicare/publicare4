@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Corrigido
+- **Workflow de release:** o passo de empacotar rodava `bin/pbl` na raiz do repositório, onde não há `vendor/`, e falhava no ensaio da `v0.1.0-rc.1`; agora usa o `bin/pbl` da pasta preparada (com as dependências de produção).
+
 ## [0.1.0-rc.1] - 2026-11-16
 
 > Primeira versão pública prevista: **0.1.0** (núcleo mínimo: dados, linguagem de moldes, segurança básica, instalador e atualizador).

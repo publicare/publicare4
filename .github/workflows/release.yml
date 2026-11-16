@@ -63,7 +63,7 @@ jobs:
         run: |
           extra=()
           if [ "$SEGURANCA" = "true" ]; then extra+=(--seguranca); fi
-          php bin/pbl empacotar "$RUNNER_TEMP/preparada" "$RUNNER_TEMP/saida" \
+          php "$RUNNER_TEMP/preparada/bin/pbl" empacotar "$RUNNER_TEMP/preparada" "$RUNNER_TEMP/saida" \
             --sem-assinar --canal="$CANAL" --url-base-pacote=/pacotes/ \
             --resumo="PBL4 $VERSAO" \
             --notas="https://github.com/$REPO/releases/tag/$TAG" \
