@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Pbl\Testes;
 
+use Pbl\Acesso\Csrf;
 use Pbl\Acesso\ModoElevado;
 use Pbl\Acesso\Rede;
-use Pbl\Acesso\SessaoAtiva;
-use Pbl\Admin\AuxiliaresDeTela;
 use Pbl\Caminhos;
 use Pbl\Instalacao\Instalador;
 use Pbl\Servicos;
@@ -171,21 +170,9 @@ final class ModoElevadoTest extends TestCase
         self::assertTrue($this->s->modoElevado()->ativo($sessao));
     }
 
-    private function telaComAuxiliares(): object
+    private function telaComAuxiliares(): TelaComAuxiliares
     {
-        return new class ($this->s, new Rede($this->caminhos)) {
-            use AuxiliaresDeTela;
-
-            public function __construct(private readonly \Pbl\Servicos $servicos, private readonly Rede $rede)
-            {
-            }
-
-            /** @return array{mensagem: string, status: int, retryAfter: int|null}|null */
-            public function exigir(SessaoAtiva $sessao, Request $requisicao, bool $sempreExigir): ?array
-            {
-                return $this->exigirReautenticacao($sessao, $requisicao, 'teste', $sempreExigir);
-            }
-        };
+        return new TelaComAuxiliares($this->s, new Rede($this->caminhos), new Csrf('segredo-de-teste'));
     }
 
     private function sessao(): \Pbl\Acesso\SessaoAtiva
