@@ -20,14 +20,13 @@ use Symfony\Component\Console\Output\BufferedOutput;
  * qualquer coisa. Passos: trava `dados/demo/reiniciar.lock` (duas execuções não se sobrepõem) → lê nome e domínio principal do
  * site → liga a manutenção (503) e espera um instante os pedidos em andamento → backup de `dados/` (SQLite, uploads, peles e a marca de instalado) em `dados/demo/backups/`, mantendo os 3 últimos →
  * apaga banco, cache, peles, uploads e `instalado.lock` → reinstala com o {@see Instalador} (todos os
- * modelos, administrador com a senha da demo) → popula como `demo-popular --forcar` → liga a agenda do próximo ciclo. **Se
+ * modelos, administrador com uma senha aleatória nova, gravada em `dados/demo/senha-admin` só depois do sucesso) → popula como `demo-popular --forcar` → liga a agenda do próximo ciclo. **Se
  * qualquer passo falhar, o backup é restaurado** e a manutenção é desligada: o site volta como estava. Ficam intactos
  * `dados/config/` (segredo, rede.json, flag da demo…), `dados/cron/` e `dados/demo/`.
  */
 final class ReiniciadorDaDemo
 {
     public const LOGIN_ADMIN = 'admin';
-    public const SENHA_ADMIN = 'admin-demo-2026';
     public const MANTER_BACKUPS = 3;
     private const PAUSA_PEDIDOS_EM_ANDAMENTO_US = 500_000;
 
@@ -70,7 +69,7 @@ final class ReiniciadorDaDemo
                 'Manutenção (503) ligada durante o reinício',
                 "Backup de dados/ (SQLite, uploads, peles) em dados/demo/backups/, mantendo os " . self::MANTER_BACKUPS . ' últimos',
                 'Banco, cache, peles, uploads e dados/config/instalado.lock apagados; dados/config/ (segredo, rede, flag da demo) mantida',
-                "Reinstalação: site \"{$nome}\" em {$host}, todos os modelos, administrador \"" . self::LOGIN_ADMIN . '"',
+                "Reinstalação: site \"{$nome}\" em {$host}, todos os modelos, administrador \"" . self::LOGIN_ADMIN . '" com senha aleatória nova (ver: bin/pbl demo-senha)',
                 'Conteúdo de exemplo recriado (como demo-popular --forcar), com as contas autor e editor',
             ];
             if ($simular) {
@@ -109,7 +108,10 @@ final class ReiniciadorDaDemo
             }
             // O aviso "reinicia em…" das páginas publicadas já nasce com o próximo ciclo.
             $agenda->registrar($agenda->agora());
-            $this->reinstalar($nome, $host);
+            $senha = SenhaDaDemo::gerar();
+            $this->reinstalar($nome, $host, $senha);
+            // Só depois de tudo certo: se algo falhou, o backup volta com o administrador antigo e o arquivo antigo continua valendo.
+            SenhaDaDemo::gravar($this->caminhos, $senha);
         } catch (\Throwable $e) {
             $agenda->registrar($ultimoAntes);
             $agenda->registrarFalha();
@@ -149,10 +151,10 @@ final class ReiniciadorDaDemo
         return [$site->nome, $host];
     }
 
-    private function reinstalar(string $nome, string $host): void
+    private function reinstalar(string $nome, string $host, string $senha): void
     {
         (new Instalador($this->caminhos))->instalar($nome, $host, [
-            'login' => self::LOGIN_ADMIN, 'email' => self::LOGIN_ADMIN . '@exemplo.org', 'nome' => 'Administrador da demo', 'senha' => self::SENHA_ADMIN,
+            'login' => self::LOGIN_ADMIN, 'email' => self::LOGIN_ADMIN . '@exemplo.org', 'nome' => 'Administrador da demo', 'senha' => $senha,
         ], Modelos::NOMES);
         $saida = new BufferedOutput();
         $codigo = (new DemoPopularComando($this->caminhos))->run(new ArrayInput(['--forcar' => true]), $saida);
