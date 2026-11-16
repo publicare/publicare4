@@ -13,6 +13,7 @@ use Pbl\Demo\AgendaDaDemo;
 use Pbl\Demo\AvisoDaDemo;
 use Pbl\Demo\ConfigDaDemo;
 use Pbl\Demo\ReiniciadorDaDemo;
+use Pbl\Demo\SenhaDaDemo;
 use Pbl\Servicos;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -168,7 +169,11 @@ final class DemoResetTest extends TestCase
         self::assertFileDoesNotExist($this->caminhos->uploads() . '/visitante.txt');
         $s = Servicos::doBancoInstalado($this->caminhos);
         try {
-            self::assertNotNull($s->usuarios->autenticar('admin', 'admin-demo-2026'));
+            $senha = SenhaDaDemo::ler($this->caminhos);
+            self::assertNotNull($senha, 'a senha do administrador fica em dados/demo/');
+            self::assertGreaterThanOrEqual(24, strlen($senha));
+            self::assertNotNull($s->usuarios->autenticar('admin', $senha));
+            self::assertStringNotContainsString($senha, $c->getDisplay(), 'a senha nunca sai na saída do comando');
             self::assertNotNull($s->usuarios->autenticar('autor', 'demo-2026-pbl4'));
             self::assertNotNull($s->usuarios->autenticar('editor', 'demo-2026-pbl4'));
             self::assertNotNull($s->sites->porHost('www.exemplo.org'), 'domínio mantido');
@@ -183,6 +188,70 @@ final class DemoResetTest extends TestCase
         self::assertFalse(Manutencao::ativa($this->caminhos));
         self::assertCount(ReiniciadorDaDemo::MANTER_BACKUPS, glob($this->caminhos->dados() . '/demo/backups/*', GLOB_ONLYDIR) ?: []);
         self::assertStringContainsString('Demo: reinicia em', AvisoDaDemo::faixa($this->caminhos));
+    }
+
+    public function testCadaReinicioGeraUmaSenhaNovaQueNaoApareceNaSaida(): void
+    {
+        $this->ligarDemo();
+        $c = new CommandTester(new DemoResetarComando($this->caminhos));
+        self::assertSame(0, $c->execute(['--agora' => true]), $c->getDisplay());
+        $primeira = SenhaDaDemo::ler($this->caminhos) ?? self::fail();
+        self::assertSame(0600, fileperms($this->caminhos->dados() . '/demo/senha-admin') & 0777);
+        self::assertSame(0, $c->execute(['--agora' => true]), $c->getDisplay());
+        $segunda = SenhaDaDemo::ler($this->caminhos) ?? self::fail();
+        self::assertNotSame($primeira, $segunda);
+        self::assertStringNotContainsString($segunda, $c->getDisplay());
+        $s = Servicos::doBancoInstalado($this->caminhos);
+        try {
+            self::assertNull($s->usuarios->autenticar('admin', $primeira), 'a senha anterior deixa de valer');
+            self::assertNotNull($s->usuarios->autenticar('admin', $segunda));
+        } finally {
+            $s->conexao()->close();
+        }
+    }
+
+    public function testSimulacaoNaoGravaSenha(): void
+    {
+        $this->ligarDemo();
+        $c = new CommandTester(new DemoResetarComando($this->caminhos));
+        self::assertSame(0, $c->execute(['--simular' => true]), $c->getDisplay());
+        self::assertFileDoesNotExist($this->caminhos->dados() . '/demo/senha-admin');
+    }
+
+    public function testFalhaDepoisDeApagarMantemASenhaAnteriorValida(): void
+    {
+        $this->ligarDemo();
+        $c = new CommandTester(new DemoResetarComando($this->caminhos));
+        self::assertSame(0, $c->execute(['--agora' => true]), $c->getDisplay());
+        $anterior = SenhaDaDemo::ler($this->caminhos) ?? self::fail();
+
+        $r = new ReiniciadorDaDemo($this->caminhos, null, static function (): void {
+            throw new \RuntimeException('falha simulada');
+        });
+        try {
+            $r->reiniciar();
+            self::fail('deveria falhar');
+        } catch (\RuntimeException $e) {
+            self::assertStringNotContainsString($anterior, $e->getMessage());
+        }
+        self::assertSame($anterior, SenhaDaDemo::ler($this->caminhos));
+        $s = Servicos::doBancoInstalado($this->caminhos);
+        try {
+            self::assertNotNull($s->usuarios->autenticar('admin', $anterior));
+        } finally {
+            $s->conexao()->close();
+        }
+    }
+
+    public function testSemFlagOReinicioRecusaENaoCriaDadosDemo(): void
+    {
+        putenv('PBL_DEMO');
+        try {
+            (new ReiniciadorDaDemo($this->caminhos))->reiniciar();
+            self::fail('deveria recusar');
+        } catch (\RuntimeException) {
+        }
+        self::assertDirectoryDoesNotExist($this->caminhos->dados() . '/demo');
     }
 
     public function testFalhaNoMeioRestauraOBackup(): void

@@ -72,6 +72,10 @@ final class Reversor
         if (!in_array('app', $r['sem_anterior'], true) && in_array('app', $r['itens'], true) && $versaoGuardada !== $r['de']) {
             return new Avaliacao(false, "O código guardado em dados/atualizacao/anterior/ não é da versão {$r['de']} (diz " . ($versaoGuardada ?? 'nenhuma') . ').');
         }
+        $erroCodigo = $this->conferirCodigoGuardado($r, $anterior);
+        if ($erroCodigo !== null) {
+            return new Avaliacao(false, $erroCodigo);
+        }
         $restaura = $r['backup'] !== '';
         if ($restaura) {
             $erro = $this->conferirBackup($r);
@@ -232,6 +236,24 @@ final class Reversor
         }
     }
 
+    /**
+     * Falha fechada: sem hash no registro (atualização anterior a esta conferência) ou hash diferente, recusa e não toca em nada.
+     *
+     * @param array{itens: list<string>, sem_anterior: list<string>, codigo_sha256: string} $r
+     */
+    private function conferirCodigoGuardado(array $r, string $anterior): ?string
+    {
+        if ($r['codigo_sha256'] === '') {
+            return 'O registro da atualização não traz o SHA-256 do código guardado (atualização feita antes desta conferência): não dá para provar que dados/atualizacao/anterior/ está íntegro, então a volta atrás foi recusada e nada foi tocado. Restaure à mão ou atualize de novo.';
+        }
+        $itens = array_values(array_filter($r['itens'], static fn (string $i): bool => !in_array($i, $r['sem_anterior'], true)));
+        if (!hash_equals($r['codigo_sha256'], ResumoDeArvore::dosItens($anterior, $itens))) {
+            return 'O código guardado em dados/atualizacao/anterior/ foi alterado depois da atualização (SHA-256 não confere); a volta atrás foi recusada e nada foi tocado.';
+        }
+
+        return null;
+    }
+
     /** @param array{backup: string, backup_sha256: string, schema_antes: int|null} $r */
     private function conferirBackup(array $r): ?string
     {
@@ -296,7 +318,7 @@ final class Reversor
     /** Carrega agora o que será usado depois da troca de pastas, quando o autoload já aponta para o código antigo. */
     private static function precarregar(): void
     {
-        foreach ([ErroDeAtualizacao::class, Manutencao::class, RegistroDaAtualizacao::class, Revertida::class, Avaliacao::class, Trava::class, CopiaDeBanco::class, Conexao::class, Auditoria::class, Semver::class] as $classe) {
+        foreach ([ErroDeAtualizacao::class, Manutencao::class, RegistroDaAtualizacao::class, Revertida::class, Avaliacao::class, Trava::class, CopiaDeBanco::class, Conexao::class, Auditoria::class, Semver::class, ResumoDeArvore::class] as $classe) {
             class_exists($classe);
         }
     }

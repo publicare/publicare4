@@ -33,9 +33,11 @@ Configuração em `dados/config/atualizacao.json`:
 
 `dados/` nunca entra na troca. Precisa de permissão de escrita na pasta do PBL4 e da extensão `zip`; sem elas o comando explica o que falta, sem tocar em nada.
 
-Ao terminar, o `Atualizador` grava `dados/atualizacao/aplicada.json` (`RegistroDaAtualizacao`): de qual versão para qual, quando, o nome e o SHA-256 da cópia do banco e a versão do esquema antes e depois. É o que `bin/pbl reverter` confere antes de voltar atrás; some junto com `anterior/` na próxima atualização.
+Ao terminar, o `Atualizador` grava `dados/atualizacao/aplicada.json` (`RegistroDaAtualizacao`): de qual versão para qual, quando, o nome e o SHA-256 da cópia do banco, o SHA-256 do código guardado em `anterior/` (`codigo_sha256`, calculado por `ResumoDeArvore`) e a versão do esquema antes e depois. É o que `bin/pbl reverter` confere antes de voltar atrás; some junto com `anterior/` na próxima atualização.
 
 ## Voltar atrás de uma atualização concluída (`bin/pbl reverter`)
+
+> **Integridade (G8):** antes de qualquer mudança o `Reversor` recalcula o SHA-256 do código guardado e da cópia do banco e compara com o registro; diferente ou ausente, recusa sem tocar em nada. Registro de atualização feita antes desta conferência (sem `codigo_sha256`) é recusado: restaure à mão ou atualize de novo. Ver [segurança](seguranca.md#demo-e-reversão-s-03-g8).
 
 ```bash
 php bin/pbl reverter              # só olha: para qual versão voltaria e o que se perde; não altera nada

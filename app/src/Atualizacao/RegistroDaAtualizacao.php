@@ -11,7 +11,7 @@ use Pbl\Caminhos;
  * `anterior/` (o código antigo) e vale até a próxima atualização, que apaga `dados/atualizacao/`. Nada aqui é lido como código;
  * JSON com tipo errado vira "sem registro".
  *
- * @phpstan-type Dados array{de: string, para: string, em: int, backup: string, backup_sha256: string, schema_antes: int|null, schema_depois: int|null, itens: list<string>, sem_anterior: list<string>, revertida: bool, revertida_em: int}
+ * @phpstan-type Dados array{de: string, para: string, em: int, backup: string, backup_sha256: string, codigo_sha256: string, schema_antes: int|null, schema_depois: int|null, itens: list<string>, sem_anterior: list<string>, revertida: bool, revertida_em: int}
  */
 final class RegistroDaAtualizacao
 {
@@ -69,6 +69,7 @@ final class RegistroDaAtualizacao
 
         return [
             'de' => $d['de'], 'para' => $d['para'], 'em' => $d['em'], 'backup' => $d['backup'], 'backup_sha256' => $d['backup_sha256'],
+            'codigo_sha256' => is_string($d['codigo_sha256'] ?? null) ? $d['codigo_sha256'] : '', // registro antigo: '' (a volta é recusada)
             'schema_antes' => $inteiro($d['schema_antes'] ?? null), 'schema_depois' => $inteiro($d['schema_depois'] ?? null),
             'itens' => $itens, 'sem_anterior' => $semAnterior,
             'revertida' => ($d['revertida'] ?? false) === true, 'revertida_em' => is_int($d['revertida_em'] ?? null) ? $d['revertida_em'] : 0,
