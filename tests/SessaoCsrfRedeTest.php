@@ -207,7 +207,12 @@ final class SessaoCsrfRedeTest extends TestCase
 
             file_put_contents($raiz . '/dados/config/rede.json', '{"cabecalho_ip": "CF-Connecting-IP", "confiar_proto": true}');
             $comConfig = new Rede(new Caminhos($raiz));
-            self::assertSame('203.0.113.9', $comConfig->ip($r));
+            $log = $this->capturarLog(function () use ($comConfig, $r): void {
+                self::assertSame('203.0.113.9', $comConfig->ip($r), 'sem lista de proxies, mantém o comportamento atual');
+                $comConfig->ip($r);
+            });
+            self::assertSame(1, substr_count($log, 'proxies_confiaveis'), 'avisa uma única vez');
+            self::assertStringNotContainsString('203.0.113.9', $log, 'o aviso não grava IP');
             $lixo = Request::create('https://www.exemplo.org/', 'GET', [], [], [], ['REMOTE_ADDR' => '10.0.0.1', 'HTTP_CF_CONNECTING_IP' => 'não é ip']);
             self::assertSame('10.0.0.1', $comConfig->ip($lixo), 'valor que não é IP volta ao endereço da conexão');
 
@@ -217,6 +222,68 @@ final class SessaoCsrfRedeTest extends TestCase
         } finally {
             Ajuda::apagar($raiz);
         }
+    }
+
+    /** @return iterable<string, array{string, string, string}> remoto, lista (JSON) e IP esperado */
+    public static function proxiesConfiaveis(): iterable
+    {
+        yield 'conexão vem de proxy da lista (CIDR)' => ['10.0.0.1', '["10.0.0.0/8"]', '203.0.113.9'];
+        yield 'conexão vem de proxy da lista (IP exato)' => ['198.51.100.7', '["198.51.100.7"]', '203.0.113.9'];
+        yield 'conexão fora da lista: cabeçalho forjado é ignorado' => ['198.51.100.7', '["10.0.0.0/8"]', '198.51.100.7'];
+        yield 'lista vazia: ninguém é confiável' => ['10.0.0.1', '[]', '10.0.0.1'];
+        yield 'itens inválidos da lista são ignorados' => ['10.0.0.1', '[42, "lixo", "10.0.0.0/99", null, "10.0.0.0/8"]', '203.0.113.9'];
+        yield 'só itens inválidos: ninguém é confiável' => ['10.0.0.1', '[42, "lixo", "10.0.0.0/99"]', '10.0.0.1'];
+        yield 'lista que não é lista é tratada como vazia' => ['10.0.0.1', '"10.0.0.0/8"', '10.0.0.1'];
+    }
+
+    #[DataProvider('proxiesConfiaveis')]
+    public function testCabecalhoDeIpComListaDeProxiesConfiaveis(string $remoto, string $lista, string $esperado): void
+    {
+        $raiz = Ajuda::pastaTemporaria();
+        try {
+            mkdir($raiz . '/dados/config', 0775, true);
+            file_put_contents($raiz . '/dados/config/rede.json', '{"cabecalho_ip": "CF-Connecting-IP", "proxies_confiaveis": ' . $lista . '}');
+            $rede = new Rede(new Caminhos($raiz));
+            $r = Request::create('https://www.exemplo.org/', 'GET', [], [], [], ['REMOTE_ADDR' => $remoto, 'HTTP_CF_CONNECTING_IP' => '203.0.113.9']);
+
+            $log = $this->capturarLog(function () use ($rede, $r, $esperado): void {
+                self::assertSame($esperado, $rede->ip($r));
+            });
+            self::assertStringNotContainsString('proxies_confiaveis', $log, 'com a lista declarada não há aviso');
+        } finally {
+            Ajuda::apagar($raiz);
+        }
+    }
+
+    public function testCabecalhoComListaMasValorInvalidoVoltaAoEnderecoDaConexao(): void
+    {
+        $raiz = Ajuda::pastaTemporaria();
+        try {
+            mkdir($raiz . '/dados/config', 0775, true);
+            file_put_contents($raiz . '/dados/config/rede.json', '{"cabecalho_ip": "CF-Connecting-IP", "proxies_confiaveis": ["10.0.0.0/8"]}');
+            $r = Request::create('https://www.exemplo.org/', 'GET', [], [], [], ['REMOTE_ADDR' => '10.0.0.1', 'HTTP_CF_CONNECTING_IP' => 'não é ip']);
+
+            self::assertSame('10.0.0.1', (new Rede(new Caminhos($raiz)))->ip($r));
+        } finally {
+            Ajuda::apagar($raiz);
+        }
+    }
+
+    /** Roda `$acao` com o `error_log` num arquivo temporário e devolve o que foi registrado. */
+    private function capturarLog(callable $acao): string
+    {
+        $arquivo = tempnam(sys_get_temp_dir(), 'pbl4-log');
+        self::assertIsString($arquivo);
+        $anterior = ini_set('error_log', $arquivo);
+        try {
+            $acao();
+        } finally {
+            ini_set('error_log', $anterior === false ? '' : $anterior);
+            $log = (string) file_get_contents($arquivo);
+            unlink($arquivo);
+        }
+
+        return $log;
     }
 
     public function testOrigemAtrasDeProxyQueTerminaOHttpsComparaComAPortaPublica(): void
