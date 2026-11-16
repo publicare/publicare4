@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Alterado
+- **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.1` (primeira release pelo pipeline automático, assinada no CI).
+
 ### Corrigido
 - **Workflow de release:** o passo de empacotar rodava `bin/pbl` na raiz do repositório, onde não há `vendor/`, e falhava no ensaio da `v0.1.0-rc.1`; agora usa o `bin/pbl` da pasta preparada (com as dependências de produção).
 
