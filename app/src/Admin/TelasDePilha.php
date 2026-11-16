@@ -89,7 +89,7 @@ final class TelasDePilha
         $vistas = [];
         foreach ($ids as $id) {
             $o = $this->servicos->objetos->porId($id);
-            $acao = $modo === Pilha::RECORTAR ? Acao::Editar : Acao::Ver;
+            $acao = $modo === Pilha::RECORTAR ? Acao::Apagar : Acao::Ver;
             if ($o === null || $o->status === 'apagado' || $o->paiId === null || !$this->servicos->permissoes->pode($sessao->usuario, $acao, $o) || ($siteId !== null && $o->siteId !== $siteId)) {
                 ++$ignorados;
                 continue;

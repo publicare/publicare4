@@ -9,13 +9,13 @@ O PBL3 tinha uma "pilha" por conta: separar objetos e colá-los em outra pasta, 
 ## Decisão
 
 1. **Tabela `pilha` (migração 23)**: `usuario_id`, `site_id`, `objeto_id`, `modo` (`copiar` ou `recortar`), `versao` (a que a pessoa viu ao separar) e `criado_em`; única por (conta, objeto). Guarda só referências: nada muda até colar. Uma pilha tem um site e um modo; separar de outro site ou no outro modo recomeça a pilha. Limite de 200 itens.
-2. **Separar**: na tela Conteúdo (lote e menu "Mais" de cada linha) e na tela do objeto ("Copiar para a pilha" e "Recortar para a pilha"). Copiar exige Ver; recortar exige Editar na origem. Itens sem permissão, na lixeira, de outro site ou a raiz são ignorados e contados no aviso.
+2. **Separar**: na tela Conteúdo (lote e menu "Mais" de cada linha) e na tela do objeto ("Copiar para a pilha" e "Recortar para a pilha"). Copiar exige Ver; recortar exige Apagar na origem (revisão de 2026-11-16; ver o item 5). Itens sem permissão, na lixeira, de outro site ou a raiz são ignorados e contados no aviso.
 3. **Colar aqui** numa pasta de destino, com prévia antes de gravar (o que será feito e o que será recusado, item a item) e confirmação por POST com CSRF. Três modos:
    - **Mover** (pilha de recorte): usa `ObjetoRepositorio::mover` com a versão guardada; se o objeto mudou depois de recortado, o item é recusado.
    - **Colar cópia**: novo objeto "Cópia de …", `privado` (rascunho), endereço amigável único no destino, propriedades copiadas; arquivos e imagens ganham nova linha em `arquivo` apontando para o **mesmo blob** (sem duplicar no disco). Opção de **cópia profunda** (descendentes fora da lixeira, preservando a árvore).
    - **Colar link**: cria um objeto da classe `link` com `destino_interno` apontando para o original (útil onde a classe do original não é aceita).
 4. **Regras**: exige Criar no destino; a classe do destino precisa aceitar a do item (`Classe::aceita`); nunca colar dentro de si mesmo ou de um descendente; no máximo 200 objetos criados por colagem (conta a subárvore). Cada item roda em transação própria: o resultado lista sucessos e erros por item e um erro não desfaz os demais. Auditoria `pilha.colar` (e `pilha.colar.negado`).
-5. **Recortar exige Editar, e não Apagar** como a tela "mover" existente: a pilha é fluxo de organização e a mudança de pai não destrói conteúdo. Quem só edita o que é seu só recorta o que é seu.
+5. **Recortar e mover exigem Apagar, como a tela "mover" existente** (revisão de 2026-11-16, decisão do dono, achado S-01 do diagnóstico): mudar o pai tira o conteúdo do lugar onde estava, e quem só edita o que é seu (Autor) não pode mover. A decisão original era Editar; foi trocada para fechar o desvio em relação à tela de mover. Copiar segue exigindo só Ver.
 6. **Republicação**: itens publicados movidos ou ligados passam pelo Publicador. Até 25 objetos afetados são republicados na hora; acima disso a colagem entra na `FilaDeRepublicacao` (origem `pilha`), consumida pelo cron.
 
 ## Consequências

@@ -163,9 +163,9 @@ final class Colagem
         if (str_starts_with($destino->caminho, $o->caminho)) {
             return 'Não dá para colar um conteúdo dentro dele mesmo.';
         }
-        $acao = $tipo === self::MOVER ? Acao::Editar : Acao::Ver;
+        $acao = $tipo === self::MOVER ? Acao::Apagar : Acao::Ver;
         if (!$this->servicos->permissoes->pode($usuario, $acao, $o)) {
-            return $tipo === self::MOVER ? 'Você não pode alterar este conteúdo.' : 'Você não pode ver este conteúdo.';
+            return $tipo === self::MOVER ? 'Você não pode mover este conteúdo.' : 'Você não pode ver este conteúdo.';
         }
         $classeDoDestino = $this->classe($destino->classeId);
         $classe = $this->classe($o->classeId);
