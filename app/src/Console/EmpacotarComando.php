@@ -28,6 +28,7 @@ final class EmpacotarComando extends Command
         $this->addOption('a-partir-de', null, InputOption::VALUE_REQUIRED, 'Versão mínima que pode atualizar direto', '0.0.0');
         $this->addOption('seguranca', null, InputOption::VALUE_NONE, 'Marca a versão como correção de segurança');
         $this->addOption('resumo', null, InputOption::VALUE_REQUIRED, 'Resumo de uma linha', '');
+        $this->addOption('url-base-pacote', null, InputOption::VALUE_REQUIRED, 'Base do endereço do pacote no manifesto: /pacotes/ (caminho absoluto, mesmo host do manifesto) ou https://host/caminho/', '');
         $this->addOption('notas', null, InputOption::VALUE_REQUIRED, 'Endereço https das notas da versão', '');
     }
 
@@ -65,6 +66,7 @@ final class EmpacotarComando extends Command
                     'seguranca' => (bool) $input->getOption('seguranca'),
                     'resumo' => (string) $input->getOption('resumo'),
                     'notas' => (string) $input->getOption('notas'),
+                    'url_base' => (string) $input->getOption('url-base-pacote'),
                 ] + $extra,
             );
         } catch (ErroDeAtualizacao $e) {

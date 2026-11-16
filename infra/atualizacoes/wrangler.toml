@@ -1,0 +1,12 @@
+# Cloudflare Worker do endpoint de atualizações do Publicare 4. SEM segredos neste arquivo.
+# Deploy (é do dono; não é feito pela fábrica): `npx wrangler deploy` nesta pasta. Detalhes em README.md.
+name = "publicare4-atualizacoes"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+GITHUB_REPO = "publicare/publicare4"
+CACHE_MANIFESTO_SEGUNDOS = "300"
+
+# O domínio/rota é configurado pelo dono depois do deploy (DNS na Cloudflare). Exemplo, DESLIGADO de propósito:
+# routes = [{ pattern = "atualizacoes.example.org", custom_domain = true }]

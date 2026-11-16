@@ -29,35 +29,158 @@ final class ReleaseWorkflowTest extends TestCase
         return (string) file_get_contents(self::RAIZ . '/.github/workflows/release.yml');
     }
 
-    public function testGatilhosSaoTagVEManualESoOJobDoRascunhoEscreve(): void
+    /** Fatia o YAML por job (texto de `  nome:` até o próximo job de nível 2). */
+    private function job(string $nome): string
+    {
+        $y = $this->yaml();
+        $ini = strpos($y, "\n  {$nome}:\n");
+        self::assertNotFalse($ini, "job {$nome} ausente");
+        $resto = substr($y, $ini + 1);
+        $fim = preg_match('/\n  [a-z]+:\n/', $resto, $m, PREG_OFFSET_CAPTURE, 3) === 1 ? $m[0][1] : strlen($resto);
+
+        return substr($resto, 0, $fim);
+    }
+
+    public function testGatilhoEhSoTagVEOManualNaoAssinaNemPublica(): void
     {
         $y = $this->yaml();
 
         self::assertMatchesRegularExpression("/push:\n    tags: \['v\*'\]/", $y);
+        self::assertStringNotContainsString('branches:', $y, 'nunca merge na main');
         self::assertStringContainsString('workflow_dispatch:', $y);
         self::assertMatchesRegularExpression("/\npermissions:\n  contents: read\n/", $y);
-        self::assertSame(1, substr_count($y, 'contents: write'), 'escrita só num job');
-        $rascunho = substr($y, (int) strpos($y, "\n  rascunho:"));
-        self::assertStringContainsString('contents: write', $rascunho);
-        self::assertStringContainsString("if: github.event_name == 'push'", $rascunho, 'o ensaio manual não publica');
-        self::assertStringContainsString('--draft', $rascunho);
+        self::assertStringContainsString("if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')", $this->job('assinar'));
+        self::assertStringContainsString("github.event_name == 'push'", $this->job('publicar'));
     }
 
-    public function testNaoHaSegredoDeAssinaturaEOsActionsEstaoFixados(): void
+    public function testJobDeAssinaturaDeclaraOEnvironmentReleaseELeituraApenas(): void
+    {
+        $assinar = $this->job('assinar');
+
+        self::assertStringContainsString("\n    environment: release\n", $assinar);
+        self::assertStringContainsString("permissions:\n      contents: read", $assinar);
+        self::assertStringNotContainsString('contents: write', $assinar);
+        self::assertStringNotContainsString('gh release', $assinar);
+        self::assertStringNotContainsString('GITHUB_TOKEN', $assinar);
+        self::assertStringNotContainsString('environment:', $this->job('publicar'), 'o publicar não recebe o segredo');
+    }
+
+    public function testEscritaSoNoJobPublicar(): void
+    {
+        $y = $this->yaml();
+
+        self::assertSame(1, substr_count($y, 'contents: write'));
+        self::assertStringContainsString('contents: write', $this->job('publicar'));
+        self::assertStringNotContainsString('contents: write', $this->job('empacotar'));
+    }
+
+    public function testOUnicoSegredoDeAssinaturaEPBL4ChaveUsoESoNoPassoQueGravaOArquivo(): void
     {
         $y = $this->yaml();
 
         preg_match_all('/secrets\.([A-Za-z0-9_]+)/', $y, $m);
-        self::assertSame(['GITHUB_TOKEN'], array_values(array_unique($m[1])));
-        self::assertStringContainsString('--sem-assinar', $y);
-        self::assertStringNotContainsString('--chave-privada', $y);
-        preg_match_all('/uses:\s*(\S+)/', $y, $u);
+        self::assertSame(['PBL4_CHAVE_USO', 'GITHUB_TOKEN'], array_values(array_unique($m[1])));
+        self::assertSame(1, substr_count($y, 'secrets.PBL4_CHAVE_USO'));
+        self::assertDoesNotMatchRegularExpression('/recupera/i', (string) preg_replace('/^\s*#.*$/m', '', $y), 'a chave de recuperação nunca entra no CI');
+        self::assertStringNotContainsString('GITHUB_TOKEN', $this->job('empacotar') . $this->job('assinar'));
+
+        // o segredo está no env: de UM passo (8 espaços de recuo + 10), não do job nem do workflow
+        self::assertMatchesRegularExpression('/\n {8}env:\n {10}CHAVE_USO: \$\{\{ secrets\.PBL4_CHAVE_USO \}\}\n/', $y);
+        $passo = substr($y, (int) strpos($y, '- name: Gravar a chave de uso'));
+        $passo = substr($passo, 0, (int) strpos($passo, "\n      - name: Assinar"));
+        self::assertStringContainsString('umask 077', $passo);
+        self::assertStringContainsString("printf '%s\\n' \"\$CHAVE_USO\" > \"\$RUNNER_TEMP/uso.chave\"", $passo);
+    }
+
+    public function testASegredoNuncaVaiParaLogEnvOutputNemArtefato(): void
+    {
+        $assinar = $this->job('assinar');
+
+        foreach (explode("\n", $assinar) as $linha) {
+            if (preg_match('/\$CHAVE_USO|uso\.chave/', $linha) === 1) {
+                self::assertDoesNotMatchRegularExpression('/\becho\b|\bcat\b|set -x|GITHUB_ENV|::add-mask::|--chave-privada=\$/', $linha . '', "linha suspeita: {$linha}");
+            }
+        }
+        self::assertStringNotContainsString('set -x', $assinar);
+        self::assertStringNotContainsString('GITHUB_ENV', $assinar);
+        self::assertStringNotContainsString('echo "$CHAVE_USO"', $assinar);
+        // o único passo com o arquivo de chave que escreve em GITHUB_OUTPUT só grava booleanos
+        self::assertStringContainsString('echo "tem_chave=true" >> "$GITHUB_OUTPUT"', $assinar);
+        // o artefato sobe a pasta `saida`, nunca RUNNER_TEMP inteiro (onde está a chave)
+        preg_match_all('/path: (.+)/', $assinar, $p);
+        foreach ($p[1] as $caminho) {
+            self::assertMatchesRegularExpression('#/saida/?$#', trim($caminho));
+        }
+    }
+
+    public function testChaveVaiParaArquivoUsadaPeloAssinarEApagadaSempre(): void
+    {
+        $assinar = $this->job('assinar');
+
+        self::assertStringContainsString('php bin/pbl assinar "$RUNNER_TEMP/saida/$nome" --chave-privada="$RUNNER_TEMP/uso.chave"', $assinar);
+        self::assertMatchesRegularExpression('/- name: Apagar a chave\n\s+if: always\(\)\n\s+run: rm -f "\$RUNNER_TEMP\/uso\.chave"/', $assinar);
+        $ordem = array_map(static fn (string $t): int|false => strpos($assinar, $t), ['Gravar a chave', 'Assinar o manifesto', 'Conferir a assinatura', 'Apagar a chave']);
+        $ordenada = $ordem;
+        sort($ordenada);
+        self::assertSame($ordenada, $ordem);
+        self::assertNotContains(false, $ordem);
+    }
+
+    public function testConferenciaContraChavesUsoEAntesDeMarcarComoAssinadoEDePublicar(): void
+    {
+        $assinar = $this->job('assinar');
+        $publicar = $this->job('publicar');
+
+        self::assertStringContainsString('php bin/pbl verificar-assinatura "$RUNNER_TEMP/saida/$nome" --canal="$CANAL"', $assinar);
+        self::assertLessThan((int) strpos($assinar, 'id: marcar'), (int) strpos($assinar, 'verificar-assinatura'));
+        self::assertStringContainsString('needs: [empacotar, assinar]', $publicar);
+        // falha em qualquer passo do assinar => resultado != success => publicar recusa e não cria release
+        self::assertStringContainsString("if: needs.assinar.result != 'success'", $publicar);
+        $recusa = (int) strpos($publicar, "needs.assinar.result != 'success'");
+        self::assertLessThan((int) strpos($publicar, 'gh release create'), $recusa);
+        // só publica (draft=false) com assinado == 'true'
+        self::assertStringContainsString("if: needs.assinar.outputs.assinado == 'true'", $publicar);
+        $publica = substr($publicar, (int) strpos($publicar, '- name: Publicar a release assinada'));
+        $publica = substr($publica, 0, (int) strpos($publica, '- name: Criar só o rascunho'));
+        self::assertStringContainsString('--draft=false', $publica);
+        self::assertStringContainsString('latest*.json.sig', $publica);
+        self::assertStringContainsString('--prerelease', $publica);
+        self::assertStringNotContainsString('--draft=false', substr($publicar, (int) strpos($publicar, '- name: Criar só o rascunho')));
+    }
+
+    public function testEnsaioSemSegredoGeraSoRascunhoComAvisoNoResumo(): void
+    {
+        $assinar = $this->job('assinar');
+        $rascunho = substr($this->job('publicar'), (int) strpos($this->job('publicar'), '- name: Criar só o rascunho'));
+
+        self::assertStringContainsString('if: steps.chave.outputs.tem_chave == \'false\'', $assinar);
+        self::assertStringContainsString('::warning::', $assinar);
+        self::assertStringContainsString("if: needs.assinar.outputs.assinado != 'true'", $rascunho);
+        self::assertStringContainsString('gh release create "$TAG" --draft --verify-tag', $rascunho);
+        self::assertStringContainsString('GITHUB_STEP_SUMMARY', $rascunho);
+        self::assertStringContainsString('PBL4_CHAVE_USO', $rascunho);
+        self::assertStringContainsString('--prerelease', $rascunho);
+    }
+
+    public function testEmpacotarMantemSemAssinarEUrlBaseDoMesmoHost(): void
+    {
+        $e = $this->job('empacotar');
+
+        self::assertStringContainsString('--sem-assinar', $e);
+        self::assertStringContainsString('--url-base-pacote=/pacotes/', $e);
+        self::assertStringNotContainsString('--chave-privada', $e);
+        self::assertStringContainsString('composer install --no-dev --optimize-autoloader', $e);
+        self::assertStringContainsString('gd, zip', $e);
+    }
+
+    public function testActionsFixadasPorVersao(): void
+    {
+        preg_match_all('/uses:\s*(\S+)/', $this->yaml(), $u);
+
         self::assertNotEmpty($u[1]);
         foreach ($u[1] as $uso) {
             self::assertMatchesRegularExpression('/@\S+$/', $uso, "action sem versão fixada: {$uso}");
         }
-        self::assertStringContainsString('composer install --no-dev --optimize-autoloader', $y);
-        self::assertStringContainsString('gd, zip', $y);
     }
 
     public function testATagSoEntraPorEnvOuWithNuncaDentroDoComando(): void

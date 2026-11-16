@@ -6,6 +6,7 @@ namespace Pbl\Testes;
 
 use Pbl\Atualizacao\Assinatura;
 use Pbl\Atualizacao\Atualizador;
+use Pbl\Atualizacao\BaixadorHttps;
 use Pbl\Atualizacao\BaixadorLocal;
 use Pbl\Atualizacao\Chaves;
 use Pbl\Atualizacao\ErroDeAtualizacao;
@@ -134,5 +135,45 @@ final class PipelineDoPacoteTest extends TestCase
         $real = new CommandTester(new VerificarAssinaturaComando());
         $real->execute(['arquivo' => $manifesto]);
         self::assertSame(1, $real->getStatusCode(), 'a chave descartável não é uma das embutidas');
+    }
+
+    public function testUrlBaseDoPacoteCaminhoAbsolutoResolveNoMesmoHostDoManifesto(): void
+    {
+        $manifesto = $this->empacotar(['--sem-assinar' => true, '--url-base-pacote' => '/pacotes/']);
+        $m = json_decode((string) file_get_contents($manifesto), true);
+
+        self::assertSame('/pacotes/pbl4-0.2.0.zip', $m['pacote']['url']);
+        self::assertSame(
+            'https://atualizacoes.exemplo.org/pacotes/pbl4-0.2.0.zip',
+            (new BaixadorHttps())->resolver('https://atualizacoes.exemplo.org/latest.json', $m['pacote']['url']),
+        );
+    }
+
+    public function testSemUrlBaseOManifestoMantemONomeRelativo(): void
+    {
+        $m = json_decode((string) file_get_contents($this->empacotar(['--sem-assinar' => true])), true);
+
+        self::assertSame('pbl4-0.2.0.zip', $m['pacote']['url']);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function basesInvalidas(): iterable
+    {
+        yield 'http' => ['http://x.org/pacotes/'];
+        yield 'sem barra final' => ['/pacotes'];
+        yield 'subindo pastas' => ['/pacotes/../'];
+        yield 'relativa' => ['pacotes/'];
+        yield 'mesmo host com usuario' => ['https://u@x.org/p/'];
+        yield 'protocolo relativo' => ['//x.org/'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('basesInvalidas')]
+    public function testUrlBaseInvalidaEhRecusada(string $base): void
+    {
+        $t = new CommandTester(new EmpacotarComando());
+        $t->execute(['origem' => $this->projetoPreparado(), 'saida' => $this->pasta(), '--sem-assinar' => true, '--url-base-pacote' => $base]);
+
+        self::assertSame(1, $t->getStatusCode());
+        self::assertStringContainsString('URL base do pacote inválida', $t->getDisplay());
     }
 }
