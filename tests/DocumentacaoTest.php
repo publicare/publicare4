@@ -9,6 +9,67 @@ use PHPUnit\Framework\TestCase;
 /** Documentação não pode ter link relativo quebrado nem vazar nome de cliente/órgão (repositório público). */
 final class DocumentacaoTest extends TestCase
 {
+    /**
+     * Arquivos fora da regra "MySQL/PostgreSQL ainda não funcionam" (caminhos a partir da raiz). Cada um com o motivo.
+     */
+    private const SEM_REGRA_MULTIBANCO = [
+        // O ADR descreve justamente a meta do multi-banco.
+        'docs/adr/0028-suporte-mysql-postgresql.md',
+        // O plano traz os projetos do multi-banco.
+        'docs/plano.md',
+        // Histórico datado de versões já publicadas; não se reescreve.
+        'CHANGELOG.md',
+        // Aqui MySQL/PostgreSQL são o banco de ORIGEM do PBL3, não suporte do produto.
+        'docs/tecnica/migrar-do-pbl3.md',
+        'docs/tecnica/cli.md',
+        'docs/adr/0027-importador-pbl3.md',
+    ];
+
+    /** Uma linha que cita MySQL/PostgreSQL precisa trazer um destes qualificadores (futuro, PBL3, ADR 0028…). */
+    private const QUALIFICADOR_MULTIBANCO = '/0\.2|0028|previst|planejad|futur|ainda não|não suport|hoje não|meta|pbl3|proposto/iu';
+
+    /**
+     * Regra lexical simples: toda linha que cita MySQL, PostgreSQL (ou Postgres, pgsql, MariaDB) deve conter um
+     * qualificador de futuro ou de origem. Pode deixar passar afirmação sem qualificador explícito e pode barrar
+     * linha legítima sem qualificador; o remédio é incluir o qualificador ou listar o arquivo em SEM_REGRA_MULTIBANCO.
+     *
+     * @return list<int> números das linhas (a partir de 1) que afirmam suporte sem qualificador
+     */
+    private function linhasQueAfirmamSuporte(string $texto): array
+    {
+        $ruins = [];
+        foreach (preg_split('/\R/', $texto) ?: [] as $i => $linha) {
+            if (preg_match('/mysql|postgres|pgsql|mariadb/i', $linha) === 1
+                && preg_match(self::QUALIFICADOR_MULTIBANCO, $linha) !== 1) {
+                $ruins[] = $i + 1;
+            }
+        }
+
+        return $ruins;
+    }
+
+    public function testDocsNaoDizemQueMysqlOuPostgresqlJaFuncionam(): void
+    {
+        $achados = [];
+        foreach ($this->markdowns() as $arquivo) {
+            $rel = substr($arquivo, strlen(dirname(__DIR__)) + 1);
+            if (in_array($rel, self::SEM_REGRA_MULTIBANCO, true)) {
+                continue;
+            }
+            foreach ($this->linhasQueAfirmamSuporte((string) file_get_contents($arquivo)) as $n) {
+                $achados[] = "{$rel}:{$n}";
+            }
+        }
+
+        self::assertSame([], $achados, "MySQL/PostgreSQL só chegam na 0.2; qualifique a linha:\n" . implode("\n", $achados));
+    }
+
+    public function testRegraDoMultibancoPegaFraseProibida(): void
+    {
+        self::assertSame([2], $this->linhasQueAfirmamSuporte("ok\nMySQL e PostgreSQL são suportados.\n"));
+        self::assertSame([], $this->linhasQueAfirmamSuporte('MySQL e PostgreSQL chegam na 0.2.'));
+    }
+
     /** @return list<string> */
     private function markdowns(): array
     {

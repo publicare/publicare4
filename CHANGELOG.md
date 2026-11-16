@@ -8,6 +8,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ### Adicionado
 - **ADR 0028 (proposto): suporte a MySQL e PostgreSQL na 0.2**, com as decisões D1 a D14 e seus padrões ([ADR 0028](docs/adr/0028-suporte-mysql-postgresql.md)). O 0.1.0 continua só com SQLite.
+- **Teste de documentação** (`DocumentacaoTest`): falha se um documento fora da lista de exceções citar MySQL ou PostgreSQL sem qualificador de futuro (0.2, ADR 0028) ou de origem PBL3.
 - **Plano do multi-banco** em `docs/plano.md`: projetos a0 a h com dependências e estimativas, apontando para o ADR 0028.
 
 ### Alterado
