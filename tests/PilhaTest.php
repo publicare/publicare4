@@ -145,17 +145,31 @@ final class PilhaTest extends TestCase
         self::assertSame($this->inicio->id, $this->obj($a->id)->paiId);
     }
 
-    public function testRecortarExigeEditarEIgnoraOQueNaoPode(): void
+    public function testRecortarExigeApagarEIgnoraOQueNaoPode(): void
     {
         $dele = $this->novo($this->inicio, 'Do editor', 'do-editor', null, 'publicado', [], $this->ids['editor']);
         $proprio = $this->novo($this->inicio, 'Do autor', 'do-autor', null, 'publicado', [], $this->ids['autor']);
         $this->separar('leitor', 'recortar', [$dele]);
         self::assertSame(0, $this->s->pilha->contar($this->ids['leitor']), 'leitor não recorta');
         $r = $this->separar('autor', 'recortar', [$dele, $proprio]);
-        self::assertStringContainsString('f=1', (string) $r->headers->get('Location'));
-        $itens = $this->s->pilha->itens($this->ids['autor']);
-        self::assertCount(1, $itens);
-        self::assertSame($proprio->id, $itens[0]['objeto_id']);
+        self::assertStringContainsString('f=2', (string) $r->headers->get('Location'), 'o autor não tem Apagar, nem no que é seu');
+        self::assertSame(0, $this->s->pilha->contar($this->ids['autor']));
+        $r = $this->separar('autor', 'copiar', [$dele, $proprio]);
+        self::assertStringContainsString('f=0', (string) $r->headers->get('Location'), 'copiar segue permitido ao autor');
+        self::assertSame(2, $this->s->pilha->contar($this->ids['autor']));
+        $r = $this->separar('editor', 'recortar', [$dele, $proprio]);
+        self::assertStringContainsString('f=0', (string) $r->headers->get('Location'), 'o editor tem Apagar');
+        self::assertSame(2, $this->s->pilha->contar($this->ids['editor']));
+    }
+
+    public function testColarMoverExigeApagarMesmoComItemJaNaPilha(): void
+    {
+        $proprio = $this->novo($this->inicio, 'Do autor', 'do-autor', null, 'publicado', [], $this->ids['autor']);
+        $dest = $this->novo($this->inicio, 'Destino', 'destino', $this->pasta);
+        $this->s->pilha->adicionar($this->ids['autor'], 'recortar', [$proprio], []);
+        $this->colar('autor', $dest, 'mover');
+        self::assertSame($this->inicio->id, $this->obj($proprio->id)->paiId, 'o autor não move');
+        self::assertSame(1, $this->s->pilha->contar($this->ids['autor']));
     }
 
     public function testPostSemCsrfOuSemLoginERecusado(): void
