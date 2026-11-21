@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.5] - 2026-11-21
+
+> **Em resumo:** cópias de segurança com tela no painel (fazer agora, agendar, baixar, restaurar, limpar antigas). Cópia para outro lugar pela rede e criptografia do pacote ainda não estão nesta versão. Esta também é a primeira atualização que dá para fazer pela tela, agendada pelo cron.
+
 ### Adicionado
 - **Cópias de segurança (núcleo):** pacote `.zip` com manifesto e SHA-256 (banco SQLite consistente + `dados/`), `bin/pbl backup criar|listar|restaurar|limpar`, tarefa `backup` no cron central (diária/semanal, fuso do site, desativada por padrão em `dados/config/backup.json`), retenção que nunca apaga a cópia do "voltar atrás", pasta configurável validada e restauração com conferência de integridade/esquema, cópia prévia, manutenção e desfazer. Ver [docs/tecnica/backup.md](docs/tecnica/backup.md) e ADR 0029. 
 - **Tela "Cópias de segurança"** (`/_pbl/copias`, só administrador, senha + CSRF + origem): lista (data, tipo, tamanho, versão, integridade, espaço usado/livre), "Fazer agora" com barra de andamento, baixar, apagar, "Limpar antigas", restaurar (senha, digitar RESTAURAR e aviso do que se perde) e ligar/desligar o agendamento (frequência, hora, dias, retenção, pasta). Destino remoto (SFTP/S3) e criptografia ficam para as próximas entregas.
