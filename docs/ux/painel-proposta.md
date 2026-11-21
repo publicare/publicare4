@@ -233,7 +233,7 @@ Olá, Ana. Você é administradora deste site.
   [ Continuar: "Quarto Master" (editado há 2 dias) ]   [ Ver o site ↗ ]
   [ Buscar conteúdo ............................ ]   <- busca global
 
-Pousada Sol
+Site Exemplo Sol
   Ações do site:  [ Configurações ]  [ Domínios ]  Mais ▾ (Redirecionamentos,
                                                           Peles e moldes, Menu e publicação)
   Seções que você pode abrir:
@@ -244,7 +244,7 @@ Pousada Sol
 
 **(b) Edição de conteúdo** (desktop; no celular as abas viram linha de rolagem e Salvar fica fixo no rodapé)
 ```
-Início › Pousada Sol › Quartos › Suíte Master
+Início › Site Exemplo Sol › Quartos › Suíte Master
 Suíte Master                       ● Publicado   [ Ver página ↗ ]
 Versão 7 · alterado há 2 dias por Ana
 
@@ -265,7 +265,7 @@ Mais ações ▾ : Criar dentro · Mover · Copiar · Recortar · Histórico · 
 
 **(c) Navegação da árvore**
 ```
-Início › Pousada Sol › Quartos            [ Subir um nível ]  [ + Criar conteúdo ]
+Início › Site Exemplo Sol › Quartos            [ Subir um nível ]  [ + Criar conteúdo ]
 Quartos (3 itens)                          [ Editar ]  [ Ver página ↗ ]
 
 Buscar por título [.........]   ▸ Filtros e ordem (abre se houver filtro ativo)
@@ -282,14 +282,14 @@ Buscar por título [.........]   ▸ Filtros e ordem (abre se houver filtro ativ
 
 **(d) Configurações do site**
 ```
-Início › Pousada Sol › Configurações
-Configurações de Pousada Sol
+Início › Site Exemplo Sol › Configurações
+Configurações de Site Exemplo Sol
 Resumo: Busca ligada · Feeds RSS ligados · Analytics: não definido
 
 [ Identidade ] [ Busca e compartilhamento ] [ Contato ] [ Rodapé e métricas ] [ Comportamento ]
 
  Identidade
-   Nome do site    [ Pousada Sol               ]
+   Nome do site    [ Site Exemplo Sol               ]
    Slogan          [ ...                       ]
    Logo            [ preview ]  [ trocar ]
    Ícone (favicon) [ preview ]  [ trocar ]
