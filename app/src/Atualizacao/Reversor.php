@@ -41,17 +41,21 @@ final class Reversor
     private readonly \Closure $conferir;
     /** @var \Closure(): int */
     private readonly \Closure $relogio;
+    private readonly RegistroDeProgresso $progresso;
 
     /**
      * @param \Closure(string, string): void|null $conferir recebe a raiz já trocada e a versão esperada; lança se o código antigo não funcionar (padrão: processo PHP à parte)
      * @param (\Closure(): int)|null $relogio
+     * @param RegistroDeProgresso|null $progresso onde contar a etapa em que está (padrão: em lugar nenhum)
      */
     public function __construct(
         private readonly Caminhos $caminhos,
         private readonly string $versaoAtual = Versao::ATUAL,
         ?\Closure $conferir = null,
         ?\Closure $relogio = null,
+        ?RegistroDeProgresso $progresso = null,
     ) {
+        $this->progresso = $progresso ?? new ProgressoNulo();
         $this->conferir = $conferir ?? self::conferirComProcesso(...);
         $this->relogio = $relogio ?? static fn (): int => time();
     }
@@ -112,8 +116,15 @@ final class Reversor
     {
         self::precarregar();
         $trava = Trava::obter($this->caminhos);
+        $this->progresso->iniciar('reverter');
         try {
-            return $this->revertendo($ator, $usuarioId);
+            $revertida = $this->revertendo($ator, $usuarioId);
+            $this->progresso->concluir();
+
+            return $revertida;
+        } catch (\Throwable $e) {
+            $this->progresso->falhar($e->getMessage());
+            throw $e;
         } finally {
             Trava::soltar($trava);
         }
@@ -142,6 +153,7 @@ final class Reversor
 
         Manutencao::ligar($this->caminhos, "Voltando para {$r['de']}");
         try {
+            $this->progresso->etapa(Etapa::CopiaBanco, 15);
             if (is_file($banco)) {
                 $backups = $dados . '/backups';
                 if (!is_dir($backups) && !@mkdir($backups, 0750, true) && !is_dir($backups)) {
@@ -158,11 +170,13 @@ final class Reversor
                 }
                 @chmod($preparado, 0600);
             }
+            $this->progresso->etapa(Etapa::VoltandoAtras);
             $this->trocarCodigo($r['itens'], $pasta, $guardadoDaNova, $movidos);
             if ($a->restauraBanco) {
                 $bancoTrocado = true; // a partir daqui, se falhar, o banco de hoje volta da cópia de segurança
                 $this->substituirBanco($preparado);
             }
+            $this->progresso->etapa(Etapa::ConferindoVersao, 90);
             ($this->conferir)($this->caminhos->raiz, $r['de']);
         } catch (\Throwable $e) {
             $this->desfazer($movidos, $pasta, $guardadoDaNova, $bancoTrocado ? $segura : '');
@@ -325,7 +339,7 @@ final class Reversor
     /** Carrega agora o que será usado depois da troca de pastas, quando o autoload já aponta para o código antigo. */
     private static function precarregar(): void
     {
-        foreach ([ErroDeAtualizacao::class, Manutencao::class, RegistroDaAtualizacao::class, Revertida::class, Avaliacao::class, Trava::class, CopiaDeBanco::class, CopiaSqlite::class, Conexao::class, ConfigBanco::class, ConfigDeBancoInvalida::class, ErroDeConexao::class, Dialetos::class, DialetoBase::class, DialetoSqlite::class, Auditoria::class, Semver::class, ResumoDeArvore::class] as $classe) {
+        foreach ([ErroDeAtualizacao::class, Manutencao::class, RegistroDaAtualizacao::class, Revertida::class, Avaliacao::class, Trava::class, CopiaDeBanco::class, CopiaSqlite::class, Conexao::class, ConfigBanco::class, ConfigDeBancoInvalida::class, ErroDeConexao::class, Dialetos::class, DialetoBase::class, DialetoSqlite::class, Auditoria::class, Semver::class, ResumoDeArvore::class, ProgressoEmArquivo::class, Progresso::class, ArquivoAtomico::class, SaneadorDeMensagem::class, Etapa::class] as $classe) {
             class_exists($classe);
         }
     }

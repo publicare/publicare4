@@ -31,6 +31,9 @@ final class Pagina
     /** Passos do assistente de instalação (só carregado na tela que traz `data-pbl-instalar`). */
     public const INSTALAR_JS = self::ASSETS . '/pbl-instalar.js';
     public const MARCA_INSTALAR = 'data-pbl-instalar';
+    /** Andamento da atualização (só carregado na tela que traz `data-pbl-progresso`). */
+    public const PROGRESSO_JS = self::ASSETS . '/pbl-atualizacao-progresso.js';
+    public const MARCA_PROGRESSO = 'data-pbl-progresso ';
     public const MARCA_PREVIA = 'data-pbl-previa="';
 
     public static function h(string $texto): string
@@ -157,11 +160,13 @@ final class Pagina
     {
         $editor = str_contains($corpo, self::MARCA_EDITOR);
         $instalar = str_contains($corpo, '<form method="post" action="/_pbl/instalar"') && str_contains($corpo, self::MARCA_INSTALAR);
+        $progresso = str_contains($corpo, self::MARCA_PROGRESSO);
         $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
             . '<meta name="robots" content="noindex"><title>' . self::h($titulo) . ' — PBL4</title>'
             . '<link rel="stylesheet" href="' . self::urlVersionada(self::BOOTSTRAP) . '"><link rel="stylesheet" href="' . self::urlVersionada(self::CSS) . '">'
             . '<script src="' . self::urlVersionada(self::BOOTSTRAP_JS) . '" defer></script><script src="' . self::urlVersionada(self::JS) . '" defer></script>'
             . ($instalar ? '<script src="' . self::urlVersionada(self::INSTALAR_JS) . '" defer></script>' : '')
+            . ($progresso ? '<script src="' . self::urlVersionada(self::PROGRESSO_JS) . '" defer></script>' : '')
             . ($editor ? '<script src="' . self::urlVersionada(self::TINYMCE_JS) . '" defer></script><script src="' . self::urlVersionada(self::EDITOR_JS) . '" defer></script>' : '')
             . '</head><body>' . self::$avisoDeDemo . '<a class="visually-hidden-focusable" href="#conteudo">Pular para o conteúdo</a>'
             . ($navegacao === '' ? '' : '<header>' . $navegacao . '</header>')

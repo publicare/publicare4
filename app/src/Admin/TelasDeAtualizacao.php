@@ -17,9 +17,14 @@ use Pbl\Atualizacao\ErroDeAtualizacao;
 use Pbl\Atualizacao\EstadoDoPainel;
 use Pbl\Atualizacao\Lancador;
 use Pbl\Atualizacao\LancadorDeProcesso;
+use Pbl\Atualizacao\PedidoAgendado;
+use Pbl\Atualizacao\PedidoDeAtualizacao;
 use Pbl\Atualizacao\Reversor;
+use Pbl\Atualizacao\SituacaoDaAtualizacao;
+use Pbl\Atualizacao\Trava;
 use Pbl\Servicos;
 use Pbl\Versao;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,6 +47,8 @@ final class TelasDeAtualizacao
     use AuxiliaresDeTela;
 
     private readonly EstadoDoPainel $estado;
+    private readonly PedidoDeAtualizacao $pedidos;
+    private readonly SituacaoDaAtualizacao $situacao;
     private readonly Lancador $lancador;
     private readonly Baixador $baixador;
     /** @var list<string> */
@@ -66,6 +73,8 @@ final class TelasDeAtualizacao
         private readonly string $phpAtual = PHP_VERSION,
     ) {
         $this->estado = new EstadoDoPainel($servicos->caminhos, $relogio);
+        $this->pedidos = new PedidoDeAtualizacao($servicos->caminhos, $relogio);
+        $this->situacao = new SituacaoDaAtualizacao($servicos->caminhos, $relogio);
         $this->baixador = $baixador ?? new BaixadorHttps();
         $this->chaves = $chaves ?? Chaves::PUBLICAS;
         $this->lancador = $lancador ?? new LancadorDeProcesso($servicos->caminhos, LancadorDeProcesso::descobrirPhp(Configuracao::ler($servicos->caminhos)->php));
@@ -105,7 +114,7 @@ final class TelasDeAtualizacao
             . ' <a href="' . $link . '">Ver mudanças e atualizar</a>.</div>';
     }
 
-    /** @return string|null `ver`, `verificar`, `aplicar` ou `reverter`; null = o `Painel` responde 404 */
+    /** @return string|null `ver`, `verificar`, `aplicar`, `reverter`, `cancelar` ou `progresso`; null = o `Painel` responde 404 */
     public static function rota(string $prefixo, string $caminho, string $metodo): ?string
     {
         return match (true) {
@@ -113,6 +122,8 @@ final class TelasDeAtualizacao
             $caminho === $prefixo . '/atualizacao/verificar' && $metodo === 'POST' => 'verificar',
             $caminho === $prefixo . '/atualizacao/aplicar' && $metodo === 'POST' => 'aplicar',
             $caminho === $prefixo . '/atualizacao/reverter' && $metodo === 'POST' => 'reverter',
+            $caminho === $prefixo . '/atualizacao/cancelar-agendamento' && $metodo === 'POST' => 'cancelar',
+            $caminho === $prefixo . '/atualizacao/progresso' && $metodo === 'GET' => 'progresso',
             default => null,
         };
     }
@@ -125,6 +136,9 @@ final class TelasDeAtualizacao
         }
         $u = $sessao->usuario;
         if (!$this->servicos->permissoes->podeAdministrarContas($u)) {
+            if ($tela === 'progresso') {
+                return $this->json(['erro' => 'Só administradores podem ver o andamento.'], Response::HTTP_FORBIDDEN);
+            }
             if ($post) {
                 $this->servicos->auditoria->registrar('atualizacao.negado', 'usuario:' . $u->id, $u->id);
             }
@@ -136,6 +150,8 @@ final class TelasDeAtualizacao
             'ver' => $this->pagina($sessao, $this->aviso($requisicao), null, Response::HTTP_OK, false),
             'verificar' => $this->verificarAgora($sessao),
             'reverter' => $this->reverter($sessao, $requisicao),
+            'cancelar' => $this->cancelar($sessao),
+            'progresso' => $this->json($this->situacao->ler()),
             default => $this->aplicar($sessao, $requisicao),
         };
     }
@@ -240,8 +256,9 @@ final class TelasDeAtualizacao
         if ($c->url === '' || !$c->verificar || Chaves::semConfianca($this->chaves, $c->canal)) {
             return $this->pagina($sessao, '', 'Atualizar pelo painel não está disponível: veja o que falta na parte de cima da página.', Response::HTTP_CONFLICT, false);
         }
-        if ($this->estado->situacao()['estado'] === 'andamento') {
-            return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
+        $ocupada = $this->ocupada();
+        if ($ocupada !== null) {
+            return $this->pagina($sessao, '', $ocupada, Response::HTTP_CONFLICT, false);
         }
 
         // Reautenticação (ADR 0011, "modo elevado", fase 5h): o mesmo componente comum, sempre exigindo a senha de
@@ -268,17 +285,94 @@ final class TelasDeAtualizacao
         if (!is_writable($this->servicos->caminhos->raiz) || !extension_loaded('zip')) {
             return $this->pagina($sessao, '', 'Este servidor não deixa o PHP trocar o código da instalação (falta permissão de escrita na pasta do PBL4 ou a extensão zip). Atualize pelo terminal: php bin/pbl atualizar.', Response::HTTP_CONFLICT, false);
         }
-        try {
-            $iniciou = $this->estado->iniciar($this->versaoInstalada, $versao, $this->lancador);
-        } catch (ErroDeAtualizacao $e) {
-            return $this->pagina($sessao, '', $e->getMessage(), Response::HTTP_SERVICE_UNAVAILABLE, false);
+        $agendar = $c->agendar && $this->texto($requisicao, 'modo') === 'agendar';
+        $automatico = false;
+        if (!$agendar) {
+            try {
+                $iniciou = $this->estado->iniciar($this->versaoInstalada, $versao, $this->lancador);
+            } catch (ErroDeAtualizacao $e) {
+                if (!$c->agendar) {
+                    return $this->pagina($sessao, '', $e->getMessage(), Response::HTTP_SERVICE_UNAVAILABLE, false);
+                }
+                // Hospedagem que não deixa o painel iniciar processos (proc_open desligado, sem PHP de linha de comando): vira pedido ao cron.
+                $agendar = $automatico = true;
+                $iniciou = false;
+            }
+            if (!$agendar && !$iniciou) {
+                return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
+            }
         }
-        if (!$iniciou) {
-            return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
+        if ($agendar) {
+            return $this->agendarPedido($sessao, 'atualizar', $versao, $ip, $automatico);
         }
         $this->servicos->auditoria->registrar('atualizacao.iniciar', 'usuario:' . $u->id, $u->id, null, ['de' => $this->versaoInstalada, 'para' => $versao], $this->servicos->limiteDeTentativas()->hashDoIp($ip));
 
         return new RedirectResponse(Painel::PREFIXO . '/atualizacao?ok=iniciada', Response::HTTP_SEE_OTHER);
+    }
+
+    // ---------------------------------------------------------------- agendar / cancelar / andamento
+
+    /** Algo já está agendado ou rodando (por qualquer origem)? Devolve a mensagem para o administrador, ou null. */
+    private function ocupada(): ?string
+    {
+        if ($this->estado->situacao()['estado'] === 'andamento') {
+            return 'Já existe uma atualização em andamento. Espere terminar.';
+        }
+
+        return match ($this->situacao->ler()['estado']) {
+            'agendada' => 'Já existe uma atualização agendada para o cron. Espere ela rodar ou cancele o agendamento abaixo.',
+            'em_andamento' => 'Já existe uma atualização em andamento. Espere terminar.',
+            default => null,
+        };
+    }
+
+    /**
+     * Grava o pedido que o cron executa (`dados/atualizacao/pedido.json`). Só chega aqui depois de TODAS as exigências do botão
+     * (senha, confirmação, CSRF, origem, nova consulta ao manifesto assinado com a mesma versão). A senha nunca vai para o pedido,
+     * e o cron ainda reconfere assinatura, SHA-256 e versão antes de aplicar.
+     *
+     * @param string $tipo `atualizar` ou `reverter`
+     */
+    private function agendarPedido(SessaoAtiva $sessao, string $tipo, string $versao, string $ip, bool $automatico): Response
+    {
+        $u = $sessao->usuario;
+        try {
+            Trava::soltar(Trava::obter($this->servicos->caminhos)); // outra operação segurando a trava = em andamento
+        } catch (ErroDeAtualizacao) {
+            return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
+        }
+        try {
+            $this->pedidos->agendar($tipo, $versao, $u->id, $u->nome);
+        } catch (ErroDeAtualizacao $e) {
+            return $this->pagina($sessao, '', $e->getMessage(), Response::HTTP_CONFLICT, false);
+        }
+        $this->servicos->auditoria->registrar('atualizacao.agendar', 'usuario:' . $u->id, $u->id, null, ['tipo' => $tipo, 'para' => $versao], $this->servicos->limiteDeTentativas()->hashDoIp($ip));
+
+        return new RedirectResponse(Painel::PREFIXO . '/atualizacao?ok=' . ($automatico ? 'agendada_sem_processo' : 'agendada'), Response::HTTP_SEE_OTHER);
+    }
+
+    /** Cancela o pedido que o cron ainda não começou. Não pede senha: só desfaz, nunca troca nada. */
+    private function cancelar(SessaoAtiva $sessao): Response
+    {
+        try {
+            $p = $this->pedidos->cancelar();
+        } catch (ErroDeAtualizacao $e) {
+            return $this->pagina($sessao, '', $e->getMessage(), Response::HTTP_CONFLICT, false);
+        }
+        $u = $sessao->usuario;
+        $this->servicos->auditoria->registrar('atualizacao.cancelar_agendamento', 'usuario:' . $u->id, $u->id, null, ['tipo' => $p->tipo, 'para' => $p->versaoAlvo]);
+
+        return new RedirectResponse(Painel::PREFIXO . '/atualizacao?ok=cancelada', Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * Resposta do endpoint de andamento: só a lista fixa de campos de {@see SituacaoDaAtualizacao}, sem cache.
+     *
+     * @param array<string, mixed> $dados
+     */
+    private function json(array $dados, int $status = Response::HTTP_OK): JsonResponse
+    {
+        return new JsonResponse($dados, $status, ['Cache-Control' => 'no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     // ---------------------------------------------------------------- reverter
@@ -304,8 +398,9 @@ final class TelasDeAtualizacao
         if ($this->texto($requisicao, 'confirmar') !== '1') {
             return $this->pagina($sessao, '', 'Marque a confirmação para voltar atrás.', Response::HTTP_UNPROCESSABLE_ENTITY, true);
         }
-        if ($this->estado->situacao()['estado'] === 'andamento') {
-            return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
+        $ocupada = $this->ocupada();
+        if ($ocupada !== null) {
+            return $this->pagina($sessao, '', $ocupada, Response::HTTP_CONFLICT, false);
         }
         $a = $this->reversor()->avaliar();
         if (!$a->possivel) {
@@ -328,13 +423,24 @@ final class TelasDeAtualizacao
         if (!is_writable($this->servicos->caminhos->raiz)) {
             return $this->pagina($sessao, '', 'Este servidor não deixa o PHP trocar o código da instalação (falta permissão de escrita na pasta do PBL4). Reverta pelo terminal: php bin/pbl reverter --confirmar.', Response::HTTP_CONFLICT, false);
         }
-        try {
-            $iniciou = $this->estado->iniciar($a->para, $a->de, $this->lancador, 'reverter');
-        } catch (ErroDeAtualizacao $e) {
-            return $this->pagina($sessao, '', $e->getMessage(), Response::HTTP_SERVICE_UNAVAILABLE, false);
+        $agendar = Configuracao::ler($this->servicos->caminhos)->agendar && $this->texto($requisicao, 'modo') === 'agendar';
+        $automatico = false;
+        if (!$agendar) {
+            try {
+                $iniciou = $this->estado->iniciar($a->para, $a->de, $this->lancador, 'reverter');
+            } catch (ErroDeAtualizacao $e) {
+                if (!Configuracao::ler($this->servicos->caminhos)->agendar) {
+                    return $this->pagina($sessao, '', $e->getMessage(), Response::HTTP_SERVICE_UNAVAILABLE, false);
+                }
+                $agendar = $automatico = true;
+                $iniciou = false;
+            }
+            if (!$agendar && !$iniciou) {
+                return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
+            }
         }
-        if (!$iniciou) {
-            return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
+        if ($agendar) {
+            return $this->agendarPedido($sessao, 'reverter', $a->de, $ip, $automatico);
         }
         $this->servicos->auditoria->registrar('atualizacao.reverter_iniciar', 'usuario:' . $u->id, $u->id, null, ['de' => $a->para, 'para' => $a->de], $this->servicos->limiteDeTentativas()->hashDoIp($ip));
 
@@ -347,8 +453,11 @@ final class TelasDeAtualizacao
     {
         $texto = match ($requisicao->query->all()['ok'] ?? null) {
             'verificado' => 'Consulta feita agora.',
-            'iniciada' => 'Atualização iniciada em segundo plano. Recarregue esta página para acompanhar; durante a troca o site responde "em manutenção" por alguns instantes.',
-            'reversao_iniciada' => 'Volta atrás iniciada em segundo plano. Recarregue esta página para acompanhar; durante a troca o site responde "em manutenção" por alguns instantes.',
+            'iniciada' => 'Atualização iniciada em segundo plano. O andamento aparece abaixo; durante a troca o site responde "em manutenção" por alguns instantes.',
+            'reversao_iniciada' => 'Volta atrás iniciada em segundo plano. O andamento aparece abaixo; durante a troca o site responde "em manutenção" por alguns instantes.',
+            'agendada' => 'Agendada: aguardando o próximo ciclo do cron (até 1 minuto). O andamento aparece abaixo.',
+            'agendada_sem_processo' => 'Esta hospedagem não deixa o painel iniciar a atualização na hora; ela foi agendada para o próximo ciclo do cron (até 1 minuto). O andamento aparece abaixo.',
+            'cancelada' => 'O agendamento foi cancelado. Nada foi alterado.',
             default => null,
         };
 
@@ -358,6 +467,8 @@ final class TelasDeAtualizacao
     private function pagina(SessaoAtiva $sessao, string $aviso, ?string $erro, int $status, bool $lembrarConfirmacao): Response
     {
         $andamento = $this->situacaoAuditada($sessao);
+        $sit = $this->situacao->ler();
+        $ocupado = $andamento['estado'] === 'andamento' || in_array($sit['estado'], ['agendada', 'em_andamento'], true);
         $c = Configuracao::ler($this->servicos->caminhos);
         $k = $this->consultar(false, $andamento['estado'] !== 'andamento');
         $csrf = $this->campoCsrf($sessao);
@@ -367,12 +478,13 @@ final class TelasDeAtualizacao
             . '<dl class="row"><dt class="col-sm-3">Versão instalada</dt><dd class="col-sm-9"><code>' . Pagina::h($this->versaoInstalada) . '</code></dd>'
             . '<dt class="col-sm-3">Canal</dt><dd class="col-sm-9">' . Pagina::h($c->canal) . '</dd>'
             . '<dt class="col-sm-3">Endereço de consulta</dt><dd class="col-sm-9">' . ($c->url === '' ? '<span class="text-body-secondary">não configurado</span>' : '<code>' . Pagina::h($c->url) . '</code>') . '</dd></dl>'
+            . $this->andamento($sit, $base, $csrf, $aviso !== '')
             . $this->execucao($andamento)
             . $this->consulta($k, $c, $base, $csrf);
-        if ($k['situacao'] === 'ok' && $k['disponivel'] && $k['manifesto'] !== null && $andamento['estado'] !== 'andamento') {
-            $corpo .= $this->formularioDeAplicar($k['manifesto'], $base, $csrf, $lembrarConfirmacao);
+        if ($k['situacao'] === 'ok' && $k['disponivel'] && $k['manifesto'] !== null && !$ocupado) {
+            $corpo .= $this->formularioDeAplicar($k['manifesto'], $base, $csrf, $lembrarConfirmacao, $c->agendar);
         }
-        $corpo .= $this->voltarAtras($andamento, $base, $csrf, $lembrarConfirmacao) . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
+        $corpo .= $this->voltarAtras($ocupado, $base, $csrf, $lembrarConfirmacao, $c->agendar) . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
 
         return Pagina::resposta('Atualização', $corpo, $status, false, $this->barra($sessao), [['Atualização', null]]);
     }
@@ -460,7 +572,7 @@ final class TelasDeAtualizacao
     }
 
     /** @param array{versao: string, data: string, resumo: string, notas: string, seguranca: bool, migracoes: bool, php_minimo: string} $m */
-    private function formularioDeAplicar(array $m, string $base, string $csrf, bool $lembrar): string
+    private function formularioDeAplicar(array $m, string $base, string $csrf, bool $lembrar, bool $podeAgendar): string
     {
         return '<section class="mb-4" aria-labelledby="titulo-aplicar"><h2 class="h5" id="titulo-aplicar">Atualizar agora</h2>'
             . '<p>O PBL4 vai guardar uma cópia do banco, pôr o site em manutenção por alguns instantes, trocar o código e conferir a versão nova; se algo falhar, volta ao código anterior. Seus dados (<code>dados/</code>) não são tocados.</p>'
@@ -469,7 +581,82 @@ final class TelasDeAtualizacao
             . '<div class="col-12 col-md-6"><label for="campo-senha" class="form-label">Sua senha, para confirmar</label><input id="campo-senha" class="form-control" name="senha" type="password" autocomplete="current-password" maxlength="1024" required></div>'
             . '<div class="col-12"><div class="form-check"><input id="campo-confirmar" class="form-check-input" type="checkbox" name="confirmar" value="1" required' . ($lembrar ? ' checked' : '') . '>'
             . '<label for="campo-confirmar" class="form-check-label">Entendo que o site ficará em manutenção durante a troca e quero atualizar para a versão ' . Pagina::h($m['versao']) . '.</label></div></div>'
-            . '<div class="col-12"><button type="submit" class="btn btn-warning">Atualizar agora</button></div></form></section>';
+            . $this->escolhaDeAgendar($podeAgendar, 'atualizar')
+            . '<div class="col-12"><button type="submit" class="btn btn-warning">' . ($this->soAgenda($podeAgendar) ? 'Agendar atualização' : 'Atualizar agora') . '</button></div></form></section>';
+    }
+
+    /** O servidor não deixa o painel iniciar processos e o agendamento está ligado: só resta agendar. */
+    private function soAgenda(bool $podeAgendar): bool
+    {
+        return $podeAgendar && !LancadorDeProcesso::disponivel();
+    }
+
+    /** Caixa "agendar para o cron" (ou o aviso de que só o agendamento funciona neste servidor). */
+    private function escolhaDeAgendar(bool $podeAgendar, string $tipo): string
+    {
+        if (!$podeAgendar) {
+            return '';
+        }
+        $acao = $tipo === 'reverter' ? 'a volta atrás' : 'a atualização';
+        if ($this->soAgenda($podeAgendar)) {
+            return '<input type="hidden" name="modo" value="agendar"><div class="col-12"><p class="small mb-0">Este servidor não deixa o painel iniciar ' . $acao . ' na hora. Ela será <strong>agendada</strong>: o cron do servidor (uma tarefa por minuto) a executa no próximo ciclo e o andamento aparece nesta página.</p></div>';
+        }
+
+        return '<div class="col-12"><div class="form-check"><input id="campo-agendar-' . $tipo . '" class="form-check-input" type="checkbox" name="modo" value="agendar">'
+            . '<label for="campo-agendar-' . $tipo . '" class="form-check-label">Em vez de iniciar agora, agendar para o cron do servidor (executa em até 1 minuto).</label></div></div>';
+    }
+
+    /**
+     * A seção "Andamento": barra, etapa, tempo e resultado da atualização (ou volta atrás), vindos do terminal, do cron ou do processo
+     * do painel. O HTML já nasce com o estado de agora (funciona sem JavaScript); `pbl-atualizacao-progresso.js` o mantém em dia.
+     *
+     * @param array{estado: string, tipo: string, etapa: string, etapa_nome: string, percentual: int, mensagem: string, inicio: int|null, fim: int|null, decorrido_s: int, agendada_em: int|null, valida_ate: int|null, agendada_ha_s: int|null, falha: string, cron_ativo: bool, cron_sem_iniciar: bool} $s
+     * @param bool $iniciou a página acabou de iniciar/agendar algo (mostra a seção mesmo antes de o primeiro andamento ser gravado)
+     */
+    private function andamento(array $s, string $base, string $csrf, bool $iniciou): string
+    {
+        if ($s['estado'] === 'ocioso' && !$iniciou) {
+            return '';
+        }
+        $agendada = $s['estado'] === 'agendada';
+        $concluido = $s['estado'] === 'concluido';
+        $falhou = $s['estado'] === 'falhou';
+        $acao = $s['tipo'] === 'reverter' ? 'A volta atrás' : 'A atualização';
+        $tempo = match ($s['estado']) {
+            'agendada' => 'Agendada há ' . self::duracao((int) $s['agendada_ha_s']) . '.',
+            'em_andamento' => 'Tempo decorrido: ' . self::duracao($s['decorrido_s']) . '.',
+            'ocioso' => '',
+            default => 'Durou ' . self::duracao($s['decorrido_s']) . '.',
+        };
+        $semCron = '<strong>O cron parece não estar rodando.</strong> A atualização agendada espera há mais de 5 minutos. Confira se há uma tarefa agendada a cada minuto com <code>php …/bin/pbl cron</code> no painel da hospedagem e se a tela <a href="' . Painel::PREFIXO . '/cron">Tarefas agendadas</a> mostra um ciclo recente (veja o passo a passo em <code>docs/usuario/atualizar.md</code>).';
+        $pct = $s['percentual'];
+
+        return '<section class="mb-4" aria-labelledby="titulo-andamento" data-pbl-progresso data-url="' . $base . '/progresso" data-estado="' . Pagina::h($s['estado']) . '">'
+            . '<h2 class="h5" id="titulo-andamento">Andamento</h2>'
+            . '<p class="mb-1"><span class="text-body-secondary">Etapa:</span> <strong aria-live="polite" aria-atomic="true" data-pbl-etapa>' . Pagina::h($s['etapa_nome']) . '</strong></p>'
+            . '<div class="progress mb-2" role="progressbar" aria-labelledby="titulo-andamento" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' . $pct . '" aria-valuetext="' . Pagina::h($pct . '% — ' . $s['mensagem']) . '" data-pbl-trilho><div class="progress-bar" data-pbl-barra></div></div>'
+            . '<p class="mb-1" data-pbl-mensagem>' . Pagina::h($s['mensagem']) . '</p>'
+            . '<p class="small text-body-secondary" data-pbl-tempo>' . Pagina::h($tempo) . '</p>'
+            . '<div class="alert alert-success"' . ($concluido ? '' : ' hidden') . ' role="status" data-pbl-ok>' . ($concluido ? Pagina::h($acao . ' terminou sem erro. Recarregue a página para ver a versão instalada.') : '') . '</div>'
+            . '<div class="alert alert-danger"' . ($falhou ? '' : ' hidden') . ' role="alert" data-pbl-erro>' . ($falhou ? Pagina::h($acao . ' falhou. ' . $s['falha'] . ' Se a falha foi depois da troca do código, o PBL4 já devolveu o estado anterior.') : '') . '</div>'
+            . '<div class="alert alert-warning"' . ($agendada && $s['cron_sem_iniciar'] ? '' : ' hidden') . ' role="status" data-pbl-aviso-cron>' . $semCron . '</div>'
+            . '<p class="small text-body-secondary" role="status" data-pbl-conexao hidden></p>'
+            . '<form method="post" action="' . $base . '/cancelar-agendamento" class="mb-2"' . ($agendada ? '' : ' hidden') . ' data-pbl-cancelar>' . $csrf
+            . '<button type="submit" class="btn btn-outline-secondary btn-sm">Cancelar o agendamento</button></form>'
+            . '<p class="small mb-0"' . ($concluido || $falhou ? '' : ' hidden') . ' data-pbl-recarregar><a href="' . $base . '">Recarregar a página</a></p>'
+            . '<noscript><p class="small mb-0">Sem JavaScript o andamento não se atualiza sozinho: <a href="' . $base . '">atualizar a página</a>.</p></noscript>'
+            . '</section>';
+    }
+
+    private static function duracao(int $s): string
+    {
+        $s = max(0, $s);
+
+        return match (true) {
+            $s < 60 => $s . ' s',
+            $s < 3600 => intdiv($s, 60) . ' min ' . ($s % 60) . ' s',
+            default => intdiv($s, 3600) . ' h ' . intdiv($s % 3600, 60) . ' min',
+        };
     }
 
     /**
@@ -477,13 +664,13 @@ final class TelasDeAtualizacao
      * de uma atualização já concluída. Só aparece com uma avaliação positiva: o `Reversor` já confere versão instalada,
      * código guardado, cópia do banco (SHA-256 e versão de esquema) e permissão de escrita antes de dizer que sim.
      *
-     * @param array{estado: string, tipo: string, de: string, para: string, iniciado: int, saida: string, codigo: int|null, auditado: bool} $andamento
+     * @param bool $ocupado já há uma atualização agendada ou em andamento: não oferece outra
      */
-    private function voltarAtras(array $andamento, string $base, string $csrf, bool $lembrar): string
+    private function voltarAtras(bool $ocupado, string $base, string $csrf, bool $lembrar, bool $podeAgendar): string
     {
         $corpo = '<section class="mb-4" aria-labelledby="titulo-voltar"><h2 class="h5" id="titulo-voltar">Se algo der errado</h2>'
             . '<ul><li>Falha durante a atualização (ou a volta atrás): o PBL4 devolve sozinho o estado anterior e mostra o motivo acima.</li>';
-        if ($andamento['estado'] === 'andamento') {
+        if ($ocupado) {
             return $corpo . '</ul></section>';
         }
         $a = $this->reversor()->avaliar();
@@ -501,6 +688,7 @@ final class TelasDeAtualizacao
             . '<div class="col-12 col-md-6"><label for="campo-senha-reverter" class="form-label">Sua senha, para confirmar</label><input id="campo-senha-reverter" class="form-control" name="senha" type="password" autocomplete="current-password" maxlength="1024" required></div>'
             . '<div class="col-12"><div class="form-check"><input id="campo-confirmar-reverter" class="form-check-input" type="checkbox" name="confirmar" value="1" required' . ($lembrar ? ' checked' : '') . '>'
             . '<label for="campo-confirmar-reverter" class="form-check-label">Entendo que isso perde o que foi criado depois de ' . $quando . ' e quero voltar para a versão ' . Pagina::h($a->de) . '.</label></div></div>'
-            . '<div class="col-12"><button type="submit" class="btn btn-outline-danger">Voltar para a ' . Pagina::h($a->de) . '</button></div></form></section>';
+            . $this->escolhaDeAgendar($podeAgendar, 'reverter')
+            . '<div class="col-12"><button type="submit" class="btn btn-outline-danger">' . ($this->soAgenda($podeAgendar) ? 'Agendar a volta para a ' : 'Voltar para a ') . Pagina::h($a->de) . '</button></div></form></section>';
     }
 }
