@@ -66,7 +66,7 @@ Escala de 1 a 5. Ordem = prioridade (impacto alto e esforço baixo primeiro).
 
 Personas compostas a partir dos papéis do ADR 0011 e do glossário (leitor, autor, editor, administrador). **Não foram entrevistadas**: são hipóteses a validar com o dono (ver "Como validar").
 
-**P1. Ana, dona da pousada (administradora)**
+**P1. Ana, dona da negócio (administradora)**
 - **Papel:** administradora global do site.
 - **Contexto de uso:** celular entre atendimentos, às vezes computador na recepção. Pouco tempo, pouca paciência com telas longas.
 - **Objetivo:** trocar preço, foto ou texto de um quarto e publicar. Conferir que o site está certo.
