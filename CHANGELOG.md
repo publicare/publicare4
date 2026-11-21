@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Adicionado
+- **Cópias de segurança (núcleo):** pacote `.zip` com manifesto e SHA-256 (banco SQLite consistente + `dados/`), `bin/pbl backup criar|listar|restaurar|limpar`, tarefa `backup` no cron central (diária/semanal, fuso do site, desativada por padrão em `dados/config/backup.json`), retenção que nunca apaga a cópia do "voltar atrás", pasta configurável validada e restauração com conferência de integridade/esquema, cópia prévia, manutenção e desfazer. Ver [docs/tecnica/backup.md](docs/tecnica/backup.md) e ADR 0029. 
+- **Tela "Cópias de segurança"** (`/_pbl/copias`, só administrador, senha + CSRF + origem): lista (data, tipo, tamanho, versão, integridade, espaço usado/livre), "Fazer agora" com barra de andamento, baixar, apagar, "Limpar antigas", restaurar (senha, digitar RESTAURAR e aviso do que se perde) e ligar/desligar o agendamento (frequência, hora, dias, retenção, pasta). Destino remoto (SFTP/S3) e criptografia ficam para as próximas entregas.
+
 ## [0.1.0-rc.4] - 2026-11-21
 
 > **Em resumo:** a atualização passa a funcionar em hospedagens que não deixam o painel iniciar processos (Hestia, cPanel): o botão agenda e o cron executa. A página Atualização mostra o andamento em tempo real, com barra de progresso.
