@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Console;
 
 use Pbl\Atualizacao\ErroDeAtualizacao;
+use Pbl\Atualizacao\ProgressoEmArquivo;
 use Pbl\Atualizacao\Reversor;
 use Pbl\Caminhos;
 use Pbl\Versao;
@@ -39,7 +40,7 @@ final class ReverterComando extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $reversor = new Reversor($this->caminhos, $this->versaoAtual, $this->conferir);
+        $reversor = new Reversor($this->caminhos, $this->versaoAtual, $this->conferir, progresso: new ProgressoEmArquivo($this->caminhos, 'terminal'));
         $a = $reversor->avaliar();
         if (!$a->possivel) {
             $output->writeln('<error>' . $a->motivo . '</error>');

@@ -6,6 +6,14 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Adicionado
+- **Atualização agendada pelo cron:** quando o servidor não deixa o painel iniciar processos (`proc_open` desligado no PHP-FPM, comum em Hestia e cPanel) ou quando o administrador marca "agendar para o cron", o botão **Atualizar agora** (e o de voltar atrás) passa a **agendar**: grava `dados/atualizacao/pedido.json` (versão-alvo conferida no manifesto assinado, quem pediu, quando, tipo, nonce; vale 30 minutos) com a mesma exigência de antes (senha, confirmação, CSRF, origem). A nova tarefa `atualizacao-agendada` do `bin/pbl cron` executa a mesma rotina de `atualizar`/`reverter --confirmar` no processo do cron, sob a mesma trava, **reconferindo assinatura, SHA-256 e versão** (o pedido nunca substitui a verificação). Pedido repetido ou com atualização em andamento é recusado; o administrador pode cancelar o que ainda não começou. Chave `"agendar": false` em `dados/config/atualizacao.json` desliga a opção.
+- **Andamento na página Atualização:** o atualizador (terminal, cron ou processo do painel) grava `dados/atualizacao/progresso.json` de forma atômica (etapa, percentual, mensagem em português, início, fim e motivo da falha, sem caminhos do servidor). A página mostra barra de progresso acessível (`role="progressbar"`, etapa em `aria-live`), tempo decorrido e resultado, consultando `GET /_pbl/atualizacao/progresso` (JSON só para administrador, sem segredos) por um script próprio, `pbl-atualizacao-progresso.js`, que tolera o 503 da manutenção e retoma sozinho. Agendada, mostra "aguardando o próximo ciclo do cron" e, passados 5 minutos, avisa que o cron pode não estar configurado.
+- Documentação: `docs/tecnica/atualizacao.md`, `docs/tecnica/cron.md` e `docs/usuario/atualizar.md` (passo a passo para quem não tem terminal).
+
+### Corrigido
+- `Atualizador` não apaga mais `pedido.json` e `progresso.json` ao limpar `dados/atualizacao/` no início ou numa falha.
+
 ## [0.1.0-rc.3] - 2026-11-21
 
 > **Em resumo:** correções achadas na primeira instalação real da rc.2 (hospedagem comum, Apache/php-fpm atrás de proxy e Cloudflare). O instalador web passa a funcionar em qualquer navegador e o painel deixa de dizer "Sem conexão" no Republicar.

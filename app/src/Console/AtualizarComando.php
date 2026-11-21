@@ -9,6 +9,7 @@ use Pbl\Atualizacao\BaixadorHttps;
 use Pbl\Atualizacao\BaixadorLocal;
 use Pbl\Atualizacao\Configuracao;
 use Pbl\Atualizacao\ErroDeAtualizacao;
+use Pbl\Atualizacao\ProgressoEmArquivo;
 use Pbl\Caminhos;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -47,7 +48,7 @@ final class AtualizarComando extends Command
 
             return Command::SUCCESS;
         }
-        $atualizador = new Atualizador($this->caminhos, is_string($local) && $local !== '' ? new BaixadorLocal() : new BaixadorHttps());
+        $atualizador = new Atualizador($this->caminhos, is_string($local) && $local !== '' ? new BaixadorLocal() : new BaixadorHttps(), progresso: new ProgressoEmArquivo($this->caminhos, 'terminal'));
         try {
             $v = $atualizador->verificar($origem, (string) $canal);
             $output->writeln($v->motivo);

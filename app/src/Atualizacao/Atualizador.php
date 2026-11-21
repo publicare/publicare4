@@ -24,6 +24,7 @@ final class Atualizador
 {
     /** @var \Closure(string): void */
     private readonly \Closure $conferirNovo;
+    private readonly RegistroDeProgresso $progresso;
 
     /**
      * @param list<string> $chaves chaves públicas de produção em que se confia (hex): a de uso e, se estiver aqui, a de recuperação
@@ -31,6 +32,7 @@ final class Atualizador
      * @param list<string> $revogadas chaves recusadas desde o nascimento do produto (soma-se às revogadas por manifesto, em `dados/config/`)
      * @param list<string> $chavesDeTeste chaves do canal `teste`, que só valem nesse canal
      * @param \Closure(string): void|null $conferirNovo recebe a raiz já trocada e lança se o código novo não funcionar (padrão: processo PHP à parte)
+     * @param RegistroDeProgresso|null $progresso onde contar a etapa em que está (padrão: em lugar nenhum); gravar nunca derruba a atualização
      */
     public function __construct(
         private readonly Caminhos $caminhos,
@@ -42,8 +44,10 @@ final class Atualizador
         private readonly array $recuperacao = Chaves::RECUPERACAO,
         private readonly array $revogadas = Chaves::REVOGADAS,
         private readonly array $chavesDeTeste = Chaves::TESTE,
+        ?RegistroDeProgresso $progresso = null,
     ) {
-        $this->conferirNovo = $conferirNovo ?? self::conferirComProcesso(...);
+        $this->progresso = $progresso ?? new ProgressoNulo();
+        $this->conferirNovo = $conferirNovo ?? $this->conferirComProcesso(...);
     }
 
     public function verificar(string $urlDoManifesto, string $canal = 'estavel'): Verificacao
@@ -140,8 +144,15 @@ final class Atualizador
             throw new ErroDeAtualizacao($v->motivo);
         }
         $trava = Trava::obter($this->caminhos);
+        $this->progresso->iniciar('atualizar');
         try {
-            return $this->aplicarTravado($v, $urlDoManifesto);
+            $aplicada = $this->aplicarTravado($v, $urlDoManifesto);
+            $this->progresso->concluir();
+
+            return $aplicada;
+        } catch (\Throwable $e) {
+            $this->progresso->falhar($e->getMessage());
+            throw $e;
         } finally {
             Trava::soltar($trava);
         }
@@ -151,16 +162,19 @@ final class Atualizador
     {
         $m = $v->manifesto ?? throw new ErroDeAtualizacao($v->motivo);
         $trabalho = $this->caminhos->dados() . '/atualizacao';
-        $this->limpar($trabalho);
+        $this->limparTrabalho($trabalho);
         $this->preparar($trabalho);
         $this->exigirPermissoes();
 
+        $this->progresso->etapa(Etapa::Baixando);
         $zip = $trabalho . '/pacote.zip';
         $this->baixador->copiar($this->baixador->resolver($urlDoManifesto, $m->urlDoPacote), $zip, $m->tamanho);
+        $this->progresso->etapa(Etapa::Conferindo);
         if (filesize($zip) !== $m->tamanho || !hash_equals($m->sha256, (string) hash_file('sha256', $zip))) {
-            $this->limpar($trabalho);
+            $this->limparTrabalho($trabalho);
             throw new ErroDeAtualizacao('O pacote baixado não confere com o manifesto assinado (tamanho ou SHA-256).');
         }
+        $this->progresso->etapa(Etapa::Extraindo);
         Pacote::extrair($zip, $trabalho . '/novo', $m->versao);
         @unlink($zip);
 
@@ -169,8 +183,11 @@ final class Atualizador
         $backup = '';
         $trocados = [];
         try {
+            $this->progresso->etapa(Etapa::CopiaBanco);
             $backup = $this->copiarBanco($m->versao);
+            $this->progresso->etapa(Etapa::TrocandoCodigo);
             $trocados = $this->trocar($trabalho);
+            $this->progresso->etapa(Etapa::MigrandoBanco);
             ($this->conferirNovo)($this->caminhos->raiz);
         } catch (\Throwable $e) {
             $this->desfazer($trabalho, $trocados);
@@ -294,6 +311,25 @@ final class Atualizador
         $this->remover($pasta);
     }
 
+    /**
+     * Limpa `dados/atualizacao/` (pacote, área de preparo, código anterior…) mas preserva o pedido agendado e o andamento
+     * (`pedido.json`, `progresso.json` e seus temporários): sem isso o início da atualização apagaria o que a página mostra.
+     */
+    private function limparTrabalho(string $trabalho): void
+    {
+        if (!is_dir($trabalho) || is_link($trabalho)) {
+            $this->remover($trabalho);
+
+            return;
+        }
+        foreach (scandir($trabalho) ?: [] as $nome) {
+            if ($nome === '.' || $nome === '..' || str_starts_with($nome, 'pedido.json') || str_starts_with($nome, 'progresso.json')) {
+                continue;
+            }
+            $this->remover($trabalho . '/' . $nome);
+        }
+    }
+
     private function remover(string $caminho): void
     {
         if (is_link($caminho) || is_file($caminho)) {
@@ -313,10 +349,11 @@ final class Atualizador
     }
 
     /** Roda o código NOVO num processo à parte: migra o banco e confere que ele diz a versão esperada. */
-    private static function conferirComProcesso(string $raiz): void
+    private function conferirComProcesso(string $raiz): void
     {
         $php = PHP_BINARY;
         foreach (['migrar', 'versao'] as $comando) {
+            $this->progresso->etapa($comando === 'migrar' ? Etapa::MigrandoBanco : Etapa::ConferindoVersao);
             $proc = proc_open([$php, $raiz . '/bin/pbl', $comando], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $raiz);
             if (!is_resource($proc)) {
                 throw new ErroDeAtualizacao('Não foi possível iniciar o PHP para conferir a versão nova');

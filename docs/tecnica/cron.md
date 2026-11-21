@@ -27,10 +27,19 @@ No cPanel e na Hestia, use o caminho completo do PHP se `php` não estiver no PA
 | `limpeza` | 1 h | apaga sessões expiradas e registros antigos de tentativas |
 | `verificar-atualizacao` | 1 h | consulta o canal de atualizações (só avisa; nunca aplica) |
 | `uploads-orfaos` | 1 dia | apaga arquivos enviados que ninguém usa mais |
+| `atualizacao-agendada` | a cada rodada | executa a atualização (ou a volta atrás) que o administrador agendou na tela Atualização; só age se houver `dados/atualizacao/pedido.json` válido (ver abaixo) |
 
 | `demo-reset` | 1 min (confere); roda a cada 7 dias, 04:00 | **só em demo**: reinicia a demonstração (ver abaixo) |
 
 Cada tarefa só roda se venceu **e** tem trabalho; o comando não escreve nada quando não há o que fazer, e não sobrepõe duas rodadas (trava `dados/cron/cron.lock`).
+
+## Atualização agendada pelo painel
+
+Quando o servidor não deixa o painel iniciar processos (`proc_open` desligado no PHP-FPM), o botão da tela **Atualização** agenda: grava `dados/atualizacao/pedido.json` e a tarefa `atualizacao-agendada` o executa na rodada seguinte, no processo do cron, com a mesma rotina de `bin/pbl atualizar` / `reverter --confirmar` e a mesma trava `dados/atualizacao.lock`. Detalhes, segurança e andamento em [atualização](atualizacao.md#atualização-agendada-cron-e-andamento-na-página).
+
+- **Depende do cron real.** A tarefa nunca roda no pseudo-cron (trocar o código não pode acontecer dentro de um acesso ao painel). Sem a linha de cron, o pedido vence em 30 minutos e a tela avisa, depois de 5 minutos, que o cron pode não estar configurado.
+- **A atualização é indivisível:** enquanto roda, a rodada segura `dados/cron/cron.lock`; as rodadas dos minutos seguintes saem como "ocupado" e as outras tarefas esperam. Ela ignora o orçamento de tempo das demais (`--orcamento`). O PHP de linha de comando precisa de `proc_open` (a conferência do código novo roda num processo à parte).
+- Para testar à mão: `php bin/pbl cron --tarefa=atualizacao-agendada`.
 
 ## Sem acesso ao cron (pseudo-cron)
 

@@ -86,6 +86,56 @@ Só o administrador geral. A tela mostra versão instalada, canal, endereço e a
 
 Código: `Admin/TelasDeAtualizacao`, `Atualizacao/EstadoDoPainel`, `Atualizacao/LancadorDeProcesso`, `Atualizacao/Reversor`. Cobertura: `tests/AdminAtualizacaoTest.php` (permissão, CSRF, origem, senha errada e limite, trava, cache, estados, processo real em segundo plano, botão de reverter), `tests/ReversorTest.php`, `tests/ReverterComandoTest.php`, `tests/VerificarAtualizacaoComandoTest.php`.
 
+## Atualização agendada (cron) e andamento na página
+
+Hospedagem comum (Hestia, cPanel) costuma desligar `proc_open` no PHP-FPM, e então o painel não consegue iniciar `bin/pbl atualizar` em segundo plano. Nesse caso (ou quando o administrador marca "agendar para o cron") o botão **agenda**, em vez de iniciar:
+
+1. O painel exige o mesmo que o botão "Atualizar agora": administrador geral, senha de novo, confirmação marcada, CSRF, origem e nova consulta ao vivo ao manifesto assinado, que precisa trazer a mesma versão que a pessoa viu. Só então grava `dados/atualizacao/pedido.json` (`PedidoDeAtualizacao`, 0600, atômico, pasta 0750):
+
+   ```json
+   {"tipo":"atualizar","versao_alvo":"0.2.0","por_id":1,"por_nome":"Ana","em":1800000000,"valido_ate":1800001800,"nonce":"<32 hex>","estado":"aguardando","iniciada_em":0}
+   ```
+
+   `tipo` é `atualizar` ou `reverter` (na volta atrás, `versao_alvo` é a versão que será restaurada, tirada do registro da última atualização). Vale **30 minutos** (`PedidoAgendado::VALIDADE`). A senha nunca entra no arquivo. O esquema é fechado: campo a mais, tipo errado, versão que não seja SemVer, validade esticada ou nonce que não seja 32 caracteres hexadecimais invalidam o arquivo inteiro.
+2. **Um pedido por vez.** Pedido repetido, ou atualização já agendada ou em andamento (de qualquer origem), é recusado com mensagem clara (409). O administrador pode **cancelar** (`POST /_pbl/atualizacao/cancelar-agendamento`, com CSRF e origem) enquanto o pedido estiver `aguardando`; depois que o cron o marca `em_andamento`, o cancelamento é recusado. Início e cancelamento passam por um `flock` (`dados/atualizacao-pedido.lock`), então nunca se cruzam.
+3. A tarefa `atualizacao-agendada` do [cron central](cron.md) (`bin/pbl cron`, a cada minuto; nunca no pseudo-cron) vê o arquivo e roda `ExecutorDePedido` **no processo do cron**: a mesma rotina de `bin/pbl atualizar` (`Atualizador::verificar` + `aplicar`) ou de `bin/pbl reverter --confirmar` (`Reversor`, `ator = cron`), sob a mesma trava `dados/atualizacao.lock`. Nada do pedido vira linha de comando.
+4. **O pedido nunca substitui a verificação.** O cron baixa o manifesto de novo, reconfere a assinatura e exige `manifesto.versao === pedido.versao_alvo` (senão: "A versão disponível mudou…", nada é aplicado); `aplicar` refaz tamanho, SHA-256 e a conferência de cada arquivo. Na volta atrás, o `Reversor` continua conferindo o registro, o código guardado e a cópia do banco, e a versão a restaurar tem de ser a do pedido.
+5. Pedido vencido, ilegível, fora do esquema ou "em andamento" sem ninguém rodando (processo morto) é **apagado** sem aplicar nada, e o `progresso.json` registra o motivo. Se a trava estiver ocupada, o pedido **fica** para o próximo ciclo (vence sozinho em 30 min). Ao terminar, de qualquer jeito, o pedido é apagado e o resultado fica no andamento; a auditoria registra `atualizacao.agendar`, `atualizacao.cancelar_agendamento`, `atualizacao.agendada.executar` e `atualizacao.agendada.falhou`.
+
+Premissas e limites: o cron precisa de `proc_open` **no PHP de linha de comando** (o `Atualizador` roda `migrar` e `versao` do código novo num processo à parte; o problema relatado é só o do PHP-FPM). A atualização é indivisível: enquanto roda, a rodada do cron segura `dados/cron/cron.lock` e as seguintes saem como "ocupado". A trava `atualizacao.lock` é só **sondada** pela tarefa (pega e solta), porque `flock` não é reentrante; quem a segura de verdade é `aplicar`/`reverter`, e a janela é inofensiva (a segunda tentativa falha com "Outra atualização em andamento"). A opção pode ser desligada com `"agendar": false` em `dados/config/atualizacao.json` (volta ao comportamento anterior: só o botão que inicia na hora).
+
+### Andamento (`progresso.json`)
+
+`Atualizador` e `Reversor` gravam o andamento num `RegistroDeProgresso` (padrão `ProgressoNulo`; `bin/pbl atualizar`/`reverter` e a tarefa do cron passam `ProgressoEmArquivo`). Vale para qualquer origem: terminal, cron ou o processo iniciado pelo painel (que roda o mesmo comando, então aparece como `terminal`). Arquivo `dados/atualizacao/progresso.json`, escrito de forma atômica (temporário na mesma pasta + `rename`), 0600, até 8 KB (maior que isso, ou fora do esquema, vale como "sem dado"). Campos: `origem` (`terminal`|`cron`|`painel`), `tipo`, `etapa`, `percentual`, `mensagem`, `inicio`, `fim`, `falha`, `atualizado`. Falhar ao gravar o andamento **nunca** derruba a atualização.
+
+| Etapa | % | Mensagem |
+|---|---|---|
+| `preparando` | 5 | Preparando e conferindo a versão no canal de atualizações |
+| `baixando` | 15 | Baixando a nova versão |
+| `conferindo` | 35 | Conferindo a assinatura e a integridade do pacote |
+| `extraindo` | 45 | Abrindo os arquivos da nova versão |
+| `copia_banco` | 55 | Guardando uma cópia de segurança do banco |
+| `trocando_codigo` | 70 | Trocando o código (o site fica em manutenção por instantes) |
+| `migrando_banco` | 85 | Atualizando o banco |
+| `conferindo_versao` | 95 | Conferindo se a nova versão funciona |
+| `concluido` | 100 | Concluído |
+| `falhou` | último alcançado | Falhou (com o motivo em `falha`) |
+| `voltando_atras` | 50 | Voltando à versão anterior (código e banco) |
+
+Os percentuais são aproximados e seguem a ordem real de `Atualizador::aplicar` (a cópia do banco vem depois de extrair). Na volta atrás: `copia_banco` 15, `voltando_atras` 50, `conferindo_versao` 90, `concluido`. O motivo da falha passa por `SaneadorDeMensagem`: sem a raiz da instalação, sem caminhos de servidor (`/home/…`, `/var/…`), sem controle, no máximo 300 caracteres.
+
+**`dados/atualizacao/` é apagada a cada atualização** (pacote, preparo, código anterior). `Atualizador::limparTrabalho` preserva `pedido.json`, `progresso.json` e seus temporários; sem isso o início da atualização apagaria o que a página mostra (teste de regressão: `ProgressoDaAtualizacaoTest`).
+
+### Endpoint e página
+
+`GET /_pbl/atualizacao/progresso` (só administrador geral; os outros recebem 403 em JSON; sem login, o redirecionamento do painel). `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`. Devolve só uma lista fixa (`SituacaoDaAtualizacao`): `estado` (`ocioso|agendada|em_andamento|concluido|falhou`), `tipo`, `etapa`, `etapa_nome`, `percentual`, `mensagem`, `inicio`, `fim`, `decorrido_s`, `agendada_em`, `valida_ate`, `agendada_ha_s`, `falha`, `cron_ativo` (batimento do cron recente), `cron_sem_iniciar` (agendada há 5 minutos ou mais). **Nunca** devolve caminhos do servidor, trechos de log, o nonce nem o nome de quem pediu. Andamento sem atualização há mais de 1 hora vira `falhou` ("Sem sinal de andamento").
+
+A página "Atualização" tem a seção **Andamento**: barra (`role="progressbar"` com `aria-valuenow/min/max/text`), etapa em `aria-live="polite"`, tempo decorrido, resultado (`role="status"`) e falha (`role="alert"`). O HTML já nasce com o estado de agora (funciona sem JavaScript, com um link "atualizar a página"); `public/_pbl/assets/pbl-atualizacao-progresso.js` (arquivo próprio, sem script inline, `fetch` same-origin; a CSP já tem `connect-src 'self'`) consulta a cada 3 s (1 s com atualização em curso), atualiza só com `textContent` e para no `concluido`/`falhou` e depois de 60 minutos. Agendada, a página mostra "Agendada: aguardando o próximo ciclo do cron (até 1 minuto)" e, depois de 5 minutos sem iniciar, avisa que o cron pode não estar configurado e como conferir.
+
+**Manutenção:** durante a troca de código o site inteiro, endpoint incluído, responde 503 (não dá para autenticar com sessão e banco em troca). O script trata qualquer resposta que não seja 200 JSON como falha passageira: mantém o último estado, mostra "Sem resposta do site por instantes…", tenta de novo com intervalo de 2 a 10 s e retoma sozinho; o estado vive em `progresso.json`, então nada se perde.
+
+Código: `Atualizacao/PedidoAgendado`, `PedidoDeAtualizacao`, `ExecutorDePedido`, `Progresso`, `Etapa`, `ProgressoEmArquivo`, `SituacaoDaAtualizacao`, `Cron/Tarefas/AtualizacaoAgendadaTarefa`. Cobertura: `tests/PedidoDeAtualizacaoTest.php` (esquema, validade, repetido, cancelamento, adulteração), `tests/AtualizacaoAgendadaCronTest.php` (versão diferente, vencido, nonce/esquema forjado, assinatura, hash, trava, volta atrás), `tests/ProgressoDaAtualizacaoTest.php`, `tests/AdminAtualizacaoTest.php` (agendar, cancelar, endpoint, página com aria) e `tests/AtualizacaoAgendadaTest.php` (ponta a ponta com pacote assinado de teste).
+
 ## Para quem publica versões
 
 Custódia, fluxo de release e incidentes: [ADR 0019](../adr/0019-custodia-da-chave-de-assinatura.md).
@@ -130,6 +180,7 @@ A pasta preparada é o projeto com `composer install --no-dev --optimize-autoloa
 | Build sem chave embutida (lista vazia; as versões oficiais trazem as chaves) | o atualizador se recusa a aplicar qualquer coisa |
 | Voltar atrás numa instalação que já mudou desde a atualização registrada | `Reversor::avaliar` confere versão instalada, código guardado, SHA-256 e versão de esquema da cópia do banco antes de tocar em qualquer coisa; recusa com o motivo em vez de arriscar |
 | Voltar atrás sem querer perder dados | exige `--confirmar` (ou a confirmação marcada e a senha de novo, no painel); sem isso só mostra o que faria |
+| Pedido agendado forjado ou adulterado (versão, validade, nonce, campos extras) | esquema fechado; o cron reconfere assinatura, SHA-256 e exige a mesma versão do manifesto; pedido inválido é apagado sem aplicar nada |
 | Volta atrás que falha no meio | copia o banco de hoje antes de trocar qualquer coisa; se falhar depois, devolve código e banco de hoje |
 
 Cobertura: `tests/AtualizadorTest.php`, `tests/ReversorTest.php`.

@@ -14,6 +14,8 @@ use Pbl\Atualizacao\ErroDeAtualizacao;
 use Pbl\Atualizacao\EstadoDoPainel;
 use Pbl\Atualizacao\Lancador;
 use Pbl\Atualizacao\LancadorDeProcesso;
+use Pbl\Atualizacao\PedidoDeAtualizacao;
+use Pbl\Atualizacao\ProgressoEmArquivo;
 use Pbl\Atualizacao\RegistroDaAtualizacao;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -136,7 +138,7 @@ final class AdminAtualizacaoTest extends TestCase
         $token = $this->token($login);
         $sessao = $this->s->sessoes()->validar($token);
         self::assertNotNull($sessao);
-        $rota = TelasDeAtualizacao::rota('/_pbl', $caminho, $metodo);
+        $rota = TelasDeAtualizacao::rota('/_pbl', (string) parse_url($caminho, PHP_URL_PATH), $metodo);
         self::assertNotNull($rota, $caminho);
         $campos = ($metodo === 'POST' && $comCsrf ? ['_csrf' => $this->csrf($token)] : []) + $campos;
         $r = Request::create('https://www.exemplo.org' . $caminho, $metodo, $campos, [], [], ['REMOTE_ADDR' => '198.51.100.7'] + $cab);
@@ -505,9 +507,10 @@ final class AdminAtualizacaoTest extends TestCase
         self::assertSame(2, $this->lancador->chamadas);
     }
 
-    public function testFalhaAoLancarMostraErroENaoPrendeATrava(): void
+    public function testFalhaAoLancarComAgendamentoDesligadoMostraErroENaoPrendeATrava(): void
     {
         $this->preparar();
+        $this->configurar(['url' => $this->manifesto, 'canal' => 'estavel', 'agendar' => false]);
         $this->lancador->falhar = true;
         $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos());
         self::assertSame(503, $r->getStatusCode());
@@ -700,5 +703,311 @@ final class AdminAtualizacaoTest extends TestCase
         self::assertSame(404, $this->req('GET', '/_pbl/atualizacao/aplicar', $this->token('admin'))->getStatusCode());
         $h = $this->html($this->req('GET', '/_pbl/atualizacao', $this->token('admin')));
         self::assertStringContainsString('Atualização', $h);
+    }
+
+    // ------------------------------------------------------------------ agendamento para o cron e andamento
+
+    private function pedidos(): PedidoDeAtualizacao
+    {
+        return new PedidoDeAtualizacao($this->caminhos, fn (): int => $this->agora);
+    }
+
+    /** @return array<string, mixed> */
+    private function json(Response $r): array
+    {
+        $d = json_decode($this->html($r), true);
+        self::assertIsArray($d);
+
+        return $d;
+    }
+
+    public function testSemPermissaoParaIniciarProcessosOBotaoAgendaParaOCron(): void
+    {
+        $this->preparar();
+        $this->lancador->falhar = true;
+
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos());
+
+        self::assertSame(303, $r->getStatusCode());
+        self::assertSame('/_pbl/atualizacao?ok=agendada_sem_processo', $r->headers->get('Location'));
+        $p = $this->pedidos()->ler();
+        self::assertNotNull($p);
+        self::assertSame('atualizar', $p->tipo);
+        self::assertSame('0.2.0', $p->versaoAlvo);
+        self::assertSame($this->ids['admin'], $p->porId);
+        self::assertSame($this->agora + 1800, $p->validoAte);
+        self::assertSame('ociosa', $this->estado()->situacao()['estado'], 'nada ficou preso no estado do painel');
+        self::assertStringNotContainsString(self::SENHA, (string) file_get_contents(PedidoDeAtualizacao::arquivo($this->caminhos)));
+        self::assertCount(1, $this->auditoria('atualizacao.agendar'));
+        $pagina = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?ok=agendada_sem_processo'));
+        self::assertStringContainsString('Esta hospedagem não deixa o painel iniciar a atualização na hora', $pagina);
+    }
+
+    public function testAdministradorPodeEscolherAgendarMesmoComProcessosLiberados(): void
+    {
+        $this->preparar();
+
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos() + ['modo' => 'agendar']);
+
+        self::assertSame('/_pbl/atualizacao?ok=agendada', $r->headers->get('Location'));
+        self::assertSame(0, $this->lancador->chamadas, 'nenhum processo foi iniciado pela requisição');
+        self::assertNotNull($this->pedidos()->ler());
+        self::assertSame('Agendada: aguardando o próximo ciclo do cron (até 1 minuto).', $this->json($this->tela('admin', 'GET', '/_pbl/atualizacao/progresso'))['mensagem'] . '.');
+    }
+
+    public function testAgendarExigeAsMesmasCoisasQueAtualizarAgora(): void
+    {
+        $this->preparar();
+        $agendar = $this->aplicarCampos() + ['modo' => 'agendar'];
+
+        self::assertSame(422, $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', ['confirmar' => '0'] + $agendar)->getStatusCode(), 'sem confirmação');
+        self::assertSame(400, $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', ['senha' => null] + $agendar)->getStatusCode(), 'sem senha');
+        self::assertSame(401, $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', ['senha' => 'errada errada errada'] + $agendar)->getStatusCode(), 'senha errada');
+        self::assertSame(403, $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $agendar, null, false)->getStatusCode(), 'sem CSRF');
+        self::assertSame(403, $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $agendar, null, true, ['HTTP_ORIGIN' => 'https://outro.example'])->getStatusCode(), 'origem errada');
+        self::assertSame(409, $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', ['versao' => '0.9.9'] + $agendar)->getStatusCode(), 'versão diferente da do manifesto');
+        self::assertFalse($this->pedidos()->existe(), 'nenhuma das recusas gravou pedido');
+        self::assertSame([], $this->auditoria('atualizacao.agendar'));
+    }
+
+    public function testQuemNaoEAdministradorNaoAgendaNemCancelaNemVeOAndamento(): void
+    {
+        $this->preparar();
+        foreach (['editor', 'leitor'] as $login) {
+            $r = $this->post($this->token($login), '/_pbl/atualizacao/aplicar', $this->aplicarCampos() + ['modo' => 'agendar']);
+            self::assertSame(403, $r->getStatusCode(), $login);
+            self::assertSame(403, $this->post($this->token($login), '/_pbl/atualizacao/cancelar-agendamento', [])->getStatusCode(), $login);
+            $j = $this->req('GET', '/_pbl/atualizacao/progresso', $this->token($login));
+            self::assertSame(403, $j->getStatusCode(), $login);
+            self::assertStringStartsWith('application/json', (string) $j->headers->get('Content-Type'));
+        }
+        self::assertSame(303, $this->req('GET', '/_pbl/atualizacao/progresso')->getStatusCode(), 'sem login vai para entrar');
+        self::assertFalse($this->pedidos()->existe());
+    }
+
+    public function testPedidoRepetidoOuComAtualizacaoEmAndamentoERecusado(): void
+    {
+        $this->preparar();
+        $agendar = $this->aplicarCampos() + ['modo' => 'agendar'];
+        self::assertSame(303, $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $agendar)->getStatusCode());
+
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $agendar);
+        self::assertSame(409, $r->getStatusCode());
+        self::assertStringContainsString('Já existe uma atualização agendada', $this->html($r));
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos());
+        self::assertSame(409, $r->getStatusCode(), 'nem o botão "agora" vale com um pedido agendado');
+        self::assertSame(0, $this->lancador->chamadas);
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringNotContainsString('name="versao"', $h, 'o formulário de atualizar some enquanto há pedido');
+    }
+
+    public function testAtualizacaoEmAndamentoNoCronRecusaOutroPedido(): void
+    {
+        $this->preparar();
+        $r = new ProgressoEmArquivo($this->caminhos, 'terminal', fn (): int => $this->agora);
+        $r->iniciar('atualizar');
+
+        $resp = $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos() + ['modo' => 'agendar']);
+
+        self::assertSame(409, $resp->getStatusCode());
+        self::assertStringContainsString('em andamento', $this->html($resp));
+    }
+
+    public function testAgendarSoPodeSerDesligadoPelaChaveDeConfiguracao(): void
+    {
+        $this->preparar();
+        $this->configurar(['url' => $this->manifesto, 'canal' => 'estavel', 'agendar' => false]);
+
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos() + ['modo' => 'agendar']);
+
+        self::assertSame('/_pbl/atualizacao?ok=iniciada', $r->headers->get('Location'), 'modo=agendar é ignorado');
+        self::assertFalse($this->pedidos()->existe());
+        self::assertSame(1, $this->lancador->chamadas);
+        self::assertStringNotContainsString('agendar para o cron', $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao')));
+    }
+
+    public function testCancelaPedidoQueNaoComecouERecusaDepoisDeComecar(): void
+    {
+        $this->preparar();
+        $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos() + ['modo' => 'agendar']);
+
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/cancelar-agendamento');
+        self::assertSame('/_pbl/atualizacao?ok=cancelada', $r->headers->get('Location'));
+        self::assertFalse($this->pedidos()->existe());
+        self::assertCount(1, $this->auditoria('atualizacao.cancelar_agendamento'));
+        self::assertSame(409, $this->tela('admin', 'POST', '/_pbl/atualizacao/cancelar-agendamento')->getStatusCode(), 'nada a cancelar');
+
+        $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos() + ['modo' => 'agendar']);
+        $p = $this->pedidos()->ler();
+        self::assertNotNull($p);
+        $this->pedidos()->iniciar($p); // o cron começou
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/cancelar-agendamento');
+        self::assertSame(409, $r->getStatusCode());
+        self::assertStringContainsString('já começou', $this->html($r));
+        self::assertNotNull($this->pedidos()->ler());
+        self::assertSame(403, $this->tela('admin', 'POST', '/_pbl/atualizacao/cancelar-agendamento', [], null, false)->getStatusCode(), 'CSRF');
+    }
+
+    public function testVoltarAtrasTambemPodeSerAgendadoComAVersaoRegistrada(): void
+    {
+        $this->preparar();
+        $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
+
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1', 'modo' => 'agendar']);
+
+        self::assertSame('/_pbl/atualizacao?ok=agendada', $r->headers->get('Location'));
+        $p = $this->pedidos()->ler();
+        self::assertNotNull($p);
+        self::assertSame('reverter', $p->tipo);
+        self::assertSame('0.1.0', $p->versaoAlvo);
+        self::assertSame([], $this->lancador->comandos);
+    }
+
+    public function testEndpointDeProgressoDevolveSoACamposFixosSemSegredosNemCaminhos(): void
+    {
+        $this->preparar();
+        $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos() + ['modo' => 'agendar']);
+        $pedido = $this->pedidos()->ler();
+        self::assertNotNull($pedido);
+        $nonce = $pedido->nonce;
+
+        $r = $this->tela('admin', 'GET', '/_pbl/atualizacao/progresso');
+
+        self::assertSame(200, $r->getStatusCode());
+        self::assertStringStartsWith('application/json', (string) $r->headers->get('Content-Type'));
+        self::assertStringContainsString('no-store', (string) $r->headers->get('Cache-Control'));
+        self::assertSame('nosniff', $r->headers->get('X-Content-Type-Options'));
+        $d = $this->json($r);
+        self::assertSame('agendada', $d['estado']);
+        self::assertSame('atualizar', $d['tipo']);
+        self::assertSame($this->agora, $d['agendada_em']);
+        self::assertSame($this->agora + 1800, $d['valida_ate']);
+        self::assertFalse($d['cron_ativo']);
+        $corpo = $this->html($r);
+        self::assertStringNotContainsString($nonce, $corpo);
+        self::assertStringNotContainsString($this->raiz, $corpo);
+        self::assertStringNotContainsString(self::SENHA, $corpo);
+        self::assertStringNotContainsString('Admin', $corpo, 'nem o nome de quem pediu');
+    }
+
+    public function testEndpointMostraOAndamentoDeQualquerOrigemEFalhaSemCaminhos(): void
+    {
+        $this->preparar();
+        $p = new ProgressoEmArquivo($this->caminhos, 'terminal', fn (): int => $this->agora);
+        $p->iniciar('atualizar');
+        $p->etapa(\Pbl\Atualizacao\Etapa::MigrandoBanco);
+        $d = $this->json($this->tela('admin', 'GET', '/_pbl/atualizacao/progresso'));
+        self::assertSame('em_andamento', $d['estado']);
+        self::assertSame('migrando_banco', $d['etapa']);
+        self::assertSame(85, $d['percentual']);
+
+        $p->falhar("quebrou em {$this->raiz}/app/src/A.php");
+        $r = $this->tela('admin', 'GET', '/_pbl/atualizacao/progresso');
+        $d = $this->json($r);
+        self::assertSame('falhou', $d['estado']);
+        self::assertStringNotContainsString($this->raiz, $this->html($r));
+        self::assertStringContainsString('quebrou em', (string) $d['falha']);
+    }
+
+    public function testPaginaMostraBarraComAriaEScriptProprioSemInline(): void
+    {
+        $this->preparar();
+        $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos() + ['modo' => 'agendar']);
+
+        $r = $this->tela('admin', 'GET', '/_pbl/atualizacao?ok=agendada');
+        $h = $this->html($r);
+
+        self::assertStringContainsString('role="progressbar"', $h);
+        self::assertStringContainsString('aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"', $h);
+        self::assertStringContainsString('aria-valuetext="0% — Agendada: aguardando o próximo ciclo do cron (até 1 minuto)"', $h);
+        self::assertMatchesRegularExpression('/aria-live="polite" aria-atomic="true" data-pbl-etapa>Agendada</', $h);
+        self::assertStringContainsString('data-url="/_pbl/atualizacao/progresso"', $h);
+        self::assertStringContainsString('Agendada: aguardando o próximo ciclo do cron (até 1 minuto)', $h);
+        self::assertStringContainsString('Cancelar o agendamento', $h);
+        self::assertStringContainsString('<script src="/_pbl/assets/pbl-atualizacao-progresso.js?v=', $h);
+        self::assertSame(0, preg_match('/<script(?![^>]*\ssrc=)/', $h), 'nenhum script inline');
+        self::assertStringNotContainsString('style=', $h);
+        self::assertMatchesRegularExpression('/role="status" data-pbl-ok/', $h);
+        self::assertMatchesRegularExpression('/role="alert" data-pbl-erro/', $h);
+        self::assertMatchesRegularExpression('/<div class="alert alert-warning" hidden role="status" data-pbl-aviso-cron>/', $h, 'o aviso do cron só aparece depois de 5 minutos');
+        self::assertStringContainsString("connect-src 'self'", (string) $r->headers->get('Content-Security-Policy'));
+        self::assertFileExists(__DIR__ . '/../public/_pbl/assets/pbl-atualizacao-progresso.js');
+    }
+
+    public function testPaginaAvisaSeOCronNaoPegarOPedidoEmCincoMinutos(): void
+    {
+        $this->preparar();
+        $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos() + ['modo' => 'agendar']);
+        $this->agora += 301;
+
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+
+        self::assertStringContainsString('O cron parece não estar rodando', $h);
+        self::assertStringContainsString('php …/bin/pbl cron', $h);
+        self::assertDoesNotMatchRegularExpression('/<div class="alert alert-warning" hidden/', $h);
+        self::assertStringNotContainsString($this->raiz, $h);
+    }
+
+    public function testPaginaMostraResultadoConcluidoComStatusEFalhaComAlert(): void
+    {
+        $this->preparar();
+        $p = new ProgressoEmArquivo($this->caminhos, 'cron', fn (): int => $this->agora);
+        $p->iniciar('atualizar');
+        $this->agora += 75;
+        $p->concluir();
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringContainsString('aria-valuenow="100"', $h);
+        self::assertStringContainsString('role="status" data-pbl-ok>A atualização terminou sem erro', $h);
+        self::assertStringContainsString('Durou 1 min 15 s.', $h);
+
+        $p->iniciar('atualizar');
+        $p->falhar('A assinatura do manifesto não confere: a atualização foi recusada.');
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringContainsString('role="alert" data-pbl-erro>A atualização falhou. A assinatura do manifesto não confere', $h);
+    }
+
+    public function testSemNadaEmAndamentoAPaginaNaoCarregaOScriptDeProgresso(): void
+    {
+        $this->preparar();
+
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+
+        self::assertStringNotContainsString('pbl-atualizacao-progresso.js', $h);
+        self::assertStringNotContainsString('data-pbl-progresso', $h);
+    }
+
+    public function testScriptDeProgressoEhPropriosemEvalNemInnerHtml(): void
+    {
+        $js = (string) file_get_contents(__DIR__ . '/../public/_pbl/assets/pbl-atualizacao-progresso.js');
+
+        self::assertStringNotContainsString('innerHTML', $js);
+        self::assertStringNotContainsString('eval(', $js);
+        self::assertStringNotContainsString('document.write', $js);
+        self::assertStringContainsString("credentials: 'same-origin'", $js);
+        self::assertStringContainsString('textContent', $js);
+    }
+
+    public function testTarefaDoCronSoTemTrabalhoComPedido(): void
+    {
+        $this->preparar();
+        $falha = static function (): never {
+            throw new \LogicException('não deveria ser chamado');
+        };
+        $tarefa = new \Pbl\Cron\Tarefas\AtualizacaoAgendadaTarefa(new \Pbl\Atualizacao\ExecutorDePedido(
+            $this->caminhos,
+            $this->pedidos(),
+            $falha,
+            $falha,
+            static function (): void {
+            },
+            fn (): int => $this->agora,
+        ));
+
+        self::assertSame('atualizacao-agendada', $tarefa->id());
+        self::assertFalse($tarefa->leve(), 'nunca no pseudo-cron');
+        self::assertFalse($tarefa->temTrabalho($this->s));
+        $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos() + ['modo' => 'agendar']);
+        self::assertTrue($tarefa->temTrabalho($this->s));
+        self::assertNotNull(\Pbl\Cron\Catalogo::porId(\Pbl\Cron\Catalogo::padrao(), 'atualizacao-agendada'));
     }
 }
