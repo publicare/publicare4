@@ -459,7 +459,8 @@ final class Pagina
      * Cabeçalhos de segurança das páginas de administração (ADR 0011 e 0012). `$seguro` = a conexão é HTTPS (liga o HSTS).
      * `$editor` = a página tem o editor de texto rico (ADR 0020): o TinyMCE aplica estilos em linha (alinhamento, tamanho) no
      * conteúdo editado e mostra imagens por endereço https; por isso, só nessas páginas, `style-src` aceita `'unsafe-inline'` e
-     * `img-src` aceita `https:`. `script-src` continua `'self'`: nenhum script inline ou de fora em lugar nenhum.
+     * `img-src` aceita `https:`. `script-src` continua `'self'`: nenhum script inline ou de fora em lugar nenhum. `connect-src 'self'`
+     * é o que deixa o `fetch()` do próprio painel (ex.: Republicar em `pbl-admin.js`) falar com o servidor; sem ele o `default-src 'none'` o bloqueia.
      */
     public static function protegida(Response $r, bool $seguro, bool $editor = false): Response
     {
@@ -471,7 +472,7 @@ final class Pagina
         $r->headers->set('X-Content-Type-Options', 'nosniff');
         $r->headers->set('Referrer-Policy', 'same-origin');
         // img-src data: só porque o CSS do Bootstrap desenha alguns ícones de formulário como SVG embutido.
-        $r->headers->set('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'" . ($editor ? " 'unsafe-inline'" : '') . "; img-src 'self' data:" . ($editor ? ' https:' : '') . "; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+        $r->headers->set('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'" . ($editor ? " 'unsafe-inline'" : '') . "; img-src 'self' data:" . ($editor ? ' https:' : '') . "; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
         if ($seguro) {
             // o `max-age` configurável (seguranca.json) é aplicado depois, por `Http\CabecalhosDeSeguranca::aplicar`, em toda resposta
             $r->headers->set('Strict-Transport-Security', 'max-age=' . \Pbl\Http\CabecalhosDeSeguranca::HSTS_PADRAO);

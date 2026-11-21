@@ -360,6 +360,12 @@ function pblx_manifesto(string $json): array
     return ['canal' => $canal, 'versao' => $versao, 'php_minimo' => $minimo, 'url' => $p['url'], 'tamanho' => $p['tamanho'], 'sha256' => $p['sha256']];
 }
 
+/** O endereço do manifesto do canal ('beta' ou, para qualquer outro valor, o estável): o MESMO usado para baixar e gravado em atualizacao.json. */
+function pblx_url_manifesto(string $canal): string
+{
+    return PBLX_URL_BASE . ($canal === 'beta' ? '/latest-beta.json' : '/latest.json');
+}
+
 /**
  * Baixa o manifesto do canal, CONFERE A ASSINATURA e só então baixa e confere o pacote.
  *
@@ -370,8 +376,7 @@ function pblx_baixar_pacote(string $canal, string $pastaTmp): array
     if (!function_exists('sodium_crypto_sign_verify_detached')) {
         throw new PblxErro('A extensão sodium do PHP não está ativa: sem ela não dá para conferir a assinatura.');
     }
-    $nome = $canal === 'beta' ? '/latest-beta.json' : '/latest.json';
-    $urlManifesto = PBLX_URL_BASE . $nome;
+    $urlManifesto = pblx_url_manifesto($canal);
     $manifesto = pblx_baixar($urlManifesto, 200000);
     $assinatura = pblx_baixar($urlManifesto . '.sig', 4096);
     if (!pblx_verificar_assinatura($manifesto, $assinatura)) {
@@ -724,18 +729,28 @@ function pblx_sondar(string $urlBase): string
     return pblx_decidir_exposicao($status);
 }
 
-/** Cria dados/ (0750) e passa a prova de posse para dados/instalar.liberar (o que o assistente web exige). */
+/** O conteúdo de dados/.htaccess (o mesmo de Caminhos::protegerDados): nega tudo ao servidor web. */
+const PBLX_HTACCESS_DADOS = "# Gerado pelo PBL4: nada daqui é público.\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Deny from all\n</IfModule>\n";
+
+/**
+ * Cria dados/ (0711: o servidor web atravessa a pasta para ler dados/.htaccess, mas ninguém lista; as subpastas ficam 0750 e o
+ * banco e o segredo 0600) e passa a prova de posse para dados/instalar.liberar (o que o assistente web exige).
+ */
 function pblx_preparar_dados(string $dir, bool $moverPosse): void
 {
     $dados = $dir . '/dados';
-    if (!is_dir($dados) && !@mkdir($dados, 0750, true) && !is_dir($dados)) {
+    if (!is_dir($dados) && !@mkdir($dados, 0711, true) && !is_dir($dados)) {
         throw new PblxErro('Não foi possível criar a pasta dados/.');
     }
-    @chmod($dados, 0750);
+    @chmod($dados, 0711);
     foreach (['config', 'cache', 'uploads', 'peles'] as $sub) {
         if (!is_dir($dados . '/' . $sub)) {
             @mkdir($dados . '/' . $sub, 0750, true);
         }
+    }
+    // Sem este arquivo a proteção por .htaccess só valeria depois do assistente; com umask restritivo ele nasceria ilegível ao Apache.
+    if (!is_file($dados . '/.htaccess') && @file_put_contents($dados . '/.htaccess', PBLX_HTACCESS_DADOS) !== false) {
+        @chmod($dados . '/.htaccess', 0644);
     }
     if ($moverPosse && is_file($dir . '/' . PBLX_POSSE) && !@rename($dir . '/' . PBLX_POSSE, $dados . '/' . PBLX_POSSE)) {
         throw new PblxErro('Não foi possível preparar a prova de posse para o assistente.');
@@ -743,6 +758,56 @@ function pblx_preparar_dados(string $dir, bool $moverPosse): void
     if (!is_file($dados . '/' . PBLX_POSSE) && $moverPosse) {
         @touch($dados . '/' . PBLX_POSSE);
     }
+}
+
+/**
+ * O servidor web (outro usuário, em hospedagem comum) consegue ler dados/.htaccess? Precisa do bit "outros" de leitura no arquivo
+ * e de travessia (x) em dados/ (ou o mesmo grupo, o que não dá para ver daqui: nesse caso o aviso pode ser ignorado).
+ *
+ * @return bool|null null = não há .htaccess (ou não deu para ler o modo): nada a dizer
+ */
+function pblx_htaccess_dados_legivel(string $dir): ?bool
+{
+    $arquivo = $dir . '/dados/.htaccess';
+    $modoArquivo = is_file($arquivo) ? @fileperms($arquivo) : false;
+    $modoPasta = @fileperms($dir . '/dados');
+    if ($modoArquivo === false || $modoPasta === false) {
+        return null;
+    }
+
+    return ($modoArquivo & 0004) !== 0 && ($modoPasta & 0001) !== 0;
+}
+
+/** O aviso (HTML) da página de conclusão; vazio se o .htaccess de dados/ é legível ou não há o que dizer. */
+function pblx_aviso_htaccess(string $dir): string
+{
+    if (pblx_htaccess_dados_legivel($dir) !== false) {
+        return '';
+    }
+
+    return '<p class="av">⚠ O servidor web talvez não consiga ler <code>dados/.htaccess</code> (a pasta <code>dados/</code> ou o arquivo não é legível por outros usuários). No Apache isso gera o erro <code>AH00529</code> em cada pedido e a proteção de <code>dados/</code> pode não valer. '
+        . 'Corrija com <code>chmod 711 dados</code> e <code>chmod 644 dados/.htaccess</code> (ou entregue <code>dados/</code> ao grupo do servidor web). O mais seguro é a raiz do site ser a pasta <code>public/</code>.</p>';
+}
+
+/**
+ * Grava dados/config/atualizacao.json com o endereço e o canal que a instalação usou para baixar, para a tela Atualização já
+ * nascer configurada. Não sobrescreve um arquivo existente (o dono pode ter ajustado). Só URL e canal: nada secreto.
+ */
+function pblx_gravar_atualizacao(string $dir, string $canal): void
+{
+    $pasta = $dir . '/dados/config';
+    $arquivo = $pasta . '/atualizacao.json';
+    if (is_file($arquivo)) {
+        return;
+    }
+    if (!is_dir($pasta) && !@mkdir($pasta, 0750, true) && !is_dir($pasta)) {
+        throw new PblxErro('Não foi possível criar a pasta dados/config/.');
+    }
+    $json = json_encode(['url' => pblx_url_manifesto($canal), 'canal' => $canal === 'beta' ? 'beta' : 'estavel', 'verificar' => true], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    if ($json === false || @file_put_contents($arquivo, $json . "\n", LOCK_EX) === false) {
+        throw new PblxErro('Não foi possível gravar dados/config/atualizacao.json.');
+    }
+    @chmod($arquivo, 0640);
 }
 
 // ---------------------------------------------------------------- páginas (web)
@@ -759,7 +824,7 @@ function pblx_pagina(string $titulo, string $corpo, int $status = 200): void
     header('Cache-Control: no-store');
     header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
     header('X-Content-Type-Options: nosniff');
-    header('Referrer-Policy: no-referrer');
+    header('Referrer-Policy: same-origin');
     header('X-Robots-Tag: noindex, nofollow');
     echo '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
         . '<meta name="robots" content="noindex, nofollow"><title>' . pblx_h($titulo) . ' · Publicare 4</title><style>'
@@ -807,18 +872,31 @@ function pblx_csrf_confere(string $cookie, string $campo): bool
     return preg_match('/^[0-9a-f]{32}$/D', $cookie) === 1 && hash_equals($cookie, $campo);
 }
 
-/** Origin (ou Referer) precisa existir e ser o mesmo host do site. */
+/** O host (com porta, se houver) de uma URL de Origin/Referer, em minúsculas; null se não for uma URL com host (ex.: "null"). */
+function pblx_host_da_url(string $url): ?string
+{
+    $h = $url === '' ? null : parse_url($url, PHP_URL_HOST);
+    if (!is_string($h) || $h === '') {
+        return null;
+    }
+    $porta = parse_url($url, PHP_URL_PORT);
+
+    return strtolower($h . ($porta !== null && $porta !== false ? ':' . $porta : ''));
+}
+
+/**
+ * Origin ou Referer precisa ser o mesmo host do site. Origin com host manda (de outro site, recusa mesmo que o Referer confira);
+ * Origin vazio ou "null" (o navegador manda isso com certas políticas de Referrer) cai no Referer.
+ */
 function pblx_origem_confere(string $host, string $origin, string $referer): bool
 {
-    $de = $origin !== '' ? $origin : $referer;
-    $h = $de === '' ? null : parse_url($de, PHP_URL_HOST);
-    $porta = $de === '' ? null : parse_url($de, PHP_URL_PORT);
-    if (!is_string($h)) {
-        return false;
-    }
     $esperado = strtolower($host);
+    $deOrigin = pblx_host_da_url($origin);
+    if ($deOrigin !== null) {
+        return $deOrigin === $esperado;
+    }
 
-    return strtolower($h . ($porta !== null && $porta !== false ? ':' . $porta : '')) === $esperado;
+    return pblx_host_da_url($referer) === $esperado && $esperado !== '';
 }
 
 function pblx_web(string $dir): void
@@ -868,6 +946,7 @@ function pblx_web(string $dir): void
     $acao = isset($_POST['acao']) && is_string($_POST['acao']) ? $_POST['acao'] : '';
     try {
         $versao = '';
+        $canal = 'estavel';
         if ($acao === 'instalar' && !$extraido) {
             $canal = (isset($_POST['canal']) && $_POST['canal'] === 'beta') ? 'beta' : 'estavel';
             $versao = pblx_instalar_pacote($dir, $canal)['versao'];
@@ -875,6 +954,9 @@ function pblx_web(string $dir): void
             throw new PblxErro('Pedido inesperado. Recarregue a página.');
         }
         pblx_preparar_dados($dir, true);
+        if ($acao === 'instalar') {
+            pblx_gravar_atualizacao($dir, $canal);
+        }
         $esquema = pblx_https() ? 'https://' : 'http://';
         $exposicao = pblx_sondar($esquema . (string) ($_SERVER['HTTP_HOST'] ?? ''));
         $layout = pblx_layout($dir);
@@ -896,7 +978,7 @@ function pblx_concluir_web(string $dir, string $versao, string $exposicao, strin
 
         return;
     }
-    $aviso = '';
+    $aviso = pblx_aviso_htaccess($dir);
     if ($exposicao === 'incerto') {
         $aviso .= '<p class="av">⚠ Não consegui conferir sozinho se as pastas internas estão protegidas. Depois de instalar, abra <code>/dados/</code> e <code>/app/</code> no navegador: devem dar "proibido" ou "não encontrado". O ideal é a raiz do site ser a pasta <code>public/</code>.</p>';
     }
@@ -939,7 +1021,11 @@ function pblx_cli(string $dir, array $args): int
         $linha('Baixando e conferindo a assinatura (canal ' . $canal . ')...');
         $r = pblx_instalar_pacote($dir, $canal);
         pblx_preparar_dados($dir, false);
+        pblx_gravar_atualizacao($dir, $canal);
         $linha('Pacote ' . $r['versao'] . ' conferido e instalado.');
+        if (pblx_htaccess_dados_legivel($dir) === false) {
+            $linha('[!] O servidor web talvez não consiga ler dados/.htaccess (erro AH00529 no Apache). Use: chmod 711 dados && chmod 644 dados/.htaccess');
+        }
         @unlink(__FILE__);
 
         return 0;

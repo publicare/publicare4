@@ -65,6 +65,12 @@ Se o `instalar.php` detectar um `public_html` com `private/` ao lado, ele lembra
 - **Atualizar:** na administração, abra *Atualização*. A atualização é assinada e confere tudo antes de trocar o código.
 - O site já vem com exemplos (**Sobre**, **Notícias**, **Contato**). Edite ou apague o que quiser.
 
+### O que a instalação já deixa pronto
+
+- **O instalador funciona em qualquer navegador** (a rc.2 recusava o formulário com "Pedido recusado").
+- A tela **Atualização** já vem configurada com o canal que você usou: **estável** por padrão, **beta** se instalou pelo beta. O arquivo é `dados/config/atualizacao.json` e pode ser editado.
+- A pasta `dados/` fica com permissão **711** (o servidor consegue ler o `.htaccess` dela, mas ninguém lista o conteúdo; o banco fica só para você). Se aparecer o aviso sobre `dados/.htaccess` na tela final, ou o erro `AH00529` no log do Apache, rode `chmod 711 dados` e `chmod 644 dados/.htaccess`, ou entregue `dados/` ao grupo do servidor web. O mais seguro continua sendo a raiz do site em `public/`.
+
 ## Se algo der errado
 
 | O que aparece | O que fazer |

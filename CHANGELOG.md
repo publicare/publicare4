@@ -6,6 +6,20 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.3] - 2026-11-21
+
+> **Em resumo:** correções achadas na primeira instalação real da rc.2 (hospedagem comum, Apache/php-fpm atrás de proxy e Cloudflare). O instalador web passa a funcionar em qualquer navegador e o painel deixa de dizer "Sem conexão" no Republicar.
+
+### Corrigido
+- **Instalador web recusava todo pedido (D1):** `instalar.php` enviava `Referrer-Policy: no-referrer`, e com isso os navegadores mandam `Origin: null` em formulários POST. Agora envia `same-origin` e a conferência aceita `Origin` ou `Referer` do mesmo host (`Origin` de outro site continua recusado; sem nenhum dos dois, recusa).
+- **Tela Atualização sem endereço após instalar (D2):** a instalação (`instalar.php`, `bin/pbl instalar` e o assistente) grava `dados/config/atualizacao.json` com o endereço e o canal usados (estável por padrão; beta quando instalado pelo beta). Não sobrescreve arquivo existente.
+- **Botão Republicar do painel (D3):** a CSP do painel ganhou `connect-src 'self'`; sem ela o navegador bloqueava o `fetch()` ("Sem conexão com o servidor").
+- **Aviso de `open_basedir` na tela Atualização (D4):** a descoberta do PHP de linha de comando não testa mais caminhos fora do `open_basedir` nem o binário do `php-fpm`.
+- **`AH00529` no Apache (D5):** `dados/` é criado 0711 (e `dados/.htaccess` 0644, banco 0600) para o servidor web ler o `.htaccess`; o instalador avisa se ele não for legível.
+
+### Alterado
+- Modo da pasta `dados/`: de 0750 para **0711** na instalação (a alternativa 0750 com `chgrp` para o grupo do servidor web está em [instalação](docs/tecnica/instalacao.md)). O banco SQLite passa a ser 0600.
+
 ## [0.1.0-rc.2] - 2026-11-16
 
 > **Em resumo:** segunda versão candidata do 0.1.0, no canal de testes (beta). Ela é o alvo do teste de atualização a partir da rc.1. O que mudou desde a rc.1, em linguagem simples:

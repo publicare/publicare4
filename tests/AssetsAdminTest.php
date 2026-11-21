@@ -173,4 +173,26 @@ final class AssetsAdminTest extends TestCase
         self::assertStringContainsString("PHP_SAPI === 'cli-server'", $index);
         self::assertStringContainsString('return false;', $index);
     }
+
+    /** Todo fetch()/XHR/EventSource dos scripts do painel (sem o TinyMCE, de terceiro) vai para o próprio site e a CSP do painel o permite. */
+    public function testCspDoPainelPermiteAsConexoesDoProprioPainel(): void
+    {
+        $achou = false;
+        foreach (glob($this->publico(Pagina::ASSETS) . '/pbl-admin*.js') ?: [] as $arquivo) {
+            $js = (string) file_get_contents($arquivo);
+            if (preg_match('/\bfetch\s*\(|XMLHttpRequest|EventSource|WebSocket/', $js) === 1) {
+                $achou = true;
+            }
+        }
+        self::assertTrue($achou, 'o painel usa fetch(): a CSP precisa de connect-src');
+        $js = (string) file_get_contents($this->publico(Pagina::ASSETS . '/pbl-admin.js'));
+        self::assertDoesNotMatchRegularExpression('#(?:fetch|\.open)\s*\(\s*[\'"]https?:#', $js, 'só conexões ao próprio site');
+        self::assertDoesNotMatchRegularExpression('/WebSocket|EventSource/', $js);
+
+        foreach ([false, true] as $editor) {
+            $csp = (string) Pagina::protegida(new \Symfony\Component\HttpFoundation\Response('<p>x</p>'), true, $editor)->headers->get('Content-Security-Policy');
+            self::assertStringContainsString("connect-src 'self'", $csp);
+            self::assertDoesNotMatchRegularExpression('/connect-src[^;]*(?:https?:|\*)/', $csp, 'connect-src só aceita o próprio site');
+        }
+    }
 }
