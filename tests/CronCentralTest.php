@@ -96,7 +96,7 @@ final class CronCentralTest extends TestCase
     {
         $ids = array_map(static fn (Tarefa $t): string => $t->id(), Catalogo::padrao());
 
-        self::assertSame(['agendados', 'republicacao', 'limpeza', 'retencao', 'verificar-atualizacao', 'uploads-orfaos', 'atualizacao-agendada'], $ids);
+        self::assertSame(['agendados', 'republicacao', 'limpeza', 'retencao', 'verificar-atualizacao', 'uploads-orfaos', 'backup', 'atualizacao-agendada'], $ids);
         foreach (Catalogo::padrao() as $t) {
             // a atualização agendada confere a cada rodada do cron (por minuto); 30 s evita pular uma rodada por jitter
             self::assertGreaterThanOrEqual($t->id() === 'atualizacao-agendada' ? 30 : 60, $t->intervalo());

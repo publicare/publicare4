@@ -34,6 +34,9 @@ final class Pagina
     /** Andamento da atualização (só carregado na tela que traz `data-pbl-progresso`). */
     public const PROGRESSO_JS = self::ASSETS . '/pbl-atualizacao-progresso.js';
     public const MARCA_PROGRESSO = 'data-pbl-progresso ';
+    /** Barra de "trabalhando" das cópias de segurança (só carregado na tela que traz `data-pbl-backup-form`). */
+    public const BACKUP_JS = self::ASSETS . '/pbl-backup.js';
+    public const MARCA_BACKUP = 'data-pbl-backup-form';
     public const MARCA_PREVIA = 'data-pbl-previa="';
 
     public static function h(string $texto): string
@@ -161,12 +164,14 @@ final class Pagina
         $editor = str_contains($corpo, self::MARCA_EDITOR);
         $instalar = str_contains($corpo, '<form method="post" action="/_pbl/instalar"') && str_contains($corpo, self::MARCA_INSTALAR);
         $progresso = str_contains($corpo, self::MARCA_PROGRESSO);
+        $backup = str_contains($corpo, self::MARCA_BACKUP);
         $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
             . '<meta name="robots" content="noindex"><title>' . self::h($titulo) . ' — PBL4</title>'
             . '<link rel="stylesheet" href="' . self::urlVersionada(self::BOOTSTRAP) . '"><link rel="stylesheet" href="' . self::urlVersionada(self::CSS) . '">'
             . '<script src="' . self::urlVersionada(self::BOOTSTRAP_JS) . '" defer></script><script src="' . self::urlVersionada(self::JS) . '" defer></script>'
             . ($instalar ? '<script src="' . self::urlVersionada(self::INSTALAR_JS) . '" defer></script>' : '')
             . ($progresso ? '<script src="' . self::urlVersionada(self::PROGRESSO_JS) . '" defer></script>' : '')
+            . ($backup ? '<script src="' . self::urlVersionada(self::BACKUP_JS) . '" defer></script>' : '')
             . ($editor ? '<script src="' . self::urlVersionada(self::TINYMCE_JS) . '" defer></script><script src="' . self::urlVersionada(self::EDITOR_JS) . '" defer></script>' : '')
             . '</head><body>' . self::$avisoDeDemo . '<a class="visually-hidden-focusable" href="#conteudo">Pular para o conteúdo</a>'
             . ($navegacao === '' ? '' : '<header>' . $navegacao . '</header>')
@@ -245,6 +250,7 @@ final class Pagina
             str_starts_with($caminho, '/_pbl/lixeira') => 'lixeira',
             str_starts_with($caminho, '/_pbl/contas') => 'contas',
             str_starts_with($caminho, '/_pbl/atualizacao') => 'atualizacao',
+            str_starts_with($caminho, '/_pbl/copias') => 'copias',
             str_starts_with($caminho, '/_pbl/tarefas') => 'tarefas',
             str_starts_with($caminho, '/_pbl/pendencias') => 'pendencias',
             str_starts_with($caminho, '/_pbl/meus-envios') => 'envios',
@@ -265,6 +271,7 @@ final class Pagina
         if ($administrador) {
             $itens['contas'] = ['/_pbl/contas', 'Contas'];
             $itens['atualizacao'] = ['/_pbl/atualizacao', 'Atualização'];
+            $itens['copias'] = ['/_pbl/copias', 'Cópias de segurança'];
             $itens['tarefas'] = ['/_pbl/tarefas', 'Tarefas agendadas'];
         }
         $links = '';

@@ -61,6 +61,7 @@ final class Painel
         $rotaDeDominio = TelasDeDominios::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeSite = TelasDeSite::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeAtualizacao = TelasDeAtualizacao::rota(self::PREFIXO, $caminho, $metodo);
+        $rotaDeBackup = TelasDeBackup::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeCron = TelasDeCron::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeRevisao = TelasDeRevisao::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeNavegacao = TelasDeNavegacao::rota(self::PREFIXO, $caminho, $metodo);
@@ -77,6 +78,7 @@ final class Painel
             $rotaDeDominio !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeDominios($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeDominio, $requisicao)),
             $rotaDeSite !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeSite($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeSite, $requisicao)),
             $rotaDeAtualizacao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeAtualizacao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeAtualizacao, $requisicao)),
+            $rotaDeBackup !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeBackup($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeBackup, $requisicao)),
             $rotaDeCron !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeCron($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeCron, $requisicao)),
             $rotaDeRevisao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeRevisao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeRevisao, $requisicao)),
             $rotaDeNavegacao !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeNavegacao($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeNavegacao, $requisicao)),
