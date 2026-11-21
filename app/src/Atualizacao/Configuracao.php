@@ -12,6 +12,9 @@ use Pbl\Caminhos;
  */
 final class Configuracao
 {
+    /** Endereço do manifesto do canal estável; o mesmo que o `instalar.php` usa para baixar (e o beta é `latest-beta.json` no mesmo lugar). */
+    public const URL_ESTAVEL = 'https://atualizacoes.publicare.org/latest.json';
+
     public function __construct(public readonly string $url, public readonly string $canal, public readonly bool $verificar, public readonly string $php = '')
     {
     }
@@ -28,5 +31,23 @@ final class Configuracao
             ($d['verificar'] ?? true) !== false,
             isset($d['php']) && is_string($d['php']) && strlen($d['php']) <= 300 ? $d['php'] : '',
         );
+    }
+
+    /**
+     * Grava `atualizacao.json` com o canal estável e o endereço oficial SE o arquivo ainda não existir (quem instalou pelo
+     * `instalar.php` já o recebeu com o canal usado, inclusive beta; isto cobre `bin/pbl instalar`, o assistente e a instalação por git).
+     * Nunca sobrescreve: o dono pode ter ajustado.
+     */
+    public static function garantirPadrao(Caminhos $caminhos): void
+    {
+        $arquivo = $caminhos->config() . '/atualizacao.json';
+        if (is_file($arquivo)) {
+            return;
+        }
+        $json = json_encode(['url' => self::URL_ESTAVEL, 'canal' => 'estavel', 'verificar' => true], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR);
+        if (file_put_contents($arquivo, $json . "\n", LOCK_EX) === false) {
+            throw new \RuntimeException("Não foi possível gravar {$arquivo}");
+        }
+        @chmod($arquivo, 0640);
     }
 }

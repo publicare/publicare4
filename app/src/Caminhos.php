@@ -132,5 +132,7 @@ final class Caminhos
         if (file_put_contents($arquivo, $regra) === false) {
             throw new \RuntimeException("Não foi possível gravar {$arquivo}");
         }
+        // O Apache (outro usuário em hospedagem comum) precisa ler este arquivo; uma umask restritiva o deixaria 0600 (erro AH00529).
+        @chmod($arquivo, 0644);
     }
 }

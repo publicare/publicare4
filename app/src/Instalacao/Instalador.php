@@ -7,6 +7,7 @@ namespace Pbl\Instalacao;
 use Pbl\Acesso\Auditoria;
 use Pbl\Acesso\Segredo;
 use Pbl\Acesso\UsuarioRepositorio;
+use Pbl\Atualizacao\Configuracao;
 use Pbl\Banco\Conexao;
 use Pbl\Banco\Migrador;
 use Pbl\Caminhos;
@@ -61,11 +62,14 @@ final class Instalador
                 throw new \RuntimeException("O PBL4 não consegue gravar em {$pasta}. Dê permissão de escrita a essa pasta e tente de novo.");
             }
         }
+        Configuracao::garantirPadrao($this->caminhos);
         Segredo::obter($this->caminhos);
         $this->copiarPeleBasica();
 
         $conexao = Conexao::sqlite($this->caminhos->banco());
         (new Migrador($conexao))->migrar();
+        // dados/ pode ser atravessável (0711) para o Apache ler o .htaccess; o banco, não: só o dono lê.
+        @chmod($this->caminhos->banco(), 0600);
 
         // Tudo ou nada: se algo falhar no meio, o banco volta ao estado limpo e dá para tentar de novo sem "classe já existe".
         $conexao->transactional(function () use ($conexao, $nomeDoSite, $host, $administrador, $modelos): void {

@@ -74,7 +74,8 @@ final class AvisoDeVersaoNaHomeTest extends TestCase
 
     public function testSemUrlVerificacaoDesligadaOuSemChaveNaoMostraNada(): void
     {
-        // sem configurar nada
+        // sem configurar nada: a instalação passou a gravar o atualizacao.json padrão (rc.3), então o teste o remove para representar "sem endereço"
+        @unlink($this->caminhos->config() . '/atualizacao.json');
         self::assertSame('', TelasDeAtualizacao::avisoHomePage($this->s, $this->admin, '0.1.0', [$this->par['publica']]));
 
         $this->configurar();

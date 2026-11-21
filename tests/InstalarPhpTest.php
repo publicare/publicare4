@@ -534,6 +534,18 @@ final class InstalarPhpTest extends TestCase
         self::assertFalse(pblx_origem_confere('site.org', 'https://evil.example', ''));
         self::assertFalse(pblx_origem_confere('site.org', '', ''), 'sem Origin nem Referer');
         self::assertFalse(pblx_origem_confere('site.org', 'null', ''));
+        self::assertTrue(pblx_origem_confere('site.org', 'null', 'https://site.org/instalar.php'), 'Origin: null (Referrer-Policy) cai no Referer');
+        self::assertFalse(pblx_origem_confere('site.org', 'null', 'https://evil.example/x'));
+        self::assertFalse(pblx_origem_confere('site.org', 'https://evil.example', 'https://site.org/instalar.php'), 'Origin de outro site vence o Referer');
+        self::assertFalse(pblx_origem_confere('', '', ''));
+    }
+
+    public function testPoliticaDeReferrerDoInstaladorEhSameOrigin(): void
+    {
+        $codigo = (string) file_get_contents(self::MODELO);
+
+        self::assertStringContainsString('Referrer-Policy: same-origin', $codigo);
+        self::assertStringNotContainsString('Referrer-Policy: no-referrer', $codigo);
     }
 
     /**
@@ -595,7 +607,61 @@ final class InstalarPhpTest extends TestCase
 
         self::assertFileExists($this->site . '/dados/' . \PBLX_POSSE);
         self::assertFileDoesNotExist($this->site . '/' . \PBLX_POSSE);
-        self::assertSame('0750', substr(sprintf('%o', fileperms($this->site . '/dados')), -4));
+        self::assertSame('0711', substr(sprintf('%o', fileperms($this->site . '/dados')), -4), 'atravessável pelo servidor web, não listável');
+        self::assertSame('0750', substr(sprintf('%o', fileperms($this->site . '/dados/config')), -4));
+        self::assertSame('0644', substr(sprintf('%o', fileperms($this->site . '/dados/.htaccess')), -4));
+        self::assertStringContainsString('Require all denied', (string) file_get_contents($this->site . '/dados/.htaccess'));
+        self::assertTrue(pblx_htaccess_dados_legivel($this->site));
+        self::assertSame('', pblx_aviso_htaccess($this->site));
+    }
+
+    public function testAvisaQuandoOHtaccessDeDadosNaoELegivelPeloServidorWeb(): void
+    {
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            self::markTestSkipped('como root as permissões não se aplicam');
+        }
+        pblx_preparar_dados($this->site, false);
+        self::assertNull(pblx_htaccess_dados_legivel($this->site . '/nada-aqui'));
+
+        chmod($this->site . '/dados/.htaccess', 0600);
+        self::assertFalse(pblx_htaccess_dados_legivel($this->site));
+        $aviso = pblx_aviso_htaccess($this->site);
+        self::assertStringContainsString('AH00529', $aviso);
+        self::assertStringContainsString('chmod 711 dados', $aviso);
+
+        chmod($this->site . '/dados/.htaccess', 0644);
+        chmod($this->site . '/dados', 0750);
+        self::assertFalse(pblx_htaccess_dados_legivel($this->site), 'sem travessia para outros');
+
+        chmod($this->site . '/dados', 0711);
+        self::assertTrue(pblx_htaccess_dados_legivel($this->site));
+    }
+
+    public function testGravaAtualizacaoJsonComOEnderecoEOCanalUsados(): void
+    {
+        foreach (['estavel' => 'latest.json', 'beta' => 'latest-beta.json'] as $canal => $nome) {
+            $site = Ajuda::pastaTemporaria();
+            pblx_preparar_dados($site, false);
+
+            pblx_gravar_atualizacao($site, $canal);
+
+            $d = json_decode((string) file_get_contents($site . '/dados/config/atualizacao.json'), true);
+            self::assertSame(['url' => 'https://atualizacoes.publicare.org/' . $nome, 'canal' => $canal, 'verificar' => true], $d);
+            self::assertSame(pblx_url_manifesto($canal), $d['url'], 'a mesma URL do download');
+            $lida = \Pbl\Atualizacao\Configuracao::ler(new \Pbl\Caminhos($site));
+            self::assertSame([$d['url'], $canal, true], [$lida->url, $lida->canal, $lida->verificar]);
+            Ajuda::apagar($site);
+        }
+    }
+
+    public function testAtualizacaoJsonExistenteNaoESobrescrito(): void
+    {
+        pblx_preparar_dados($this->site, false);
+        file_put_contents($this->site . '/dados/config/atualizacao.json', '{"url":"https://meu.org/latest.json"}');
+
+        pblx_gravar_atualizacao($this->site, 'beta');
+
+        self::assertSame('{"url":"https://meu.org/latest.json"}', file_get_contents($this->site . '/dados/config/atualizacao.json'));
     }
 
     // ---------- ponta a ponta no terminal (processo à parte, como o instalar.sh faz)
@@ -609,7 +675,9 @@ final class InstalarPhpTest extends TestCase
 
         self::assertSame(0, $codigo, implode("\n", $saida));
         self::assertSame(['.htaccess', 'app', 'bin', 'dados', 'public'], $this->conteudo(), 'o instalar.php se apagou e não sobrou temporário');
-        self::assertSame('0750', substr(sprintf('%o', fileperms($this->site . '/dados')), -4));
+        $d = json_decode((string) file_get_contents($this->site . '/dados/config/atualizacao.json'), true);
+        self::assertSame(['url' => 'https://atualizacoes.publicare.org/latest.json', 'canal' => 'estavel', 'verificar' => true], $d);
+        self::assertSame('0711', substr(sprintf('%o', fileperms($this->site . '/dados')), -4));
         self::assertStringNotContainsString($this->site, implode("\n", $saida), 'a saída não revela o caminho do servidor');
     }
 

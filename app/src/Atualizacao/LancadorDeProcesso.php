@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Atualizacao;
 
 use Pbl\Caminhos;
+use Pbl\Instalacao\Requisitos;
 
 /**
  * Roda o MESMO comando da linha de comando (`php bin/pbl atualizar` ou `php bin/pbl reverter --confirmar`) num processo separado,
@@ -20,14 +21,22 @@ final class LancadorDeProcesso implements Lancador
     }
 
     /**
-     * O PHP de linha de comando. Sob PHP-FPM ou Apache `PHP_BINARY` não é o `php` e não serve; nesse caso procura ao lado e, se não
-     * achar, devolve null (o administrador pode indicar o caminho em `dados/config/atualizacao.json`, chave `php`).
+     * O PHP de linha de comando. Sob PHP-FPM ou Apache `PHP_BINARY` não é o `php` (ex.: `/usr/sbin/php-fpm8.3`) e não serve; nesse caso
+     * procura em `PHP_BINDIR` (`php` e `phpX.Y`) e, se não achar, devolve null (o administrador pode indicar o caminho em
+     * `dados/config/atualizacao.json`, chave `php`). Os filtros que não tocam o disco (caminho absoluto, nome `php*`, dentro do
+     * `open_basedir`) vêm ANTES de qualquer `is_file`, para nunca testar um caminho proibido (hospedagem comum gera aviso).
+     * Os três últimos parâmetros existem para teste; em produção valem os do PHP em execução.
      */
-    public static function descobrirPhp(string $configurado = ''): ?string
+    public static function descobrirPhp(string $configurado = '', ?string $openBasedir = null, string $binario = PHP_BINARY, string $pastaDeBinarios = PHP_BINDIR): ?string
     {
-        $candidatos = [$configurado, PHP_BINARY, PHP_BINDIR . '/php'];
-        foreach ($candidatos as $c) {
-            if ($c !== '' && str_starts_with($c, '/') && is_file($c) && is_executable($c) && preg_match('/^php[0-9.]*$/D', basename($c)) === 1) {
+        $openBasedir ??= (string) ini_get('open_basedir');
+        $versao = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+        foreach ([$configurado, $binario, $pastaDeBinarios . '/php', $pastaDeBinarios . '/php' . $versao] as $c) {
+            if ($c === '' || !str_starts_with($c, '/') || preg_match('/^php[0-9.]*$/D', basename($c)) !== 1 || !Requisitos::dentroDoOpenBasedir($c, $openBasedir)) {
+                continue;
+            }
+            // @: mesmo dentro do open_basedir um caminho pode falhar por permissão; aqui só interessa "é utilizável?".
+            if (@is_file($c) && @is_executable($c)) {
                 return $c;
             }
         }

@@ -31,6 +31,8 @@ trait AdminAuxiliar
         $this->raiz = Ajuda::raizDeProjeto();
         $this->caminhos = new Caminhos($this->raiz);
         (new Instalador($this->caminhos))->instalar('Meu Site', 'www.exemplo.org');
+        // A instalação já grava atualizacao.json (rc.3); os testes de painel/cron partem de "sem consulta configurada" e a ligam quando precisam.
+        @unlink($this->caminhos->config() . '/atualizacao.json');
         $this->s = Servicos::doBancoInstalado($this->caminhos);
         $site = $this->s->sites->porHost('www.exemplo.org');
         self::assertNotNull($site);
