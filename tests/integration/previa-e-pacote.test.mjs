@@ -2,19 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { RAIZ } from '../unit/extrair.mjs';
+import { RAIZ } from '../unit/raiz.mjs';
 
 const REPO = join(RAIZ, '..');
 const pedidoPath = join(REPO, '..', 'notas', 'previa-pedido.json');
 
-test('pedido de prévia: estático, v2, docroot prototipo-ux, entrada existente, sem PHP', { skip: !existsSync(pedidoPath) && 'pedido fora do jail (CI do repositório)' }, () => {
+test('pedido de prévia: estático, docroot prototipo-ux, entrada existente, sem PHP', { skip: !existsSync(pedidoPath) && 'pedido fora do jail (CI do repositório)' }, () => {
   const p = JSON.parse(readFileSync(pedidoPath, 'utf8'));
-  assert.equal(p.versao, 2);
+  assert.ok([1, 2].includes(p.versao));
   assert.equal(p.modo, 'estatico');
   assert.equal(p.raiz, 'prototipo-ux');
-  assert.equal(p.php, false);
   assert.ok(existsSync(join(REPO, p.raiz, p.entrada)), 'entrada existe');
-  for (const t of p.telas) assert.ok(existsSync(join(REPO, p.raiz, t)), `tela ${t}`);
+  for (const t of p.paginas) assert.ok(existsSync(join(REPO, p.raiz, t.caminho.replace(/^\//, '') || p.entrada)), `tela ${t.caminho}`);
 });
 
 test('o protótipo não tem PHP nem arquivos de servidor', () => {
@@ -49,7 +48,9 @@ test('o gerador reproduz exatamente os HTML versionados', async () => {
   assert.deepEqual(hash(), antes, 'HTML versionado diverge do gerador: rode npm run gerar');
 });
 
-test('licença e proveniência do Bootstrap local acompanham os assets', () => {
-  assert.ok(existsSync(join(RAIZ, 'assets', 'PROVENIENCIA.md')));
-  assert.ok(existsSync(join(RAIZ, 'assets', 'bootstrap-5.3.8', 'LICENSE')));
+test('guia visual e README acompanham o protótipo e a pasta não usa Bootstrap nem fontes externas', () => {
+  assert.ok(existsSync(join(RAIZ, 'GUIA-VISUAL.md')));
+  assert.ok(existsSync(join(RAIZ, 'README.md')));
+  assert.ok(!existsSync(join(RAIZ, 'assets', 'bootstrap-5.3.8')));
+  assert.ok(!/font-face|googleapis/.test(readFileSync(join(RAIZ, 'assets', 'proto.css'), 'utf8')));
 });

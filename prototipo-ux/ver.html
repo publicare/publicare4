@@ -1,51 +1,61 @@
 <!doctype html>
-<html lang="pt-BR" data-bs-theme="light">
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="color-scheme" content="light dark">
-<title>Ver conteúdo · PBL4 (protótipo)</title>
-<link rel="stylesheet" href="assets/bootstrap-5.3.8/bootstrap.min.css">
+<title>Suíte Master · Painel PBL4 (protótipo)</title>
+<script src="assets/tema.js"></script>
 <link rel="stylesheet" href="assets/proto.css">
-<script src="assets/proto.js"></script>
 </head>
 <body data-tela="Ver conteúdo">
 <a class="pular" href="#principal">Pular para o conteúdo</a>
-<header class="topo">
-<div class="topo-linha"><a class="marca" href="inicio.html">PBL4 <small>(protótipo)</small></a>
-<button type="button" class="btn botao-menu" aria-controls="menu-principal">Menu</button></div>
-<nav id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html" aria-current="page">Conteúdo</a></li><li><a href="revisar.html">Revisar <span class="contador-menu">2<span class="visualmente-oculto"> aguardando</span></span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
-<div class="topo-ferramentas">
-<a class="btn btn-confuso" href="index.html#anotacoes" data-abrir-confuso>Isto ficou confuso</a>
-<button type="button" class="btn" data-tema aria-pressed="false">Tema: claro</button>
-<p class="usuario">Ana · administradora · <a href="index.html">Sair</a></p>
+<div class="app">
+  <header class="topo">
+    <button type="button" class="btn btn--secundario btn--pequeno btn-menu" aria-controls="lateral" aria-expanded="true">Menu</button>
+    <a class="btn confuso" href="index.html#anotacoes" data-confuso>Isto ficou confuso</a>
+    <nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="conteudo-quartos.html">Quartos</a></li><li><span aria-current="page">Suíte Master</span></li></ol></nav>
+  </header>
+  <aside class="lateral" id="lateral" aria-label="Menu do painel">
+    <a class="marca" href="inicio.html">Site Exemplo <small>protótipo</small></a>
+    <form class="busca" role="search" action="buscar.html" method="get">
+      <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <label class="so-leitor" for="busca-global">Buscar conteúdo</label>
+      <input type="search" id="busca-global" name="q" placeholder="Buscar conteúdo" autocomplete="off" data-ignorar>
+      <kbd aria-hidden="true">/</kbd>
+    </form>
+    <nav class="menu-principal" id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html" aria-current="page">Conteúdo</a></li><li><a href="revisar.html">Revisar<span class="contagem" data-contagem-revisar>2</span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
+    <div class="pessoa">
+      <div><strong>Ana</strong><span class="pequeno suave">Administradora</span></div>
+      <div class="acoes-pessoa"><button type="button" class="btn btn--discreto btn--pequeno" data-tema-alternar>Tema escuro</button> <a class="btn btn--discreto btn--pequeno" href="index.html">Sair</a></div>
+    </div>
+  </aside>
+  <main id="principal" class="principal" tabindex="-1">
+    <div class="tela">
+<header class="cabecalho"><div><h1>Suíte Master<span class="selo">Privado</span></h1><p>Página · versão 7 · alterada há 2 dias por Ana</p></div><div class="acoes"><a class="btn btn--secundario" href="site-exemplo.html" target="_blank" rel="noopener">Ver no site <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 3h4v4M13 3 7 9"/></svg><span class="so-leitor"> (abre em outra aba)</span></a><a class="btn btn--principal" href="editar-pagina.html">Editar</a></div></header>
+<section aria-labelledby="dados-t"><h2 id="dados-t" class="so-leitor">Dados</h2>
+<dl class="dados"><dt>Título</dt><dd>Suíte Master</dd><dt>Texto</dt><dd>A Suíte Master tem 42 m², cama king e varanda com vista para o jardim. Café da manhã incluso.</dd><dt>Endereço</dt><dd class="mono">/quartos/suite-master</dd><dt>Tags</dt><dd>hotel, suíte</dd><dt>Publicação</dt><dd>Ainda não publicada</dd></dl></section>
+<section class="secao-tela" aria-labelledby="dentro-t"><h2 id="dentro-t">Dentro desta página</h2><p>Nada dentro desta página ainda.</p><p><a href="criar.html">Criar conteúdo aqui dentro</a></p></section>
+<section class="secao-tela" aria-labelledby="rev-t" data-linha><h2 id="rev-t">Revisão</h2><p>Quem não publica diretamente envia para a revisão de alguém. <span class="selo" data-estado-revisao>Fora da revisão</span></p>
+<p><button type="button" class="btn btn--secundario" data-efeito="enviar">Enviar para revisão</button></p><p class="item-meta" data-msg role="status" hidden></p></section>
+    </div>
+  </main>
 </div>
-<form class="busca-global" role="search" action="buscar.html" method="get">
-<label for="busca-global">Buscar</label>
-<input type="search" id="busca-global" name="q" autocomplete="off" aria-describedby="busca-ajuda">
-<button type="submit" class="btn btn-topo">Buscar</button>
-<span id="busca-ajuda" class="visualmente-oculto">Tecla barra (/) leva o foco até aqui.</span>
-</form>
-</header>
-<main id="principal" class="" tabindex="-1">
-<nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Site Exemplo</a></li><li><a href="conteudo.html">Quartos</a></li><li><span aria-current="page">Suíte Master</span></li></ol></nav>
-<h1>Suíte Master</h1>
-<p><span class="selo selo-privado">Privado</span> Versão 7 · alterado há 2 dias por Ana</p>
-<div class="acoes"><a class="btn btn-primary" href="editar-pagina.html">Editar<span class="visualmente-oculto"> Suíte Master</span></a>
-<a class="btn btn-outline-secondary" href="inicio.html" target="_blank" rel="noopener">Ver no site ↗<span class="visualmente-oculto"> (abre em nova aba)</span></a></div>
-<div data-escopo><div class="status" role="status" data-status></div>
-<details class="divulga"><summary>Mais ações</summary><div class="divulga-corpo acoes">
-<a class="btn btn-outline-secondary" href="criar.html">Criar dentro</a>
-<button type="button" class="btn btn-outline-secondary" data-msg="Mover: no painel real você escolhe o destino aqui.">Mover</button>
-<button type="button" class="btn btn-outline-secondary" data-msg="Copiado (simulação).">Copiar</button>
-<button type="button" class="btn btn-outline-secondary" data-msg="Histórico: no painel real mostra as versões 1 a 7.">Histórico</button>
-<button type="button" class="btn btn-outline-danger" data-msg="Mandado para a lixeira (simulação). Você acha em Conteúdo, filtro Lixeira.">Mandar para a lixeira</button></div></details></div>
-<section class="cartao" aria-labelledby="t-campos"><h2 id="t-campos">O que está escrito</h2>
-<dl class="campos-lista"><dt>Título</dt><dd>Suíte Master</dd><dt>Descrição</dt><dd>Suíte com varanda, vista para o jardim e café da manhã incluso.</dd><dt>Texto</dt><dd>A Suíte Master tem 38 m², cama king, varanda com rede e banheira.</dd><dt>Imagem de capa</dt><dd>capa-suite.jpg</dd><dt>Endereço</dt><dd>/quartos/suite-master</dd><dt>Sai do ar</dt><dd>Sem prazo</dd></dl></section>
-<section class="cartao" aria-labelledby="t-env"><h2 id="t-env">Enviar para revisão</h2><p class="ajuda">Para quem escreve e não publica. Enviar não coloca no ar.</p>
-<div data-escopo><button type="button" class="btn btn-outline-primary" data-msg="Enviado para revisão. Ainda não está no ar.">Enviar para revisão</button><div class="status" role="status" data-status></div></div></section>
-<section aria-labelledby="t-filhos"><h2 id="t-filhos">Dentro desta página</h2><p>Nada dentro deste conteúdo ainda.</p><a class="btn btn-outline-secondary" href="criar.html">Criar dentro</a></section>
-</main>
+<dialog id="dlg-confuso" aria-labelledby="dlg-confuso-t">
+  <form method="dialog">
+    <h2 id="dlg-confuso-t">O que ficou confuso?</h2>
+    <p class="suave">Tela: <strong data-tela-nome></strong></p>
+    <div class="campo">
+      <div class="campo-cab"><label for="confuso-texto">Conte em poucas palavras</label><span class="contador" data-contador-confuso>0 de 300</span></div>
+      <textarea id="confuso-texto" rows="4" aria-describedby="confuso-texto-ajuda confuso-texto-erro"></textarea>
+      <p class="ajuda" id="confuso-texto-ajuda">Fica só neste aparelho. Não escreva nomes, e-mails ou senhas reais.</p>
+      <p class="erro" id="confuso-texto-erro"></p>
+    </div>
+    <div class="barra-botoes"><button type="button" class="btn btn--discreto" data-cancelar>Cancelar</button><button type="button" class="btn btn--principal" data-anotar>Anotar</button></div>
+  </form>
+</dialog>
+<p class="caixa caixa--ok toast" id="toast" role="status" hidden></p>
+<script src="assets/regras.js"></script>
+<script src="assets/proto.js"></script>
 </body>
 </html>

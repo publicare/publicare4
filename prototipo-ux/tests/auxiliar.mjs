@@ -19,9 +19,9 @@ export const luminancia = (hex) => { const n = parseInt(hex.slice(1), 16); retur
 export const contraste = (a, b) => { const [x, y] = [luminancia(a), luminancia(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 
 export function tokens(css) {
-  const bloco = (seletor) => { const i = css.indexOf(seletor + ' {'); const f = css.indexOf('}', i); return css.slice(i, f); };
-  const ler = (b) => Object.fromEntries([...b.matchAll(/(--pbl-[a-z-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)].map((m) => [m[1], m[2]]));
+  const bloco = (seletor) => { const i = css.indexOf(seletor + ' {'); if (i < 0) throw new Error(`bloco ${seletor} não encontrado`); return css.slice(i, css.indexOf('}', i)); };
+  const ler = (b) => Object.fromEntries([...b.matchAll(/(--pbl-[a-z0-9-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)].map((m) => [m[1], m[2]]));
   const claro = ler(bloco(':root'));
-  const escuro = { ...claro, ...ler(bloco('[data-bs-theme="dark"]')) };
+  const escuro = { ...claro, ...ler(bloco('[data-tema="escuro"]')) };
   return { claro, escuro };
 }

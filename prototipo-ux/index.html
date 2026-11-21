@@ -1,60 +1,76 @@
 <!doctype html>
-<html lang="pt-BR" data-bs-theme="light">
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="color-scheme" content="light dark">
-<title>Roteiro de teste · PBL4 (protótipo)</title>
-<link rel="stylesheet" href="assets/bootstrap-5.3.8/bootstrap.min.css">
+<title>Roteiro de teste · Painel PBL4 (protótipo)</title>
+<script src="assets/tema.js"></script>
 <link rel="stylesheet" href="assets/proto.css">
-<script src="assets/proto.js"></script>
 </head>
-<body data-tela="Roteiro de teste">
+<body data-tela="Roteiro">
 <a class="pular" href="#principal">Pular para o conteúdo</a>
-<header class="topo">
-<div class="topo-linha"><a class="marca" href="inicio.html">PBL4 <small>(protótipo)</small></a>
-<button type="button" class="btn botao-menu" aria-controls="menu-principal">Menu</button></div>
-<nav id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar <span class="contador-menu">2<span class="visualmente-oculto"> aguardando</span></span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
-<div class="topo-ferramentas">
-<a class="btn btn-confuso" href="index.html#anotacoes" data-abrir-confuso>Isto ficou confuso</a>
-<button type="button" class="btn" data-tema aria-pressed="false">Tema: claro</button>
-<p class="usuario">Ana · administradora · <a href="index.html">Sair</a></p>
+<div class="app">
+  <header class="topo">
+    <button type="button" class="btn btn--secundario btn--pequeno btn-menu" aria-controls="lateral" aria-expanded="true">Menu</button>
+    <a class="btn confuso" href="index.html#anotacoes" data-confuso>Isto ficou confuso</a>
+    <nav class="migalhas" aria-label="Você está em"><ol><li><span aria-current="page">Roteiro</span></li></ol></nav>
+  </header>
+  <aside class="lateral" id="lateral" aria-label="Menu do painel">
+    <a class="marca" href="inicio.html">Site Exemplo <small>protótipo</small></a>
+    <form class="busca" role="search" action="buscar.html" method="get">
+      <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <label class="so-leitor" for="busca-global">Buscar conteúdo</label>
+      <input type="search" id="busca-global" name="q" placeholder="Buscar conteúdo" autocomplete="off" data-ignorar>
+      <kbd aria-hidden="true">/</kbd>
+    </form>
+    <nav class="menu-principal" id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar<span class="contagem" data-contagem-revisar>2</span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
+    <div class="pessoa">
+      <div><strong>Ana</strong><span class="pequeno suave">Administradora</span></div>
+      <div class="acoes-pessoa"><button type="button" class="btn btn--discreto btn--pequeno" data-tema-alternar>Tema escuro</button> <a class="btn btn--discreto btn--pequeno" href="index.html">Sair</a></div>
+    </div>
+  </aside>
+  <main id="principal" class="principal" tabindex="-1">
+    <div class="tela">
+<header class="cabecalho"><div><h1>Roteiro de teste</h1><p>Quatro tarefas curtas no novo painel. Faça uma de cada vez e diga onde travou.</p></div></header>
+<section aria-labelledby="como-t"><h2 id="como-t" class="so-leitor">Como testar</h2>
+<p class="suave">Tudo aqui é de mentira: nada é salvo de verdade e os dados são do “Site Exemplo”. Sempre que algo parecer confuso, toque em <strong>Isto ficou confuso</strong>, no alto da tela.</p></section>
+<section class="secao-tela" aria-labelledby="tarefas-t"><h2 id="tarefas-t">As tarefas</h2>
+<ol class="passos">
+  <li><h3>Trocar o texto de um quarto e publicar</h3><p>Entre na Suíte Master, mude o texto, salve e publique.</p><a class="btn btn--principal" href="inicio.html">Começar pelo Início</a></li>
+  <li><h3>Criar um evento com data de saída</h3><p>Crie um evento e faça ele sair do ar sozinho depois da data. Tente errar a data de propósito.</p><a class="btn btn--secundario" href="conteudo-eventos.html">Começar por Eventos</a></li>
+  <li><h3>Configurar o contato do site</h3><p>Troque o e-mail e o telefone. Tente um e-mail incompleto e veja o aviso.</p><a class="btn btn--secundario" href="configuracoes.html">Começar por Site</a></li>
+  <li><h3>Achar algo que foi apagado</h3><p>Use a busca (ou a tecla <kbd>/</kbd>) para achar a “Suíte Antiga” e trazê-la de volta.</p><a class="btn btn--secundario" href="buscar.html?q=Su%C3%ADte">Começar pela busca</a></li>
+</ol></section>
+<section class="secao-tela" id="anotacoes" aria-labelledby="notas-t"><h2 id="notas-t">Suas anotações</h2>
+<p>O que você marcar como confuso fica só neste aparelho. Ao terminar, copie e mande para quem pediu o teste.</p>
+<p id="resumo-vazio" class="suave">Nada anotado ainda.</p>
+<div class="campo" data-so-com-notas hidden><div class="campo-cab"><label for="resumo-confusoes">Resumo para copiar</label></div><textarea id="resumo-confusoes" class="resumo-texto" readonly rows="6"></textarea></div>
+<p class="barra-botoes" data-so-com-notas hidden><button type="button" class="btn btn--secundario" id="copiar-resumo">Copiar resumo</button><button type="button" class="btn btn--discreto" id="apagar-confusoes">Apagar anotações</button></p>
+<p class="pequeno" id="resumo-msg" role="status"></p></section>
+<section class="secao-tela" aria-labelledby="fora-t"><h2 id="fora-t">Bom saber</h2>
+<ul class="lista">
+  <li><div class="item"><div class="item-texto"><span class="item-titulo">Fora desta rodada</span><span class="item-meta">Domínios, redirecionamentos, tipos de conteúdo e tarefas agendadas.</span></div></div></li>
+  <li><a class="item" href="guia.html"><div class="item-texto"><span class="item-titulo">Guia visual</span><span class="item-meta">Cores, letras, espaços e componentes usados nas telas.</span></div><span class="seta" aria-hidden="true">›</span></a></li>
+</ul></section>
+    </div>
+  </main>
 </div>
-<form class="busca-global" role="search" action="buscar.html" method="get">
-<label for="busca-global">Buscar</label>
-<input type="search" id="busca-global" name="q" autocomplete="off" aria-describedby="busca-ajuda">
-<button type="submit" class="btn btn-topo">Buscar</button>
-<span id="busca-ajuda" class="visualmente-oculto">Tecla barra (/) leva o foco até aqui.</span>
-</form>
-</header>
-<main id="principal" class="" tabindex="-1">
-<nav class="migalhas" aria-label="Você está em"><ol><li><span aria-current="page">Roteiro</span></li></ol></nav>
-<h1>Roteiro de teste</h1>
-<p>Este é um <strong>protótipo</strong> do novo painel do PBL4: dados fictícios do “Site Exemplo”, nada é gravado de verdade. Teste os 4 caminhos abaixo, de preferência no celular. Sempre que algo travar ou parecer estranho, toque em <strong>Isto ficou confuso</strong> (no topo de qualquer tela) e escreva uma frase.</p>
-<ol class="roteiro lista">
-<li class="cartao"><h2>1. Trocar o texto de um quarto e publicar</h2>
-<ol class="passos"><li>Em <a href="inicio.html">Início</a>, toque em “Continuar: Suíte Master”.</li><li>Toque em “Editar”.</li><li>Troque o título e o texto. Veja o contador e o aviso “Alterações não salvas”.</li><li>Toque em “Salvar”. Depois, na aba Publicação, ou na barra, toque em “Publicar”.</li></ol>
-<p><a class="btn btn-primary" href="inicio.html">Começar pelo Início</a></p></li>
-<li class="cartao"><h2>2. Criar um evento com data de saída</h2>
-<ol class="passos"><li>Em <a href="conteudo-eventos.html">Conteúdo › Eventos</a>, toque em “Criar conteúdo” e escolha “Evento”.</li><li>Preencha título e data do evento.</li><li>Na aba Publicação, ligue “Agendar publicação” e coloque “Tirar do ar” <em>antes</em> de “Publicar a partir de”. Veja o erro.</li><li>Corrija e toque em “Publicar”.</li></ol>
-<p><a class="btn btn-primary" href="conteudo-eventos.html">Começar pelos Eventos</a></p></li>
-<li class="cartao"><h2>3. Configurar o contato do site</h2>
-<ol class="passos"><li>No menu, toque em “Site”.</li><li>Abra a aba “Contato”.</li><li>Digite um e-mail errado e saia do campo. Corrija. Preencha telefone e redes sociais.</li><li>Toque em “Salvar esta aba”.</li></ol>
-<p><a class="btn btn-primary" href="configuracoes.html#painel-contato">Começar em Configurações</a></p></li>
-<li class="cartao"><h2>4. Achar algo apagado</h2>
-<ol class="passos"><li>Toque no campo “Buscar” (ou aperte a tecla /) e digite “Suíte”.</li><li>Ache “Suíte Antiga”, que está na lixeira.</li><li>Toque em “Recuperar” e confirme.</li></ol>
-<p><a class="btn btn-primary" href="buscar.html?q=Su%C3%ADte">Começar pela busca</a></p></li>
-</ol>
-<p class="aviso-bloco">Fora deste protótipo: Domínios, Redirecionamentos, Tipos de conteúdo e Tarefas agendadas.</p>
-<section class="cartao" id="anotacoes" aria-labelledby="t-anot"><h2 id="t-anot">Seus pontos de confusão (<span id="total-confuso">0</span>)</h2>
-<p>As anotações ficam só neste aparelho. Ao terminar, copie o resumo e envie para quem pediu o teste.</p>
-<p><a class="btn btn-confuso-pagina btn-outline-primary" href="#anotacoes" data-abrir-confuso>Isto ficou confuso</a></p>
-<div class="campo"><label for="resumo-confuso">Resumo para copiar</label>
-<textarea id="resumo-confuso" class="form-control resumo" readonly rows="8">Este navegador está sem JavaScript: as anotações precisam dele. Ligue o JavaScript para anotar e copiar o resumo.</textarea></div>
-<div class="acoes"><button type="button" class="btn btn-primary" id="copiar-resumo">Copiar resumo</button><button type="button" class="btn btn-outline-danger" id="apagar-anotacoes">Apagar anotações</button></div>
-<p role="status" id="status-resumo" class="ajuda"></p></section>
-<p class="ajuda">Todas as telas: <a href="inicio.html">Início</a> · <a href="conteudo.html">Conteúdo</a> · <a href="revisar.html">Revisar</a> · <a href="configuracoes.html">Site</a> · <a href="mais.html">Mais</a>.</p>
-</main>
+<dialog id="dlg-confuso" aria-labelledby="dlg-confuso-t">
+  <form method="dialog">
+    <h2 id="dlg-confuso-t">O que ficou confuso?</h2>
+    <p class="suave">Tela: <strong data-tela-nome></strong></p>
+    <div class="campo">
+      <div class="campo-cab"><label for="confuso-texto">Conte em poucas palavras</label><span class="contador" data-contador-confuso>0 de 300</span></div>
+      <textarea id="confuso-texto" rows="4" aria-describedby="confuso-texto-ajuda confuso-texto-erro"></textarea>
+      <p class="ajuda" id="confuso-texto-ajuda">Fica só neste aparelho. Não escreva nomes, e-mails ou senhas reais.</p>
+      <p class="erro" id="confuso-texto-erro"></p>
+    </div>
+    <div class="barra-botoes"><button type="button" class="btn btn--discreto" data-cancelar>Cancelar</button><button type="button" class="btn btn--principal" data-anotar>Anotar</button></div>
+  </form>
+</dialog>
+<p class="caixa caixa--ok toast" id="toast" role="status" hidden></p>
+<script src="assets/regras.js"></script>
+<script src="assets/proto.js"></script>
 </body>
 </html>

@@ -1,72 +1,57 @@
 <!doctype html>
-<html lang="pt-BR" data-bs-theme="light">
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="color-scheme" content="light dark">
-<title>Contas · PBL4 (protótipo)</title>
-<link rel="stylesheet" href="assets/bootstrap-5.3.8/bootstrap.min.css">
+<title>Contas · Painel PBL4 (protótipo)</title>
+<script src="assets/tema.js"></script>
 <link rel="stylesheet" href="assets/proto.css">
-<script src="assets/proto.js"></script>
 </head>
-<body data-tela="Contas">
+<body data-tela="Mais › Contas">
 <a class="pular" href="#principal">Pular para o conteúdo</a>
-<header class="topo">
-<div class="topo-linha"><a class="marca" href="inicio.html">PBL4 <small>(protótipo)</small></a>
-<button type="button" class="btn botao-menu" aria-controls="menu-principal">Menu</button></div>
-<nav id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar <span class="contador-menu">2<span class="visualmente-oculto"> aguardando</span></span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html" aria-current="page">Mais</a></li></ul></nav>
-<div class="topo-ferramentas">
-<a class="btn btn-confuso" href="index.html#anotacoes" data-abrir-confuso>Isto ficou confuso</a>
-<button type="button" class="btn" data-tema aria-pressed="false">Tema: claro</button>
-<p class="usuario">Ana · administradora · <a href="index.html">Sair</a></p>
+<div class="app">
+  <header class="topo">
+    <button type="button" class="btn btn--secundario btn--pequeno btn-menu" aria-controls="lateral" aria-expanded="true">Menu</button>
+    <a class="btn confuso" href="index.html#anotacoes" data-confuso>Isto ficou confuso</a>
+    <nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><a href="mais.html">Mais</a></li><li><span aria-current="page">Contas</span></li></ol></nav>
+  </header>
+  <aside class="lateral" id="lateral" aria-label="Menu do painel">
+    <a class="marca" href="inicio.html">Site Exemplo <small>protótipo</small></a>
+    <form class="busca" role="search" action="buscar.html" method="get">
+      <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <label class="so-leitor" for="busca-global">Buscar conteúdo</label>
+      <input type="search" id="busca-global" name="q" placeholder="Buscar conteúdo" autocomplete="off" data-ignorar>
+      <kbd aria-hidden="true">/</kbd>
+    </form>
+    <nav class="menu-principal" id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar<span class="contagem" data-contagem-revisar>2</span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html" aria-current="page">Mais</a></li></ul></nav>
+    <div class="pessoa">
+      <div><strong>Ana</strong><span class="pequeno suave">Administradora</span></div>
+      <div class="acoes-pessoa"><button type="button" class="btn btn--discreto btn--pequeno" data-tema-alternar>Tema escuro</button> <a class="btn btn--discreto btn--pequeno" href="index.html">Sair</a></div>
+    </div>
+  </aside>
+  <main id="principal" class="principal" tabindex="-1">
+    <div class="tela">
+<header class="cabecalho"><div><h1>Contas</h1><p>Quem pode entrar no painel.</p></div><div class="acoes"><a class="btn btn--principal" href="conta.html">Nova conta</a></div></header>
+<ul class="lista"><li><div class="item"><div class="item-texto"><span class="item-titulo">Ana</span><span class="item-meta">Administradora · todo o site · Entrou hoje</span></div><div class="item-fim"><span class="selo selo--ok">Ativa</span></div></div></li><li><div class="item"><div class="item-texto"><span class="item-titulo">Bruno</span><span class="item-meta">Editor · só Eventos · Entrou ontem</span></div><div class="item-fim"><span class="selo selo--ok">Ativa</span></div></div></li><li><div class="item"><div class="item-texto"><span class="item-titulo">Carla</span><span class="item-meta">Autora · só Novidades · Entrou há 5 dias</span></div><div class="item-fim"><span class="selo selo--ok">Ativa</span></div></div></li><li><div class="item"><div class="item-texto"><span class="item-titulo">Dário</span><span class="item-meta">Técnico · todo o site · Nunca entrou</span></div><div class="item-fim"><span class="selo">Pausada</span></div></div></li></ul>
+    </div>
+  </main>
 </div>
-<form class="busca-global" role="search" action="buscar.html" method="get">
-<label for="busca-global">Buscar</label>
-<input type="search" id="busca-global" name="q" autocomplete="off" aria-describedby="busca-ajuda">
-<button type="submit" class="btn btn-topo">Buscar</button>
-<span id="busca-ajuda" class="visualmente-oculto">Tecla barra (/) leva o foco até aqui.</span>
-</form>
-</header>
-<main id="principal" class="" tabindex="-1">
-<nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><a href="mais.html">Mais</a></li><li><span aria-current="page">Contas</span></li></ol></nav>
-<h1>Contas</h1>
-<ul class="lista"><li class="item"><div><span class="item-titulo">Ana</span> <span class="selo selo-publicado">Publicado</span></div><div class="item-meta">Administradora</div><div class="item-acoes"><a class="btn btn-outline-secondary" href="#conta-carla">Ver Ana</a></div></li>
-<li class="item"><div><span class="item-titulo">Bruno</span> <span class="selo selo-publicado">Publicado</span></div><div class="item-meta">Editor da seção Eventos</div><div class="item-acoes"><a class="btn btn-outline-secondary" href="#conta-carla">Ver Bruno</a></div></li>
-<li class="item"><div><span class="item-titulo">Carla</span> <span class="selo selo-publicado">Publicado</span></div><div class="item-meta">Autora externa</div><div class="item-acoes"><a class="btn btn-outline-primary" href="#conta-carla">Editar Carla</a></div></li></ul>
-<section id="conta-carla" aria-labelledby="t-carla"><h2 id="t-carla">Conta de Carla</h2>
-<form data-salvavel action="contas.html" method="get" data-abas><div class="resumo-erros aviso-erro" role="alert" tabindex="-1" hidden></div>
-<nav class="abas" aria-label="Partes da conta"><ul><li><a href="#painel-dados" data-aba="dados">Dados<span class="marca-aba"></span></a></li><li><a href="#painel-senha" data-aba="senha">Senha<span class="marca-aba"></span></a></li><li><a href="#painel-situacao" data-aba="situacao">Situação<span class="marca-aba"></span></a></li><li><a href="#painel-papeis" data-aba="papeis">Papéis<span class="marca-aba"></span></a></li></ul></nav>
-<section id="painel-dados" class="painel" data-painel data-nome="Dados" aria-labelledby="titulo-dados"><h2 id="titulo-dados">Dados</h2><div class="campo">
-<label for="conta-nome">Nome<span class="obrig">(obrigatório)</span></label>
-
-<input class="form-control" type="text" id="conta-nome" name="conta-nome" value="Carla Souza" data-obrigatorio data-max="80">
-</div><div class="campo">
-<label for="conta-email">E-mail</label>
-
-<input class="form-control" type="email" id="conta-email" name="conta-email" value="carla@exemplo.com.br" data-tipo="email">
-</div><div class="acoes"><button type="submit" class="btn btn-primary" data-salvar data-acao="painel">Salvar esta aba</button></div><div class="status" role="status" data-status></div></section>
-<section id="painel-senha" class="painel" data-painel data-nome="Senha" aria-labelledby="titulo-senha"><h2 id="titulo-senha">Senha</h2><div class="campo">
-<label for="conta-senha">Nova senha</label>
-<p class="ajuda" id="conta-senha-ajuda">Pelo menos 12 caracteres. Pode colar.</p>
-<input class="form-control" type="password" id="conta-senha" name="conta-senha" value="" aria-describedby="conta-senha-ajuda" autocomplete="new-password">
-</div><div class="acoes"><button type="submit" class="btn btn-primary" data-salvar data-acao="painel">Salvar esta aba</button></div><div class="status" role="status" data-status></div></section>
-<section id="painel-situacao" class="painel" data-painel data-nome="Situação" aria-labelledby="titulo-situacao"><h2 id="titulo-situacao">Situação</h2><div class="campo"><div class="form-check"><input class="form-check-input" type="checkbox" id="conta-ativa" name="conta-ativa" checked aria-describedby="conta-ativa-ajuda"><label class="form-check-label" for="conta-ativa">Conta ativa</label></div><p class="ajuda" id="conta-ativa-ajuda">Desmarque para impedir a entrada sem apagar a conta.</p></div><div class="acoes"><button type="submit" class="btn btn-primary" data-salvar data-acao="painel">Salvar esta aba</button></div><div class="status" role="status" data-status></div></section>
-<section id="painel-papeis" class="painel" data-painel data-nome="Papéis" aria-labelledby="titulo-papeis"><h2 id="titulo-papeis">Papéis</h2><div class="campo campo-curto">
-<label for="conta-papel">Papel</label>
-
-<select class="form-select" id="conta-papel" name="conta-papel"><option value="autor" selected>Autora (envia para revisão)</option><option value="editor">Editora</option><option value="admin">Administradora</option></select>
-</div><div class="acoes"><button type="submit" class="btn btn-primary" data-salvar data-acao="painel">Salvar esta aba</button></div><div class="status" role="status" data-status></div></section>
-</form></section>
-<details class="divulga"><summary>Nova conta</summary><div class="divulga-corpo"><form action="contas.html" method="get"><div class="campo">
-<label for="nova-nome">Nome</label>
-
-<input class="form-control" type="text" id="nova-nome" name="nova-nome" value="">
-</div><div class="campo">
-<label for="nova-email">E-mail</label>
-
-<input class="form-control" type="email" id="nova-email" name="nova-email" value="">
-</div><button type="submit" class="btn btn-primary">Criar conta</button></form></div></details>
-</main>
+<dialog id="dlg-confuso" aria-labelledby="dlg-confuso-t">
+  <form method="dialog">
+    <h2 id="dlg-confuso-t">O que ficou confuso?</h2>
+    <p class="suave">Tela: <strong data-tela-nome></strong></p>
+    <div class="campo">
+      <div class="campo-cab"><label for="confuso-texto">Conte em poucas palavras</label><span class="contador" data-contador-confuso>0 de 300</span></div>
+      <textarea id="confuso-texto" rows="4" aria-describedby="confuso-texto-ajuda confuso-texto-erro"></textarea>
+      <p class="ajuda" id="confuso-texto-ajuda">Fica só neste aparelho. Não escreva nomes, e-mails ou senhas reais.</p>
+      <p class="erro" id="confuso-texto-erro"></p>
+    </div>
+    <div class="barra-botoes"><button type="button" class="btn btn--discreto" data-cancelar>Cancelar</button><button type="button" class="btn btn--principal" data-anotar>Anotar</button></div>
+  </form>
+</dialog>
+<p class="caixa caixa--ok toast" id="toast" role="status" hidden></p>
+<script src="assets/regras.js"></script>
+<script src="assets/proto.js"></script>
 </body>
 </html>

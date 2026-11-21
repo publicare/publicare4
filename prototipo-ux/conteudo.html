@@ -1,58 +1,61 @@
 <!doctype html>
-<html lang="pt-BR" data-bs-theme="light">
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="color-scheme" content="light dark">
-<title>Conteúdo · PBL4 (protótipo)</title>
-<link rel="stylesheet" href="assets/bootstrap-5.3.8/bootstrap.min.css">
+<title>Conteúdo · Painel PBL4 (protótipo)</title>
+<script src="assets/tema.js"></script>
 <link rel="stylesheet" href="assets/proto.css">
-<script src="assets/proto.js"></script>
 </head>
 <body data-tela="Conteúdo">
 <a class="pular" href="#principal">Pular para o conteúdo</a>
-<header class="topo">
-<div class="topo-linha"><a class="marca" href="inicio.html">PBL4 <small>(protótipo)</small></a>
-<button type="button" class="btn botao-menu" aria-controls="menu-principal">Menu</button></div>
-<nav id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html" aria-current="page">Conteúdo</a></li><li><a href="revisar.html">Revisar <span class="contador-menu">2<span class="visualmente-oculto"> aguardando</span></span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
-<div class="topo-ferramentas">
-<a class="btn btn-confuso" href="index.html#anotacoes" data-abrir-confuso>Isto ficou confuso</a>
-<button type="button" class="btn" data-tema aria-pressed="false">Tema: claro</button>
-<p class="usuario">Ana · administradora · <a href="index.html">Sair</a></p>
+<div class="app">
+  <header class="topo">
+    <button type="button" class="btn btn--secundario btn--pequeno btn-menu" aria-controls="lateral" aria-expanded="true">Menu</button>
+    <a class="btn confuso" href="index.html#anotacoes" data-confuso>Isto ficou confuso</a>
+    <nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><span aria-current="page">Conteúdo</span></li></ol></nav>
+  </header>
+  <aside class="lateral" id="lateral" aria-label="Menu do painel">
+    <a class="marca" href="inicio.html">Site Exemplo <small>protótipo</small></a>
+    <form class="busca" role="search" action="buscar.html" method="get">
+      <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <label class="so-leitor" for="busca-global">Buscar conteúdo</label>
+      <input type="search" id="busca-global" name="q" placeholder="Buscar conteúdo" autocomplete="off" data-ignorar>
+      <kbd aria-hidden="true">/</kbd>
+    </form>
+    <nav class="menu-principal" id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html" aria-current="page">Conteúdo</a></li><li><a href="revisar.html">Revisar<span class="contagem" data-contagem-revisar>2</span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
+    <div class="pessoa">
+      <div><strong>Ana</strong><span class="pequeno suave">Administradora</span></div>
+      <div class="acoes-pessoa"><button type="button" class="btn btn--discreto btn--pequeno" data-tema-alternar>Tema escuro</button> <a class="btn btn--discreto btn--pequeno" href="index.html">Sair</a></div>
+    </div>
+  </aside>
+  <main id="principal" class="principal" tabindex="-1">
+    <div class="tela">
+<header class="cabecalho"><div><h1>Conteúdo</h1><p>Tudo o que está no site, por seção.</p></div><div class="acoes"><a class="btn btn--principal" href="criar.html">Criar conteúdo</a></div></header>
+<section aria-labelledby="sec-t"><h2 id="sec-t" class="so-leitor">Seções</h2>
+<ul class="lista lista--link"><li><a class="item" href="conteudo-quartos.html"><div class="item-texto"><span class="item-titulo">Quartos</span><span class="item-meta">As páginas que apresentam cada quarto.</span></div><div class="item-fim"><span class="item-meta">3 itens</span><span class="seta" aria-hidden="true">›</span></div></a></li><li><a class="item" href="conteudo-eventos.html"><div class="item-texto"><span class="item-titulo">Eventos</span><span class="item-meta">Noites, feiras e festas com data marcada.</span></div><div class="item-fim"><span class="item-meta">3 itens</span><span class="seta" aria-hidden="true">›</span></div></a></li><li><a class="item" href="conteudo-novidades.html"><div class="item-texto"><span class="item-titulo">Novidades</span><span class="item-meta">Notícias curtas sobre o que muda no site.</span></div><div class="item-fim"><span class="item-meta">3 itens</span><span class="seta" aria-hidden="true">›</span></div></a></li></ul></section>
+<section class="secao-tela" aria-labelledby="rec-t"><h2 id="rec-t">Mexidos por último</h2>
+<ul class="lista"><li><div class="item"><div class="item-texto"><a class="item-titulo" href="ver.html">Suíte Master</a><span class="item-meta">Quartos · Página · há 2 dias</span></div><div class="item-fim"><span class="selo">Privado</span></div></div></li><li><div class="item"><div class="item-texto"><a class="item-titulo" href="ver.html">Suíte Família</a><span class="item-meta">Quartos · Página · há 1 semana</span></div><div class="item-fim"><span class="selo selo--ok">Publicado</span></div></div></li><li><div class="item"><div class="item-texto"><a class="item-titulo" href="ver.html">Quarto Solteiro</a><span class="item-meta">Quartos · Página · há 1 mês</span></div><div class="item-fim"><span class="selo selo--ok">Publicado</span></div></div></li><li><div class="item"><div class="item-texto"><a class="item-titulo" href="ver.html">Noite de jazz</a><span class="item-meta">Eventos · Evento · há 3 dias</span></div><div class="item-fim"><span class="selo selo--ok">Publicado</span></div></div></li><li><div class="item"><div class="item-texto"><a class="item-titulo" href="ver.html">Feira de inverno</a><span class="item-meta">Eventos · Evento · há 5 dias</span></div><div class="item-fim"><span class="selo selo--aviso">Agendado</span></div></div></li></ul>
+<p class="pequeno suave">Procurando algo apagado? Abra uma seção e escolha “Na lixeira”, ou use a busca.</p></section>
+    </div>
+  </main>
 </div>
-<form class="busca-global" role="search" action="buscar.html" method="get">
-<label for="busca-global">Buscar</label>
-<input type="search" id="busca-global" name="q" autocomplete="off" aria-describedby="busca-ajuda">
-<button type="submit" class="btn btn-topo">Buscar</button>
-<span id="busca-ajuda" class="visualmente-oculto">Tecla barra (/) leva o foco até aqui.</span>
-</form>
-</header>
-<main id="principal" class="" tabindex="-1">
-<nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Site Exemplo</a></li><li><span aria-current="page">Quartos</span></li></ol></nav>
-<h1>Quartos <span class="ajuda">(3 itens)</span></h1>
-<div class="acoes"><a class="btn btn-primary" href="criar.html">Criar conteúdo</a></div>
-<details class="divulga estrutura"><summary>Estrutura do site</summary><div class="divulga-corpo"><ul>
-<li><a href="conteudo.html">Quartos</a><ul><li><a href="ver.html">Suíte Master</a></li><li><a href="ver.html">Quarto Standard</a></li><li><a href="ver.html">Quarto Família</a></li></ul></li>
-<li><a href="conteudo-eventos.html">Eventos</a><ul><li><a href="editar-evento.html">Novo evento</a></li><li><a href="conteudo-eventos.html">Feira de Inverno</a></li></ul></li>
-<li><a href="conteudo-novidades.html">Novidades</a><ul><li><a href="editar.html">Inverno no Sítio</a></li></ul></li></ul></div></details>
-<details class="divulga"><summary>Filtros e busca</summary><div class="divulga-corpo"><form data-filtros action="conteudo.html" method="get">
-<div class="campo"><label for="filtro-q">Buscar por título</label><input class="form-control" type="search" id="filtro-q" name="q" autocomplete="off"></div>
-<div class="campo campo-curto"><label for="filtro-estado">Estado</label><select class="form-select" id="filtro-estado" name="estado"><option value="todos" selected>Todos</option><option value="privado">Privados</option><option value="publicado">Publicados</option><option value="agendado">Agendados</option><option value="vencido">Vencidos</option><option value="lixeira">Lixeira</option></select></div>
-<button type="submit" class="btn btn-outline-primary">Filtrar</button></form></div></details>
-<p role="status" data-contagem class="ajuda"></p>
-<ul class="lista" data-lista-conteudo><li class="item" data-item data-titulo="Suíte Master" data-estado="privado">
-<div><span class="item-titulo">Suíte Master</span> <span class="selo selo-privado">Privado</span></div><div class="item-meta">Alterado há 2 dias · 0 filhos</div>
-<div class="item-acoes"><a class="btn btn-outline-primary" href="editar-pagina.html">Editar<span class="visualmente-oculto"> Suíte Master</span></a><a class="btn btn-outline-secondary" href="ver.html">Abrir<span class="visualmente-oculto"> Suíte Master</span></a></div></li><li class="item" data-item data-titulo="Quarto Standard" data-estado="publicado">
-<div><span class="item-titulo">Quarto Standard</span> <span class="selo selo-publicado">Publicado</span></div><div class="item-meta">Alterado há 3 semanas · 0 filhos</div>
-<div class="item-acoes"><a class="btn btn-outline-primary" href="editar-pagina.html">Editar<span class="visualmente-oculto"> Quarto Standard</span></a><a class="btn btn-outline-secondary" href="ver.html">Abrir<span class="visualmente-oculto"> Quarto Standard</span></a></div></li><li class="item" data-item data-titulo="Quarto Família" data-estado="publicado">
-<div><span class="item-titulo">Quarto Família</span> <span class="selo selo-publicado">Publicado</span></div><div class="item-meta">Alterado há 1 mês · 0 filhos</div>
-<div class="item-acoes"><a class="btn btn-outline-primary" href="editar-pagina.html">Editar<span class="visualmente-oculto"> Quarto Família</span></a><a class="btn btn-outline-secondary" href="ver.html">Abrir<span class="visualmente-oculto"> Quarto Família</span></a></div></li><li class="item" data-item data-titulo="Suíte Antiga" data-estado="lixeira">
-<div><span class="item-titulo">Suíte Antiga</span> <span class="selo selo-lixeira">Na lixeira</span></div><div class="item-meta">Alterado há 4 meses · 0 filhos</div>
-<div class="item-acoes"><a class="btn btn-outline-primary" href="editar-pagina.html">Editar<span class="visualmente-oculto"> Suíte Antiga</span></a><a class="btn btn-outline-secondary" href="ver.html">Abrir<span class="visualmente-oculto"> Suíte Antiga</span></a></div></li></ul>
-<p data-sem-resultado hidden>Nada encontrado com esses filtros. Limpe a busca ou escolha “Todos”.</p>
-<p class="aviso-ok" hidden>Esta seção ainda não tem conteúdo.</p>
-<nav aria-label="Páginas" class="acoes"><span class="btn btn-outline-secondary disabled" aria-disabled="true">◂ Anterior</span><span class="align-self-center">Página 1 de 1</span><span class="btn btn-outline-secondary disabled" aria-disabled="true">Próxima ▸</span></nav>
-</main>
+<dialog id="dlg-confuso" aria-labelledby="dlg-confuso-t">
+  <form method="dialog">
+    <h2 id="dlg-confuso-t">O que ficou confuso?</h2>
+    <p class="suave">Tela: <strong data-tela-nome></strong></p>
+    <div class="campo">
+      <div class="campo-cab"><label for="confuso-texto">Conte em poucas palavras</label><span class="contador" data-contador-confuso>0 de 300</span></div>
+      <textarea id="confuso-texto" rows="4" aria-describedby="confuso-texto-ajuda confuso-texto-erro"></textarea>
+      <p class="ajuda" id="confuso-texto-ajuda">Fica só neste aparelho. Não escreva nomes, e-mails ou senhas reais.</p>
+      <p class="erro" id="confuso-texto-erro"></p>
+    </div>
+    <div class="barra-botoes"><button type="button" class="btn btn--discreto" data-cancelar>Cancelar</button><button type="button" class="btn btn--principal" data-anotar>Anotar</button></div>
+  </form>
+</dialog>
+<p class="caixa caixa--ok toast" id="toast" role="status" hidden></p>
+<script src="assets/regras.js"></script>
+<script src="assets/proto.js"></script>
 </body>
 </html>

@@ -7,7 +7,3 @@
 .env
 .idea/
 .vscode/
-
-# E2E do protótipo
-/tests/e2e/node_modules/
-/tests/e2e/test-results/

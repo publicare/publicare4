@@ -1,107 +1,262 @@
 <!doctype html>
-<html lang="pt-BR" data-bs-theme="light">
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="color-scheme" content="light dark">
-<title>Configurações do site · PBL4 (protótipo)</title>
-<link rel="stylesheet" href="assets/bootstrap-5.3.8/bootstrap.min.css">
+<title>Configurações do site · Painel PBL4 (protótipo)</title>
+<script src="assets/tema.js"></script>
 <link rel="stylesheet" href="assets/proto.css">
-<script src="assets/proto.js"></script>
 </head>
-<body data-tela="Configurações do site">
+<body data-tela="Site › Configurações">
 <a class="pular" href="#principal">Pular para o conteúdo</a>
-<header class="topo">
-<div class="topo-linha"><a class="marca" href="inicio.html">PBL4 <small>(protótipo)</small></a>
-<button type="button" class="btn botao-menu" aria-controls="menu-principal">Menu</button></div>
-<nav id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar <span class="contador-menu">2<span class="visualmente-oculto"> aguardando</span></span></a></li><li><a href="configuracoes.html" aria-current="page">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
-<div class="topo-ferramentas">
-<a class="btn btn-confuso" href="index.html#anotacoes" data-abrir-confuso>Isto ficou confuso</a>
-<button type="button" class="btn" data-tema aria-pressed="false">Tema: claro</button>
-<p class="usuario">Ana · administradora · <a href="index.html">Sair</a></p>
+<div class="app">
+  <header class="topo">
+    <button type="button" class="btn btn--secundario btn--pequeno btn-menu" aria-controls="lateral" aria-expanded="true">Menu</button>
+    <a class="btn confuso" href="index.html#anotacoes" data-confuso>Isto ficou confuso</a>
+    <nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><span aria-current="page">Site</span></li></ol></nav>
+  </header>
+  <aside class="lateral" id="lateral" aria-label="Menu do painel">
+    <a class="marca" href="inicio.html">Site Exemplo <small>protótipo</small></a>
+    <form class="busca" role="search" action="buscar.html" method="get">
+      <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <label class="so-leitor" for="busca-global">Buscar conteúdo</label>
+      <input type="search" id="busca-global" name="q" placeholder="Buscar conteúdo" autocomplete="off" data-ignorar>
+      <kbd aria-hidden="true">/</kbd>
+    </form>
+    <nav class="menu-principal" id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar<span class="contagem" data-contagem-revisar>2</span></a></li><li><a href="configuracoes.html" aria-current="page">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
+    <div class="pessoa">
+      <div><strong>Ana</strong><span class="pequeno suave">Administradora</span></div>
+      <div class="acoes-pessoa"><button type="button" class="btn btn--discreto btn--pequeno" data-tema-alternar>Tema escuro</button> <a class="btn btn--discreto btn--pequeno" href="index.html">Sair</a></div>
+    </div>
+  </aside>
+  <main id="principal" class="principal com-barra" tabindex="-1">
+    <div class="tela tela--form">
+<header class="cabecalho"><div><h1>Configurações do site</h1><p>Busca ligada · Feeds RSS ligados · Métricas não definidas</p></div></header>
+<form class="formulario" data-edicao="abas-independentes" action="#" novalidate>
+<div class="caixa caixa--erro" id="resumo-erros" role="alert" tabindex="-1" hidden></div>
+<nav class="abas" data-abas aria-label="Seções desta tela"><a href="#painel-identidade" aria-current="page">Identidade</a><a href="#painel-buscadores">Buscadores</a><a href="#painel-contato">Contato</a><a href="#painel-rodape">Rodapé</a><a href="#painel-comportamento">Comportamento</a></nav>
+<section class="painel" id="painel-identidade" aria-label="Identidade"><section class="secao" aria-labelledby="nome-e-idioma-t">
+  <div class="secao-cab"><h2 id="nome-e-idioma-t">Nome e idioma</h2><p>Como o site se apresenta.</p></div>
+  <div class="secao-corpo"><div class="campo">
+  <div class="campo-cab"><label for="nome">Nome do site</label><span class="contador" data-contador-de="nome" data-max="120">até 120 caracteres</span></div>
+  <input id="nome" name="nome" aria-describedby="nome-ajuda nome-erro" aria-required="true" data-obrigatorio="" data-max="120" type="text" value="Site Exemplo">
+  <p class="ajuda" id="nome-ajuda">Aparece no topo e na aba do navegador.</p>
+  <p class="erro" id="nome-erro"></p>
+</div><div class="campo">
+  <div class="campo-cab"><label for="slogan">Frase de apoio<span class="opcional"> (opcional)</span></label><span class="contador" data-contador-de="slogan" data-max="200">até 200 caracteres</span></div>
+  <input id="slogan" name="slogan" aria-describedby="slogan-ajuda slogan-erro" data-max="200" type="text" value="Hospedagem tranquila, perto de tudo">
+  <p class="ajuda" id="slogan-ajuda">Uma linha que explica o site.</p>
+  <p class="erro" id="slogan-erro"></p>
+</div><div class="campo campo-medio">
+  <div class="campo-cab"><label for="idioma">Idioma</label></div>
+  <select id="idioma" name="idioma" aria-describedby="idioma-erro"><option value="pt-BR" selected>Português (Brasil)</option><option value="en">English</option><option value="es-AR">Español (Argentina)</option></select>
+  
+  <p class="erro" id="idioma-erro"></p>
+</div></div>
+</section><section class="secao" aria-labelledby="imagens-t">
+  <div class="secao-cab"><h2 id="imagens-t">Imagens</h2><p>Logo e ícone da aba do navegador.</p></div>
+  <div class="secao-corpo"><div class="campo">
+  <div class="campo-cab"><label for="logo">Logo<span class="opcional"> (opcional)</span></label></div>
+  <div class="arquivo" data-arquivo>
+    <div class="miniatura">Imagem</div>
+    <div class="arquivo-info">
+      <strong data-nome data-vazio="Nenhuma imagem escolhida">logo-exemplo.png</strong>
+      <span class="ajuda">PNG, JPG ou WebP, até 2 MB. Arraste para cá ou escolha.</span>
+      <div class="arquivo-botoes"><button type="button" class="btn btn--secundario btn--pequeno" data-escolher>Escolher imagem</button><button type="button" class="btn btn--discreto btn--pequeno" data-tirar>Tirar imagem</button></div>
+    </div>
+    <input type="file" id="logo" name="logo" accept="image/png,image/jpeg,image/webp" aria-describedby="logo-erro">
+  </div>
+  
+  <p class="erro" id="logo-erro"></p>
+</div><div class="campo">
+  <div class="campo-cab"><label for="favicon">Ícone da aba<span class="opcional"> (opcional)</span></label></div>
+  <div class="arquivo" data-arquivo>
+    <div class="miniatura">Sem imagem</div>
+    <div class="arquivo-info">
+      <strong data-nome data-vazio="Nenhuma imagem escolhida">Nenhuma imagem escolhida</strong>
+      <span class="ajuda">PNG, JPG ou WebP, até 2 MB. Arraste para cá ou escolha.</span>
+      <div class="arquivo-botoes"><button type="button" class="btn btn--secundario btn--pequeno" data-escolher>Escolher imagem</button><button type="button" class="btn btn--discreto btn--pequeno" data-tirar>Tirar imagem</button></div>
+    </div>
+    <input type="file" id="favicon" name="favicon" accept="image/png,image/jpeg,image/webp" aria-describedby="favicon-ajuda favicon-erro">
+  </div>
+  <p class="ajuda" id="favicon-ajuda">Quadrado, de 64 por 64 pixels ou mais.</p>
+  <p class="erro" id="favicon-erro"></p>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="abertura-ligado"><span class="opcao-titulo">Usar imagem de abertura</span><span class="opcao-ajuda" id="abertura-ligado-aj">Uma imagem grande no topo da página inicial.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="abertura-ligado" name="abertura-ligado" aria-describedby="abertura-ligado-aj" aria-controls="abertura-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="abertura-ligado-campos"><div class="campo">
+  <div class="campo-cab"><label for="abertura">Imagem de abertura</label></div>
+  <div class="arquivo" data-arquivo>
+    <div class="miniatura">Sem imagem</div>
+    <div class="arquivo-info">
+      <strong data-nome data-vazio="Nenhuma imagem escolhida">Nenhuma imagem escolhida</strong>
+      <span class="ajuda">PNG, JPG ou WebP, até 2 MB. Arraste para cá ou escolha.</span>
+      <div class="arquivo-botoes"><button type="button" class="btn btn--secundario btn--pequeno" data-escolher>Escolher imagem</button><button type="button" class="btn btn--discreto btn--pequeno" data-tirar>Tirar imagem</button></div>
+    </div>
+    <input type="file" id="abertura" name="abertura" accept="image/png,image/jpeg,image/webp" aria-describedby="abertura-erro">
+  </div>
+  
+  <p class="erro" id="abertura-erro"></p>
+</div></div>
+</div></div>
+</section></section><section class="painel" id="painel-buscadores" aria-label="Buscadores"><section class="secao" aria-labelledby="titulo-e-descricao-padrao-t">
+  <div class="secao-cab"><h2 id="titulo-e-descricao-padrao-t">Título e descrição padrão</h2><p>Usados quando um conteúdo não tem os seus.</p></div>
+  <div class="secao-corpo"><div class="campo">
+  <div class="campo-cab"><label for="titulo-padrao">Título padrão</label><span class="contador" data-contador-de="titulo-padrao" data-max="120">até 120 caracteres</span></div>
+  <input id="titulo-padrao" name="titulo-padrao" aria-describedby="titulo-padrao-ajuda titulo-padrao-erro" data-max="120" type="text" value="Site Exemplo">
+  <p class="ajuda" id="titulo-padrao-ajuda">Aparece no Google quando a página não define outro.</p>
+  <p class="erro" id="titulo-padrao-erro"></p>
+</div><div class="campo">
+  <div class="campo-cab"><label for="sufixo">Final do título<span class="opcional"> (opcional)</span></label><span class="contador" data-contador-de="sufixo" data-max="60">até 60 caracteres</span></div>
+  <input id="sufixo" name="sufixo" aria-describedby="sufixo-ajuda sufixo-erro" data-max="60" type="text" value="· Site Exemplo">
+  <p class="ajuda" id="sufixo-ajuda">Colado depois do título de cada página.</p>
+  <p class="erro" id="sufixo-erro"></p>
+</div><div class="campo">
+  <div class="campo-cab"><label for="desc-padrao">Descrição padrão</label><span class="contador" data-contador-de="desc-padrao" data-max="300">até 300 caracteres</span></div>
+  <textarea id="desc-padrao" name="desc-padrao" aria-describedby="desc-padrao-ajuda desc-padrao-erro" data-max="300" rows="3">Pousada tranquila com café da manhã e quartos para toda a família.</textarea>
+  <p class="ajuda" id="desc-padrao-ajuda">Uma ou duas frases sobre o site.</p>
+  <p class="erro" id="desc-padrao-erro"></p>
+</div><div class="previa" data-previa data-fontes-titulo="titulo-padrao" data-fontes-desc="desc-padrao" data-fontes-sufixo="sufixo" data-url-prefixo="exemplo.com.br">
+  <span class="previa-rotulo">Como pode aparecer no Google</span>
+  <span class="previa-url"></span><span class="previa-titulo"></span><span class="previa-texto"></span>
+  <span class="previa-corte" hidden>Pode ser cortado nos resultados.</span>
+</div></div>
+</section><section class="secao" aria-labelledby="compartilhamento-t">
+  <div class="secao-cab"><h2 id="compartilhamento-t">Compartilhamento</h2><p>Como o link aparece em redes sociais e mensagens.</p></div>
+  <div class="secao-corpo"><div class="campo">
+  <div class="campo-cab"><label for="imagem-padrao">Imagem padrão<span class="opcional"> (opcional)</span></label></div>
+  <div class="arquivo" data-arquivo>
+    <div class="miniatura">Sem imagem</div>
+    <div class="arquivo-info">
+      <strong data-nome data-vazio="Nenhuma imagem escolhida">Nenhuma imagem escolhida</strong>
+      <span class="ajuda">PNG, JPG ou WebP, até 2 MB. Arraste para cá ou escolha.</span>
+      <div class="arquivo-botoes"><button type="button" class="btn btn--secundario btn--pequeno" data-escolher>Escolher imagem</button><button type="button" class="btn btn--discreto btn--pequeno" data-tirar>Tirar imagem</button></div>
+    </div>
+    <input type="file" id="imagem-padrao" name="imagem-padrao" accept="image/png,image/jpeg,image/webp" aria-describedby="imagem-padrao-ajuda imagem-padrao-erro">
+  </div>
+  <p class="ajuda" id="imagem-padrao-ajuda">Usada quando o conteúdo não tem imagem.</p>
+  <p class="erro" id="imagem-padrao-erro"></p>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="indexar-site"><span class="opcao-titulo">Deixar os buscadores encontrarem o site</span><span class="opcao-ajuda" id="indexar-site-aj">Desligue só se o site ainda estiver em construção.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="indexar-site" name="indexar-site" checked aria-describedby="indexar-site-aj"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  
+</div></div>
+</section></section><section class="painel" id="painel-contato" aria-label="Contato"><section class="secao" aria-labelledby="como-falar-com-voces-t">
+  <div class="secao-cab"><h2 id="como-falar-com-voces-t">Como falar com vocês</h2><p>Aparece na página de contato e no rodapé.</p></div>
+  <div class="secao-corpo"><div class="campo">
+  <div class="campo-cab"><label for="email">E-mail de contato</label><span class="contador" data-contador-de="email" data-max="120">até 120 caracteres</span></div>
+  <input id="email" name="email" aria-describedby="email-ajuda email-erro" data-max="120" data-tipo="email" autocomplete="email" type="email" value="contato@siteexemplo.com.br">
+  <p class="ajuda" id="email-ajuda">Receba as mensagens do site aqui.</p>
+  <p class="erro" id="email-erro"></p>
+</div><div class="campo campo-curto">
+  <div class="campo-cab"><label for="telefone">Telefone<span class="opcional"> (opcional)</span></label></div>
+  <input id="telefone" name="telefone" aria-describedby="telefone-ajuda telefone-erro" data-tipo="telefone" autocomplete="tel" type="tel" value="(11) 3456-7890" inputmode="tel">
+  <p class="ajuda" id="telefone-ajuda">Com DDD.</p>
+  <p class="erro" id="telefone-erro"></p>
+</div><div class="campo">
+  <div class="campo-cab"><label for="endereco-site">Endereço<span class="opcional"> (opcional)</span></label><span class="contador" data-contador-de="endereco-site" data-max="300">até 300 caracteres</span></div>
+  <textarea id="endereco-site" name="endereco-site" aria-describedby="endereco-site-ajuda endereco-site-erro" data-max="300" rows="3">Rua das Palmeiras, 120, Centro</textarea>
+  <p class="ajuda" id="endereco-site-ajuda">Como chegar, em poucas linhas.</p>
+  <p class="erro" id="endereco-site-erro"></p>
+</div></div>
+</section><section class="secao" aria-labelledby="redes-sociais-t">
+  <div class="secao-cab"><h2 id="redes-sociais-t">Redes sociais</h2><p>Links que aparecem no rodapé.</p></div>
+  <div class="secao-corpo"><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="redes-ligado"><span class="opcao-titulo">Mostrar redes sociais no site</span><span class="opcao-ajuda" id="redes-ligado-aj">Ícones de links no rodapé, um para cada endereço.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="redes-ligado" name="redes-ligado" aria-describedby="redes-ligado-aj" aria-controls="redes-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="redes-ligado-campos"><div class="campo">
+  <div class="campo-cab"><label for="redes">Endereços das redes</label></div>
+  <textarea id="redes" name="redes" aria-describedby="redes-ajuda redes-erro" data-tipo="urls" placeholder="https://" rows="3"></textarea>
+  <p class="ajuda" id="redes-ajuda">Um endereço por linha, começando com https://.</p>
+  <p class="erro" id="redes-erro"></p>
+</div></div>
+</div></div>
+</section></section><section class="painel" id="painel-rodape" aria-label="Rodapé e métricas"><section class="secao" aria-labelledby="rodape-t">
+  <div class="secao-cab"><h2 id="rodape-t">Rodapé</h2><p>O texto no fim de todas as páginas.</p></div>
+  <div class="secao-corpo"><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="rodape-ligado"><span class="opcao-titulo">Usar rodapé personalizado</span><span class="opcao-ajuda" id="rodape-ligado-aj">Sem isto, o site mostra o rodapé padrão com nome e contato.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="rodape-ligado" name="rodape-ligado" aria-describedby="rodape-ligado-aj" aria-controls="rodape-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="rodape-ligado-campos"><div class="campo">
+  <div class="campo-cab"><label for="rodape">Texto do rodapé</label><span class="contador" data-contador-de="rodape" data-max="500">até 500 caracteres</span></div>
+  <textarea id="rodape" name="rodape" aria-describedby="rodape-ajuda rodape-erro" data-max="500" rows="4"></textarea>
+  <p class="ajuda" id="rodape-ajuda">Texto simples, com links se precisar.</p>
+  <p class="erro" id="rodape-erro"></p>
+</div></div>
+</div></div>
+</section><section class="secao" aria-labelledby="metricas-t">
+  <div class="secao-cab"><h2 id="metricas-t">Métricas</h2><p>Saber quantas pessoas visitam o site.</p></div>
+  <div class="secao-corpo"><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="analytics-ligado"><span class="opcao-titulo">Medir as visitas</span><span class="opcao-ajuda" id="analytics-ligado-aj">Liga a contagem de visitas do serviço de métricas que você usa.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="analytics-ligado" name="analytics-ligado" aria-describedby="analytics-ligado-aj" aria-controls="analytics-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="analytics-ligado-campos"><div class="campo campo-medio">
+  <div class="campo-cab"><label for="analytics">Identificador da métrica</label><span class="contador" data-contador-de="analytics" data-max="40">até 40 caracteres</span></div>
+  <input id="analytics" name="analytics" aria-describedby="analytics-ajuda analytics-erro" data-max="40" data-tipo="analytics" placeholder="G-XXXXXXXX" type="text" value="">
+  <p class="ajuda" id="analytics-ajuda">Letras, números, hífen e sublinhado.</p>
+  <p class="erro" id="analytics-erro"></p>
+</div></div>
+</div></div>
+</section></section><section class="painel" id="painel-comportamento" aria-label="Comportamento"><section class="secao" aria-labelledby="busca-e-listas-t">
+  <div class="secao-cab"><h2 id="busca-e-listas-t">Busca e listas</h2><p>Como o site se comporta para quem visita.</p></div>
+  <div class="secao-corpo"><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="busca-ligada"><span class="opcao-titulo">Busca no site</span><span class="opcao-ajuda" id="busca-ligada-aj">Mostra o campo de busca para os visitantes.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="busca-ligada" name="busca-ligada" checked aria-describedby="busca-ligada-aj"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  
+</div><div class="campo campo-curto">
+  <div class="campo-cab"><label for="itens-pagina">Itens por página nas listas</label></div>
+  <input id="itens-pagina" name="itens-pagina" aria-describedby="itens-pagina-ajuda itens-pagina-erro" data-tipo="inteiro" data-min="1" data-max-valor="50" type="number" value="10">
+  <p class="ajuda" id="itens-pagina-ajuda">De 1 a 50.</p>
+  <p class="erro" id="itens-pagina-erro"></p>
+</div></div>
+</section><details class="recolhido"><summary><span>Opções avançadas<small>Feeds RSS e profundidade do menu.</small></span></summary><div class="recolhido-corpo"><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="rss-ligado"><span class="opcao-titulo">Publicar feeds RSS</span><span class="opcao-ajuda" id="rss-ligado-aj">Deixa leitores de notícias acompanharem o site.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="rss-ligado" name="rss-ligado" checked aria-describedby="rss-ligado-aj" aria-controls="rss-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="rss-ligado-campos"><div class="campo campo-curto">
+  <div class="campo-cab"><label for="rss-itens">Itens por feed</label></div>
+  <input id="rss-itens" name="rss-itens" aria-describedby="rss-itens-ajuda rss-itens-erro" data-tipo="inteiro" data-min="1" data-max-valor="100" type="number" value="20">
+  <p class="ajuda" id="rss-itens-ajuda">De 1 a 100.</p>
+  <p class="erro" id="rss-itens-erro"></p>
+</div></div>
+</div><div class="campo campo-curto">
+  <div class="campo-cab"><label for="profundidade">Profundidade do menu</label></div>
+  <input id="profundidade" name="profundidade" aria-describedby="profundidade-ajuda profundidade-erro" data-tipo="inteiro" data-min="0" data-max-valor="5" type="number" value="0">
+  <p class="ajuda" id="profundidade-ajuda">De 0 a 5. Zero usa o valor padrão do painel.</p>
+  <p class="erro" id="profundidade-erro"></p>
+</div></div></details></section>
+<div class="barra-acoes"><div class="barra-acoes-miolo"><p class="estado-salvo" role="status" data-estado="salvo">Tudo salvo</p><div class="barra-botoes"><a class="btn btn--discreto" href="inicio.html">Voltar</a><button type="button" class="btn btn--principal" data-acao="salvar" data-rotulo-salvar>Salvar identidade</button></div></div></div>
+</form>
+    </div>
+  </main>
 </div>
-<form class="busca-global" role="search" action="buscar.html" method="get">
-<label for="busca-global">Buscar</label>
-<input type="search" id="busca-global" name="q" autocomplete="off" aria-describedby="busca-ajuda">
-<button type="submit" class="btn btn-topo">Buscar</button>
-<span id="busca-ajuda" class="visualmente-oculto">Tecla barra (/) leva o foco até aqui.</span>
-</form>
-</header>
-<main id="principal" class="" tabindex="-1">
-<nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Site Exemplo</a></li><li><span aria-current="page">Configurações</span></li></ol></nav>
-<h1>Configurações de Site Exemplo</h1>
-<p class="aviso-bloco">Busca ligada · Feeds RSS ligados · Analytics: não definido</p>
-<form data-salvavel action="configuracoes.html" method="get" data-abas>
-<div class="resumo-erros aviso-erro" role="alert" tabindex="-1" hidden></div>
-<nav class="abas" aria-label="Partes das configurações"><ul><li><a href="#painel-identidade" data-aba="identidade">Identidade<span class="marca-aba"></span></a></li><li><a href="#painel-busca" data-aba="busca">Busca e compartilhamento<span class="marca-aba"></span></a></li><li><a href="#painel-contato" data-aba="contato">Contato<span class="marca-aba"></span></a></li><li><a href="#painel-rodape" data-aba="rodape">Rodapé e métricas<span class="marca-aba"></span></a></li><li><a href="#painel-comportamento" data-aba="comportamento">Comportamento<span class="marca-aba"></span></a></li></ul></nav>
-<section id="painel-identidade" class="painel" data-painel data-nome="Identidade" aria-labelledby="titulo-identidade"><h2 id="titulo-identidade">Identidade</h2><div class="campo">
-<label for="nome-site">Nome do site<span class="obrig">(obrigatório)</span></label>
-
-<input class="form-control" type="text" id="nome-site" name="nome-site" value="Site Exemplo" data-obrigatorio data-max="120">
-</div><div class="campo">
-<label for="slogan">Slogan</label>
-
-<input class="form-control" type="text" id="slogan" name="slogan" value="Descanso no meio do verde" data-max="200">
-</div><div class="campo campo-curto">
-<label for="idioma">Idioma</label>
-
-<select class="form-select" id="idioma" name="idioma"><option value="pt-BR" selected>Português (Brasil)</option><option value="en">English</option><option value="es-AR">Español (Argentina)</option></select>
-</div><div class="campo" data-seletor-imagem data-atual="logo-exemplo.png"><label for="logo">Logo</label><p class="ajuda" id="logo-ajuda">PNG, JPG ou WebP, até 2 MB.</p><div class="zona-imagem"><img class="miniatura" alt="" hidden><p class="nome-arquivo">logo-exemplo.png</p><input class="form-control" type="file" id="logo" name="logo" accept="image/png,image/jpeg,image/webp" aria-describedby="logo-ajuda"><button type="button" class="btn btn-outline-secondary mt-2" data-tirar-imagem hidden>Tirar esta imagem</button></div></div><div class="campo" data-seletor-imagem data-atual=""><label for="icone">Ícone (favicon)</label><p class="ajuda" id="icone-ajuda">PNG, JPG ou WebP, até 2 MB.</p><div class="zona-imagem"><img class="miniatura" alt="" hidden><p class="nome-arquivo">Escolha uma imagem</p><input class="form-control" type="file" id="icone" name="icone" accept="image/png,image/jpeg,image/webp" aria-describedby="icone-ajuda"><button type="button" class="btn btn-outline-secondary mt-2" data-tirar-imagem hidden>Tirar esta imagem</button></div></div><details class="divulga"><summary>Opções avançadas</summary><div class="divulga-corpo"><div class="campo" data-seletor-imagem data-atual=""><label for="imagem-abertura">Imagem de abertura</label><p class="ajuda" id="imagem-abertura-ajuda">PNG, JPG ou WebP, até 2 MB.</p><div class="zona-imagem"><img class="miniatura" alt="" hidden><p class="nome-arquivo">Escolha uma imagem</p><input class="form-control" type="file" id="imagem-abertura" name="imagem-abertura" accept="image/png,image/jpeg,image/webp" aria-describedby="imagem-abertura-ajuda"><button type="button" class="btn btn-outline-secondary mt-2" data-tirar-imagem hidden>Tirar esta imagem</button></div></div></div></details><div class="acoes"><button type="submit" class="btn btn-primary" data-salvar data-acao="painel">Salvar esta aba</button></div><div class="status" role="status" data-status></div></section>
-<section id="painel-busca" class="painel" data-painel data-nome="Busca e compartilhamento" aria-labelledby="titulo-busca"><h2 id="titulo-busca">Busca e compartilhamento</h2><div class="campo">
-<label for="descricao-padrao">Descrição padrão (SEO)</label>
-<p class="ajuda" id="descricao-padrao-ajuda">Usada quando uma página não tem descrição própria.</p>
-<textarea class="form-control" id="descricao-padrao" name="descricao-padrao" rows="3" aria-describedby="descricao-padrao-ajuda" data-max="300">Sítio de descanso com quartos, café colonial e eventos.</textarea>
-</div><div class="campo">
-<label for="titulo-padrao">Título padrão</label>
-
-<input class="form-control" type="text" id="titulo-padrao" name="titulo-padrao" value="Site Exemplo" data-max="120">
-</div><div class="campo">
-<label for="sufixo-titulo">Sufixo do título</label>
-<p class="ajuda" id="sufixo-titulo-ajuda">Vem depois do título de cada página.</p>
-<input class="form-control" type="text" id="sufixo-titulo" name="sufixo-titulo" value="· Site Exemplo" aria-describedby="sufixo-titulo-ajuda" data-max="60">
-</div><div class="campo" data-seletor-imagem data-atual=""><label for="imagem-padrao">Imagem padrão para compartilhamento</label><p class="ajuda" id="imagem-padrao-ajuda">PNG, JPG ou WebP, até 2 MB.</p><div class="zona-imagem"><img class="miniatura" alt="" hidden><p class="nome-arquivo">Escolha uma imagem</p><input class="form-control" type="file" id="imagem-padrao" name="imagem-padrao" accept="image/png,image/jpeg,image/webp" aria-describedby="imagem-padrao-ajuda"><button type="button" class="btn btn-outline-secondary mt-2" data-tirar-imagem hidden>Tirar esta imagem</button></div></div><div class="campo"><div class="form-check"><input class="form-check-input" type="checkbox" id="indexar-site" name="indexar-site" checked><label class="form-check-label" for="indexar-site">Permitir indexação por buscadores</label></div></div><div class="previa previa-busca"><p class="p-url">exemplo.com.br</p><p class="p-titulo" data-espelha="titulo-padrao" data-limite="60"></p><p class="p-desc" data-espelha="descricao-padrao" data-limite="160"></p></div><div class="acoes"><button type="submit" class="btn btn-primary" data-salvar data-acao="painel">Salvar esta aba</button></div><div class="status" role="status" data-status></div></section>
-<section id="painel-contato" class="painel" data-painel data-nome="Contato" aria-labelledby="titulo-contato"><h2 id="titulo-contato">Contato</h2><div class="campo">
-<label for="email">E-mail de contato</label>
-<p class="ajuda" id="email-ajuda">Aparece no rodapé e no formulário de contato.</p>
-<input class="form-control" type="email" id="email" name="email" value="" aria-describedby="email-ajuda" data-tipo="email" autocomplete="email" inputmode="email">
-</div><div class="campo campo-curto">
-<label for="telefone">Telefone</label>
-<p class="ajuda" id="telefone-ajuda">Com DDD. Ex.: (11) 3456-7890.</p>
-<input class="form-control" type="tel" id="telefone" name="telefone" value="" aria-describedby="telefone-ajuda" data-tipo="telefone" autocomplete="tel">
-</div><div class="campo">
-<label for="endereco-site">Endereço</label>
-
-<textarea class="form-control" id="endereco-site" name="endereco-site" rows="3" data-max="300"></textarea>
-</div><div class="campo">
-<label for="redes">Redes sociais</label>
-<p class="ajuda" id="redes-ajuda">Um endereço por linha, começando por https://.</p>
-<textarea class="form-control" id="redes" name="redes" rows="3" aria-describedby="redes-ajuda" data-tipo="urls"></textarea>
-</div><div class="acoes"><button type="submit" class="btn btn-primary" data-salvar data-acao="painel">Salvar esta aba</button></div><div class="status" role="status" data-status></div></section>
-<section id="painel-rodape" class="painel" data-painel data-nome="Rodapé e métricas" aria-labelledby="titulo-rodape"><h2 id="titulo-rodape">Rodapé e métricas</h2><div class="campo">
-<label for="rodape-texto">Rodapé</label>
-<p class="ajuda" id="rodape-texto-ajuda">Texto simples com links.</p>
-<textarea class="form-control" id="rodape-texto" name="rodape-texto" rows="4" aria-describedby="rodape-texto-ajuda" data-max="1000">© Site Exemplo. Todos os direitos reservados.</textarea>
-</div><div class="campo campo-curto">
-<label for="analytics">Identificador de analytics</label>
-<p class="ajuda" id="analytics-ajuda">Só letras, números, hífen e sublinhado. Vazio = sem métricas.</p>
-<input class="form-control" type="text" id="analytics" name="analytics" value="" aria-describedby="analytics-ajuda" data-tipo="analytics">
-</div><div class="acoes"><button type="submit" class="btn btn-primary" data-salvar data-acao="painel">Salvar esta aba</button></div><div class="status" role="status" data-status></div></section>
-<section id="painel-comportamento" class="painel" data-painel data-nome="Comportamento" aria-labelledby="titulo-comportamento"><h2 id="titulo-comportamento">Comportamento</h2><div class="campo"><div class="form-check"><input class="form-check-input" type="checkbox" id="busca-ligada" name="busca-ligada" checked aria-describedby="busca-ligada-ajuda"><label class="form-check-label" for="busca-ligada">Busca ligada</label></div><p class="ajuda" id="busca-ligada-ajuda">Mostra a caixa de busca no site.</p></div><div class="campo campo-curto">
-<label for="itens-pagina">Itens por página nas listagens</label>
-<p class="ajuda" id="itens-pagina-ajuda">De 1 a 50.</p>
-<input class="form-control" type="number" id="itens-pagina" name="itens-pagina" value="10" aria-describedby="itens-pagina-ajuda" data-tipo="inteiro" min="1" max="50" inputmode="numeric">
-</div><div class="campo campo-curto">
-<label for="profundidade">Profundidade do menu</label>
-<p class="ajuda" id="profundidade-ajuda">De 0 a 5. 0 usa o valor global.</p>
-<input class="form-control" type="number" id="profundidade" name="profundidade" value="0" aria-describedby="profundidade-ajuda" data-tipo="inteiro" min="0" max="5" inputmode="numeric">
-</div><details class="divulga"><summary>Opções avançadas</summary><div class="divulga-corpo"><div class="campo"><div class="form-check"><input class="form-check-input" type="checkbox" id="rss-ligado" name="rss-ligado" checked><label class="form-check-label" for="rss-ligado">Feeds RSS ligados</label></div></div><div class="campo campo-curto">
-<label for="rss-itens">Itens por feed RSS</label>
-<p class="ajuda" id="rss-itens-ajuda">De 1 a 100.</p>
-<input class="form-control" type="number" id="rss-itens" name="rss-itens" value="20" aria-describedby="rss-itens-ajuda" data-tipo="inteiro" min="1" max="100" inputmode="numeric">
-</div></div></details><div class="acoes"><button type="submit" class="btn btn-primary" data-salvar data-acao="painel">Salvar esta aba</button></div><div class="status" role="status" data-status></div></section>
-<div class="barra-acoes"><p class="estado-salvamento" role="status">Sem alterações</p><div class="grupo-botoes"><a class="cancelar" href="inicio.html">Voltar ao Início</a></div></div>
-</form>
-</main>
+<dialog id="dlg-confuso" aria-labelledby="dlg-confuso-t">
+  <form method="dialog">
+    <h2 id="dlg-confuso-t">O que ficou confuso?</h2>
+    <p class="suave">Tela: <strong data-tela-nome></strong></p>
+    <div class="campo">
+      <div class="campo-cab"><label for="confuso-texto">Conte em poucas palavras</label><span class="contador" data-contador-confuso>0 de 300</span></div>
+      <textarea id="confuso-texto" rows="4" aria-describedby="confuso-texto-ajuda confuso-texto-erro"></textarea>
+      <p class="ajuda" id="confuso-texto-ajuda">Fica só neste aparelho. Não escreva nomes, e-mails ou senhas reais.</p>
+      <p class="erro" id="confuso-texto-erro"></p>
+    </div>
+    <div class="barra-botoes"><button type="button" class="btn btn--discreto" data-cancelar>Cancelar</button><button type="button" class="btn btn--principal" data-anotar>Anotar</button></div>
+  </form>
+</dialog>
+<p class="caixa caixa--ok toast" id="toast" role="status" hidden></p>
+<script src="assets/regras.js"></script>
+<script src="assets/proto.js"></script>
 </body>
 </html>

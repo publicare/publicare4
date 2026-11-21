@@ -1,47 +1,62 @@
 <!doctype html>
-<html lang="pt-BR" data-bs-theme="light">
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="color-scheme" content="light dark">
-<title>Início · PBL4 (protótipo)</title>
-<link rel="stylesheet" href="assets/bootstrap-5.3.8/bootstrap.min.css">
+<title>Início · Painel PBL4 (protótipo)</title>
+<script src="assets/tema.js"></script>
 <link rel="stylesheet" href="assets/proto.css">
-<script src="assets/proto.js"></script>
 </head>
 <body data-tela="Início">
 <a class="pular" href="#principal">Pular para o conteúdo</a>
-<header class="topo">
-<div class="topo-linha"><a class="marca" href="inicio.html">PBL4 <small>(protótipo)</small></a>
-<button type="button" class="btn botao-menu" aria-controls="menu-principal">Menu</button></div>
-<nav id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html" aria-current="page">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar <span class="contador-menu">2<span class="visualmente-oculto"> aguardando</span></span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
-<div class="topo-ferramentas">
-<a class="btn btn-confuso" href="index.html#anotacoes" data-abrir-confuso>Isto ficou confuso</a>
-<button type="button" class="btn" data-tema aria-pressed="false">Tema: claro</button>
-<p class="usuario">Ana · administradora · <a href="index.html">Sair</a></p>
+<div class="app">
+  <header class="topo">
+    <button type="button" class="btn btn--secundario btn--pequeno btn-menu" aria-controls="lateral" aria-expanded="true">Menu</button>
+    <a class="btn confuso" href="index.html#anotacoes" data-confuso>Isto ficou confuso</a>
+    <nav class="migalhas" aria-label="Você está em"><ol><li><span aria-current="page">Início</span></li></ol></nav>
+  </header>
+  <aside class="lateral" id="lateral" aria-label="Menu do painel">
+    <a class="marca" href="inicio.html">Site Exemplo <small>protótipo</small></a>
+    <form class="busca" role="search" action="buscar.html" method="get">
+      <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <label class="so-leitor" for="busca-global">Buscar conteúdo</label>
+      <input type="search" id="busca-global" name="q" placeholder="Buscar conteúdo" autocomplete="off" data-ignorar>
+      <kbd aria-hidden="true">/</kbd>
+    </form>
+    <nav class="menu-principal" id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html" aria-current="page">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar<span class="contagem" data-contagem-revisar>2</span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
+    <div class="pessoa">
+      <div><strong>Ana</strong><span class="pequeno suave">Administradora</span></div>
+      <div class="acoes-pessoa"><button type="button" class="btn btn--discreto btn--pequeno" data-tema-alternar>Tema escuro</button> <a class="btn btn--discreto btn--pequeno" href="index.html">Sair</a></div>
+    </div>
+  </aside>
+  <main id="principal" class="principal" tabindex="-1">
+    <div class="tela">
+<header class="cabecalho"><div><h1>Início</h1><p>Olá, Ana. Você é administradora do Site Exemplo.</p></div><div class="acoes"><a class="btn btn--principal" href="criar.html">Criar conteúdo</a></div></header>
+<section aria-labelledby="fazer-t"><h2 id="fazer-t">Para fazer</h2>
+<ul class="lista lista--link"><li><a class="item" href="revisar.html"><div class="item-texto"><span class="item-titulo">2 envios esperam a sua revisão</span><span class="item-meta">Nova vista da varanda e Cardápio de inverno</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li><li><a class="item" href="editar-pagina.html"><div class="item-texto"><span class="item-titulo">Continuar: Suíte Master</span><span class="item-meta">Você mexeu nela há 2 dias. Ainda está privada.</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li></ul></section>
+<section class="secao-tela" aria-labelledby="secoes-t"><h2 id="secoes-t">Seções do site</h2>
+<ul class="lista lista--link"><li><a class="item" href="conteudo-quartos.html"><div class="item-texto"><span class="item-titulo">Quartos</span><span class="item-meta">3 itens · As páginas que apresentam cada quarto.</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li><li><a class="item" href="conteudo-eventos.html"><div class="item-texto"><span class="item-titulo">Eventos</span><span class="item-meta">3 itens · Noites, feiras e festas com data marcada.</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li><li><a class="item" href="conteudo-novidades.html"><div class="item-texto"><span class="item-titulo">Novidades</span><span class="item-meta">3 itens · Notícias curtas sobre o que muda no site.</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li></ul></section>
+<section class="secao-tela" aria-labelledby="atalhos-t"><h2 id="atalhos-t">Atalhos</h2>
+<p><a href="configuracoes.html">Configurações do site</a> · <a href="site-exemplo.html" target="_blank" rel="noopener">Ver o site <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 3h4v4M13 3 7 9"/></svg><span class="so-leitor"> (abre em outra aba)</span></a></p></section>
+    </div>
+  </main>
 </div>
-<form class="busca-global" role="search" action="buscar.html" method="get">
-<label for="busca-global">Buscar</label>
-<input type="search" id="busca-global" name="q" autocomplete="off" aria-describedby="busca-ajuda">
-<button type="submit" class="btn btn-topo">Buscar</button>
-<span id="busca-ajuda" class="visualmente-oculto">Tecla barra (/) leva o foco até aqui.</span>
-</form>
-</header>
-<main id="principal" class="" tabindex="-1">
-<nav class="migalhas" aria-label="Você está em"><ol><li><span aria-current="page">Início</span></li></ol></nav>
-<h1>Início</h1>
-<p>Olá, Ana. Você é administradora deste site.</p>
-<p class="aviso-bloco"><a href="revisar.html">2 envios aguardam sua revisão</a></p>
-<section class="cartao destaque" aria-labelledby="t-cont"><h2 id="t-cont">Continuar de onde parou</h2>
-<p><strong>Suíte Master</strong> · editado há 2 dias</p>
-<div class="acoes"><a class="btn btn-primary" href="ver.html">Continuar: Suíte Master</a><a class="btn btn-outline-secondary" href="ver.html" target="_blank" rel="noopener">Ver o site ↗<span class="visualmente-oculto"> (abre em nova aba)</span></a></div></section>
-<section aria-labelledby="t-site"><h2 id="t-site">Site Exemplo</h2>
-<div class="acoes"><a class="btn btn-outline-primary" href="configuracoes.html">Configurações</a><a class="btn btn-outline-primary" href="mais.html">Mais (avançado)</a></div>
-<div class="grade-cartoes">
-<a class="cartao cartao-link" href="conteudo.html"><strong>Quartos</strong><span>3 itens · você administra</span></a>
-<a class="cartao cartao-link" href="conteudo-eventos.html"><strong>Eventos</strong><span>2 itens · Bruno edita</span></a>
-<a class="cartao cartao-link" href="conteudo-novidades.html"><strong>Novidades</strong><span>1 item</span></a></div></section>
-</main>
+<dialog id="dlg-confuso" aria-labelledby="dlg-confuso-t">
+  <form method="dialog">
+    <h2 id="dlg-confuso-t">O que ficou confuso?</h2>
+    <p class="suave">Tela: <strong data-tela-nome></strong></p>
+    <div class="campo">
+      <div class="campo-cab"><label for="confuso-texto">Conte em poucas palavras</label><span class="contador" data-contador-confuso>0 de 300</span></div>
+      <textarea id="confuso-texto" rows="4" aria-describedby="confuso-texto-ajuda confuso-texto-erro"></textarea>
+      <p class="ajuda" id="confuso-texto-ajuda">Fica só neste aparelho. Não escreva nomes, e-mails ou senhas reais.</p>
+      <p class="erro" id="confuso-texto-erro"></p>
+    </div>
+    <div class="barra-botoes"><button type="button" class="btn btn--discreto" data-cancelar>Cancelar</button><button type="button" class="btn btn--principal" data-anotar>Anotar</button></div>
+  </form>
+</dialog>
+<p class="caixa caixa--ok toast" id="toast" role="status" hidden></p>
+<script src="assets/regras.js"></script>
+<script src="assets/proto.js"></script>
 </body>
 </html>
