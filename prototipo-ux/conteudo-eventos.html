@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Conteúdo: Eventos · PBL4 (protótipo)</title>
+<link rel="stylesheet" href="assets/bootstrap-5.3.8/bootstrap.min.css">
+<link rel="stylesheet" href="assets/proto.css">
+<script src="assets/proto.js"></script>
+</head>
+<body data-tela="Conteúdo: Eventos">
+<a class="pular" href="#principal">Pular para o conteúdo</a>
+<header class="topo">
+<div class="topo-linha"><a class="marca" href="inicio.html">PBL4 <small>(protótipo)</small></a>
+<button type="button" class="btn botao-menu" aria-controls="menu-principal">Menu</button></div>
+<nav id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html" aria-current="page">Conteúdo</a></li><li><a href="revisar.html">Revisar <span class="contador-menu">2<span class="visualmente-oculto"> aguardando</span></span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
+<div class="topo-ferramentas">
+<a class="btn btn-confuso" href="index.html#anotacoes" data-abrir-confuso>Isto ficou confuso</a>
+<button type="button" class="btn" data-tema aria-pressed="false">Tema: claro</button>
+<p class="usuario">Ana · administradora · <a href="index.html">Sair</a></p>
+</div>
+<form class="busca-global" role="search" action="buscar.html" method="get">
+<label for="busca-global">Buscar</label>
+<input type="search" id="busca-global" name="q" autocomplete="off" aria-describedby="busca-ajuda">
+<button type="submit" class="btn btn-topo">Buscar</button>
+<span id="busca-ajuda" class="visualmente-oculto">Tecla barra (/) leva o foco até aqui.</span>
+</form>
+</header>
+<main id="principal" class="" tabindex="-1">
+<nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Site Exemplo</a></li><li><span aria-current="page">Eventos</span></li></ol></nav>
+<h1>Eventos <span class="ajuda">(2 itens)</span></h1>
+<div class="acoes"><a class="btn btn-primary" href="criar.html">Criar conteúdo</a></div>
+<details class="divulga estrutura"><summary>Estrutura do site</summary><div class="divulga-corpo"><ul>
+<li><a href="conteudo.html">Quartos</a><ul><li><a href="ver.html">Suíte Master</a></li><li><a href="ver.html">Quarto Standard</a></li><li><a href="ver.html">Quarto Família</a></li></ul></li>
+<li><a href="conteudo-eventos.html">Eventos</a><ul><li><a href="editar-evento.html">Novo evento</a></li><li><a href="conteudo-eventos.html">Feira de Inverno</a></li></ul></li>
+<li><a href="conteudo-novidades.html">Novidades</a><ul><li><a href="editar.html">Inverno no Sítio</a></li></ul></li></ul></div></details>
+<details class="divulga"><summary>Filtros e busca</summary><div class="divulga-corpo"><form data-filtros action="conteudo-eventos.html" method="get">
+<div class="campo"><label for="filtro-q">Buscar por título</label><input class="form-control" type="search" id="filtro-q" name="q" autocomplete="off"></div>
+<div class="campo campo-curto"><label for="filtro-estado">Estado</label><select class="form-select" id="filtro-estado" name="estado"><option value="todos" selected>Todos</option><option value="privado">Privados</option><option value="publicado">Publicados</option><option value="agendado">Agendados</option><option value="vencido">Vencidos</option><option value="lixeira">Lixeira</option></select></div>
+<button type="submit" class="btn btn-outline-primary">Filtrar</button></form></div></details>
+<p role="status" data-contagem class="ajuda"></p>
+<ul class="lista" data-lista-conteudo><li class="item" data-item data-titulo="Feira de Inverno" data-estado="agendado">
+<div><span class="item-titulo">Feira de Inverno</span> <span class="selo selo-agendado">Agendado</span></div><div class="item-meta">Alterado há 5 dias · 0 filhos</div>
+<div class="item-acoes"><a class="btn btn-outline-primary" href="editar-evento.html">Editar<span class="visualmente-oculto"> Feira de Inverno</span></a><a class="btn btn-outline-secondary" href="ver.html">Abrir<span class="visualmente-oculto"> Feira de Inverno</span></a></div></li><li class="item" data-item data-titulo="Jantar de Boas-vindas" data-estado="publicado">
+<div><span class="item-titulo">Jantar de Boas-vindas</span> <span class="selo selo-publicado">Publicado</span></div><div class="item-meta">Alterado há 2 meses · 0 filhos</div>
+<div class="item-acoes"><a class="btn btn-outline-primary" href="editar-evento.html">Editar<span class="visualmente-oculto"> Jantar de Boas-vindas</span></a><a class="btn btn-outline-secondary" href="ver.html">Abrir<span class="visualmente-oculto"> Jantar de Boas-vindas</span></a></div></li></ul>
+<p data-sem-resultado hidden>Nada encontrado com esses filtros. Limpe a busca ou escolha “Todos”.</p>
+<p class="aviso-ok" hidden>Esta seção ainda não tem conteúdo.</p>
+<nav aria-label="Páginas" class="acoes"><span class="btn btn-outline-secondary disabled" aria-disabled="true">◂ Anterior</span><span class="align-self-center">Página 1 de 1</span><span class="btn btn-outline-secondary disabled" aria-disabled="true">Próxima ▸</span></nav>
+</main>
+</body>
+</html>

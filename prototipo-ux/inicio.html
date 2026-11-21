@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Início · PBL4 (protótipo)</title>
+<link rel="stylesheet" href="assets/bootstrap-5.3.8/bootstrap.min.css">
+<link rel="stylesheet" href="assets/proto.css">
+<script src="assets/proto.js"></script>
+</head>
+<body data-tela="Início">
+<a class="pular" href="#principal">Pular para o conteúdo</a>
+<header class="topo">
+<div class="topo-linha"><a class="marca" href="inicio.html">PBL4 <small>(protótipo)</small></a>
+<button type="button" class="btn botao-menu" aria-controls="menu-principal">Menu</button></div>
+<nav id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html" aria-current="page">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar <span class="contador-menu">2<span class="visualmente-oculto"> aguardando</span></span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
+<div class="topo-ferramentas">
+<a class="btn btn-confuso" href="index.html#anotacoes" data-abrir-confuso>Isto ficou confuso</a>
+<button type="button" class="btn" data-tema aria-pressed="false">Tema: claro</button>
+<p class="usuario">Ana · administradora · <a href="index.html">Sair</a></p>
+</div>
+<form class="busca-global" role="search" action="buscar.html" method="get">
+<label for="busca-global">Buscar</label>
+<input type="search" id="busca-global" name="q" autocomplete="off" aria-describedby="busca-ajuda">
+<button type="submit" class="btn btn-topo">Buscar</button>
+<span id="busca-ajuda" class="visualmente-oculto">Tecla barra (/) leva o foco até aqui.</span>
+</form>
+</header>
+<main id="principal" class="" tabindex="-1">
+<nav class="migalhas" aria-label="Você está em"><ol><li><span aria-current="page">Início</span></li></ol></nav>
+<h1>Início</h1>
+<p>Olá, Ana. Você é administradora deste site.</p>
+<p class="aviso-bloco"><a href="revisar.html">2 envios aguardam sua revisão</a></p>
+<section class="cartao destaque" aria-labelledby="t-cont"><h2 id="t-cont">Continuar de onde parou</h2>
+<p><strong>Suíte Master</strong> · editado há 2 dias</p>
+<div class="acoes"><a class="btn btn-primary" href="ver.html">Continuar: Suíte Master</a><a class="btn btn-outline-secondary" href="ver.html" target="_blank" rel="noopener">Ver o site ↗<span class="visualmente-oculto"> (abre em nova aba)</span></a></div></section>
+<section aria-labelledby="t-site"><h2 id="t-site">Site Exemplo</h2>
+<div class="acoes"><a class="btn btn-outline-primary" href="configuracoes.html">Configurações</a><a class="btn btn-outline-primary" href="mais.html">Mais (avançado)</a></div>
+<div class="grade-cartoes">
+<a class="cartao cartao-link" href="conteudo.html"><strong>Quartos</strong><span>3 itens · você administra</span></a>
+<a class="cartao cartao-link" href="conteudo-eventos.html"><strong>Eventos</strong><span>2 itens · Bruno edita</span></a>
+<a class="cartao cartao-link" href="conteudo-novidades.html"><strong>Novidades</strong><span>1 item</span></a></div></section>
+</main>
+</body>
+</html>

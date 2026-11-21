@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Ver conteúdo · PBL4 (protótipo)</title>
+<link rel="stylesheet" href="assets/bootstrap-5.3.8/bootstrap.min.css">
+<link rel="stylesheet" href="assets/proto.css">
+<script src="assets/proto.js"></script>
+</head>
+<body data-tela="Ver conteúdo">
+<a class="pular" href="#principal">Pular para o conteúdo</a>
+<header class="topo">
+<div class="topo-linha"><a class="marca" href="inicio.html">PBL4 <small>(protótipo)</small></a>
+<button type="button" class="btn botao-menu" aria-controls="menu-principal">Menu</button></div>
+<nav id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html" aria-current="page">Conteúdo</a></li><li><a href="revisar.html">Revisar <span class="contador-menu">2<span class="visualmente-oculto"> aguardando</span></span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
+<div class="topo-ferramentas">
+<a class="btn btn-confuso" href="index.html#anotacoes" data-abrir-confuso>Isto ficou confuso</a>
+<button type="button" class="btn" data-tema aria-pressed="false">Tema: claro</button>
+<p class="usuario">Ana · administradora · <a href="index.html">Sair</a></p>
+</div>
+<form class="busca-global" role="search" action="buscar.html" method="get">
+<label for="busca-global">Buscar</label>
+<input type="search" id="busca-global" name="q" autocomplete="off" aria-describedby="busca-ajuda">
+<button type="submit" class="btn btn-topo">Buscar</button>
+<span id="busca-ajuda" class="visualmente-oculto">Tecla barra (/) leva o foco até aqui.</span>
+</form>
+</header>
+<main id="principal" class="" tabindex="-1">
+<nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Site Exemplo</a></li><li><a href="conteudo.html">Quartos</a></li><li><span aria-current="page">Suíte Master</span></li></ol></nav>
+<h1>Suíte Master</h1>
+<p><span class="selo selo-privado">Privado</span> Versão 7 · alterado há 2 dias por Ana</p>
+<div class="acoes"><a class="btn btn-primary" href="editar-pagina.html">Editar<span class="visualmente-oculto"> Suíte Master</span></a>
+<a class="btn btn-outline-secondary" href="inicio.html" target="_blank" rel="noopener">Ver no site ↗<span class="visualmente-oculto"> (abre em nova aba)</span></a></div>
+<div data-escopo><div class="status" role="status" data-status></div>
+<details class="divulga"><summary>Mais ações</summary><div class="divulga-corpo acoes">
+<a class="btn btn-outline-secondary" href="criar.html">Criar dentro</a>
+<button type="button" class="btn btn-outline-secondary" data-msg="Mover: no painel real você escolhe o destino aqui.">Mover</button>
+<button type="button" class="btn btn-outline-secondary" data-msg="Copiado (simulação).">Copiar</button>
+<button type="button" class="btn btn-outline-secondary" data-msg="Histórico: no painel real mostra as versões 1 a 7.">Histórico</button>
+<button type="button" class="btn btn-outline-danger" data-msg="Mandado para a lixeira (simulação). Você acha em Conteúdo, filtro Lixeira.">Mandar para a lixeira</button></div></details></div>
+<section class="cartao" aria-labelledby="t-campos"><h2 id="t-campos">O que está escrito</h2>
+<dl class="campos-lista"><dt>Título</dt><dd>Suíte Master</dd><dt>Descrição</dt><dd>Suíte com varanda, vista para o jardim e café da manhã incluso.</dd><dt>Texto</dt><dd>A Suíte Master tem 38 m², cama king, varanda com rede e banheira.</dd><dt>Imagem de capa</dt><dd>capa-suite.jpg</dd><dt>Endereço</dt><dd>/quartos/suite-master</dd><dt>Sai do ar</dt><dd>Sem prazo</dd></dl></section>
+<section class="cartao" aria-labelledby="t-env"><h2 id="t-env">Enviar para revisão</h2><p class="ajuda">Para quem escreve e não publica. Enviar não coloca no ar.</p>
+<div data-escopo><button type="button" class="btn btn-outline-primary" data-msg="Enviado para revisão. Ainda não está no ar.">Enviar para revisão</button><div class="status" role="status" data-status></div></div></section>
+<section aria-labelledby="t-filhos"><h2 id="t-filhos">Dentro desta página</h2><p>Nada dentro deste conteúdo ainda.</p><a class="btn btn-outline-secondary" href="criar.html">Criar dentro</a></section>
+</main>
+</body>
+</html>

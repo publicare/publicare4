@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Busca · PBL4 (protótipo)</title>
+<link rel="stylesheet" href="assets/bootstrap-5.3.8/bootstrap.min.css">
+<link rel="stylesheet" href="assets/proto.css">
+<script src="assets/proto.js"></script>
+</head>
+<body data-tela="Busca">
+<a class="pular" href="#principal">Pular para o conteúdo</a>
+<header class="topo">
+<div class="topo-linha"><a class="marca" href="inicio.html">PBL4 <small>(protótipo)</small></a>
+<button type="button" class="btn botao-menu" aria-controls="menu-principal">Menu</button></div>
+<nav id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar <span class="contador-menu">2<span class="visualmente-oculto"> aguardando</span></span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
+<div class="topo-ferramentas">
+<a class="btn btn-confuso" href="index.html#anotacoes" data-abrir-confuso>Isto ficou confuso</a>
+<button type="button" class="btn" data-tema aria-pressed="false">Tema: claro</button>
+<p class="usuario">Ana · administradora · <a href="index.html">Sair</a></p>
+</div>
+<form class="busca-global" role="search" action="buscar.html" method="get">
+<label for="busca-global">Buscar</label>
+<input type="search" id="busca-global" name="q" autocomplete="off" aria-describedby="busca-ajuda">
+<button type="submit" class="btn btn-topo">Buscar</button>
+<span id="busca-ajuda" class="visualmente-oculto">Tecla barra (/) leva o foco até aqui.</span>
+</form>
+</header>
+<main id="principal" class="" tabindex="-1">
+<nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><span aria-current="page">Busca</span></li></ol></nav>
+<h1>Busca</h1>
+<noscript><p class="aviso-bloco">Sem JavaScript, a busca mostra todos os conteúdos de exemplo.</p></noscript>
+<p role="status" data-contagem>Todos os conteúdos (6).</p>
+<div data-escopo><div class="status" role="status" data-status></div>
+<ul class="lista" data-resultados><li class="item" data-resultado>
+<div><span class="item-titulo">Suíte Master</span> <span class="selo selo-privado">Privado</span></div><div class="item-meta">Página · Quartos › Suíte Master</div>
+<div class="item-acoes"><a class="btn btn-outline-primary" href="ver.html">Abrir<span class="visualmente-oculto"> Suíte Master</span></a></div></li><li class="item" data-resultado>
+<div><span class="item-titulo">Suíte Antiga</span> <span class="selo selo-lixeira">Na lixeira</span></div><div class="item-meta">Página · Quartos › Suíte Antiga</div>
+<div class="item-acoes"><details class="saiba"><summary>Recuperar<span class="visualmente-oculto"> Suíte Antiga</span></summary><div class="aviso-bloco"><p>Recuperar “Suíte Antiga” como Privado? Ele não vai ao ar sozinho.</p><button type="button" class="btn btn-primary" data-msg="Recuperado como Privado. Ele está em Quartos.">Confirmar recuperação</button></div></details></div></li><li class="item" data-resultado>
+<div><span class="item-titulo">Quarto Standard</span> <span class="selo selo-publicado">Publicado</span></div><div class="item-meta">Página · Quartos › Quarto Standard</div>
+<div class="item-acoes"><a class="btn btn-outline-primary" href="ver.html">Abrir<span class="visualmente-oculto"> Quarto Standard</span></a></div></li><li class="item" data-resultado>
+<div><span class="item-titulo">Quarto Família</span> <span class="selo selo-publicado">Publicado</span></div><div class="item-meta">Página · Quartos › Quarto Família</div>
+<div class="item-acoes"><a class="btn btn-outline-primary" href="ver.html">Abrir<span class="visualmente-oculto"> Quarto Família</span></a></div></li><li class="item" data-resultado>
+<div><span class="item-titulo">Feira de Inverno</span> <span class="selo selo-agendado">Agendado</span></div><div class="item-meta">Evento · Eventos › Feira de Inverno</div>
+<div class="item-acoes"><a class="btn btn-outline-primary" href="ver.html">Abrir<span class="visualmente-oculto"> Feira de Inverno</span></a></div></li><li class="item" data-resultado>
+<div><span class="item-titulo">Inverno no Sítio</span> <span class="selo selo-publicado">Publicado</span></div><div class="item-meta">Notícia · Novidades › Inverno no Sítio</div>
+<div class="item-acoes"><a class="btn btn-outline-primary" href="editar.html">Abrir<span class="visualmente-oculto"> Inverno no Sítio</span></a></div></li></ul></div>
+<p data-sem-resultado hidden>Nenhum conteúdo com “<span data-termo></span>”. <a href="buscar.html">Limpar</a></p>
+</main>
+</body>
+</html>
