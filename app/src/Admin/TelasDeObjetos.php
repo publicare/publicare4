@@ -24,6 +24,7 @@ use Pbl\Conteudo\ConflitoDeVersao;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\TagRepositorio;
+use Pbl\Conteudo\TiposAceitos;
 use Pbl\Servicos;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -76,11 +77,14 @@ final class TelasDeObjetos
     /** @var array<int, string> nomes de classe já lidos nesta requisição */
     private array $classes = [];
 
+    private readonly TiposAceitos $tiposAceitos;
+
     public function __construct(
         private readonly Servicos $servicos,
         private readonly Rede $rede,
         private readonly Csrf $csrf,
     ) {
+        $this->tiposAceitos = new TiposAceitos($servicos->classes);
     }
 
     /** A sub-rota existe para esse método? (conferido pelo `Painel` antes da sessão: rota desconhecida é 404 para todos) */
@@ -2240,15 +2244,15 @@ final class TelasDeObjetos
         return $o->paiId === null ? null : $this->servicos->objetos->porId($o->paiId);
     }
 
-    /** @return list<Classe> classes que o tipo do pai aceita como filhas (`aceita_filhos` e a lista `filhas`; vazia = qualquer) */
+    /** @return list<Classe> classes que o tipo do pai aceita como filhas */
     private function classesAceitas(Objeto $pai): array
     {
-        return array_values(array_filter($this->servicos->classes->todas(), fn (Classe $c): bool => $this->aceita($pai, $c)));
+        return $this->tiposAceitos->de($pai);
     }
 
     private function aceita(Objeto $pai, Classe $filha): bool
     {
-        return $this->classeDe($pai)?->aceita($filha) ?? false;
+        return $this->tiposAceitos->aceita($pai, $filha);
     }
 
     /**
