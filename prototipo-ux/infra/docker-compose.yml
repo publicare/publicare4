@@ -1,0 +1,15 @@
+# Uso local (a partir da raiz do repositório):
+#   docker compose -f prototipo-ux/infra/docker-compose.yml up --build   ->  http://localhost:8090/
+# Não toca em app/, public/ nem no docker-compose.yml de desenvolvimento do PBL4.
+services:
+  prototipo:
+    build:
+      context: ../..
+      dockerfile: prototipo-ux/infra/Dockerfile
+    ports:
+      - "127.0.0.1:8090:8080"   # só a própria máquina; para o celular, use a prévia VSF
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: "no"

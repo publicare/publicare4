@@ -1,0 +1,5 @@
+*
+!prototipo-ux/*.html
+!prototipo-ux/assets/**
+!prototipo-ux/infra/nginx.conf
+!prototipo-ux/infra/Dockerfile

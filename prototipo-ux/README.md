@@ -24,3 +24,6 @@ Início · Conteúdo (+ Eventos, Novidades) · Ver conteúdo · Criar · Editar 
 
 ## Limites
 Sem backend, sem upload real, sem conflito 409. Domínios, Redirecionamentos, Tipos de conteúdo e Tarefas ficam fora. Não testado em navegador real nesta etapa: confira em 360, 390 e 430 px e com teclado.
+
+## Infra
+`infra/`: Dockerfile (nginx estático sem root), docker-compose.yml, `gerar-pacote-previa.sh` e `runbook.md`. Job `prototipo-ux` no `.github/workflows/ci.yml`.

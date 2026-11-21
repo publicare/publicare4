@@ -119,6 +119,32 @@ jobs:
       - name: Vulnerabilidades conhecidas
         run: composer audit --locked
 
+  prototipo-ux:
+    name: Protótipo clicável (testes, pacote de prévia, imagem)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testes do protótipo (links, ids, rótulos, contraste, sem inline/CDN)
+        working-directory: prototipo-ux
+        run: npm test
+      - name: Testes unitários, de integração e de fumaça (servidor estático, 4 caminhos)
+        run: node --test "tests/unit/*.test.mjs" "tests/integration/*.test.mjs" "tests/smoke/*.test.mjs"
+      - name: Pacote de prévia VSF (v2, estático, noindex)
+        run: prototipo-ux/infra/gerar-pacote-previa.sh "$RUNNER_TEMP/previa.tar.gz"
+      - name: Imagem estática compila
+        run: docker build -f prototipo-ux/infra/Dockerfile -t pbl4-prototipo:ci .
+      - name: Imagem serve o roteiro com noindex
+        run: |
+          docker run -d --rm --name proto -p 8090:8080 pbl4-prototipo:ci
+          for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://127.0.0.1:8090/saude && break || sleep 1; done
+          curl -fsS http://127.0.0.1:8090/index.html | grep -q 'name="robots" content="noindex'
+          curl -fsSI http://127.0.0.1:8090/ | grep -qi '^x-robots-tag: noindex'
+          docker stop proto
+
   changelog:
     name: CHANGELOG atualizado
     if: github.event_name == 'pull_request'
