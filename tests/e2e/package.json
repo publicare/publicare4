@@ -1,0 +1,12 @@
+{
+  "name": "pbl4-prototipo-e2e",
+  "private": true,
+  "description": "E2E do protótipo clicável (Playwright) + testes de contrato/regressão sem dependências.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test contract/*.test.mjs regression/*.test.mjs",
+    "test:browser": "playwright test",
+    "instalar:navegador": "playwright install chromium"
+  },
+  "devDependencies": { "@playwright/test": "1.49.1" }
+}
