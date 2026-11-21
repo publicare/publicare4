@@ -10,6 +10,7 @@ use Pbl\Acesso\Rede;
 use Pbl\Acesso\SessaoAtiva;
 use Pbl\Conteudo\ConflitoDeVersao;
 use Pbl\Conteudo\Objeto;
+use Pbl\Conteudo\TiposAceitos;
 use Pbl\Servicos;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,8 +27,11 @@ final class ApiDeAcoes
     public const ROTA_ESTADO = '/_pbl/api/estado';
     public const LIMITE_LOTE = 100;
 
+    private readonly TiposAceitos $tiposAceitos;
+
     public function __construct(private readonly Servicos $servicos, private readonly Rede $rede, private readonly Csrf $csrf)
     {
+        $this->tiposAceitos = new TiposAceitos($servicos->classes);
     }
 
     public static function atende(string $caminho, string $metodo): bool
@@ -104,7 +108,14 @@ final class ApiDeAcoes
         $base = Painel::PREFIXO . '/objeto/' . $o->id;
         $acoes = [];
         if ($this->pode($sessao, Acao::Editar, $o) && $this->servicos->objetos->filhosForaDaLixeira($o->id) > 0) {
-            $acoes['conteudo'] = ['url' => Painel::PREFIXO . '/conteudo/' . $o->id];
+            $acoes['listar'] = ['url' => Painel::PREFIXO . '/conteudo/' . $o->id];
+            $acoes['conteudo'] = $acoes['listar']; // alias obsoleto (JS antigo em cache); sai numa versão futura
+        }
+        if ($o->status !== 'apagado' && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o)) {
+            $tipos = $this->tiposAceitos->de($o);
+            if ($tipos !== []) {
+                $acoes['criar'] = ['url' => $base . '/novo' . (count($tipos) === 1 ? '?classe=' . $tipos[0]->id : '')];
+            }
         }
         if ($this->pode($sessao, Acao::Editar, $o)) {
             $acoes['editar'] = ['url' => $base . '/editar'];

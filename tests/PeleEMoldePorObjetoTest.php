@@ -173,7 +173,7 @@ final class PeleEMoldePorObjetoTest extends TestCase
 
         $this->criar('pagina', $pai->id, 'Filho', 'filho');
         $depois = json_decode($this->html($this->req('GET', $url, $this->token('admin'))), true);
-        self::assertSame(['conteudo', 'editar', 'despublicar', 'mover', 'excluir'], array_keys($depois['acoes']));
+        self::assertSame(['listar', 'conteudo', 'criar', 'editar', 'despublicar', 'mover', 'excluir'], array_keys($depois['acoes']));
         self::assertSame('/_pbl/conteudo/' . $pai->id, $depois['acoes']['conteudo']['url']);
         self::assertArrayNotHasKey('conteudo', json_decode($this->html($this->req('GET', $url, $this->token('leitor'))), true)['acoes']);
     }
@@ -185,7 +185,7 @@ final class PeleEMoldePorObjetoTest extends TestCase
 
         $admin = json_decode($this->html($this->req('GET', $url, $this->token('admin'))), true);
         self::assertIsArray($admin);
-        self::assertSame(['editar', 'despublicar', 'mover', 'excluir'], array_keys($admin['acoes']));
+        self::assertSame(['criar', 'editar', 'despublicar', 'mover', 'excluir'], array_keys($admin['acoes']));
         self::assertNotSame('', $admin['csrf']);
 
         $leitor = $this->req('GET', $url, $this->token('leitor'));
@@ -207,7 +207,7 @@ final class PeleEMoldePorObjetoTest extends TestCase
         $admin = json_decode($this->html($this->req('GET', $url, $this->token('admin'))), true);
         self::assertIsArray($admin);
         self::assertSame([$a->id, $b->id], array_keys($admin['objetos']), 'inexistente é omitido, sem erro');
-        self::assertSame(['editar', 'despublicar', 'mover', 'excluir'], array_keys($admin['objetos'][$a->id]['acoes']));
+        self::assertSame(['criar', 'editar', 'despublicar', 'mover', 'excluir'], array_keys($admin['objetos'][$a->id]['acoes']));
         self::assertSame($a->versao, $admin['objetos'][$a->id]['versao']);
         self::assertNotSame('', $admin['csrf'], 'token uma vez só, no lote');
 
@@ -267,6 +267,63 @@ final class PeleEMoldePorObjetoTest extends TestCase
             $r = $this->post($this->token('admin'), '/_pbl/api/estado', ['objeto' => (string) $p->id, 'acao' => 'despublicar'] + $extra);
             self::assertSame(400, $r->getStatusCode(), json_encode($extra) ?: '');
             self::assertSame('publicado', $this->s->objetos->porId($p->id)?->status, 'sem versao nada muda');
+        }
+    }
+
+    public function testApiDeAcoesCriarDependeDeTiposAceitosEPermissao(): void
+    {
+        $p = $this->criar('pagina', $this->inicioId, 'Pagina', 'pagina');
+        $url = '/_pbl/api/acoes?objeto=' . $p->id;
+        $admin = json_decode($this->html($this->req('GET', $url, $this->token('admin'))), true);
+        self::assertArrayHasKey('criar', $admin['acoes']);
+        $u = $admin['acoes']['criar']['url'];
+        self::assertStringStartsWith('/_pbl/objeto/' . $p->id . '/novo', $u);
+        $tipos = (new \Pbl\Conteudo\TiposAceitos($this->s->classes))->de($p);
+        self::assertSame(count($tipos) === 1, str_contains($u, '?classe='), 'um único tipo vai direto ao formulário; vários abrem o seletor');
+        self::assertArrayNotHasKey('criar', json_decode($this->html($this->req('GET', $url, $this->token('leitor'))), true)['acoes']);
+    }
+
+    public function testApiDeAcoesExcluirSoApontaParaTelaDeConfirmacao(): void
+    {
+        $p = $this->criar('pagina', $this->inicioId, 'Pagina', 'pagina');
+        $a = json_decode($this->html($this->req('GET', '/_pbl/api/acoes?objeto=' . $p->id, $this->token('admin'))), true)['acoes'];
+        self::assertSame('/_pbl/objeto/' . $p->id . '/apagar', $a['excluir']['url']);
+        $r = $this->post($this->token('admin'), '/_pbl/api/estado', ['objeto' => (string) $p->id, 'acao' => 'excluir', 'versao' => (string) $p->versao]);
+        self::assertSame(400, $r->getStatusCode());
+        self::assertSame('publicado', $this->s->objetos->porId($p->id)?->status);
+    }
+
+    public function testApiDeEstadoRecusaOrigemErrada(): void
+    {
+        $p = $this->criar('pagina', $this->inicioId, 'Pagina', 'pagina');
+        $campos = ['objeto' => (string) $p->id, 'acao' => 'despublicar', 'versao' => (string) $p->versao, '_csrf' => $this->csrf($this->token('admin'))];
+        $r = $this->req('POST', '/_pbl/api/estado', $this->token('admin'), $campos, ['HTTP_ORIGIN' => 'https://outro.example']);
+        self::assertSame(403, $r->getStatusCode());
+        self::assertSame('publicado', $this->s->objetos->porId($p->id)?->status);
+    }
+
+    public function testTituloComHtmlNaoVazaNaApiENoJsSoUsaTextoSeguro(): void
+    {
+        $p = $this->criar('pagina', $this->inicioId, '<img src=x onerror=alert(1)>', 'xss');
+        $r = $this->req('GET', '/_pbl/api/acoes?objeto=' . $p->id, $this->token('admin'));
+        self::assertStringNotContainsString('onerror', $this->html($r), 'a API não devolve títulos');
+        $js = (string) file_get_contents(dirname(__DIR__) . '/public/_pbl/assets/pbl-barra.js');
+        self::assertDoesNotMatchRegularExpression('/innerHTML|insertAdjacentHTML|document\.write/', $js);
+        self::assertStringContainsString("acao.url.charAt(1) !== '/'", $js);
+    }
+
+    public function testBarraTemIconesEVariaveisDeTema(): void
+    {
+        $dir = dirname(__DIR__) . '/public/_pbl/assets/';
+        $js = (string) file_get_contents($dir . 'pbl-barra.js');
+        $css = (string) file_get_contents($dir . 'pbl-barra.css');
+        foreach (['listar', 'criar', 'editar', 'publicar', 'despublicar', 'excluir'] as $acao) {
+            self::assertMatchesRegularExpression('/\b' . $acao . ': \[\x27/', $js);
+        }
+        self::assertStringContainsString("'stroke-width', '1.5'", $js);
+        self::assertStringContainsString('aria-label', $js);
+        foreach (['--pbl-barra-cor', '--pbl-barra-fundo', '--pbl-barra-raio', '--pbl-barra-opacidade', ':focus-visible', 'pointer:coarse', 'prefers-color-scheme:dark'] as $c) {
+            self::assertStringContainsString($c, $css);
         }
     }
 

@@ -13,15 +13,17 @@
   var ID = /^[1-9][0-9]{0,9}$/;
   var LOTE = 100;
 
+  // Ícones próprios: viewBox 24, traço 1.5, currentColor. Cada ação: [rótulo em português, caminhos do desenho].
   var ROTULOS = {
-    conteudo: ['Conteúdo', 'btn btn-sm btn-outline-primary', 'M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01'],
-    editar: ['Editar', 'btn btn-sm btn-primary bg-gradient', 'M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z'],
-    publicar: ['Publicar', 'btn btn-sm btn-success bg-gradient', 'M20 6 9 17l-5-5'],
-    despublicar: ['Despublicar', 'btn btn-sm btn-warning bg-gradient', 'M8 5v14 M16 5v14'],
-    mover: ['Mover', 'btn btn-sm btn-outline-secondary', 'M7 4v16 M3 8l4-4 4 4 M17 20V4 M13 16l4 4 4-4'],
-    excluir: ['Excluir', 'btn btn-sm btn-danger bg-gradient', 'M3 6h18 M8 6V4h8v2 M6 6l1 14h10l1-14 M10 11v6 M14 11v6']
+    listar: ['Listar conteúdo', 'M9 6h11 M9 12h11 M9 18h11 M4 6h.01 M4 12h.01 M4 18h.01'],
+    criar: ['Criar conteúdo aqui dentro', 'M12 5v14 M5 12h14'],
+    editar: ['Editar', 'M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19z M14.5 6.5l3 3'],
+    publicar: ['Publicar', 'M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],
+    despublicar: ['Despublicar', 'M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M4 4l16 16'],
+    mover: ['Mover', 'M7 4v16 M3.5 8L7 4.5 10.5 8 M17 20V4 M13.5 16l3.5 3.5 3.5-3.5'],
+    excluir: ['Excluir', 'M4 6.5h16 M9 6.5V4h6v2.5 M6 6.5l1 13.5h10l1-13.5 M10 10.5v6 M14 10.5v6']
   };
-  var ORDEM = ['conteudo', 'editar', 'publicar', 'despublicar', 'mover', 'excluir'];
+  var ORDEM = ['listar', 'criar', 'editar', 'publicar', 'despublicar', 'mover', 'excluir'];
 
   var estado = {}; // id -> { versao, acoes, estado }
   var csrf = '';
@@ -53,7 +55,7 @@
     svg.setAttribute('height', '16');
     svg.setAttribute('fill', 'none');
     svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-width', '1.5');
     svg.setAttribute('stroke-linecap', 'round');
     svg.setAttribute('stroke-linejoin', 'round');
     svg.setAttribute('aria-hidden', 'true');
@@ -90,10 +92,10 @@
       el = document.createElement('a');
       el.href = url;
     }
-    el.className = r[1];
+    el.className = 'pbl-acao pbl-acao-' + nome;
     el.setAttribute('aria-label', rotulo);
-    el.title = r[0];
-    el.appendChild(icone(r[2]));
+    el.title = rotulo;
+    el.appendChild(icone(r[1]));
     return el;
   }
 
@@ -118,7 +120,7 @@
     }
     ORDEM.forEach(function (nome) {
       var acao = dados.acoes[nome];
-      if (acao && typeof acao.url === 'string' && acao.url.charAt(0) === '/') {
+      if (acao && typeof acao.url === 'string' && acao.url.charAt(0) === '/' && acao.url.charAt(1) !== '/') {
         caixa.appendChild(botao(nome, acao.url, alvo.id, alvo.titulo));
       }
     });

@@ -1,15 +1,44 @@
-/* PBL4 — ações de edição das páginas públicas (ADR 0022). Escopo próprio: não depende do CSS da pele. Cores iguais às do Bootstrap 5.3. */
-.pbl-acoes{display:inline-flex;flex-wrap:wrap;gap:.25rem;margin:0 0 0 .5rem;vertical-align:middle;position:relative;z-index:3;font:400 .875rem/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:normal;text-transform:none}
+/* PBL4 — barra de edição das páginas públicas (ADR 0022). Escopo próprio, discreta e temável por variáveis CSS.
+   Cada pele ajusta definindo --pbl-barra-* (em :root, body ou .pbl-acoes) sem sobrescrever regras. Variáveis:
+   --pbl-barra-cor, --pbl-barra-cor-destaque, --pbl-barra-fundo, --pbl-barra-fundo-hover, --pbl-barra-borda,
+   --pbl-barra-raio, --pbl-barra-opacidade, --pbl-barra-opacidade-hover, --pbl-barra-tamanho, --pbl-barra-alvo,
+   --pbl-barra-espaco, --pbl-barra-foco, --pbl-barra-transicao. */
+.pbl-acoes{
+  --_cor:var(--pbl-barra-cor,#495057);
+  --_destaque:var(--pbl-barra-cor-destaque,#0d6efd);
+  --_fundo:var(--pbl-barra-fundo,transparent);
+  --_fundo-hover:var(--pbl-barra-fundo-hover,rgba(0,0,0,.07));
+  --_borda:var(--pbl-barra-borda,transparent);
+  --_raio:var(--pbl-barra-raio,.375rem);
+  --_op:var(--pbl-barra-opacidade,.4);
+  --_op-hover:var(--pbl-barra-opacidade-hover,1);
+  --_alvo:var(--pbl-barra-alvo,1.75rem);
+  --_foco:var(--pbl-barra-foco,#0a58ca);
+  display:inline-flex;flex-wrap:wrap;gap:var(--pbl-barra-espaco,.125rem);margin:0 0 0 .5rem;vertical-align:middle;position:relative;z-index:3;
+  font:400 .875rem/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:normal;text-transform:none;
+  opacity:var(--_op);transition:var(--pbl-barra-transicao,opacity .15s ease)
+}
 .pbl-acoes[hidden]{display:none}
-.pbl-acoes .btn{display:inline-flex;align-items:center;justify-content:center;width:1.9rem;height:1.9rem;padding:0;border:1px solid transparent;border-radius:.375rem;font:inherit;text-decoration:none;cursor:pointer;color:#fff;box-sizing:border-box}
-.pbl-acoes .btn[disabled]{opacity:.65;cursor:progress}
-.pbl-acoes .btn-primary{background:#0d6efd;border-color:#0d6efd}
-.pbl-acoes .btn-success{background:#198754;border-color:#198754}
-.pbl-acoes .btn-warning{background:#ffc107;border-color:#ffc107;color:#000}
-.pbl-acoes .btn-danger{background:#dc3545;border-color:#dc3545}
-.pbl-acoes .btn-outline-secondary{background:#fff;border-color:#6c757d;color:#6c757d}
-.pbl-acoes .bg-gradient{background-image:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,0))}
-.pbl-acoes .btn:focus-visible{outline:3px solid #0a58ca;outline-offset:2px}
-.pbl-acoes svg{display:block;pointer-events:none}
+.pbl-acoes:hover,.pbl-acoes:focus-within{opacity:var(--_op-hover)}
+.pbl-acoes .pbl-acao{display:inline-flex;align-items:center;justify-content:center;width:var(--_alvo);height:var(--_alvo);padding:0;margin:0;
+  background:var(--_fundo);border:1px solid var(--_borda);border-radius:var(--_raio);color:var(--_cor);font:inherit;text-decoration:none;cursor:pointer;box-sizing:border-box;-webkit-appearance:none;appearance:none}
+.pbl-acoes .pbl-acao:hover{background:var(--_fundo-hover);color:var(--_destaque)}
+.pbl-acoes .pbl-acao:focus-visible{outline:2px solid var(--_foco);outline-offset:1px;color:var(--_destaque)}
+.pbl-acoes .pbl-acao[disabled]{opacity:.5;cursor:progress}
+.pbl-acoes .pbl-acao-excluir:hover{color:var(--pbl-barra-cor-perigo,#b02a37)}
+.pbl-acoes svg{display:block;width:var(--pbl-barra-tamanho,16px);height:var(--pbl-barra-tamanho,16px);pointer-events:none}
+@media (pointer:coarse){
+  .pbl-acoes{--_alvo:var(--pbl-barra-alvo,2.75rem);--_op:var(--pbl-barra-opacidade-toque,.7)}
+}
+@media (prefers-color-scheme:dark){
+  .pbl-acoes{--_cor:var(--pbl-barra-cor,#ced4da);--_destaque:var(--pbl-barra-cor-destaque,#6ea8fe);--_fundo-hover:var(--pbl-barra-fundo-hover,rgba(255,255,255,.12));--_foco:var(--pbl-barra-foco,#9ec5fe)}
+  .pbl-acoes .pbl-acao-excluir:hover{color:var(--pbl-barra-cor-perigo,#ea868f)}
+}
+@media (prefers-reduced-motion:reduce){.pbl-acoes{transition:none}}
+@media (forced-colors:active){
+  .pbl-acoes{opacity:1}
+  .pbl-acoes .pbl-acao{color:ButtonText;border-color:ButtonText}
+  .pbl-acoes .pbl-acao:focus-visible{outline-color:Highlight}
+}
 .pbl-aviso{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:1080;max-width:90vw;padding:.4rem .8rem;border-radius:.375rem;background:#212529;color:#fff;font:400 .875rem/1.4 system-ui,sans-serif}
 .pbl-aviso:empty{display:none}

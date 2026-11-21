@@ -6,6 +6,13 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Adicionado
+- **Barra de edição:** novas ações `listar` e `criar` em `GET /_pbl/api/acoes` (sempre filtradas por permissão; `criar` abre o formulário se há um só tipo aceito ou o seletor do painel se há vários), conjunto próprio de ícones SVG (traço 1,5, 16px, `currentColor`) com `aria-label`/`title` em português, foco visível e alvos maiores no celular. CSS parametrizável por `--pbl-barra-*`, com tema escuro. Ver [docs/tecnica/barra-de-edicao.md](docs/tecnica/barra-de-edicao.md) e [docs/usuario/barra-de-edicao.md](docs/usuario/barra-de-edicao.md).
+- `Pbl\Conteudo\TiposAceitos`: tipos aceitos como filhos, compartilhado entre o painel e a API.
+
+### Alterado
+- A barra não usa mais classes `btn btn-*`; peles que as sobrescreviam devem usar as variáveis. A ação `conteudo` da API virou `listar` (o alias `conteudo` continua por ora, obsoleto).
+
 ## [0.1.0-rc.5] - 2026-11-21
 
 > **Em resumo:** cópias de segurança com tela no painel (fazer agora, agendar, baixar, restaurar, limpar antigas). Cópia para outro lugar pela rede e criptografia do pacote ainda não estão nesta versão. Esta também é a primeira atualização que dá para fazer pela tela, agendada pelo cron.
