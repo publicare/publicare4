@@ -35,22 +35,22 @@ final class Modelos
         return [
             'evento' => [
                 'nome' => 'evento', 'titulo' => 'Agenda de eventos',
-                'descricao' => 'Eventos com data e hora de início e fim, local, imagem e link de inscrição. Cria a pasta "Agenda" (lista Próximos e Passados) com dois eventos de exemplo.',
+                'descricao' => 'Eventos com data, local e inscrição. Cria a pasta "Agenda" com 2 exemplos.',
                 'classes' => ['agenda', 'evento'], 'moldes' => ['agenda', 'evento'],
             ],
             'faq' => [
                 'nome' => 'faq', 'titulo' => 'Perguntas frequentes',
-                'descricao' => 'Pergunta (título) e resposta formatada, com ordem pelo peso e categoria opcional. A página lista tudo em sanfona (details), agrupado por categoria.',
+                'descricao' => 'Perguntas e respostas em sanfona, por categoria.',
                 'classes' => ['perguntas', 'faq'], 'moldes' => ['perguntas', 'faq'],
             ],
             'destaque' => [
                 'nome' => 'destaque', 'titulo' => 'Destaques da página inicial',
-                'descricao' => 'Banner com imagem, título, texto curto e link (interno ou externo). Até 3 destaques, em ordem de peso, aparecem numa faixa na página inicial.',
+                'descricao' => 'Banners da página inicial (até 3), com imagem, texto e link.',
                 'classes' => ['destaque'], 'moldes' => ['destaque', 'faixa_destaques'],
             ],
             'bloco' => [
                 'nome' => 'bloco', 'titulo' => 'Blocos reutilizáveis',
-                'descricao' => 'Trechos de HTML que aparecem em várias páginas: o bloco de endereço "bloco-rodape" vira o rodapé e o "bloco-aviso", uma faixa de aviso no topo do site.',
+                'descricao' => 'Trechos de HTML reutilizáveis: "bloco-rodape" vira o rodapé; "bloco-aviso", a faixa no topo.',
                 'classes' => ['bloco'], 'moldes' => ['bloco', 'bloco_aviso', 'bloco_rodape'],
             ],
         ];

@@ -245,14 +245,14 @@ final class TelasDeContas
             . '<div class="mb-3"><label for="campo-nome" class="form-label">Nome</label><input id="campo-nome" class="form-control" name="nome" maxlength="' . self::MAX_NOME . '" required value="' . $nome . '"></div>'
             . '<div class="mb-3"><label for="campo-email" class="form-label">E-mail</label><input id="campo-email" class="form-control" name="email" type="email" maxlength="' . self::MAX_EMAIL . '" required value="' . $email . '"></div>'
             . ($eu
-                ? '<div class="mb-3 pbl-rotulo"><span class="form-label">Administrador</span>' . Pagina::ajuda('ajuda-admin-eu', 'Administrador', 'Você é administrador e não pode tirar a própria marca de administrador (peça a outro administrador).') . '</div>'
+                ? '<div class="mb-3 pbl-rotulo"><span class="form-label">Administrador</span>' . Pagina::ajuda('ajuda-admin-eu', 'Administrador', 'Você não pode tirar a própria marca de administrador.') . '</div>'
                 : '<div class="form-check mb-3"><input id="campo-admin" class="form-check-input" type="checkbox" name="administrador" value="1"' . ($admin ? ' checked' : '') . '>'
                     . '<label for="campo-admin" class="form-check-label">Administrador (vê e altera tudo, em todos os sites)</label></div>')
             . $this->campoSenha($sessao, 'campo-senha-editar')
             . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar dados</button></div></form>';
         $senha = $c->ehServico()
-            ? '<p>Conta de serviço (agente ou script): não tem senha e não entra pelo painel. Use a aba Situação para desativá-la a qualquer momento.</p>'
-            : '<div class="pbl-rotulo"><h3 class="h6 mb-1">Trocar senha</h3>' . Pagina::ajuda('ajuda-trocar-senha', 'Trocar senha', $eu ? 'Ao trocar a sua senha você sai e precisa entrar de novo.' : 'A conta sai de todas as sessões abertas e entra com a senha nova.') . '</div>'
+            ? '<p>Conta de serviço: sem senha, não entra pelo painel. Desative na aba Situação.</p>'
+            : '<div class="pbl-rotulo"><h3 class="h6 mb-1">Trocar senha</h3>' . Pagina::ajuda('ajuda-trocar-senha', 'Trocar senha', $eu ? 'Você sai e entra de novo.' : 'A conta sai das sessões abertas.') . '</div>'
             . '<form method="post" action="' . $base . '/senha">' . $csrf . $this->camposDeSenha('nova senha')
             . $this->campoSenha($sessao, 'campo-senha-atual-redefinir', 'senha_atual')
             . '<div class="pbl-acoes"><button type="submit" class="btn btn-warning">Trocar senha</button></div></form>';
@@ -280,7 +280,7 @@ final class TelasDeContas
             return '<p class="text-body-secondary">Você não pode desativar a própria conta.</p>';
         }
 
-        return '<p>Desativar impede de entrar e derruba as sessões abertas; os papéis e o histórico ficam guardados.</p>'
+        return '<p>Desativar bloqueia o acesso e derruba as sessões. Papéis e histórico ficam.</p>'
             . '<form method="post" action="' . $base . '/desativar">' . $csrf . $this->campoSenha($sessao, 'campo-senha-desativar')
             . '<button type="submit" class="btn btn-outline-danger">Desativar conta</button></form>';
     }
@@ -290,7 +290,7 @@ final class TelasDeContas
         $acessos = $this->servicos->usuarios->acessosDe($c->id);
         $corpo = '';
         if ($c->administrador) {
-            $corpo .= Pagina::alerta('success', 'Administrador: acesso total a todos os sites e conteúdos. Nenhum papel por seção é necessário.');
+            $corpo .= Pagina::alerta('success', 'Administrador: acesso total. Não precisa de papel por seção.');
         }
         if ($acessos === []) {
             $corpo .= $c->administrador ? '' : '<p>Nenhum papel concedido: esta conta não vê nem altera conteúdo até receber um papel.</p>';
@@ -325,7 +325,7 @@ final class TelasDeContas
             $opcoes .= '<option value="' . $p->value . '">' . ucfirst($p->value) . '</option>';
         }
         $formulario = '<form method="post" action="' . $base . '/conceder" class="row g-2 align-items-end">' . $csrf
-            . '<div class="col-12">' . Pagina::rotulo('campo-objeto', 'Conteúdo (pasta, página ou início do site)', Pagina::ajuda('ajuda-objeto', 'Conteúdo', 'Vale para o conteúdo escolhido e tudo abaixo dele; substitui o papel que a conta já tinha nele. Se preferir, digite o número do conteúdo (aparece na página dele na administração) no segundo campo, que vale no lugar da lista. Leitor vê; autor cria e edita o que criou; editor também publica e apaga.')) . '<select id="campo-objeto" class="form-select" name="objeto" aria-describedby="ajuda-objeto">' . $this->opcoesDeConteudo() . '</select></div>'
+            . '<div class="col-12">' . Pagina::rotulo('campo-objeto', 'Conteúdo (pasta, página ou início do site)', Pagina::ajuda('ajuda-objeto', 'Conteúdo', 'Vale para o conteúdo e tudo abaixo dele. Leitor vê; autor cria e edita o que criou; editor também publica e apaga.')) . '<select id="campo-objeto" class="form-select" name="objeto" aria-describedby="ajuda-objeto">' . $this->opcoesDeConteudo() . '</select></div>'
             . '<div class="col-sm-4"><label for="campo-objeto-numero" class="form-label">Ou o número</label><input id="campo-objeto-numero" class="form-control" name="objeto_numero" inputmode="numeric" maxlength="10"></div>'
             . '<div class="col-sm-4"><label for="campo-perfil" class="form-label">Papel</label><select id="campo-perfil" class="form-select" name="perfil">' . $opcoes . '</select></div>'
             . '<div class="col-sm-4">' . $this->campoSenha($sessao, 'campo-senha-conceder') . '<button type="submit" class="btn btn-primary">Conceder</button></div>'

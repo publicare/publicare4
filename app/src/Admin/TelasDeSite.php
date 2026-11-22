@@ -196,7 +196,7 @@ final class TelasDeSite
         $corpo .= $regras === [] ? '<tr><td colspan="5" class="text-body-secondary">Nenhuma regra ainda.</td></tr>' : '';
         $corpo .= '</tbody></table></div><h2 class="h5 mt-4">Nova regra</h2>' . $this->formRegra($sessao, $site, null, ['codigo' => '301'], null);
 
-        return Pagina::resposta('Redirecionamentos de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Redirecionamentos', null]], '', 'Regras para endereços antigos que não correspondem a nenhum conteúdo atual. Valem <strong>depois</strong> da página publicada e do histórico de endereços.');
+        return Pagina::resposta('Redirecionamentos de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Redirecionamentos', null]], '', 'Para endereços antigos sem conteúdo. Valem depois da página publicada e do histórico.');
     }
 
     /**
@@ -418,7 +418,7 @@ final class TelasDeSite
             . '<label for="b-ligado" class="form-check-label">Sugerir grafia parecida quando a busca não encontra nada</label></div>'
             . '<button type="submit" class="btn btn-primary">Salvar</button></form>';
 
-        return Pagina::resposta('Busca de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Busca', null]], '', 'Quando uma busca de texto não acha nada, o site pode sugerir "você quis dizer…" com uma palavra parecida do vocabulário já indexado (nível C da busca). Desligada por padrão: analisa mais candidatos a cada busca sem resultado.');
+        return Pagina::resposta('Busca de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Busca', null]], '', 'Sugere "você quis dizer…" quando a busca não acha nada. Desligada por padrão: deixa a busca mais lenta.');
     }
 
     private function salvarBusca(SessaoAtiva $sessao, Site $site, Request $req): Response
@@ -488,7 +488,7 @@ final class TelasDeSite
         }
         $corpo .= '</tbody></table></div>';
 
-        return Pagina::resposta('Peles de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Peles', null]], '', 'Peles são pastas em <code>dados/peles/</code> com os modelos de página da linguagem do PBL4. Uma pele pode ser usada por mais de um site: editar um modelo de página muda todos os sites que usam essa pele.');
+        return Pagina::resposta('Peles de ' . $site->nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Peles', null]], '', 'Pastas em <code>dados/peles/</code>. Editar um molde muda todos os sites que usam a pele.');
     }
 
     private function ativarPele(SessaoAtiva $sessao, Site $site, Request $req): Response
@@ -693,7 +693,7 @@ final class TelasDeSite
                 . ' <a class="btn btn-link" href="' . $url . '/molde/historico?nome=' . rawurlencode($nome) . '">Histórico</a>')
             . '</form>';
 
-        return Pagina::resposta($novo ? 'Novo modelo de página' : 'Editar modelo de página', $corpo, $status, false, $this->barra($sessao), [], '', 'O modelo de página é validado pela linguagem do PBL4 antes de salvar (ou de publicar um rascunho); nada é executado como PHP. A caixa é texto simples, sem realce de sintaxe (ADR 0012 §9).');
+        return Pagina::resposta($novo ? 'Novo modelo de página' : 'Editar modelo de página', $corpo, $status, false, $this->barra($sessao), [], '', 'O molde é validado antes de salvar. Nada roda como PHP.');
     }
 
     /**
@@ -1098,7 +1098,7 @@ final class TelasDeSite
                 . '<button type="submit" class="btn btn-primary">Pré-visualizar</button></form>';
         }
 
-        return Pagina::resposta('Pré-visualizar rascunho', $corpo . '<p class="mt-3"><a href="' . $editor . '">Voltar ao editor</a></p>', Response::HTTP_OK, false, $this->barra($sessao), [], '', 'A pré-visualização mostra como a página escolhida ficaria com o rascunho do modelo de página. Não publica nada, não entra no cache do site e só quem administra este site a vê.');
+        return Pagina::resposta('Pré-visualizar rascunho', $corpo . '<p class="mt-3"><a href="' . $editor . '">Voltar ao editor</a></p>', Response::HTTP_OK, false, $this->barra($sessao), [], '', 'Mostra a página com o rascunho. Não publica nada.');
     }
 
     /**

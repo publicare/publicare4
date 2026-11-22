@@ -7,6 +7,8 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 ## [Não lançado]
 
 ### Alterado
+- **Painel, ajuda "?":** ícone de 18 px com área de toque de 44 px, ajuda sempre abaixo do rótulo; Esc fecha e devolve o foco.
+- **Painel, texto (onda 1: Início, Conteúdo, Edição, Configurações):** ajudas e avisos mais curtos, −43% de texto corrido nessas telas. Guia em `docs/ux/voz-e-texto.md`, teste `TextoDoPainelTest` e `bin/auditar-texto`. ADR 0032.
 - **`AGENTS.md`:** instruções para agentes (não rodar a suíte completa de ~40 min, só testes filtrados e o phpstan; não apagar `prototipo-ux/`; escopo do PR).
 - **Nova listagem de conteúdo** (Conteúdo, Pendências, Meus envios, Vencidos e Lixeira): cada linha mostra a caixa de seleção, o **ícone do tipo**, o título em destaque (até 2 linhas) e, logo abaixo, uma linha pequena com «nome do tipo · estado · data curta · N filhos» (só o que existe). À vista ficam 3 ações iguais (Editar, Publicar/Tirar do ar, Abrir no site ↗); Abrir pasta, Histórico, Copiar, Recortar, Mover e Apagar (em vermelho, por último, com a confirmação de sempre) ficam no menu «⋯ Mais», que funciona sem JavaScript. Celular em retrato: cartão; paisagem e tablet: linha única; computador: lista densa. Tipos sem ícone ganham o padrão do tipo fixo ou um ícone genérico. Ver ADR 0032.
 

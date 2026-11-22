@@ -57,9 +57,9 @@ final class TelasDePublicacao
         $andando = $estado !== null && $estado['status'] === FilaDeRepublicacao::ANDANDO;
         $total = $this->servicos->objetos->contarDoSite($site->id);
         $corpo = $aviso . TelasDeSite::avisosDeMenu($this->servicos, $site, self::link($site))
-            . ($andando ? Pagina::alerta('info', 'Há uma republicação em andamento (' . $estado['feitas'] . ' de ' . $estado['total'] . ' páginas). Clique em "Continuar" para retomar de onde parou.') : '')
-            . '<p>O site tem ' . $total . ' conteúdo(s). Republicar refaz o menu e todas as páginas publicadas, em lotes de ' . FilaDeRepublicacao::LOTE_PAINEL
-            . ' páginas, com o andamento na tela. Se a conexão cair, é só voltar e continuar.</p>'
+            . ($andando ? Pagina::alerta('info', 'Republicação em andamento (' . $estado['feitas'] . ' de ' . $estado['total'] . ' páginas). Use "Continuar".') : '')
+            . '<p>' . $total . ' conteúdo(s). Refaz o menu e as páginas, em lotes de ' . FilaDeRepublicacao::LOTE_PAINEL
+            . '. Se a conexão cair, continue de onde parou.</p>'
             . '<form method="post" action="' . self::link($site) . '" data-pbl-republicar="' . self::link($site) . '/lote">' . $this->campoCsrf($sessao)
             . '<button type="submit" class="btn btn-primary" data-pbl-iniciar>' . ($andando ? 'Continuar' : 'Republicar agora') . '</button></form>'
             . '<div class="mt-3" data-pbl-republicar-progresso hidden aria-live="polite">'

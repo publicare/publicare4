@@ -73,4 +73,58 @@ final class PaginaAjudaTest extends TestCase
         self::assertSame('a', Pagina::abaDe(Request::create('/x?aba=zzz'), 'a', ['a', 'b']));
         self::assertSame('a', Pagina::abaDe(Request::create('/x?aba[]=b'), 'a', ['a', 'b']));
     }
+
+    // ------------------------------------------------------------ o "?" pequeno (ADR 0032)
+
+    private static function css(): string
+    {
+        return (string) file_get_contents(dirname(__DIR__) . '/public/_pbl/assets/pbl-formulario.css');
+    }
+
+    /** @return array<int, string> */
+    private static function achar(string $regex, string $texto, string $mensagem): array
+    {
+        self::assertSame(1, preg_match($regex, $texto, $m), $mensagem);
+
+        return $m;
+    }
+
+    private static function regra(string $css, string $seletor): string
+    {
+        return self::achar('/^' . preg_quote($seletor, '/') . ' \{([^}]*)\}/m', $css, "regra ausente: $seletor")[1];
+    }
+
+    public function testIconeVisualPequenoEAreaDeToqueDe44PxPorPseudoElemento(): void
+    {
+        $css = self::css();
+        $icone = self::regra($css, 'details.pbl-ajuda > summary');
+        $m = self::achar('/width: ([0-9.]+)rem; height: ([0-9.]+)rem/', $icone, 'tamanho do ícone em rem');
+        self::assertGreaterThanOrEqual(18, (float) $m[1] * 16, 'ícone ≥ 18 px');
+        self::assertLessThanOrEqual(20, (float) $m[1] * 16, 'ícone ≤ 20 px');
+        self::assertSame($m[1], $m[2], 'ícone quadrado');
+        self::assertStringContainsString('position: relative', $icone);
+        self::assertStringNotContainsString('min-width', $icone, 'o tamanho do ícone não pode crescer no celular');
+
+        $toque = self::regra($css, 'details.pbl-ajuda > summary::after');
+        $t = self::achar('/position: absolute; inset: -([0-9.]+)px/', $toque, 'área de toque por pseudo-elemento');
+        self::assertGreaterThanOrEqual(44, (float) $m[1] * 16 + 2 * (float) $t[1], 'área de toque ≥ 44 px');
+    }
+
+    public function testAjudaAbreNaLinhaDeBaixoSemCobrirOCampo(): void
+    {
+        $css = self::css();
+        self::assertStringNotContainsString('position: absolute', self::regra($css, 'details.pbl-ajuda > .pbl-ajuda-texto'));
+        self::assertStringContainsString('flex: 0 0 100%', self::regra($css, '.pbl-rotulo > details.pbl-ajuda[open]'));
+        self::assertStringContainsString('outline: var(--pbl-foco)', self::regra($css, 'details.pbl-ajuda > summary:focus-visible'));
+        self::assertStringNotContainsString('pbl-ajuda-botao', $css, 'CSS legado removido');
+        self::assertStringNotContainsString('style=', Pagina::ajuda('a', 'B', 'c'), 'sem estilo inline (CSP)');
+    }
+
+    public function testEscFechaAAjudaEDevolveOFoco(): void
+    {
+        $js = (string) file_get_contents(dirname(__DIR__) . '/public/_pbl/assets/pbl-js.js');
+        self::assertStringContainsString("e.key !== 'Escape'", $js);
+        self::assertStringContainsString("closest('details.pbl-ajuda[open]')", $js);
+        self::assertStringContainsString('botao.focus()', $js);
+    }
 }

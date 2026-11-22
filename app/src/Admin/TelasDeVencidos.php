@@ -66,11 +66,11 @@ final class TelasDeVencidos
             }
             $corpo .= '</ul>';
             if ($total > count($achados)) {
-                $corpo .= '<p class="text-body-secondary">Mostrando os ' . count($achados) . ' que venceram há mais tempo, de ' . $total . '. Escolha uma seção para ver o restante.</p>';
+                $corpo .= '<p class="text-body-secondary">Mostrando ' . count($achados) . ' de ' . $total . '. Escolha uma seção para ver o resto.</p>';
             }
         }
 
-        return Pagina::resposta('Conteúdos vencidos', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Conteúdo publicado cuja <strong>data de validade já passou</strong>: saiu do ar sozinho e aguarda uma decisão (prorrogar a validade ou despublicar).');
+        return Pagina::resposta('Conteúdos vencidos', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Saíram do ar ao vencer: prorrogue ou despublique.');
     }
 
     private function linha(SessaoAtiva $sessao, Objeto $o): string

@@ -29,7 +29,7 @@ final class RetencaoTarefa implements Tarefa
 
     public function descricao(): string
     {
-        return 'Zera o IP (guardado só como hash) das linhas antigas de auditoria e, se configurado, apaga as linhas mais antigas que o prazo (dados/config/privacidade.json).';
+        return 'Zera o IP dos registros antigos de auditoria e apaga os que passaram do prazo (dados/config/privacidade.json).';
     }
 
     public function intervalo(): int

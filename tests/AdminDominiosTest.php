@@ -224,7 +224,7 @@ final class AdminDominiosTest extends TestCase
         $token = $this->token('admin');
         $r = $this->post($token, $this->lista() . '/remover', ['host' => 'www.exemplo.org']);
         self::assertSame(422, $r->getStatusCode());
-        self::assertStringContainsString('Você está acessando', $this->html($r), 'o endereço em uso é protegido primeiro');
+        self::assertStringContainsString('Você está neste endereço agora', $this->html($r), 'o endereço em uso é protegido primeiro');
         $this->s->dominios->adicionar($this->siteId, 'alias.exemplo.org', Dominio::SERVIR);
         $this->s->dominios->definirPrincipal($this->siteId, 'alias.exemplo.org', Dominio::SERVIR);
         // www é agora alias e é o endereço em uso: continua protegido; o principal novo nunca se remove.

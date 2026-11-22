@@ -29,7 +29,7 @@ final class RepublicacaoTarefa implements Tarefa
 
     public function descricao(): string
     {
-        return 'Refaz, em lotes, as páginas de sites grandes depois de mudar o menu, o domínio, a pele ou as configurações.';
+        return 'Refaz as páginas, em lotes, depois de mudar menu, domínio, pele ou configurações.';
     }
 
     public function intervalo(): int

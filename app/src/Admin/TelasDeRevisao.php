@@ -103,7 +103,7 @@ final class TelasDeRevisao
         }
         if ($passo === 'aprovar' && !$this->sincronizar($novo)) {
             $link = $voltar === 'objeto' ? Painel::PREFIXO . '/objeto/' . $novo->id : $this->urlDeRevisar($voltar);
-            $corpo = Pagina::alerta('warning', 'O envio foi aprovado e o conteúdo está publicado no painel, mas a página pública não pôde ser atualizada agora. Publique de novo pelo painel ou rode a publicação do site.')
+            $corpo = Pagina::alerta('warning', 'Envio aprovado, mas a página pública não atualizou. Republique o site.')
                 . '<p><a class="btn btn-outline-secondary" href="' . Pagina::h($link) . '">Voltar</a></p>';
 
             return Pagina::resposta('Aprovado, com aviso', $corpo, Response::HTTP_OK, false, $this->barra($sessao));
@@ -122,7 +122,7 @@ final class TelasDeRevisao
         [$status, $texto] = match ($e->codigo) {
             ErroDeRevisao::NEGADO => [Response::HTTP_FORBIDDEN, 'Você não pode fazer isto com este conteúdo, ou ele não existe.'],
             ErroDeRevisao::ESTADO => [Response::HTTP_CONFLICT, 'Este conteúdo não está mais no estado esperado: outra pessoa pode ter agido antes. Volte e confira a situação atual.'],
-            ErroDeRevisao::CONFLITO => [Response::HTTP_CONFLICT, 'Outra pessoa alterou este conteúdo depois que a tela foi aberta. Volte, recarregue e confira antes de decidir.'],
+            ErroDeRevisao::CONFLITO => [Response::HTTP_CONFLICT, 'Outra pessoa alterou este conteúdo. Recarregue e confira antes de decidir.'],
             default => [Response::HTTP_UNPROCESSABLE_ENTITY, $e->getMessage()],
         };
         $link = $voltar === 'objeto' ? Painel::PREFIXO . '/' : $this->urlDeRevisar($voltar);
@@ -220,7 +220,7 @@ final class TelasDeRevisao
             $corpo .= '</ul>';
         }
 
-        return Pagina::resposta('Revisar', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Revisar', null]], 'Envios aguardando a sua revisão. Aprovar publica; devolver exige dizer o motivo.');
+        return Pagina::resposta('Revisar', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Revisar', null]], 'Aprovar publica; devolver pede o motivo.');
     }
 
     /** @param array{acao: string, quando: string, quem: string, motivo: ?string}|null $envio */
@@ -301,7 +301,7 @@ final class TelasDeRevisao
             $corpo .= '</ul>';
         }
 
-        return Pagina::resposta('Revisar', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Revisar', Painel::PREFIXO . '/revisar'], ['Meus envios', null]], 'O que você mandou para revisão e o que ainda é rascunho seu.');
+        return Pagina::resposta('Revisar', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Revisar', Painel::PREFIXO . '/revisar'], ['Meus envios', null]], 'Seus envios e rascunhos.');
     }
 
     private function abas(string $atual): string
@@ -390,7 +390,7 @@ final class TelasDeRevisao
                 . '<button type="submit" class="btn btn-warning bg-gradient">Devolver ao autor</button></form></details>';
         }
         if ($o->status === 'submetido' && $acoes === '') {
-            $texto = '<p class="mb-2">Aguardando revisão. Enquanto isso o conteúdo não pode ser editado por quem o enviou.</p>';
+            $texto = '<p class="mb-2">Aguardando revisão. Não dá para editar até a decisão.</p>';
         }
         $historico = $revisao->historico($o->id, 5);
         if ($o->status === 'rejeitado') {

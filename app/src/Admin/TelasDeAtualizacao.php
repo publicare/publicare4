@@ -526,11 +526,11 @@ final class TelasDeAtualizacao
         $para = Pagina::h($s['para']);
 
         return '<section class="mb-4" aria-labelledby="titulo-execucao"><h2 class="h5" id="titulo-execucao">' . Pagina::h($titulo) . '</h2>' . match ($s['estado']) {
-            'andamento' => '<div class="alert alert-info" role="status">Em andamento desde ' . $quando . ': de ' . $de . ' para ' . $para . '. Pode levar alguns minutos e o site fica em manutenção durante a troca. '
+            'andamento' => '<div class="alert alert-info" role="status">Em andamento desde ' . $quando . ': de ' . $de . ' para ' . $para . '. O site fica em manutenção durante a troca. '
                 . '<a href="' . Painel::PREFIXO . '/atualizacao">Recarregar</a>.' . $saida . '</div>',
             'concluida' => '<div class="alert alert-success" role="status">Terminou sem erro (iniciada em ' . $quando . ', de ' . $de . ' para ' . $para . ').' . $saida . '</div>',
-            'falhou' => '<div class="alert alert-danger" role="alert">' . ucfirst($acao) . ' falhou (iniciada em ' . $quando . ', de ' . $de . ' para ' . $para . '). Se a falha foi depois da troca do código, o PBL4 já devolveu o estado anterior. O motivo:' . $saida . '</div>',
-            default => '<div class="alert alert-warning" role="alert">' . ucfirst($acao) . ' iniciada em ' . $quando . ' não deu sinal de término há mais de uma hora. O processo pode ter sido interrompido; confira o site e tente de novo, se for o caso.' . $saida . '</div>',
+            'falhou' => '<div class="alert alert-danger" role="alert">' . ucfirst($acao) . ' falhou (iniciada em ' . $quando . ', de ' . $de . ' para ' . $para . '). O PBL4 já devolveu o estado anterior. Motivo:' . $saida . '</div>',
+            default => '<div class="alert alert-warning" role="alert">' . ucfirst($acao) . ' iniciada em ' . $quando . ' sem sinal há mais de 1 hora. Pode ter sido interrompida: confira o site e tente de novo.' . $saida . '</div>',
         } . '</section>';
     }
 
@@ -556,7 +556,7 @@ final class TelasDeAtualizacao
     /** @param array{situacao: string, texto: string, quando: int, disponivel: bool, motivo: string, manifesto: array{versao: string, data: string, resumo: string, notas: string, seguranca: bool, migracoes: bool, php_minimo: string}|null} $k */
     private function resultado(array $k): string
     {
-        $quando = '<p class="small text-body-secondary">Consultado em ' . gmdate('d/m/Y H:i', $k['quando']) . ' UTC; a consulta se repete no máximo uma vez por dia.</p>';
+        $quando = '<p class="small text-body-secondary">Consultado em ' . gmdate('d/m/Y H:i', $k['quando']) . ' UTC; no máximo 1 vez por dia.</p>';
         $m = $k['manifesto'];
         if (!$k['disponivel'] || $m === null) {
             return '<div class="alert alert-secondary" role="status">' . Pagina::h($k['motivo']) . '</div>' . $quando;
@@ -575,12 +575,12 @@ final class TelasDeAtualizacao
     private function formularioDeAplicar(array $m, string $base, string $csrf, bool $lembrar, bool $podeAgendar): string
     {
         return '<section class="mb-4" aria-labelledby="titulo-aplicar"><h2 class="h5" id="titulo-aplicar">Atualizar agora</h2>'
-            . '<p>O PBL4 vai guardar uma cópia do banco, pôr o site em manutenção por alguns instantes, trocar o código e conferir a versão nova; se algo falhar, volta ao código anterior. Seus dados (<code>dados/</code>) não são tocados.</p>'
+            . '<p>Guarda uma cópia do banco, troca o código e volta ao anterior se algo falhar. <code>dados/</code> não muda.</p>'
             . '<form method="post" action="' . $base . '/aplicar" class="row g-3">' . $csrf
             . '<input type="hidden" name="versao" value="' . Pagina::h($m['versao']) . '">'
             . '<div class="col-12 col-md-6"><label for="campo-senha" class="form-label">Sua senha, para confirmar</label><input id="campo-senha" class="form-control" name="senha" type="password" autocomplete="current-password" maxlength="1024" required></div>'
             . '<div class="col-12"><div class="form-check"><input id="campo-confirmar" class="form-check-input" type="checkbox" name="confirmar" value="1" required' . ($lembrar ? ' checked' : '') . '>'
-            . '<label for="campo-confirmar" class="form-check-label">Entendo que o site ficará em manutenção durante a troca e quero atualizar para a versão ' . Pagina::h($m['versao']) . '.</label></div></div>'
+            . '<label for="campo-confirmar" class="form-check-label">Entendo que o site fica em manutenção e quero atualizar para a versão ' . Pagina::h($m['versao']) . '.</label></div></div>'
             . $this->escolhaDeAgendar($podeAgendar, 'atualizar')
             . '<div class="col-12"><button type="submit" class="btn btn-warning">' . ($this->soAgenda($podeAgendar) ? 'Agendar atualização' : 'Atualizar agora') . '</button></div></form></section>';
     }
@@ -599,7 +599,7 @@ final class TelasDeAtualizacao
         }
         $acao = $tipo === 'reverter' ? 'a volta atrás' : 'a atualização';
         if ($this->soAgenda($podeAgendar)) {
-            return '<input type="hidden" name="modo" value="agendar"><div class="col-12"><p class="small mb-0">Este servidor não deixa o painel iniciar ' . $acao . ' na hora. Ela será <strong>agendada</strong>: o cron do servidor (uma tarefa por minuto) a executa no próximo ciclo e o andamento aparece nesta página.</p></div>';
+            return '<input type="hidden" name="modo" value="agendar"><div class="col-12"><p class="small mb-0">O servidor não deixa iniciar ' . $acao . ' na hora. Ela será <strong>agendada</strong> e o cron a executa em até 1 minuto.</p></div>';
         }
 
         return '<div class="col-12"><div class="form-check"><input id="campo-agendar-' . $tipo . '" class="form-check-input" type="checkbox" name="modo" value="agendar">'
@@ -638,7 +638,7 @@ final class TelasDeAtualizacao
             . '<p class="mb-1" data-pbl-mensagem>' . Pagina::h($s['mensagem']) . '</p>'
             . '<p class="small text-body-secondary" data-pbl-tempo>' . Pagina::h($tempo) . '</p>'
             . '<div class="alert alert-success"' . ($concluido ? '' : ' hidden') . ' role="status" data-pbl-ok>' . ($concluido ? Pagina::h($acao . ' terminou sem erro. Recarregue a página para ver a versão instalada.') : '') . '</div>'
-            . '<div class="alert alert-danger"' . ($falhou ? '' : ' hidden') . ' role="alert" data-pbl-erro>' . ($falhou ? Pagina::h($acao . ' falhou. ' . $s['falha'] . ' Se a falha foi depois da troca do código, o PBL4 já devolveu o estado anterior.') : '') . '</div>'
+            . '<div class="alert alert-danger"' . ($falhou ? '' : ' hidden') . ' role="alert" data-pbl-erro>' . ($falhou ? Pagina::h($acao . ' falhou. ' . $s['falha'] . ' O PBL4 já devolveu o estado anterior.') : '') . '</div>'
             . '<div class="alert alert-warning"' . ($agendada && $s['cron_sem_iniciar'] ? '' : ' hidden') . ' role="status" data-pbl-aviso-cron>' . $semCron . '</div>'
             . '<p class="small text-body-secondary" role="status" data-pbl-conexao hidden></p>'
             . '<form method="post" action="' . $base . '/cancelar-agendamento" class="mb-2"' . ($agendada ? '' : ' hidden') . ' data-pbl-cancelar>' . $csrf
@@ -669,7 +669,7 @@ final class TelasDeAtualizacao
     private function voltarAtras(bool $ocupado, string $base, string $csrf, bool $lembrar, bool $podeAgendar): string
     {
         $corpo = '<section class="mb-4" aria-labelledby="titulo-voltar"><h2 class="h5" id="titulo-voltar">Se algo der errado</h2>'
-            . '<ul><li>Falha durante a atualização (ou a volta atrás): o PBL4 devolve sozinho o estado anterior e mostra o motivo acima.</li>';
+            . '<ul><li>Se falhar, o PBL4 devolve o estado anterior sozinho.</li>';
         if ($ocupado) {
             return $corpo . '</ul></section>';
         }
@@ -679,12 +679,12 @@ final class TelasDeAtualizacao
         }
         $quando = gmdate('d/m/Y H:i', $a->em) . ' UTC';
         $perda = $a->restauraBanco
-            ? 'o banco também volta para a cópia de antes da atualização: qualquer conteúdo, conta ou mudança criada depois de ' . $quando . ' se perde.'
-            : 'não havia banco para copiar na atualização; só o código volta.';
+            ? 'o banco volta ao de antes. Tudo o que foi criado depois de ' . $quando . ' se perde.'
+            : 'só o código volta; não havia banco para copiar.';
 
-        return $corpo . '<li>Dá para voltar para a versão <code>' . Pagina::h($a->de) . '</code> (estava instalada antes de ' . Pagina::h($a->para) . ', atualizada em ' . $quando . ').</li></ul>'
+        return $corpo . '<li>Dá para voltar para a versão <code>' . Pagina::h($a->de) . '</code> (atualizada em ' . $quando . ').</li></ul>'
             . '<form method="post" action="' . $base . '/reverter" class="row g-3">' . $csrf
-            . '<p class="col-12">Isso troca o código de volta e restaura o banco de antes da atualização: ' . $perda . '</p>'
+            . '<p class="col-12">Troca o código e restaura o banco: ' . $perda . '</p>'
             . '<div class="col-12 col-md-6"><label for="campo-senha-reverter" class="form-label">Sua senha, para confirmar</label><input id="campo-senha-reverter" class="form-control" name="senha" type="password" autocomplete="current-password" maxlength="1024" required></div>'
             . '<div class="col-12"><div class="form-check"><input id="campo-confirmar-reverter" class="form-check-input" type="checkbox" name="confirmar" value="1" required' . ($lembrar ? ' checked' : '') . '>'
             . '<label for="campo-confirmar-reverter" class="form-check-label">Entendo que isso perde o que foi criado depois de ' . $quando . ' e quero voltar para a versão ' . Pagina::h($a->de) . '.</label></div></div>'

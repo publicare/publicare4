@@ -3,10 +3,9 @@
 declare(strict_types=1);
 
 /**
- * Monta o pacote da PRÉVIA do novo painel (PBL4 já instalado, com conteúdo de exemplo e contas fictícias de demonstração).
- * Roda sem rede, sem argumentos, com o repositório só para leitura; grava `gerado/pbl4.tar.gz` no diretório atual.
- * Contas (todas fictícias, só para a prévia descartável): admin, editor e autor, com a senha de demonstração do próprio PBL4
- * (`DemoPopularComando::SENHA_DEMO`). Nada daqui vai para o repositório nem para produção.
+ * Monta o pacote da PRÉVIA do painel (PBL4 instalado, com conteúdo de exemplo e contas fictícias de demonstração).
+ * Roda sem rede e sem argumentos, com o repositório só para leitura; grava `gerado/pbl4.tar.gz` no diretório atual.
+ * Contas fictícias (admin, editor, autor) usam a senha de demonstração do próprio PBL4. Nada daqui vai para produção.
  */
 
 $raiz = dirname(__DIR__);
@@ -30,11 +29,8 @@ function copiar(string $de, string $para): void
     }
 }
 
-foreach (['app', 'bin', 'public', 'composer.json', 'composer.lock'] as $p) {
-    copiar($raiz . '/' . $p, $stage . '/' . $p);
-}
-if (is_file($raiz . '/vendor/autoload.php')) {
-    // vendor só com o que roda em produção (o pacote tem limite de tamanho)
+function copiarVendorDeProducao(string $raiz, string $stage): void
+{
     $inst = json_decode((string) file_get_contents($raiz . '/vendor/composer/installed.json'), true);
     $dev = array_flip($inst['dev-package-names'] ?? []);
     copiar($raiz . '/vendor/composer', $stage . '/vendor/composer');
@@ -45,8 +41,8 @@ if (is_file($raiz . '/vendor/autoload.php')) {
         }
     }
     // tira dos mapas do autoload o que apontava para pacotes só de desenvolvimento
-    foreach (['composer/autoload_static.php', 'composer/autoload_files.php', 'composer/autoload_psr4.php', 'composer/autoload_classmap.php', 'composer/autoload_namespaces.php'] as $mapa) {
-        $arq = $stage . '/vendor/' . $mapa;
+    foreach (['autoload_static.php', 'autoload_files.php', 'autoload_psr4.php', 'autoload_classmap.php', 'autoload_namespaces.php'] as $mapa) {
+        $arq = $stage . '/vendor/composer/' . $mapa;
         if (!is_file($arq)) {
             continue;
         }
@@ -59,27 +55,29 @@ if (is_file($raiz . '/vendor/autoload.php')) {
         }
         file_put_contents($arq, implode("\n", $linhas));
     }
-} else {
-    // Clone limpo do repositório (vendor/ não é versionado): instala só as dependências de produção a partir do composer.lock.
-    // Causa mais provável de a prévia da rodada 1 nunca ter iniciado: o gerador morria aqui, sem pacote.
-    $codigo = 0;
-    $saidaComposer = [];
-    exec('cd ' . escapeshellarg($stage) . ' && composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader 2>&1', $saidaComposer, $codigo);
-    if ($codigo !== 0 || !is_file($stage . '/vendor/autoload.php')) {
-        fwrite(STDERR, "vendor/ ausente e 'composer install --no-dev' falhou (código {$codigo}):\n" . implode("\n", $saidaComposer) . "\n");
+}
+
+foreach (['app', 'bin', 'public', 'composer.json', 'composer.lock'] as $p) {
+    copiar($raiz . '/' . $p, $stage . '/' . $p);
+}
+if (!is_file($raiz . '/vendor/autoload.php')) {
+    // Clone limpo (vendor/ não é versionado): instala só as dependências de produção a partir do composer.lock.
+    exec('cd ' . escapeshellarg($stage) . ' && composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader 2>&1', $saidaComposer, $codigoComposer);
+    if ($codigoComposer !== 0 || !is_file($stage . '/vendor/autoload.php')) {
+        fwrite(STDERR, "vendor/ ausente e 'composer install --no-dev' falhou ({$codigoComposer}):\n" . implode("\n", $saidaComposer) . "\n");
         exit(1);
     }
+} else {
+    copiarVendorDeProducao($raiz, $stage);
 }
 
 require $stage . '/vendor/autoload.php';
 
 $caminhos = new Pbl\Caminhos($stage);
-$senha = Pbl\Console\DemoPopularComando::SENHA_DEMO;
 (new Pbl\Instalacao\Instalador($caminhos))->instalar('Instituto Exemplo', 'localhost', [
-    'login' => 'admin', 'email' => 'admin@exemplo.invalid', 'nome' => 'Ana Admin (demonstração)', 'senha' => $senha,
+    'login' => 'admin', 'email' => 'admin@exemplo.invalid', 'nome' => 'Ana Admin (demonstração)', 'senha' => Pbl\Console\DemoPopularComando::SENHA_DEMO,
 ], Pbl\Conteudo\Modelos::NOMES);
 
-$saidaPopular = [];
 exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($stage . '/bin/pbl') . ' demo-popular --forcar 2>&1', $saidaPopular, $codigo);
 if ($codigo !== 0) {
     fwrite(STDERR, implode("\n", $saidaPopular) . "\n");
@@ -115,20 +113,8 @@ unset($servicos);
 // sessão das contas fictícias. Só existe neste pacote descartável; nunca em instalação real.
 file_put_contents($stage . '/dados/' . Pbl\Previa\ModoPrevia::MARCADOR, "previa descartavel\n");
 
-// O servidor da prévia pode responder por um nome que não é "localhost": os nomes locais mais comuns servem o mesmo site
-// (modo "servir", sem redirecionar), senão o painel responderia "Domínio não configurado".
-$banco = new PDO('sqlite:' . $stage . '/dados/pbl4.sqlite');
-$siteId = (int) $banco->query("SELECT site_id FROM dominio WHERE host = 'localhost'")->fetchColumn();
-$alias = $banco->prepare('INSERT OR IGNORE INTO dominio (host, site_id, modo) VALUES (?, ?, ?)');
-foreach (['127.0.0.1', '0.0.0.0', 'previa', 'web', 'app', 'php', 'site', 'nginx', 'host.docker.internal'] as $host) {
-    $alias->execute([$host, $siteId, 'servir']);
-}
-unset($alias, $banco);
-
 @mkdir(dirname($saida), 0775, true);
-// Sem PharData: a imagem da prévia (PHP alpine) não traz a extensão phar; tar e gzip existem.
-$cmd = 'tar -C ' . escapeshellarg($stage) . ' -czf ' . escapeshellarg($area . '/pbl4.tar.gz') . ' . 2>&1';
-exec($cmd, $saidaTar, $codigoTar);
+exec('tar -C ' . escapeshellarg($stage) . ' -czf ' . escapeshellarg($area . '/pbl4.tar.gz') . ' . 2>&1', $saidaTar, $codigoTar);
 if ($codigoTar !== 0) {
     fwrite(STDERR, "tar falhou ({$codigoTar}): " . implode("\n", $saidaTar) . "\n");
     exit(1);

@@ -1,0 +1,52 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Auditoria de texto do painel (só leitura): renderiza as telas num site descartável e conta palavras de microcopy por categoria.
+ * Uso: `php bin/auditar-texto [--json] [--salvar=arquivo.json]` ou `php bin/auditar-texto --comparar=base.json`.
+ */
+
+use Pbl\Testes\Texto\Medidor;
+use Pbl\Testes\Texto\TelasDoPainel;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$opcoes = getopt('', ['json', 'salvar:', 'comparar:']);
+$agora = [];
+foreach ((new TelasDoPainel())->renderizar() as $tela => $html) {
+    $agora[$tela] = Medidor::contar($html);
+}
+if (isset($opcoes['salvar']) && is_string($opcoes['salvar'])) {
+    file_put_contents($opcoes['salvar'], json_encode($agora, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n");
+}
+if (isset($opcoes['json'])) {
+    echo json_encode($agora, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), "\n";
+    exit(0);
+}
+$antes = isset($opcoes['comparar']) && is_string($opcoes['comparar']) ? (array) json_decode((string) file_get_contents($opcoes['comparar']), true) : null;
+
+$cats = ['subtitulo', 'ajuda', 'aviso', 'vazio', 'paragrafo', 'corrido', 'botao', 'rotulo', 'total'];
+echo '| Tela | ' . ($antes === null ? implode(' | ', $cats) : 'Corrido antes | Corrido depois | Corte | Total antes | Total depois') . " |\n";
+echo '|---|' . str_repeat('---:|', $antes === null ? count($cats) : 5) . "\n";
+$soma = ['a' => 0, 'd' => 0, 'ta' => 0, 'td' => 0];
+foreach ($agora as $tela => $c) {
+    if ($antes === null) {
+        echo "| $tela | " . implode(' | ', array_map(static fn (string $k): int => $c[$k], $cats)) . " |\n";
+        continue;
+    }
+    $a = $antes[$tela] ?? null;
+    if (!is_array($a)) {
+        continue;
+    }
+    $corte = $a['corrido'] > 0 ? round(100 * (1 - $c['corrido'] / $a['corrido'])) . '%' : '—';
+    echo "| $tela | {$a['corrido']} | {$c['corrido']} | $corte | {$a['total']} | {$c['total']} |\n";
+    $soma['a'] += $a['corrido'];
+    $soma['d'] += $c['corrido'];
+    $soma['ta'] += $a['total'];
+    $soma['td'] += $c['total'];
+}
+if ($antes !== null && $soma['a'] > 0) {
+    echo "| **Soma** | {$soma['a']} | {$soma['d']} | " . round(100 * (1 - $soma['d'] / $soma['a'])) . "% | {$soma['ta']} | {$soma['td']} |\n";
+}
