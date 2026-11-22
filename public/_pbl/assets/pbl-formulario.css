@@ -152,9 +152,7 @@ main .invalid-feedback { color: var(--pbl-erro); font-weight: 600; font-size: .8
 main .pbl-card { background: transparent; border: 0; border-top: 1px solid var(--pbl-linha); border-radius: 0; padding: var(--pbl-e6) 0 0; margin-bottom: var(--pbl-e6); }
 main .pbl-card > legend, main .pbl-card > .pbl-card-titulo { margin-left: 0; padding: 0; font-size: 1.125rem; }
 main .pbl-campo-tipo { border-left: 0; }
-.pbl-ajuda-painel { background: var(--pbl-suave); border-left: 3px solid var(--pbl-borda); color: var(--pbl-texto-2); }
 table.pbl-cartoes tr { background: var(--pbl-superficie); border-color: var(--pbl-linha); }
-.pbl-ajuda-botao { border-color: var(--pbl-borda); color: var(--pbl-texto); }
 
 /* ---------------------------------------------------------------- divulgação progressiva: <details> (abre sem JavaScript) */
 details.pbl-recolhivel { border-top: 1px solid var(--pbl-linha); }
@@ -167,15 +165,17 @@ details.pbl-recolhivel[open] > summary::after { transform: rotate(-135deg); }
 .pbl-recolhivel-corpo { padding: var(--pbl-e2) 0 var(--pbl-e6); }
 .pbl-recolhiveis { margin-bottom: var(--pbl-e4); }
 
-/* Ajuda: "?" que abre o texto; funciona sem JavaScript */
-details.pbl-ajuda { display: inline-block; vertical-align: middle; max-width: 100%; }
-details.pbl-ajuda > summary { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; min-height: 1.75rem; border: 1px solid var(--pbl-borda); border-radius: 50%; font-weight: 700; line-height: 1; color: var(--pbl-texto); background: var(--pbl-superficie); }
-details.pbl-ajuda > summary:hover { background: var(--pbl-suave); }
-details.pbl-ajuda[open] > summary { background: var(--pbl-acao-suave); border-color: var(--pbl-acao); }
+/* Ajuda: "?" pequeno (ícone de 1,15rem ≈ 18 px) que abre o texto; funciona sem JavaScript.
+   A área de toque de 44 px vem do ::after (não ocupa espaço no layout). Ver ADR 0032. */
+details.pbl-ajuda { display: inline-block; vertical-align: middle; max-width: 100%; margin-left: var(--pbl-e1); }
+details.pbl-ajuda > summary { position: relative; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 1.15rem; height: 1.15rem; border: 1px solid var(--pbl-texto-2); border-radius: 50%; font-size: .75rem; font-weight: 600; line-height: 1; color: var(--pbl-texto-2); background: transparent; }
+details.pbl-ajuda > summary::after { content: ""; position: absolute; inset: -13px; border-radius: 50%; }
+details.pbl-ajuda > summary:hover { color: var(--pbl-texto); border-color: var(--pbl-texto); background: var(--pbl-suave); }
+details.pbl-ajuda > summary:focus-visible { outline: var(--pbl-foco); outline-offset: 2px; }
+details.pbl-ajuda[open] > summary { color: var(--pbl-acao); background: var(--pbl-acao-suave); border-color: var(--pbl-acao); }
 details.pbl-ajuda > .pbl-ajuda-texto { margin-top: var(--pbl-e2); padding: var(--pbl-e2) var(--pbl-e3); background: var(--pbl-suave); border-left: 3px solid var(--pbl-borda); border-radius: 0 var(--pbl-raio) var(--pbl-raio) 0; font-size: .875rem; line-height: 1.25rem; color: var(--pbl-texto-2); }
-@media (max-width: 767.98px) { details.pbl-ajuda > summary { min-width: var(--pbl-toque); min-height: var(--pbl-toque); } }
-/* o "?" fica ao lado do rótulo e o texto ocupa a linha de baixo */
-.pbl-rotulo > details.pbl-ajuda[open] { flex: 0 0 100%; }
+/* o "?" fica ao lado do rótulo e o texto ocupa a linha de baixo (nunca flutua sobre o campo) */
+.pbl-rotulo > details.pbl-ajuda[open] { flex: 0 0 100%; margin-left: 0; }
 .pbl-rotulo > details.pbl-ajuda { margin-bottom: .3rem; }
 .pbl-rotulo { align-items: center; }
 

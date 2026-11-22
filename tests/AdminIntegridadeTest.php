@@ -314,7 +314,7 @@ final class AdminIntegridadeTest extends TestCase
         self::assertStringContainsString('Nada deste HTML é permitido', $this->html($r));
         self::assertStringNotContainsString('<script>', $this->html($r));
         self::assertSame($guardado, $this->obj($e->id)->dados['corpo']);
-        self::assertStringContainsString('o HTML é limpo', $this->html($this->req('GET', '/_pbl/objeto/' . $e->id . '/editar', $token)));
+        self::assertStringContainsString('scripts e estilos são removidos', $this->html($this->req('GET', '/_pbl/objeto/' . $e->id . '/editar', $token)));
     }
 
     public function testHtmlTambemELimpoAoCriarPelaTela(): void

@@ -3,99 +3,121 @@
 declare(strict_types=1);
 
 /**
- * Gera o pacote descartável da PRÉVIA do painel (nunca vai para produção; `previa/` está em export-ignore).
- * Roda sem argumentos e sem rede: monta uma instalação do PBL4 com o conteúdo de demonstração, as contas fictícias
- * (admin, editor, autor) e o marcador `dados/previa.flag`, e grava `gerado/pbl4.tar.gz` no diretório atual.
+ * Monta o pacote da PRÉVIA do painel (PBL4 instalado, com conteúdo de exemplo e contas fictícias de demonstração).
+ * Roda sem rede e sem argumentos, com o repositório só para leitura; grava `gerado/pbl4.tar.gz` no diretório atual.
+ * Contas fictícias (admin, editor, autor) usam a senha de demonstração do próprio PBL4. Nada daqui vai para produção.
  */
 
-$repo = dirname(__DIR__);
-$destino = getcwd() . '/gerado/pbl4.tar.gz';
-$stage = sys_get_temp_dir() . '/pbl4-previa-' . bin2hex(random_bytes(4));
+$raiz = dirname(__DIR__);
+$area = getcwd();
+$stage = $area . '/stage-pbl4';
+$saida = $area . '/gerado/pbl4.tar.gz';
 
-function copiarPasta(string $de, string $para, array $ignorar = []): void
+function copiar(string $de, string $para): void
 {
-    if (!is_dir($para) && !mkdir($para, 0755, true) && !is_dir($para)) {
-        throw new RuntimeException("Não criei {$para}");
+    if (is_file($de)) {
+        @mkdir(dirname($para), 0775, true);
+        copy($de, $para);
+
+        return;
     }
-    foreach (new DirectoryIterator($de) as $item) {
-        if ($item->isDot() || in_array($item->getFilename(), $ignorar, true) || $item->isLink()) {
+    @mkdir($para, 0775, true);
+    foreach (scandir($de) ?: [] as $f) {
+        if ($f !== '.' && $f !== '..') {
+            copiar($de . '/' . $f, $para . '/' . $f);
+        }
+    }
+}
+
+function copiarVendorDeProducao(string $raiz, string $stage): void
+{
+    $inst = json_decode((string) file_get_contents($raiz . '/vendor/composer/installed.json'), true);
+    $dev = array_flip($inst['dev-package-names'] ?? []);
+    copiar($raiz . '/vendor/composer', $stage . '/vendor/composer');
+    copiar($raiz . '/vendor/autoload.php', $stage . '/vendor/autoload.php');
+    foreach ($inst['packages'] as $pacote) {
+        if (!isset($dev[$pacote['name']])) {
+            copiar($raiz . '/vendor/' . $pacote['name'], $stage . '/vendor/' . $pacote['name']);
+        }
+    }
+    // tira dos mapas do autoload o que apontava para pacotes só de desenvolvimento
+    foreach (['autoload_static.php', 'autoload_files.php', 'autoload_psr4.php', 'autoload_classmap.php', 'autoload_namespaces.php'] as $mapa) {
+        $arq = $stage . '/vendor/composer/' . $mapa;
+        if (!is_file($arq)) {
             continue;
         }
-        $alvo = $para . '/' . $item->getFilename();
-        $item->isDir() ? copiarPasta($item->getPathname(), $alvo, $ignorar) : copy($item->getPathname(), $alvo);
-    }
-}
-
-foreach (['app', 'public'] as $pasta) {
-    copiarPasta($repo . '/' . $pasta, $stage . '/' . $pasta);
-}
-foreach (['composer.json', 'composer.lock'] as $arquivo) {
-    copy($repo . '/' . $arquivo, $stage . '/' . $arquivo);
-}
-
-if (is_dir($repo . '/vendor')) {
-    // Copia o vendor/ existente sem os pacotes de desenvolvimento (o limite do pacote é 20 MB) e refaz o autoload só de produção, sem rede.
-    copiarPasta($repo . '/vendor', $stage . '/vendor', ['bin']);
-    $instalados = json_decode((string) file_get_contents($repo . '/vendor/composer/installed.json'), true);
-    foreach ($instalados['dev-package-names'] ?? [] as $pacote) {
-        if (is_dir($stage . '/vendor/' . $pacote)) {
-            exec('rm -rf ' . escapeshellarg($stage . '/vendor/' . $pacote));
+        $linhas = [];
+        foreach (explode("\n", (string) file_get_contents($arq)) as $linha) {
+            if (preg_match("#(?:\\\$vendorDir|__DIR__ \\. '/\\.\\.') \\. '(/[^']+)'#", $linha, $m) === 1 && !file_exists($stage . '/vendor' . $m[1])) {
+                continue;
+            }
+            $linhas[] = $linha;
         }
+        file_put_contents($arq, implode("\n", $linhas));
     }
-    $saida = [];
-    exec('cd ' . escapeshellarg($stage) . ' && composer dump-autoload --no-dev --optimize --no-interaction 2>&1', $saida, $codigo);
-    if ($codigo !== 0) {
-        fwrite(STDERR, "composer dump-autoload falhou ({$codigo}):\n" . implode("\n", $saida) . "\n");
+}
+
+foreach (['app', 'bin', 'public', 'composer.json', 'composer.lock'] as $p) {
+    copiar($raiz . '/' . $p, $stage . '/' . $p);
+}
+if (!is_file($raiz . '/vendor/autoload.php')) {
+    // Clone limpo (vendor/ não é versionado): instala só as dependências de produção a partir do composer.lock.
+    exec('cd ' . escapeshellarg($stage) . ' && composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader 2>&1', $saidaComposer, $codigoComposer);
+    if ($codigoComposer !== 0 || !is_file($stage . '/vendor/autoload.php')) {
+        fwrite(STDERR, "vendor/ ausente e 'composer install --no-dev' falhou ({$codigoComposer}):\n" . implode("\n", $saidaComposer) . "\n");
         exit(1);
     }
 } else {
-    // Clone limpo: instala só as dependências de produção a partir do composer.lock (precisa de rede).
-    $saida = [];
-    exec('cd ' . escapeshellarg($stage) . ' && composer install --no-dev --no-interaction --prefer-dist 2>&1', $saida, $codigo);
-    if ($codigo !== 0) {
-        fwrite(STDERR, "composer install falhou ({$codigo}):\n" . implode("\n", $saida) . "\n");
-        exit(1);
-    }
+    copiarVendorDeProducao($raiz, $stage);
 }
 
 require $stage . '/vendor/autoload.php';
 
-use Pbl\Acesso\Perfil;
-use Pbl\Caminhos;
-use Pbl\Console\DemoPopularComando;
-use Pbl\Instalacao\Instalador;
-use Pbl\Previa\ModoPrevia;
-use Pbl\Servicos;
-use Symfony\Component\Console\Input\ArrayInput;
-use Symfony\Component\Console\Output\NullOutput;
+$caminhos = new Pbl\Caminhos($stage);
+(new Pbl\Instalacao\Instalador($caminhos))->instalar('Instituto Exemplo', 'localhost', [
+    'login' => 'admin', 'email' => 'admin@exemplo.invalid', 'nome' => 'Ana Admin (demonstração)', 'senha' => Pbl\Console\DemoPopularComando::SENHA_DEMO,
+], Pbl\Conteudo\Modelos::NOMES);
 
-$caminhos = new Caminhos($stage);
-(new Instalador($caminhos))->instalar('Instituto Exemplo', 'previa.exemplo.test');
-$servicos = Servicos::doBancoInstalado($caminhos);
-$site = $servicos->sites->todos()[0];
-$inicio = (int) $site->objetoRaizId;
-$senha = DemoPopularComando::SENHA_DEMO;
-$servicos->usuarios->criar('admin', 'admin@exemplo.test', 'Ana Administradora', $senha, true);
-$editor = $servicos->usuarios->criar('editor', 'editor@exemplo.test', 'Eduardo Editor', $senha);
-$autor = $servicos->usuarios->criar('autor', 'autor@exemplo.test', 'Aline Autora', $senha);
-$servicos->usuarios->conceder($editor->id, $inicio, Perfil::Editor);
-$servicos->usuarios->conceder($autor->id, $inicio, Perfil::Autor);
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($stage . '/bin/pbl') . ' demo-popular --forcar 2>&1', $saidaPopular, $codigo);
+if ($codigo !== 0) {
+    fwrite(STDERR, implode("\n", $saidaPopular) . "\n");
+    exit(1);
+}
+
+// Conteúdo extra para a prévia da listagem (ADR 0032): títulos longos, vários tipos e estados (publicado, privado, agendado).
+$servicos = Pbl\Servicos::doBancoInstalado($caminhos);
+$siteExemplo = $servicos->sites->porHost('localhost');
+if ($siteExemplo !== null && $siteExemplo->objetoRaizId !== null) {
+    $raizId = (int) $siteExemplo->objetoRaizId;
+    $exemplos = [
+        ['pasta', 'Acomodações e quartos da pousada, com todas as fotos e descrições', 'publicado', [], []],
+        ['pagina', 'Varanda com cadeiras junto à parede laranja, vista para o jardim e para a serra ao entardecer', 'publicado', [], []],
+        ['link', 'Reservas pelo site parceiro', 'publicado', [], ['destino_externo' => 'https://exemplo.org/reservas']],
+        ['formulario', 'Fale conosco', 'privado', [], ['destino' => $raizId]],
+        ['pagina', 'Promoção de verão (agendada)', 'publicado', ['data_publicacao' => gmdate('c', time() + 86400 * 20)], []],
+    ];
+    foreach ($exemplos as $i => [$tipo, $titulo, $status, $meta, $dados]) {
+        $classe = $servicos->classes->porNome($tipo);
+        if ($classe !== null) {
+            try {
+                $servicos->objetos->criar($siteExemplo->id, $classe, $raizId, $titulo, 'previa-lista-' . $i, $dados, $status, $meta);
+            } catch (Throwable) {
+                // exemplo opcional: a prévia segue sem ele
+            }
+        }
+    }
+}
 unset($servicos);
 
-$demo = new DemoPopularComando($caminhos);
-$demo->run(new ArrayInput([]), new NullOutput());
+// Marcador do modo prévia (ver Pbl\Previa\ModoPrevia): o host `pv-…` da prévia passa a atender o site e `/_pbl/previa-entrar` abre a
+// sessão das contas fictícias. Só existe neste pacote descartável; nunca em instalação real.
+file_put_contents($stage . '/dados/' . Pbl\Previa\ModoPrevia::MARCADOR, "previa descartavel\n");
 
-file_put_contents($stage . '/dados/' . ModoPrevia::MARCADOR, "previa\n");
-foreach (glob($stage . '/dados/*.sqlite-*') ?: [] as $lateral) {
-    @unlink($lateral);
+@mkdir(dirname($saida), 0775, true);
+exec('tar -C ' . escapeshellarg($stage) . ' -czf ' . escapeshellarg($area . '/pbl4.tar.gz') . ' . 2>&1', $saidaTar, $codigoTar);
+if ($codigoTar !== 0) {
+    fwrite(STDERR, "tar falhou ({$codigoTar}): " . implode("\n", $saidaTar) . "\n");
+    exit(1);
 }
-
-if (!is_dir(dirname($destino)) && !mkdir(dirname($destino), 0755, true)) {
-    throw new RuntimeException('Não criei a pasta do pacote');
-}
-$tar = new PharData(substr($destino, 0, -3));
-$tar->buildFromDirectory($stage);
-$tar->compress(Phar::GZ);
-unset($tar);
-@unlink(substr($destino, 0, -3));
-echo 'Pacote gerado: ' . $destino . ' (' . round(filesize($destino) / 1048576, 1) . " MB)\n";
+rename($area . '/pbl4.tar.gz', $saida);
+echo "pacote: {$saida} (" . round(filesize($saida) / 1048576, 1) . " MB)\n";

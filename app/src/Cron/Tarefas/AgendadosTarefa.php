@@ -29,7 +29,7 @@ final class AgendadosTarefa implements Tarefa
 
     public function descricao(): string
     {
-        return 'Coloca no ar o conteúdo cuja data de publicação chegou e tira do ar o que venceu.';
+        return 'Publica na data e tira do ar no vencimento.';
     }
 
     public function intervalo(): int

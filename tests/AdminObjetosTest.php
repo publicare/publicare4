@@ -557,7 +557,7 @@ final class AdminObjetosTest extends TestCase
         $this->evento('Filho um', $pai);
         $html = $this->html($this->req('GET', '/_pbl/objeto/' . $pai->id, $this->token('editor')));
 
-        foreach (['class="pbl-selos"', 'class="pbl-meta"', 'class="pbl-card pbl-conteudo"', 'pbl-btn-icone', 'Filtrar e ordenar', '<details class="pbl-recolhivel" id="painel-filtros-lista"', 'class="list-group pbl-filhos d-md-none', 'pbl-filho-titulo'] as $trecho) {
+        foreach (['class="pbl-selos"', 'class="pbl-meta"', 'class="pbl-card pbl-conteudo"', 'pbl-lista-conteudo', 'pbl-lc-titulo', 'pbl-lc-acao', 'Filtrar e ordenar', '<details class="pbl-recolhivel" id="painel-filtros-lista"'] as $trecho) {
             self::assertStringContainsString($trecho, $html, $trecho);
         }
         self::assertStringContainsString('<a class="btn btn-primary" href="/_pbl/objeto/' . $pai->id . '/editar">Editar</a>', $html, 'Editar sempre à vista, com rótulo (D4)');

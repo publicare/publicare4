@@ -37,7 +37,7 @@ final class AtualizacaoAgendadaTarefa implements Tarefa
 
     public function descricao(): string
     {
-        return 'Executa a atualização (ou a volta atrás) que o administrador agendou na tela "Atualização", quando o servidor não deixa o painel iniciar processos. Só age se houver um pedido válido.';
+        return 'Roda a atualização agendada em "Atualização" quando o servidor não deixa o painel iniciar processos.';
     }
 
     public function intervalo(): int

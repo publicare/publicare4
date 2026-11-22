@@ -159,7 +159,7 @@ final class AdminVencidosELixeiraTest extends TestCase
         $token = $this->tokenSemElevar('admin');
 
         $tela = $this->html($this->req('GET', $caminho, $token));
-        self::assertStringContainsString('não há como desfazer', $tela);
+        self::assertStringContainsString('Não dá para desfazer.', $tela);
         self::assertStringContainsString('name="senha"', $tela);
 
         self::assertSame(403, $this->post($token, $caminho, ['versao' => (string) $item->versao, 'senha' => self::SENHA], false)->getStatusCode(), 'sem CSRF');
@@ -229,5 +229,37 @@ final class AdminVencidosELixeiraTest extends TestCase
         $r = $this->post($this->tokenSemElevar('admin'), '/_pbl/lixeira/esvaziar', []);
         self::assertSame(422, $r->getStatusCode());
         self::assertNotNull($this->s->objetos->porId($a->id));
+    }
+
+    // ---------------------------------------------------------------- linha de conteúdo (ADR 0032)
+
+    public function testVencidosUsaLinhaNovaComIconeClasseEMenu(): void
+    {
+        $this->pagina('Promoção <b>velha</b>', null, 'publicado', ['data_validade' => '2020-01-01T00:00:00+00:00']);
+        $html = $this->html($this->req('GET', '/_pbl/vencidos', $this->token('admin')));
+
+        self::assertStringContainsString('class="pbl-icone" role="img" title="pagina" aria-label="Tipo: pagina"', $html);
+        self::assertStringContainsString('<span class="pbl-lc-classe">pagina</span>', $html);
+        self::assertStringContainsString('Promoção &lt;b&gt;velha&lt;/b&gt;', $html);
+        self::assertStringNotContainsString('<b>velha', $html);
+        self::assertStringContainsString('<details class="pbl-mais">', $html);
+        self::assertStringNotContainsString('Por: —', $html);
+        self::assertStringNotContainsString('<table', $html);
+    }
+
+    public function testLixeiraUsaLinhaNovaEAcoesPorPerfil(): void
+    {
+        $a = $this->lixo($this->pagina('Lixo da raiz'));
+        $admin = $this->html($this->req('GET', '/_pbl/lixeira', $this->token('admin')));
+        self::assertStringContainsString('<span class="pbl-lc-classe">pagina</span>', $admin);
+        self::assertStringContainsString('aria-label="Tipo: pagina"', $admin);
+        self::assertStringContainsString('/_pbl/objeto/' . $a->id . '/recuperar', $admin);
+        self::assertStringContainsString('pbl-lc-item--perigo', $admin, 'apagar de vez em vermelho, dentro do menu');
+        self::assertStringNotContainsString('Por: —', $admin);
+
+        $leitor = $this->html($this->req('GET', '/_pbl/lixeira', $this->token('leitor')));
+        self::assertStringContainsString('Lixo da raiz', $leitor);
+        self::assertStringNotContainsString('/recuperar', $leitor);
+        self::assertStringNotContainsString('pbl-lc-item--perigo', $leitor);
     }
 }

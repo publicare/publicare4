@@ -25,7 +25,7 @@ final class UploadsOrfaosTarefa implements Tarefa
 
     public function descricao(): string
     {
-        return 'Apaga arquivos enviados que nenhum conteúdo, nem versão antiga, usa mais.';
+        return 'Apaga arquivos enviados que nenhum conteúdo usa.';
     }
 
     public function intervalo(): int

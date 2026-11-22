@@ -386,12 +386,6 @@ final class TelasDePilha
 
     public static function ajudaDaPilha(): string
     {
-        return 'A <strong>pilha</strong> é a sua lista de itens separados para colar depois, e fica com a sua conta. '
-            . '<strong>Copiar</strong> não muda nada até você colar; <strong>recortar</strong> também não: o item só sai do lugar de hoje quando você cola. '
-            . 'Em <strong>Colar aqui</strong> (na pasta de destino) há três jeitos: <em>mover</em> (itens recortados), <em>colar uma cópia</em> (rascunho, com título "Cópia de …" e endereço novo; '
-            . 'opcionalmente com tudo o que está dentro; os arquivos anexados não são duplicados no disco) e <em>colar um link</em> para o original. '
-            . 'A pilha tem um único site e um único modo: separar algo de outro site, ou no outro modo, esvazia o que já estava nela. '
-            . 'Cabem até ' . Pilha::LIMITE . ' itens e uma colagem cria ou move até ' . Colagem::LIMITE_TOTAL . ' conteúdos. '
-            . 'Não é possível colar dentro do próprio item. Para recortar é preciso poder editar o item; para colar, poder criar no destino.';
+        return 'Itens separados para colar depois; só valem ao colar. Até ' . Pilha::LIMITE . ' itens. Trocar de site esvazia a pilha.';
     }
 }

@@ -257,24 +257,17 @@ final class TelasDeObjetos
         if ($filhos === []) {
             $corpo .= '<p class="text-body-secondary">Nenhum.</p>';
         } else {
-            $cartoes = '';
-            $linhas = '';
+            $itens = '';
             foreach ($filhos as $f) {
                 $quando = $f->visivel($agora) ? $f->status : $this->estadoLegivel($f, $agora, true);
-                $tipo = $this->nomeDaClasse($f->classeId);
-                $editar = $f->status !== self::LIXEIRA && $this->pode($sessao, Acao::Editar, $f)
-                    ? Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $this->link($f->id) . '/editar', 'item' => $f->titulo]) : '';
-                $cartoes .= '<li class="list-group-item pbl-filho"><div class="pbl-filho-corpo"><a class="pbl-filho-titulo" href="' . $this->link($f->id) . '">' . Pagina::h($f->titulo) . '</a>'
-                    . '<div class="pbl-filho-meta"><span class="badge text-bg-light border">' . Pagina::h($tipo) . '</span> <span class="badge ' . $this->classeDoEstado($f, $agora) . '">' . Pagina::h($quando) . '</span>'
-                    . ' <span class="text-body-secondary small">peso ' . $f->peso . '</span></div></div>' . $editar . '</li>';
-                $linhas .= '<tr><td><a href="' . $this->link($f->id) . '">' . Pagina::h($f->titulo) . '</a></td>'
-                    . '<td>' . Pagina::h($tipo) . '</td>'
-                    . '<td>' . Pagina::h($quando) . '</td>'
-                    . '<td>' . $f->peso . '</td><td class="text-end">' . $editar . '</td></tr>';
+                $acoes = $f->status !== self::LIXEIRA && $this->pode($sessao, Acao::Editar, $f)
+                    ? [AcaoDeLinha::link('Editar', 'editar', AcaoDeLinha::PRIMARIA, $this->link($f->id) . '/editar')] : [];
+                $itens .= LinhaDeConteudo::renderizar(new DadosDaLinha(
+                    $f->id, $f->titulo, $this->link($f->id), $this->servicos->classes->porId($f->classeId), $this->nomeDaClasse($f->classeId),
+                    '<span class="badge ' . $this->classeDoEstado($f, $agora) . '">' . Pagina::h($quando) . '</span>', extras: ['peso ' . $f->peso],
+                ), $acoes);
             }
-            $corpo .= '<ul class="list-group pbl-filhos d-md-none mb-3">' . $cartoes . '</ul>'
-                . '<div class="table-responsive d-none d-md-block"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Conteúdo dentro desta página</caption>'
-                . '<thead><tr><th scope="col">Título</th><th scope="col">Tipo</th><th scope="col">Estado</th><th scope="col">Peso</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>' . $linhas . '</tbody></table></div>';
+            $corpo .= '<ul class="pbl-lista-conteudo mb-3" aria-label="Conteúdo dentro desta página">' . $itens . '</ul>';
             if ($total > self::POR_PAGINA) {
                 $base = $this->link($o->id) . '?' . http_build_query(array_filter(['ordem' => $ordem === 'peso' ? '' : $ordem, 'classe' => $classeId === null ? '' : (string) $classeId, 'estado' => $estado], static fn (string $v): bool => $v !== ''));
                 $corpo .= '<p class="text-body-secondary">Mostrando ' . ($inicio + 1) . ' a ' . min($total, $inicio + count($filhos)) . ' de ' . $total . '.';
@@ -1298,7 +1291,7 @@ final class TelasDeObjetos
                 . $this->campo('data_publicacao', 'Publicar a partir de', '<input id="campo-data_publicacao" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_publicacao') . '" name="data_publicacao" value="' . Pagina::h($digitado['data_publicacao'] ?? '') . '"' . $this->descrito($erros, 'data_publicacao', true) . '>', $erros, $ajudaData . 'Vazio = assim que publicado.')
                 . $this->campo('data_validade', 'Tirar do ar a partir de', '<input id="campo-data_validade" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_validade') . '" name="data_validade" value="' . Pagina::h($digitado['data_validade'] ?? '') . '"' . $this->descrito($erros, 'data_validade', true) . '>', $erros, $ajudaData . 'Vazio = sem prazo.')
                 . '</div>';
-            $publicacao .= Pagina::toggle('usar-agenda', 'usar_agenda', 'Agendar a publicação e a validade', 'Escolha quando entra no ar e quando sai. Sem isso, vale assim que for publicado e não vence.',
+            $publicacao .= Pagina::toggle('usar-agenda', 'usar_agenda', 'Agendar a publicação e a validade', 'Sem agenda, entra no ar ao publicar e não vence.',
                 $tem('data_publicacao') || $tem('data_validade') || $temErro($erros, 'data_publicacao', 'data_validade'), $datas);
         }
         if (!$raiz) {
@@ -1310,8 +1303,8 @@ final class TelasDeObjetos
                 : $url;
         }
         $tags = $this->campo('tags', 'Tags', '<input id="campo-tags" class="form-control' . $this->invalido($erros, 'tags') . '" name="tags" maxlength="' . (TagRepositorio::MAX_POR_OBJETO * (TagRepositorio::MAX_NOME + 2)) . '" value="' . Pagina::h($digitado['tags'] ?? '') . '"' . $this->descrito($erros, 'tags', true) . '>', $erros,
-            'Palavras que agrupam conteúdos parecidos, separadas por vírgula (exemplo: educação, eventos 2026). Cada tag vira uma página que lista tudo o que tem a mesma tag. Até ' . TagRepositorio::MAX_POR_OBJETO . ' tags de ' . TagRepositorio::MAX_NOME . ' caracteres.');
-        $publicacao .= Pagina::toggle('usar-tags', 'usar_tags', 'Tags', 'Agrupe este conteúdo com outros parecidos.', $tem('tags') || $temErro($erros, 'tags'), $tags);
+            'Separe por vírgula (educação, eventos 2026). Até ' . TagRepositorio::MAX_POR_OBJETO . ' tags de ' . TagRepositorio::MAX_NOME . ' caracteres.');
+        $publicacao .= Pagina::toggle('usar-tags', 'usar_tags', 'Tags', 'Agrupa conteúdos parecidos.', $tem('tags') || $temErro($erros, 'tags'), $tags);
         if ($seo !== []) {
             $camposSeo = '';
             $ligadoSeo = false;
@@ -1320,7 +1313,7 @@ final class TelasDeObjetos
                 $ligadoSeo = $ligadoSeo || ($v !== '' && $v !== '0') || isset($erros['dados.' . $p['nome']]);
                 $camposSeo .= $this->campoDePropriedade($p, $v, $erros, $criando);
             }
-            $publicacao .= Pagina::toggle('usar-seo', 'usar_seo', 'Aparecer bem nas buscas e nas redes sociais', 'Ajuste o título, a descrição e a imagem que aparecem no Google e quando alguém compartilha a página.', $ligadoSeo, $camposSeo . $this->previaDeBusca($base));
+            $publicacao .= Pagina::toggle('usar-seo', 'usar_seo', 'Aparecer bem nas buscas e nas redes sociais', 'Título, descrição e imagem no Google e nas redes sociais.', $ligadoSeo, $camposSeo . $this->previaDeBusca($base));
         }
         if ($criando || !$raiz) {
             $menu = $this->campo('rotulo_menu', 'Texto no menu', '<input id="campo-rotulo-menu" class="form-control' . $this->invalido($erros, 'rotulo_menu') . '" name="rotulo_menu" maxlength="' . self::MAX_ROTULO_MENU . '" data-pbl-contador value="' . Pagina::h($digitado['rotulo_menu'] ?? '') . '"' . $this->descrito($erros, 'rotulo_menu', true) . '>', $erros, 'Vazio usa o título.');
@@ -1331,7 +1324,7 @@ final class TelasDeObjetos
         $peso = $this->campo('peso', 'Posição nas listas (peso)', '<input id="campo-peso" class="form-control campo-ordem' . $this->invalido($erros, 'peso') . '" name="peso" type="number" step="1" min="-999999" max="999999" value="' . Pagina::h($digitado['peso'] ?? '0') . '"' . $this->descrito($erros, 'peso', true) . '>', $erros, 'Menor aparece primeiro nas listas e no menu.');
         $avancado = Pagina::toggle('usar-posicao', 'usar_posicao', 'Definir a posição nas listas', 'Sem isso, a posição é 0 e a ordem vem do título.', !in_array($digitado['peso'] ?? '0', ['0', ''], true) || $temErro($erros, 'peso'), $peso);
         if ($aparencia !== '') {
-            $avancado .= Pagina::toggle('usar-aparencia', 'usar_aparencia', 'Aparência própria', 'Escolha uma pele e um modelo de página só para este conteúdo. Sem isso, ele herda a do site.', $aparenciaLigada || $temErro($erros, 'pele', 'molde'), $aparencia);
+            $avancado .= Pagina::toggle('usar-aparencia', 'usar_aparencia', 'Aparência própria', 'Pele e modelo só deste conteúdo. Sem isso, herda do site.', $aparenciaLigada || $temErro($erros, 'pele', 'molde'), $aparencia);
         }
 
         $contagem = [];
@@ -1369,14 +1362,14 @@ final class TelasDeObjetos
         if (in_array($p['tipo'], ['arquivo', 'imagem'], true)) {
             return $this->campoDeArquivo($p, $valor, $erros, $criando);
         }
-        $comum = ' id="' . Pagina::h($id) . '" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '"' . $this->descrito($erros, $chave, true)
+        $comum = ' id="' . Pagina::h($id) . '" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '"' . $this->descrito($erros, $chave, $p['tipo'] !== 'booleano')
             . (($p['obrigatorio'] ?? false) ? ' required' : '');
         [$controle, $ajuda] = match ($p['tipo']) {
             'numero' => ['<input class="form-control' . $classe . '"' . $comum . ' inputmode="decimal" value="' . Pagina::h($valor) . '">', 'Número (use vírgula ou ponto para decimais).'],
             'data' => ['<input class="form-control' . $classe . '"' . $comum . ' maxlength="25" value="' . Pagina::h($valor) . '">', 'Data no formato aaaa-mm-dd, com hora opcional (2026-12-31 18:30).'],
-            'booleano' => ['<select class="form-select' . $classe . '"' . $comum . '>' . $this->opcao('', '(sem valor)', $valor === '') . $this->opcao('1', 'Sim', $valor === '1') . $this->opcao('0', 'Não', $valor === '0') . '</select>', 'Sim ou não.'],
+            'booleano' => ['<select class="form-select' . $classe . '"' . $comum . '>' . $this->opcao('', '(sem valor)', $valor === '') . $this->opcao('1', 'Sim', $valor === '1') . $this->opcao('0', 'Não', $valor === '0') . '</select>', ''],
             'ref' => [$this->controleDeReferencia($p, $classe, $comum, $valor), 'Escolha o conteúdo na lista (digite para filtrar)' . (isset($p['classe']) ? '; só aparecem os do tipo ' . Pagina::h($p['classe']) : '') . '. Sem JavaScript, a lista aparece inteira.'],
-            'html' => ['<textarea class="form-control font-monospace' . $classe . '"' . $comum . ' rows="10" maxlength="' . self::MAX_HTML . '" ' . Pagina::MARCA_EDITOR . 'html" data-pbl-editor-base="' . Pagina::h(Pagina::TINYMCE) . '">' . Pagina::h($valor) . '</textarea>', 'Use os botões acima para formatar. Até ' . self::MAX_HTML . ' caracteres.' . ' ' . 'Dá para colar do Word, do Google Docs ou de uma página. Títulos, negrito, listas, links, tabelas e imagens por endereço funcionam; o botão de código-fonte mostra o HTML. Ao salvar, o HTML é limpo: ficam só marcações comuns; scripts, formulários, eventos e estilos além de alinhamento e tamanho do texto são removidos. Sem JavaScript, o campo aceita HTML direto.'],
+            'html' => ['<textarea class="form-control font-monospace' . $classe . '"' . $comum . ' rows="10" maxlength="' . self::MAX_HTML . '" ' . Pagina::MARCA_EDITOR . 'html" data-pbl-editor-base="' . Pagina::h(Pagina::TINYMCE) . '">' . Pagina::h($valor) . '</textarea>', 'Cole do Word ou do Google Docs. Ao salvar, scripts e estilos são removidos. Até ' . self::MAX_HTML . ' caracteres.'],
             default => ['<textarea class="form-control' . $classe . '"' . $comum . ' rows="3" maxlength="' . self::MAX_TEXTO . '" data-pbl-contador' . ($p['nome'] === 'seo_titulo' ? ' data-pbl-limite-bom="60"' : ($p['nome'] === 'seo_descricao' ? ' data-pbl-limite-bom="160"' : '')) . '>' . Pagina::h($valor) . '</textarea>', 'Texto, até ' . self::MAX_TEXTO . ' caracteres.'],
         };
 
@@ -1486,8 +1479,8 @@ final class TelasDeObjetos
             $opcoesMolde .= '<optgroup label="' . Pagina::h($nome) . '">' . $grupo . '</optgroup>';
         }
 
-        return $this->campo('pele', 'Pele', '<select id="campo-pele" name="pele" data-pbl-seletor class="form-select' . $this->invalido($erros, 'pele') . '"' . $this->descrito($erros, 'pele', true) . '>' . $opcoesPele . '</select>', $erros, 'A pele vale para este conteúdo e tudo que está dentro dele. Mudar refaz as páginas dessa parte do site.')
-            . $this->campo('molde', 'Modelo de página', '<select id="campo-molde" name="molde" data-pbl-seletor class="form-select' . $this->invalido($erros, 'molde') . '"' . $this->descrito($erros, 'molde', true) . '>' . $opcoesMolde . '</select>', $erros, 'Só desta página (não passa para o que está dentro). O modelo de página precisa existir na pele em uso.');
+        return $this->campo('pele', 'Pele', '<select id="campo-pele" name="pele" data-pbl-seletor class="form-select' . $this->invalido($erros, 'pele') . '"' . $this->descrito($erros, 'pele', true) . '>' . $opcoesPele . '</select>', $erros, 'Vale para este conteúdo e o que está dentro. Mudar refaz essas páginas.')
+            . $this->campo('molde', 'Modelo de página', '<select id="campo-molde" name="molde" data-pbl-seletor class="form-select' . $this->invalido($erros, 'molde') . '"' . $this->descrito($erros, 'molde', true) . '>' . $opcoesMolde . '</select>', $erros, 'Só desta página. O modelo precisa existir na pele em uso.');
     }
 
     /** Nome da pele que o objeto herda (a do pai ou ancestral; senão a do site). */
@@ -1627,7 +1620,7 @@ final class TelasDeObjetos
             $novo = $this->servicos->objetos->atualizar($o->id, $mudancas, self::MOTIVO, $versao, false, $sessao->usuario->id);
         } catch (ConflitoDeVersao) {
             $atual = $this->servicos->objetos->porId($o->id) ?? $o;
-            $erro = 'Outra pessoa alterou este conteúdo depois que você abriu esta tela. Agora ele está "' . $atual->status . '". '
+            $erro = 'Outra pessoa alterou este conteúdo enquanto você editava. Agora ele está "' . $atual->status . '". '
                 . 'As suas escolhas continuam no formulário; salve de novo só se quiser substituí-lo.';
 
             return $this->telaDeEstado($sessao, $atual, $estado, $inicio, $fim, $atual->versao, ['_' => $erro], Response::HTTP_CONFLICT);
@@ -1857,7 +1850,7 @@ final class TelasDeObjetos
         } catch (ConflitoDeVersao) {
             $atual = $this->servicos->objetos->porId($o->id) ?? $o;
 
-            return $this->telaDeMover($sessao, $atual, $destino->id, $atual->versao, 'Outra pessoa alterou este conteúdo depois que você abriu esta tela. Confira e confirme de novo.', Response::HTTP_CONFLICT);
+            return $this->telaDeMover($sessao, $atual, $destino->id, $atual->versao, 'Outra pessoa alterou este conteúdo enquanto você editava. Confira e confirme de novo.', Response::HTTP_CONFLICT);
         }
         // Defesa em profundidade: destino foi para a lixeira apesar da trava? Volta para o lugar de antes.
         if ($this->servicos->objetos->porId($destino->id)?->status === self::LIXEIRA && $paiAntigo !== null) {
@@ -2055,7 +2048,7 @@ final class TelasDeObjetos
         } catch (ConflitoDeVersao) {
             $atual = $this->servicos->objetos->porId($o->id) ?? $o;
 
-            return $this->telaDeApagar($sessao, $atual, 'Outra pessoa alterou este conteúdo depois que você abriu esta tela. Confira e confirme de novo.', Response::HTTP_CONFLICT);
+            return $this->telaDeApagar($sessao, $atual, 'Outra pessoa alterou este conteúdo enquanto você editava. Confira e confirme de novo.', Response::HTTP_CONFLICT);
         }
         // Defesa em profundidade: apareceu filho fora da lixeira apesar da trava? Volta ao estado anterior.
         if ($this->servicos->objetos->filhosForaDaLixeira($novo->id) > 0) {

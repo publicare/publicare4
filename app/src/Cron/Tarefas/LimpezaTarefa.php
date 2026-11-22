@@ -34,7 +34,7 @@ final class LimpezaTarefa implements Tarefa
 
     public function descricao(): string
     {
-        return 'Apaga sessões expiradas e registros antigos de tentativas de entrada e de envio de formulário.';
+        return 'Apaga sessões expiradas e registros antigos de tentativas.';
     }
 
     public function intervalo(): int

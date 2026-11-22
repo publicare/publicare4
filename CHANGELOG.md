@@ -7,6 +7,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 ## [Não lançado]
 
 ### Alterado
+- **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.8`.
 - **Novo painel, fase 2** (adendo ao ADR 0031, `docs/adr/0032-novo-painel-fase-2.md`): as telas que seguiam com a cara antiga ganham cabeçalho de estado com uma ação principal, abas ou seções recolhíveis, migalhas e estado vazio útil.
   - **Atualização:** Atualizar · Histórico e voltar atrás · Configuração; andamento em destaque só quando há atualização em curso; "Voltar atrás" separado, com aviso e confirmação; diagnóstico técnico recolhido.
   - **Cópias de segurança, Tarefas agendadas, Contas** (Dados · Papéis e acessos · Segurança) **e Domínios** reorganizados no mesmo padrão.
@@ -14,6 +15,16 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
   - **Modelos de página:** abas Código · Histórico · Pré-visualizar, com migalhas completas.
   - **Revisar:** aprovação em lote (marque vários e use "Aprovar os marcados"); cada item passa pelas mesmas regras da aprovação individual. Funciona sem JavaScript.
   - Mesmas rotas, permissões e CSRF; rotas antigas continuam respondendo 303.
+
+## [0.1.0-rc.8] - 2026-11-22
+
+> **Em resumo:** nova listagem de conteúdo (ícone da classe, título em destaque, metadados em linha e menu ⋯), painel com texto mais enxuto e ajuda "?" menor, linha de ações no celular em grade de botões iguais e instruções para agentes (`AGENTS.md`).
+
+### Alterado
+- **Painel, ajuda "?":** ícone de 18 px com área de toque de 44 px, ajuda sempre abaixo do rótulo; Esc fecha e devolve o foco.
+- **Painel, texto (onda 1: Início, Conteúdo, Edição, Configurações):** ajudas e avisos mais curtos, −43% de texto corrido nessas telas. Guia em `docs/ux/voz-e-texto.md`, teste `TextoDoPainelTest` e `bin/auditar-texto`. ADR 0032.
+- **`AGENTS.md`:** instruções para agentes (não rodar a suíte completa de ~40 min, só testes filtrados e o phpstan; não apagar `prototipo-ux/`; escopo do PR).
+- **Nova listagem de conteúdo** (Conteúdo, Pendências, Meus envios, Vencidos e Lixeira): cada linha mostra a caixa de seleção, o **ícone do tipo**, o título em destaque (até 2 linhas) e, logo abaixo, uma linha pequena com «nome do tipo · estado · data curta · N filhos» (só o que existe). À vista ficam 3 ações iguais (Editar, Publicar/Tirar do ar, Abrir no site ↗); Abrir pasta, Histórico, Copiar, Recortar, Mover e Apagar (em vermelho, por último, com a confirmação de sempre) ficam no menu «⋯ Mais», que funciona sem JavaScript. Celular em retrato: cartão; paisagem e tablet: linha única; computador: lista densa. Tipos sem ícone ganham o padrão do tipo fixo ou um ícone genérico. Ver ADR 0032.
 
 ### Corrigido
 - **Linha de ações das listas no celular:** os botões de ícone (editar, abrir, publicar/despublicar, agendar, copiar, recortar, mover, apagar) ficavam de tamanhos diferentes (o amarelo, que é um formulário, saía menor) e quebravam em duas linhas desencontradas, alinhadas à direita. No celular agora formam uma grade de 5 botões iguais por linha, com a mesma altura de toque (44 px).

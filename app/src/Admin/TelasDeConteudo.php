@@ -99,7 +99,7 @@ final class TelasDeConteudo
         }
         $avisoDeVersao = TelasDeAtualizacao::avisoHomePage($this->servicos, $u) . TelasDeCron::avisoDaHome($this->servicos, $u);
 
-        return Pagina::resposta('Início', $this->avisosDeRevisao($sessao) . $this->acaoPrincipal($sessao, $primeiro) . $avisoDeVersao . $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Olá, <strong>' . Pagina::h($u->nome) . '</strong>. ' . ($entradas === [] ? 'Assim que você receber acesso a uma seção, ela aparece aqui.' : 'O que fazer agora:'));
+        return Pagina::resposta('Início', $this->avisosDeRevisao($sessao) . $this->acaoPrincipal($sessao, $primeiro) . $avisoDeVersao . $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Olá, <strong>' . Pagina::h($u->nome) . '</strong>.' . ($entradas === [] ? ' Assim que você receber acesso a uma seção, ela aparece aqui.' : ''));
     }
 
     /**
@@ -129,7 +129,7 @@ final class TelasDeConteudo
         $publica = $this->servicos->enderecos->base($site->id);
         $temConteudo = $raiz !== null && $this->servicos->objetos->filhosForaDaLixeira($raiz->id) > 0;
         if ($temConteudo && $publica !== '') {
-            return $this->blocoPrincipal('Ver o site', 'Veja como o site aparece para quem o visita.', 'Ver o site ↗', $publica . '/', true);
+            return $this->blocoPrincipal('Ver o site', 'Veja o site como o visitante vê.', 'Ver o site ↗', $publica . '/', true);
         }
         if ($raiz !== null && $this->servicos->permissoes->podeCriarSob($u, $raiz)) {
             return $this->blocoPrincipal('Criar página', 'O site ainda não tem páginas. Comece pela primeira.', 'Criar página', $this->link($raiz->id) . '/novo');
