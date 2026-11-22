@@ -25,3 +25,7 @@ Endereços antigos, como `/_pbl/pendencias` e `/_pbl/meus-envios`, continuam fun
 
 ## Palavras novas
 O painel usa **Conteúdo** (antes "objeto"), **Tipo de conteúdo** ("classe"), **Campo** ("propriedade") e **Modelo de página** ("molde"). Veja o [Glossário](glossario.md).
+
+## Ajuda nos campos
+
+O **?** ao lado do rótulo abre uma linha de ajuda abaixo do campo. Toque ou use Enter/Espaço para abrir; **Esc** fecha.

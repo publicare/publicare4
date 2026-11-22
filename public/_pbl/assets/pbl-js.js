@@ -18,3 +18,20 @@
   var tema = guardado === 'claro' || guardado === 'escuro' ? guardado : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro');
   raiz.setAttribute('data-bs-theme', tema === 'escuro' ? 'dark' : 'light');
 })();
+
+/* Esc fecha a ajuda "?" aberta e devolve o foco a ela (melhoria progressiva: sem JavaScript, Enter/Espaço abre e fecha). */
+document.addEventListener('keydown', function (e) {
+  'use strict';
+  if (e.key !== 'Escape') {
+    return;
+  }
+  var alvo = e.target && e.target.closest ? e.target.closest('details.pbl-ajuda[open]') : null;
+  if (!alvo) {
+    return;
+  }
+  alvo.open = false;
+  var botao = alvo.querySelector('summary');
+  if (botao) {
+    botao.focus();
+  }
+});

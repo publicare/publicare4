@@ -223,16 +223,12 @@ final class TelasDeNavegacao
 
     private function ajuda(): string
     {
-        return 'Clique no título para descer um nível; use as migalhas ou "Subir um nível" para voltar.';
+        return 'Clique no título para abrir a pasta.';
     }
 
     private function ajudaDaTela(): string
     {
-        return '<strong>Posição</strong> é o peso do conteúdo (menor primeiro); para mudar, edite o conteúdo. '
-            . '<strong>Publicar</strong> e <strong>Despublicar</strong> exigem papel de editor; quem é autor usa <strong>Enviar para revisão</strong>. '
-            . '<strong>Mover</strong> e <strong>Excluir</strong> (vai para a lixeira, com histórico) abrem uma tela de confirmação. '
-            . 'Marque várias linhas para publicar, despublicar, enviar ou excluir de uma vez. A lixeira aparece no filtro de estado. '
-            . '<strong>Copiar para a pilha</strong> e <strong>Recortar para a pilha</strong> separam itens (nas linhas, em "Mais", ou marcados) para <strong>Colar aqui</strong> em outra pasta: ver o "?" da faixa da pilha.';
+        return 'Marque linhas para agir em lote. <strong>Publicar</strong> exige papel de editor; autor usa <strong>Enviar para revisão</strong>.';
     }
 
     /** @return list<array{0: string, 1: string|null}> */

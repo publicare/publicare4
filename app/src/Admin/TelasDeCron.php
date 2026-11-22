@@ -74,8 +74,8 @@ final class TelasDeCron
             }
             $ultimo = $estado->ultimoCiclo('cron');
             $texto = $ultimo === null
-                ? 'O cron do servidor nunca rodou: publicação e saída por data, republicação e limpezas não acontecem sozinhas.'
-                : 'O cron do servidor não roda há mais de ' . max(5, intdiv($estado->agora() - $ultimo, 60)) . ' minutos: publicação e saída por data, republicação e limpezas estão paradas.';
+                ? 'O cron do servidor nunca rodou: publicação por data, republicação e limpezas não acontecem.'
+                : 'O cron do servidor não roda há mais de ' . max(5, intdiv($estado->agora() - $ultimo, 60)) . ' minutos: publicação por data, republicação e limpezas estão paradas.';
 
             return '<div class="alert alert-warning" role="alert">' . Pagina::h($texto) . ' <a href="' . Painel::PREFIXO . '/tarefas">Ver como configurar</a>.</div>';
         } catch (\Throwable) {

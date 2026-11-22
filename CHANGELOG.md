@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Alterado
+- **Painel, ajuda "?":** ícone de 18 px com área de toque de 44 px, ajuda sempre abaixo do rótulo; Esc fecha e devolve o foco.
+- **Painel, texto (onda 1: Início, Conteúdo, Edição, Configurações):** ajudas e avisos mais curtos, −43% de texto corrido nessas telas. Guia em `docs/ux/voz-e-texto.md`, teste `TextoDoPainelTest` e `bin/auditar-texto`. ADR 0032.
+
 ### Corrigido
 - **Linha de ações das listas no celular:** os botões de ícone (editar, abrir, publicar/despublicar, agendar, copiar, recortar, mover, apagar) ficavam de tamanhos diferentes (o amarelo, que é um formulário, saía menor) e quebravam em duas linhas desencontradas, alinhadas à direita. No celular agora formam uma grade de 5 botões iguais por linha, com a mesma altura de toque (44 px).
 
