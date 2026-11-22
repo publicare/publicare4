@@ -57,8 +57,8 @@ ${lista(SECOES.map((s) => `<li>${linhaLink({ titulo: s.nome, href: s.arquivo, me
 const linhaItem = (i) => {
   const lix = i.estado === 'lixeira';
   const id = `rec-${i.titulo.toLowerCase().replace(/[^a-z]+/g, '-')}`;
-  const fim = `${seloDe(i.estado)}${lix ? `<button type="button" class="btn btn--secundario btn--pequeno" data-revela="${id}" aria-expanded="false" aria-controls="${id}">Recuperar</button>` : `<a class="btn btn--discreto btn--pequeno" href="${i.editar}">Editar<span class="so-leitor"> ${esc(i.titulo)}</span></a>`}`;
-  const depois = lix ? `<p class="item-meta" data-msg role="status" hidden></p><div class="confirmacao" id="${id}" data-confirmacao hidden><p>Recuperar “${esc(i.titulo)}”? Ela volta como <strong>Privada</strong>: ninguém vê até você publicar.</p><p><button type="button" class="btn btn--principal" data-efeito="recuperar">Recuperar como privada</button> <button type="button" class="btn btn--discreto" data-fecha="${id}">Cancelar</button></p></div>` : '';
+  const fim = `${seloDe(i.estado)}${lix ? `<button type="button" class="btn btn--aviso btn--pequeno" data-revela="${id}" aria-expanded="false" aria-controls="${id}">Recuperar</button>` : `<a class="btn btn--discreto btn--pequeno" href="${i.editar}">Editar<span class="so-leitor"> ${esc(i.titulo)}</span></a>`}`;
+  const depois = lix ? `<p class="item-meta" data-msg role="status" hidden></p><div class="confirmacao" id="${id}" data-confirmacao hidden><p>Recuperar “${esc(i.titulo)}”? Ela volta como <strong>Privada</strong>: ninguém vê até você publicar.</p><p><button type="button" class="btn btn--aviso" data-efeito="recuperar">Recuperar como privada</button> <button type="button" class="btn btn--discreto" data-fecha="${id}">Cancelar</button></p></div>` : '';
   return `<li data-item data-linha data-titulo="${esc(i.titulo)}" data-estado="${i.estado}">${linha({ titulo: i.titulo, href: lix ? '' : 'ver.html', meta: `${esc(nomeSecao(i.secao))} · ${i.tipo} · ${i.quando}`, fim, depois })}</li>`;
 };
 const filtros = `<div class="filtro-busca"><div class="filtros" data-filtros role="group" aria-label="Filtrar por estado">
@@ -85,7 +85,7 @@ T['ver.html'] = pagina({
 <dl class="dados"><dt>Título</dt><dd>Suíte Master</dd><dt>Texto</dt><dd>A Suíte Master tem 42 m², cama king e varanda com vista para o jardim. Café da manhã incluso.</dd><dt>Endereço</dt><dd class="mono">/quartos/suite-master</dd><dt>Tags</dt><dd>hotel, suíte</dd><dt>Publicação</dt><dd>Ainda não publicada</dd></dl></section>
 <section class="secao-tela" aria-label="Dentro desta página">${blocoLigavel({ id: 'bloco-dentro', titulo: 'Dentro desta página', ajuda: 'Conteúdos que ficam dentro desta página.', corpo: '<p>Nada dentro desta página ainda.</p><p><a href="criar.html">Criar conteúdo aqui dentro</a></p>' })}</section>
 <section class="secao-tela" aria-labelledby="rev-t" data-linha><h2 id="rev-t">Revisão</h2><p>Quem não publica diretamente envia para a revisão de alguém. <span class="selo" data-estado-revisao>Fora da revisão</span></p>
-<p><button type="button" class="btn btn--secundario" data-efeito="enviar">Enviar para revisão</button></p><p class="item-meta" data-msg role="status" hidden></p></section>`,
+<p><button type="button" class="btn btn--aviso" data-efeito="enviar">Enviar para revisão</button></p><p class="item-meta" data-msg role="status" hidden></p></section>`,
 });
 T['site-exemplo.html'] = pagina({
   titulo: 'Site Exemplo (simulação)', tela: 'Site Exemplo (simulação)', ativo: null, trilha: [['Início', 'inicio.html'], ['Site Exemplo (simulação)', 'site-exemplo.html']],
@@ -141,8 +141,8 @@ ${formularioConfig()}`,
 });
 
 /* ---------- Revisar ---------- */
-const pend = (titulo, meta, id) => `<li data-linha>${linha({ titulo, href: 'ver.html', meta, fim: `${selo('Aguardando', 'aviso')}<button type="button" class="btn btn--secundario btn--pequeno" data-efeito="aprovar">Aprovar<span class="so-leitor"> ${esc(titulo)}</span></button><button type="button" class="btn btn--discreto btn--pequeno" data-revela="dev-${id}" aria-expanded="false" aria-controls="dev-${id}">Devolver<span class="so-leitor"> ${esc(titulo)}</span></button>`, depois: `<p class="item-meta" data-msg role="status" hidden></p>` })}
-<div class="confirmacao" id="dev-${id}" data-confirmacao hidden>${campo({ id: `motivo-${id}`, rotulo: 'Por que está devolvendo?', area: true, linhas: 3, ajuda: 'Quem enviou vê este texto no alto da edição.' }).replace('<textarea', '<textarea data-exigir="Escreva o motivo para quem enviou."')}<p><button type="button" class="btn btn--principal" data-efeito="devolver">Devolver com este motivo</button> <button type="button" class="btn btn--discreto" data-fecha="dev-${id}">Cancelar</button></p></div></li>`;
+const pend = (titulo, meta, id) => `<li data-linha>${linha({ titulo, href: 'ver.html', meta, fim: `${selo('Aguardando', 'aviso')}<button type="button" class="btn btn--principal btn--pequeno" data-efeito="aprovar">Aprovar<span class="so-leitor"> ${esc(titulo)}</span></button><button type="button" class="btn btn--aviso btn--pequeno" data-revela="dev-${id}" aria-expanded="false" aria-controls="dev-${id}">Devolver<span class="so-leitor"> ${esc(titulo)}</span></button>`, depois: `<p class="item-meta" data-msg role="status" hidden></p>` })}
+<div class="confirmacao" id="dev-${id}" data-confirmacao hidden>${campo({ id: `motivo-${id}`, rotulo: 'Por que está devolvendo?', area: true, linhas: 3, ajuda: 'Quem enviou vê este texto no alto da edição.' }).replace('<textarea', '<textarea data-exigir="Escreva o motivo para quem enviou."')}<p><button type="button" class="btn btn--aviso" data-efeito="devolver">Devolver com este motivo</button> <button type="button" class="btn btn--discreto" data-fecha="dev-${id}">Cancelar</button></p></div></li>`;
 T['revisar.html'] = pagina({
   titulo: 'Revisar', tela: 'Revisar', ativo: 'revisar', trilha: [['Início', 'inicio.html'], ['Revisar', 'revisar.html']],
   corpo: `${cabecalho({ titulo: 'Revisar', desc: 'O que alguém enviou para você aprovar antes de ir ao ar.' })}
@@ -200,7 +200,7 @@ T['atualizacao.html'] = pagina({
 <p><button type="button" class="btn btn--principal" data-atualizar>Atualizar para 4.1.0</button></p>
 <progress max="100" value="0" aria-label="Andamento da atualização" hidden></progress><p id="atualizar-msg" role="status" class="suave"></p></div></section>`,
 });
-const copia = (n, meta, id) => `<li data-linha>${linha({ titulo: n, meta, fim: `<button type="button" class="btn btn--secundario btn--pequeno" data-revela="rest-${id}" aria-expanded="false" aria-controls="rest-${id}">Restaurar<span class="so-leitor"> ${esc(n)}</span></button>`, depois: '<p class="item-meta" data-msg role="status" hidden></p>' })}
+const copia = (n, meta, id) => `<li data-linha>${linha({ titulo: n, meta, fim: `<button type="button" class="btn btn--aviso btn--pequeno" data-revela="rest-${id}" aria-expanded="false" aria-controls="rest-${id}">Restaurar<span class="so-leitor"> ${esc(n)}</span></button>`, depois: '<p class="item-meta" data-msg role="status" hidden></p>' })}
 <div class="confirmacao" id="rest-${id}" data-confirmacao hidden><p><strong>O que será perdido</strong></p><ul><li>Tudo o que mudou depois desta cópia: 14 páginas editadas e 2 contas novas.</li><li>Não dá para desfazer.</li></ul>
 ${opcoes({ rotulo: 'Confirmação', itens: [{ id: `ciente-${id}`, texto: 'Entendi que isso não pode ser desfeito' }] }).replace(`id="ciente-${id}"`, `id="ciente-${id}" data-exigir="Marque para confirmar."`)}<p class="erro" id="ciente-${id}-erro"></p>
 ${campo({ id: `senha-rest-${id}`, rotulo: 'Sua senha', tipo: 'password', auto: 'current-password', ajuda: 'Simulação: escreva qualquer coisa.' }).replace('<input', '<input data-exigir="Confirme com a sua senha."')}<p><button type="button" class="btn btn--perigo" data-efeito="restaurar">Restaurar esta cópia</button> <button type="button" class="btn btn--discreto" data-fecha="rest-${id}">Cancelar</button></p></div></li>`;

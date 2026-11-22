@@ -26,7 +26,7 @@ const estado = (e) => secao({
   titulo: 'Estado', desc: 'Salvar guarda o rascunho. Só Publicar põe no ar.',
   corpo: `<div><p>${seloDe(e).replace('class="selo', 'data-selo-estado class="selo')} <span data-estado-texto>${e === 'privado' ? 'Só quem tem conta vê.' : 'Já está visível no site.'}</span></p>
   <p class="ajuda" data-so-privado${e === 'privado' ? '' : ' hidden'}>Quando estiver pronto, use “Publicar” na barra de baixo.</p>
-  <p data-so-publicado${e === 'privado' ? ' hidden' : ''}><button type="button" class="btn btn--secundario" data-acao="tirar">Tirar do ar</button></p></div>`,
+  <p data-so-publicado${e === 'privado' ? ' hidden' : ''}><button type="button" class="btn btn--aviso" data-acao="tirar">Tirar do ar</button></p></div>`,
 });
 
 const menuEOrdem = (nome) => secao({

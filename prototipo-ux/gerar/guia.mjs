@@ -1,11 +1,11 @@
 import { pagina } from './casca.mjs';
 import { campo, secao, opcao, recolhido, selo, cabecalho, botao, esc, barra, linha, lista, caixa } from './ui.mjs';
 
-const cores = [['fundo', 'Fundo da página'], ['superficie', 'Superfície'], ['suave', 'Faixa suave'], ['linha', 'Linha fina'], ['borda', 'Borda de controle'], ['texto', 'Texto'], ['texto-2', 'Texto de apoio'], ['acao', 'Ação'], ['acao-suave', 'Ação suave'], ['erro', 'Erro'], ['aviso', 'Aviso'], ['ok', 'Certo']];
+const cores = [['fundo', 'Fundo da página'], ['superficie', 'Superfície'], ['suave', 'Faixa suave'], ['linha', 'Linha fina'], ['borda', 'Borda de controle'], ['texto', 'Texto'], ['texto-2', 'Texto de apoio'], ['acao', 'Laranja da marca'], ['acao-suave', 'Laranja suave'], ['azul', 'Botão principal'], ['amarelo', 'Botão de atenção'], ['erro', 'Erro'], ['aviso', 'Aviso'], ['ok', 'Certo']];
 const anti = [
   ['Grade de cartões iguais com ícone, título e texto', 'Início é lista de tarefas; Mais e Conteúdo são listas de linhas.'],
   ['Gradiente, sombra, brilho', 'Nenhum. Só linha de 1 px.'],
-  ['Roxo ou azul-néon', 'Uma cor de ação (verde-petróleo) e neutros.'],
+  ['Roxo ou azul-néon', 'Branco e laranja da marca; azul, amarelo e vermelho só nos botões, conforme a ação.'],
   ['Emoji como ícone', 'Nenhum emoji. Cinco ícones de traço, só onde ajudam.'],
   ['Tudo centralizado', 'Tudo à esquerda, numa grade só.'],
   ['Bordas muito redondas', '6 px nos controles e 4 px nos selos.'],
@@ -18,13 +18,13 @@ const anti = [
 export default pagina({
   titulo: 'Guia visual', tela: 'Guia visual', ativo: null, trilha: [['Roteiro', 'index.html'], ['Guia visual', 'guia.html']],
   corpo: `${cabecalho({ titulo: 'Guia visual', desc: 'Os blocos que montam todas as telas. Use o botão “Tema escuro” no menu para ver os dois temas.' })}
-<section class="exemplo" aria-labelledby="g-cores"><h2 id="g-cores">Cores</h2><p class="suave">Neutros, uma cor de ação, e três cores só para avisar.</p><div class="amostras">${cores.map(([c, n]) => `<div class="amostra"><i class="c-${c}"></i><span>${n}<code>--pbl-${c}</code></span></div>`).join('')}</div></section>
+<section class="exemplo" aria-labelledby="g-cores"><h2 id="g-cores">Cores</h2><p class="suave">Branco e laranja da marca. Azul, amarelo e vermelho aparecem nos botões, conforme a ação.</p><div class="amostras">${cores.map(([c, n]) => `<div class="amostra"><i class="c-${c}"></i><span>${n}<code>--pbl-${c}</code></span></div>`).join('')}</div></section>
 <section class="exemplo" aria-labelledby="g-tipo"><h2 id="g-tipo">Letras</h2><p class="suave">Fonte do sistema. Quatro tamanhos e dois pesos.</p>
 <div class="escala"><div class="escala-linha"><span class="t-ajuda">28/36 · 600</span><span class="t-h1">Título da tela</span></div><div class="escala-linha"><span class="t-ajuda">18/28 · 600</span><span class="t-h2">Título de seção</span></div><div class="escala-linha"><span class="t-ajuda">16/24 · 400</span><span class="t-corpo">Texto, campos e botões. A Suíte Master tem varanda com vista.</span></div><div class="escala-linha"><span class="t-ajuda">14/20 · 400</span><span class="t-ajuda">Ajuda, datas e detalhes. Nunca menor que isso.</span></div></div></section>
 <section class="exemplo" aria-labelledby="g-esp"><h2 id="g-esp">Espaço</h2><p class="suave">Tudo em múltiplos de 4 px.</p>
 <div class="espaco">${[4, 8, 12, 16, 24, 32, 48].map((n) => `<div><i class="e-${n}"></i>${n}</div>`).join('')}</div>
 <p class="suave">Entre campos 24 · entre seções 64 (32 + 32 com linha) · margem lateral 16 no celular e 32 no computador · formulário com no máximo 680 px.</p></section>
-<section class="exemplo" aria-labelledby="g-btn"><h2 id="g-btn">Botões e selos</h2><p class="barra-botoes"><button type="button" class="btn btn--principal">Publicar</button><button type="button" class="btn btn--secundario">Salvar rascunho</button><button type="button" class="btn btn--discreto">Voltar</button><button type="button" class="btn btn--perigo">Mandar para a lixeira</button></p>
+<section class="exemplo" aria-labelledby="g-btn"><h2 id="g-btn">Botões e selos</h2><p class="barra-botoes"><button type="button" class="btn btn--principal">Publicar</button><button type="button" class="btn btn--secundario">Salvar rascunho</button><button type="button" class="btn btn--discreto">Voltar</button><button type="button" class="btn btn--aviso">Tirar do ar</button><button type="button" class="btn btn--perigo">Mandar para a lixeira</button></p>
 <p class="barra-botoes">${selo('Privado')}${selo('Publicado', 'ok')}${selo('Agendado', 'aviso')}${selo('Na lixeira', 'erro')}</p>
 <p class="suave">Um botão principal por tela. O selo sempre diz o estado em palavras.</p></section>
 <section class="exemplo" aria-labelledby="g-campo"><h2 id="g-campo">Campo</h2><p class="suave">Rótulo em cima, ajuda embaixo, erro com ícone e texto.</p><div class="moldura secao-corpo">

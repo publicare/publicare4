@@ -196,8 +196,9 @@ test('contraste AA dos tokens nos dois temas', () => {
     ['--pbl-acao', '--pbl-fundo'], ['--pbl-acao', '--pbl-superficie'], ['--pbl-acao', '--pbl-suave'], ['--pbl-acao', '--pbl-acao-suave'], ['--pbl-sobre-acao', '--pbl-acao'], ['--pbl-texto', '--pbl-acao-suave'],
     ['--pbl-erro', '--pbl-erro-fundo'], ['--pbl-erro', '--pbl-superficie'], ['--pbl-ok', '--pbl-ok-fundo'], ['--pbl-ok', '--pbl-superficie'],
     ['--pbl-aviso', '--pbl-aviso-fundo'], ['--pbl-aviso', '--pbl-superficie'], ['--pbl-aviso', '--pbl-fundo'], ['--pbl-erro', '--pbl-fundo'],
+    ['--pbl-sobre-azul', '--pbl-azul'], ['--pbl-sobre-amarelo', '--pbl-amarelo'], ['--pbl-sobre-erro', '--pbl-erro'],
   ];
-  const componentes = [['--pbl-borda', '--pbl-superficie'], ['--pbl-borda', '--pbl-fundo'], ['--pbl-acao', '--pbl-superficie'], ['--pbl-acao', '--pbl-fundo'], ['--pbl-texto-2', '--pbl-suave'], ['--pbl-borda', '--pbl-suave']];
+  const componentes = [['--pbl-borda', '--pbl-superficie'], ['--pbl-borda', '--pbl-fundo'], ['--pbl-acao', '--pbl-superficie'], ['--pbl-acao', '--pbl-fundo'], ['--pbl-texto-2', '--pbl-suave'], ['--pbl-borda', '--pbl-suave'], ['--pbl-azul', '--pbl-fundo'], ['--pbl-aviso', '--pbl-fundo']];
   for (const [nome, t] of [['claro', claro], ['escuro', escuro]]) {
     for (const [a, b] of texto) assert.ok(contraste(t[a], t[b]) >= 4.5, `${nome}: ${a} × ${b} = ${contraste(t[a], t[b]).toFixed(2)} (< 4,5)`);
     for (const [a, b] of componentes) assert.ok(contraste(t[a], t[b]) >= 3, `${nome}: ${a} × ${b} = ${contraste(t[a], t[b]).toFixed(2)} (< 3)`);
