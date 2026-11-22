@@ -6,6 +6,15 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Alterado
+- **Novo painel, fase 2** (adendo ao ADR 0031, `docs/adr/0032-novo-painel-fase-2.md`): as telas que seguiam com a cara antiga ganham cabeçalho de estado com uma ação principal, abas ou seções recolhíveis, migalhas e estado vazio útil.
+  - **Atualização:** Atualizar · Histórico e voltar atrás · Configuração; andamento em destaque só quando há atualização em curso; "Voltar atrás" separado, com aviso e confirmação; diagnóstico técnico recolhido.
+  - **Cópias de segurança, Tarefas agendadas, Contas** (Dados · Papéis e acessos · Segurança) **e Domínios** reorganizados no mesmo padrão.
+  - **Tipos de conteúdo:** o editor do tipo tem as abas Campos · Onde pode ficar · Aparência (o ícone passou para a aba Aparência).
+  - **Modelos de página:** abas Código · Histórico · Pré-visualizar, com migalhas completas.
+  - **Revisar:** aprovação em lote (marque vários e use "Aprovar os marcados"); cada item passa pelas mesmas regras da aprovação individual. Funciona sem JavaScript.
+  - Mesmas rotas, permissões e CSRF; rotas antigas continuam respondendo 303.
+
 ### Corrigido
 - **Linha de ações das listas no celular:** os botões de ícone (editar, abrir, publicar/despublicar, agendar, copiar, recortar, mover, apagar) ficavam de tamanhos diferentes (o amarelo, que é um formulário, saía menor) e quebravam em duas linhas desencontradas, alinhadas à direita. No celular agora formam uma grade de 5 botões iguais por linha, com a mesma altura de toque (44 px).
 

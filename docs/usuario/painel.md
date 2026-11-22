@@ -25,3 +25,11 @@ Endereços antigos, como `/_pbl/pendencias` e `/_pbl/meus-envios`, continuam fun
 
 ## Palavras novas
 O painel usa **Conteúdo** (antes "objeto"), **Tipo de conteúdo** ("classe"), **Campo** ("propriedade") e **Modelo de página** ("molde"). Veja o [Glossário](glossario.md).
+
+## Telas com abas (fase 2)
+
+- **Atualização:** uma ação principal no topo ("Atualizar para X", "Verificar agora"); abas Atualizar · Histórico e voltar atrás · Configuração. O andamento só aparece durante uma atualização; o diagnóstico técnico fica recolhido.
+- **Conta:** abas Dados · Papéis e acessos · Segurança.
+- **Tipo de conteúdo:** abas Campos · Onde pode ficar · Aparência (o ícone fica em Aparência).
+- **Modelo de página:** abas Código · Histórico · Pré-visualizar.
+- **Revisar:** marque vários envios e use "Aprovar os marcados"; os que mudaram ou que você não pode aprovar ficam de fora e são contados no aviso.

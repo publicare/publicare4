@@ -82,7 +82,9 @@ final class TelasDeModelos
     {
         $modelos = new Modelos($this->servicos->conexao(), $this->servicos->caminhos);
         $sites = $this->servicos->sites->todos();
-        $corpo = $aviso . '<div class="table-responsive"><table class="table align-middle"><caption class="visually-hidden">Modelos opcionais</caption><thead><tr>'
+        $ativos = count(array_filter(Modelos::catalogo(), static fn (array $m): bool => $modelos->ativo($m['nome'])));
+        $corpo = $aviso . Pagina::cabecalho($ativos . ' de ' . count(Modelos::catalogo()) . ' pacotes ativos.', '', ['<a href="' . Painel::PREFIXO . '/classes">Voltar aos tipos de conteúdo</a>'])
+            . '<div class="table-responsive"><table class="table align-middle"><caption class="visually-hidden">Modelos opcionais</caption><thead><tr>'
             . '<th scope="col">Modelo</th><th scope="col">Tipos criados</th><th scope="col">Situação</th><th scope="col"><span class="visually-hidden">Ação</span></th></tr></thead><tbody>';
         foreach (Modelos::catalogo() as $m) {
             $ativo = $modelos->ativo($m['nome']);
@@ -107,6 +109,6 @@ final class TelasDeModelos
         }
         $corpo .= '</tbody></table></div>';
 
-        return Pagina::resposta('Modelos', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Tipos de conteúdo', Painel::PREFIXO . '/classes'], ['Modelos', null]], self::DESCRICAO);
+        return Pagina::resposta('Modelos', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Tipos de conteúdo', Painel::PREFIXO . '/classes'], ['Modelos', null]], self::DESCRICAO);
     }
 }

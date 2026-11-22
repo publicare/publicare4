@@ -470,10 +470,10 @@ final class AdminAtualizacaoTest extends TestCase
         $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos());
         file_put_contents($this->lancador->saida, "Disponível: 0.2.0.\nAtualizado de 0.1.0 para 0.2.0.\n");
         file_put_contents($this->lancador->codigo, "0\n");
-        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico'));
         self::assertStringContainsString('Terminou sem erro', $h);
         self::assertStringContainsString('Atualizado de 0.1.0 para 0.2.0.', $h);
-        $this->tela('admin', 'GET', '/_pbl/atualizacao');
+        $this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico');
         self::assertCount(1, $this->auditoria('atualizacao.concluida'), 'só uma vez');
     }
 
@@ -483,7 +483,7 @@ final class AdminAtualizacaoTest extends TestCase
         $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos());
         file_put_contents($this->lancador->saida, "\e[31mA atualização falhou <script>alert(1)</script>\e[0m\n");
         file_put_contents($this->lancador->codigo, '1');
-        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico'));
         self::assertStringContainsString('A atualização falhou', $h);
         self::assertStringContainsString('&lt;script&gt;', $h);
         self::assertStringNotContainsString('<script>', $h);
@@ -501,7 +501,7 @@ final class AdminAtualizacaoTest extends TestCase
         $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos());
         $this->agora += EstadoDoPainel::LIMITE_EXECUCAO + 1;
         self::assertSame('sem_resposta', $this->estado()->situacao()['estado']);
-        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico'));
         self::assertStringContainsString('não deu sinal de término', $h);
         self::assertSame(303, $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos())->getStatusCode());
         self::assertSame(2, $this->lancador->chamadas);
@@ -523,11 +523,107 @@ final class AdminAtualizacaoTest extends TestCase
     public function testSemAtualizacaoConcluidaNaoMostraOBotaoDeVoltarAtras(): void
     {
         $this->preparar();
-        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
-        self::assertStringContainsString('Se algo der errado', $h);
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico'));
+        self::assertStringContainsString('Voltar atrás', $h);
         self::assertStringContainsString('Não há atualização concluída para desfazer', $h);
         self::assertStringNotContainsString('name="senha-reverter"', $h);
         self::assertStringNotContainsString('action="/_pbl/atualizacao/reverter"', $h);
+    }
+
+    // ------------------------------------------------------------------ fase 2: estado + ação principal, abas, diagnóstico
+
+
+    public function testCabecalhoTemUmaAcaoPrincipalPorEstado(): void
+    {
+        // versão nova
+        $this->preparar();
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringContainsString('Atualizar para 0.2.0', $h);
+        self::assertSame(1, substr_count($h, 'class="btn btn-primary"'));
+        self::assertSame(1, substr_count($h, 'action="/_pbl/atualizacao/verificar"'), 'um só "Verificar agora"');
+        self::assertStringContainsString('href="/_pbl/atualizacao?aba=historico"', $h);
+        self::assertStringContainsString('aria-current="page">Atualizar<', $h);
+        self::assertStringNotContainsString('style=', $h);
+    }
+
+    public function testEmDiaEOutrosEstadosTemVerificarAgoraOuConfigurar(): void
+    {
+        $this->preparar(self::VERSAO);
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringContainsString('Você está na versão mais recente', $h);
+        self::assertStringContainsString('btn btn-primary">Verificar agora', $h);
+        self::assertStringNotContainsString('Atualizar para', $h);
+
+    }
+
+    public function testSemEnderecoOfereceConfigurarComoAcaoPrincipal(): void
+    {
+        $this->preparar(configurar: false);
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringContainsString('btn btn-primary" href="/_pbl/atualizacao?aba=configuracao">Configurar', $h);
+        self::assertStringNotContainsString('btn btn-primary">Verificar agora', $h);
+    }
+
+    public function testAndamentoSoApareceQuandoHaAtualizacaoEmCurso(): void
+    {
+        $this->preparar();
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringNotContainsString('data-pbl-progresso', $h);
+        self::assertStringNotContainsString('role="progressbar"', $h);
+        $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos());
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringContainsString('data-pbl-progresso', $h);
+        self::assertStringContainsString('href="#titulo-andamento">Ver andamento', $h);
+        self::assertStringNotContainsString('Atualizar para', $h);
+    }
+
+    public function testVoltarAtrasNaoApareceNaAbaAtualizarENemNaConfiguracao(): void
+    {
+        $this->preparar();
+        foreach (['', '?aba=configuracao'] as $q) {
+            $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao' . $q));
+            self::assertStringNotContainsString('action="/_pbl/atualizacao/reverter"', $h);
+            self::assertStringNotContainsString('id="titulo-voltar"', $h);
+        }
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico'));
+        self::assertStringContainsString('id="titulo-voltar"', $h);
+        self::assertStringContainsString('Nada foi feito pelo painel ainda', $h);
+    }
+
+    public function testConfiguracaoMostraCanalEnderecoEODiagnosticoRecolhido(): void
+    {
+        $this->preparar();
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=configuracao'));
+        self::assertStringContainsString('Endereço de consulta', $h);
+        self::assertStringContainsString('estavel', $h);
+        self::assertStringContainsString('<summary class="pbl-resumo">Diagnóstico', $h);
+        self::assertStringContainsString('proc_open', $h);
+        self::assertStringContainsString('href="/_pbl/tarefas"', $h);
+        self::assertStringNotContainsString('name="senha"', $h);
+    }
+
+    public function testAbaInvalidaVoltaParaAtualizar(): void
+    {
+        $this->preparar();
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=%3Cscript%3E'));
+        self::assertStringContainsString('name="versao" value="0.2.0"', $h);
+        self::assertStringNotContainsString('<script>', $h);
+    }
+
+    public function testErroDeReverterMostraAAbaHistorico(): void
+    {
+        $this->preparar();
+        $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => 'x']);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertStringContainsString('id="titulo-voltar"', $this->html($r));
+    }
+
+    public function testMigalhasEMenuNaAtualizacao(): void
+    {
+        $this->preparar();
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        self::assertStringContainsString('<a href="/_pbl/mais">Mais</a>', $h);
+        self::assertStringContainsString('aria-current="page">Atualização</li>', $h);
     }
 
     // ------------------------------------------------------------------ reverter
@@ -536,7 +632,7 @@ final class AdminAtualizacaoTest extends TestCase
     {
         $this->preparar();
         $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
-        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico'));
         self::assertStringContainsString('Voltar para a 0.1.0', $h);
         self::assertStringContainsString('id="campo-senha-reverter"', $h);
         self::assertStringContainsString('action="/_pbl/atualizacao/reverter"', $h);
@@ -568,10 +664,10 @@ final class AdminAtualizacaoTest extends TestCase
         $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1']);
         file_put_contents($this->lancador->saida, "Revertido de 0.2.0 para 0.1.0.\n");
         file_put_contents($this->lancador->codigo, "0\n");
-        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico'));
         self::assertStringContainsString('Última volta atrás iniciada pelo painel', $h);
         self::assertStringContainsString('Terminou sem erro', $h);
-        $this->tela('admin', 'GET', '/_pbl/atualizacao');
+        $this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico');
         self::assertCount(1, $this->auditoria('atualizacao.reverter_concluida'), 'só uma vez');
         self::assertSame([], $this->auditoria('atualizacao.concluida'), 'não usa a ação de uma atualização comum');
     }
@@ -640,7 +736,7 @@ final class AdminAtualizacaoTest extends TestCase
         $r['schema_depois'] = ($r['schema_depois'] ?? 0) + 1000;
         RegistroDaAtualizacao::gravar($this->caminhos, $r);
 
-        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico'));
         self::assertStringContainsString('O banco mudou de forma incompatível', $h);
         self::assertStringNotContainsString('action="/_pbl/atualizacao/reverter"', $h);
 
@@ -654,7 +750,7 @@ final class AdminAtualizacaoTest extends TestCase
     {
         $this->preparar();
         $this->fabricarAtualizacaoConcluida('0.1.0', '0.9.9'); // registro de uma transição diferente da versão instalada (self::VERSAO)
-        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
+        $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico'));
         self::assertStringContainsString('não é a da última atualização registrada', $h);
         self::assertSame(409, $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1'])->getStatusCode());
         self::assertSame(0, $this->lancador->chamadas);

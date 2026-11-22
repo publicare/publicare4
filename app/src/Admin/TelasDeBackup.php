@@ -35,6 +35,8 @@ final class TelasDeBackup
 
     public const CONFIRMACAO = 'RESTAURAR';
     private const NOMES_DIAS = [1 => 'Segunda', 2 => 'Terça', 3 => 'Quarta', 4 => 'Quinta', 5 => 'Sexta', 6 => 'Sábado', 7 => 'Domingo'];
+    /** @var array<string, string> abas em link (`?aba=`), a primeira é a padrão */
+    private const ABAS = ['copias' => 'Cópias', 'agendamento' => 'Agendamento e retenção', 'destino' => 'Destino'];
     private const TIPOS = ['manual' => 'Manual', 'agendada' => 'Agendada', 'pre-atualizacao' => 'Pré-atualização', 'pre-restauracao' => 'Pré-restauração'];
 
     /**
@@ -80,7 +82,7 @@ final class TelasDeBackup
         }
 
         return match ($tela) {
-            'ver' => $this->pagina($sessao, $this->aviso($requisicao), null, Response::HTTP_OK),
+            'ver' => $this->pagina($sessao, $this->aviso($requisicao), null, Response::HTTP_OK, Pagina::abaDe($requisicao, 'copias', array_keys(self::ABAS))),
             'criar' => $this->criar($sessao, $requisicao),
             'config' => $this->salvarConfig($sessao, $requisicao),
             'baixar' => $this->baixar($sessao, $requisicao),
@@ -128,7 +130,7 @@ final class TelasDeBackup
         $pasta = trim($this->texto($requisicao, 'pasta') ?? '');
         $erroPasta = $this->erroDeTexto($pasta, 300, 'A pasta');
         if ($erroPasta !== null || $ultimas === null || $diasDeRetencao === null) {
-            return $this->pagina($sessao, '', $erroPasta ?? 'Informe números inteiros (0 ou mais) na retenção.', Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->pagina($sessao, '', $erroPasta ?? 'Informe números inteiros (0 ou mais) na retenção.', Response::HTTP_UNPROCESSABLE_ENTITY, 'agendamento');
         }
         try {
             $nova = new ConfigDeBackup(
@@ -144,11 +146,11 @@ final class TelasDeBackup
             ValidadorDePasta::resolver($this->servicos->caminhos, $nova->pasta);
             $nova->gravar($this->servicos->caminhos);
         } catch (\InvalidArgumentException|ErroDeBackup $e) {
-            return $this->pagina($sessao, '', $this->mensagemDoRepositorio(new \InvalidArgumentException($e->getMessage())), Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->pagina($sessao, '', $this->mensagemDoRepositorio(new \InvalidArgumentException($e->getMessage())), Response::HTTP_UNPROCESSABLE_ENTITY, 'agendamento');
         }
         $this->auditar($sessao, 'backup.config', ['ativo' => $nova->ativo, 'frequencia' => $nova->frequencia]);
 
-        return $this->voltar('config');
+        return $this->voltar('config', 'agendamento');
     }
 
     private function baixar(SessaoAtiva $sessao, Request $requisicao): Response
@@ -261,7 +263,7 @@ final class TelasDeBackup
 
     // ---------------------------------------------------------------- páginas
 
-    private function pagina(SessaoAtiva $sessao, string $aviso, ?string $erro, int $status): Response
+    private function pagina(SessaoAtiva $sessao, string $aviso, ?string $erro, int $status, string $aba = 'copias'): Response
     {
         $csrf = $this->campoCsrf($sessao);
         $base = Painel::PREFIXO . '/copias';
@@ -277,18 +279,39 @@ final class TelasDeBackup
         }
         $corpo = $aviso . $this->erro($erro)
             . ($erroPasta === null ? '' : $this->alerta('danger', 'Pasta de cópias com problema: ' . $erroPasta))
-            . $this->secaoFazerAgora($sessao, $base, $csrf)
-            . $this->secaoAgenda($sessao, $config, $base, $csrf)
-            . $this->secaoLista($copias, $espaco, $sessao, $base, $csrf)
-            . $this->card('Cópia para outro lugar pela rede', '<p class="mb-0">Desligada. O envio para SFTP ou S3 ainda não está disponível nesta versão; suas cópias ficam só neste servidor. Baixe uma cópia de vez em quando e guarde-a fora daqui.</p>', '', 'section', 'mb-4')
-            . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
+            . $this->cabecalhoDeCopias($copias, $config, $base)
+            . Pagina::abasEmLink(self::ABAS, $aba, $base, 'Seções das cópias');
+        $corpo .= match ($aba) {
+            'agendamento' => $this->secaoAgenda($sessao, $config, $base, $csrf),
+            'destino' => $this->secaoDestino($config, $espaco),
+            default => $this->secaoFazerAgora($sessao, $base, $csrf) . $this->secaoLista($copias, $espaco, $sessao, $base, $csrf),
+        };
 
-        return Pagina::resposta('Cópias de segurança', $corpo, $status, false, $this->barra($sessao), [['Cópias de segurança', null]]);
+        return Pagina::resposta('Cópias de segurança', $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Cópias de segurança', null]], 'Guarde o site e restaure se algo der errado.');
+    }
+
+    /** @param list<InfoDeBackup> $copias */
+    private function cabecalhoDeCopias(array $copias, ConfigDeBackup $c, string $base): string
+    {
+        $ultima = $copias === [] ? 'nenhuma cópia ainda' : 'última em ' . $this->quando(max(array_map(static fn (InfoDeBackup $i): int => $i->criadoEm, $copias)), $c->fuso);
+        $linha = count($copias) . ' ' . (count($copias) === 1 ? 'cópia' : 'cópias') . ' · ' . $ultima . ' · cópia agendada ' . ($c->ativo ? 'ligada' : 'desligada') . '.';
+
+        return Pagina::cabecalho(Pagina::h($linha), '<a class="btn btn-primary" href="' . $base . '?aba=copias#fazer-agora">Fazer cópia agora</a>',
+            ['<a href="' . Painel::PREFIXO . '/tarefas">Tarefas agendadas</a>']);
+    }
+
+    /** Aba Destino: onde as cópias ficam hoje (a pasta se troca em "Agendamento e retenção") e o envio para fora, ainda indisponível. */
+    private function secaoDestino(ConfigDeBackup $c, string $espaco): string
+    {
+        return Pagina::secao('Neste servidor', 'As cópias ficam na pasta abaixo.', '<p class="mb-1"><code>' . Pagina::h($c->pasta) . '</code></p>'
+            . ($espaco === '' ? '' : '<p class="small text-body-secondary">' . $espaco . '</p>')
+            . '<p class="small mb-0">Para trocar a pasta, vá em <a href="' . Painel::PREFIXO . '/copias?aba=agendamento">Agendamento e retenção</a>.</p>')
+            . Pagina::secao('Para outro lugar pela rede', 'Ainda não disponível.', '<p class="mb-0">O envio para SFTP ou S3 ainda não está disponível nesta versão; suas cópias ficam só neste servidor. Baixe uma cópia de vez em quando e guarde-a fora daqui.</p>');
     }
 
     private function secaoFazerAgora(SessaoAtiva $sessao, string $base, string $csrf): string
     {
-        return '<section class="mb-4" aria-labelledby="titulo-agora" data-pbl-backup><h2 class="h5" id="titulo-agora">Fazer uma cópia agora</h2>'
+        return '<section class="mb-4" id="fazer-agora" aria-labelledby="titulo-agora" data-pbl-backup><h2 class="h5" id="titulo-agora">Fazer uma cópia agora</h2>'
             . '<p>Guarda o banco e os arquivos do site (<code>dados/</code>) num pacote. Pode levar alguns minutos em sites grandes: não feche a página.</p>'
             . '<form method="post" action="' . $base . '/criar" class="row g-3" data-pbl-backup-form>' . $csrf
             . '<div class="col-12 col-md-6">' . $this->campoSenha($sessao, 'campo-senha-criar') . '</div>'
@@ -347,7 +370,7 @@ final class TelasDeBackup
                 . '<td data-rotulo="Integridade (SHA-256)">' . ($c->legado ? '<span class="text-body-secondary">cópia do atualizador</span>' : $integra) . '</td><td data-rotulo="Ações">' . $acoes . '</td></tr>';
         }
         $tabela = $copias === []
-            ? '<p class="text-body-secondary">Nenhuma cópia ainda. Use "Fazer agora" acima.</p>'
+            ? Pagina::vazio('Nenhuma cópia ainda', 'Use "Fazer agora" acima para guardar o banco e os arquivos do site; recomendamos fazer uma antes de atualizar.')
             : '<table class="table align-middle"><caption class="visually-hidden">Cópias existentes</caption><thead><tr><th scope="col">Data</th><th scope="col">Tipo</th><th scope="col">Tamanho</th><th scope="col">Versão do PBL4</th><th scope="col">Integridade</th><th scope="col">Ações</th></tr></thead><tbody>' . $linhas . '</tbody></table>';
 
         return '<section class="mb-4" aria-labelledby="titulo-lista"><h2 class="h5" id="titulo-lista">Cópias no disco</h2>' . ($espaco === '' ? '' : '<p class="small text-body-secondary">' . $espaco . '</p>')
@@ -437,9 +460,9 @@ final class TelasDeBackup
         $this->servicos->auditoria->registrar($acao, 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, $detalhe);
     }
 
-    private function voltar(string $codigo): Response
+    private function voltar(string $codigo, string $aba = ''): Response
     {
-        return new RedirectResponse(Painel::PREFIXO . '/copias?ok=' . $codigo, Response::HTTP_SEE_OTHER);
+        return new RedirectResponse(Painel::PREFIXO . '/copias?ok=' . $codigo . ($aba === '' ? '' : '&aba=' . $aba), Response::HTTP_SEE_OTHER);
     }
 
     private function aviso(Request $requisicao): string

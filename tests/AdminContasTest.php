@@ -217,7 +217,7 @@ final class AdminContasTest extends TestCase
         $token = $this->token('admin');
         $alvo = $this->ids['editor'];
         $html = $this->html($this->req('GET', "/_pbl/conta/{$alvo}", $token));
-        foreach (['dados', 'senha', 'situacao', 'papeis'] as $aba) {
+        foreach (['dados', 'papeis', 'seguranca'] as $aba) {
             self::assertStringContainsString('id="aba-' . $aba . '"', $html);
             self::assertStringContainsString('role="tabpanel" aria-labelledby="aba-' . $aba . '"', $html);
             self::assertStringContainsString('aria-controls="painel-' . $aba . '"', $html);
@@ -225,12 +225,13 @@ final class AdminContasTest extends TestCase
         self::assertStringContainsString('role="tablist"', $html);
         self::assertSame(1, substr_count($html, 'aria-selected="true"'));
         self::assertMatchesRegularExpression('/id="painel-dados" class="[^"]*active show/', $html);
-        self::assertDoesNotMatchRegularExpression('/id="painel-senha" class="[^"]*active/', $html);
+        self::assertDoesNotMatchRegularExpression('/id="painel-seguranca" class="[^"]*active/', $html);
 
-        $html = $this->html($this->req('GET', "/_pbl/conta/{$alvo}?aba=senha", $token));
-        self::assertMatchesRegularExpression('/id="painel-senha" class="[^"]*active show/', $html);
+        $html = $this->html($this->req('GET', "/_pbl/conta/{$alvo}?aba=seguranca", $token));
+        self::assertMatchesRegularExpression('/id="painel-seguranca" class="[^"]*active show/', $html);
+        self::assertStringContainsString('Trocar senha', $html);
         self::assertDoesNotMatchRegularExpression('/id="painel-dados" class="[^"]*active/', $html);
-        self::assertMatchesRegularExpression('/id="aba-senha" class="[^"]*active/', $html);
+        self::assertMatchesRegularExpression('/id="aba-seguranca" class="[^"]*active/', $html);
         // aba desconhecida cai em "Dados"
         self::assertMatchesRegularExpression('/id="painel-dados" class="[^"]*active show/', $this->html($this->req('GET', "/_pbl/conta/{$alvo}?aba=xx", $token)));
     }
@@ -242,8 +243,8 @@ final class AdminContasTest extends TestCase
         $r = $this->post($token, "/_pbl/conta/{$alvo}/senha", ['senha' => 'umasenhalonga123', 'senha2' => 'outra']);
         $html = $this->html($r);
         self::assertSame(422, $r->getStatusCode());
-        self::assertMatchesRegularExpression('/id="painel-senha" class="[^"]*active show/', $html);
-        self::assertMatchesRegularExpression('/id="painel-senha"[^>]*>.{0,200}role="alert"/s', $html);
+        self::assertMatchesRegularExpression('/id="painel-seguranca" class="[^"]*active show/', $html);
+        self::assertMatchesRegularExpression('/id="painel-seguranca"[^>]*>.{0,200}role="alert"/s', $html);
 
         $html = $this->html($this->post($token, "/_pbl/conta/{$alvo}/conceder", ['objeto' => 'x', 'perfil' => 'editor']));
         self::assertMatchesRegularExpression('/id="painel-papeis" class="[^"]*active show/', $html);

@@ -184,7 +184,16 @@ final class TelasDeConfiguracoes
             $valores = $chave === $aba ? array_merge($efetivas, array_diff_key($digitado, array_flip($this->chavesDeArquivo()))) : $efetivas;
             $paineis[$chave] = [$rotulo, $this->painel($sessao, $site, $chave, $campos, $valores, $chave === $aba ? $erros : [], $chave === $aba && $versao !== null ? $versao : $versaoAtual)];
         }
-        $corpo = Pagina::abas($paineis, $aba, $aviso, 'Grupos de configurações');
+        $ligados = 0;
+        $total = 0;
+        foreach (ConfigDoSite::catalogo() as $chave => $def) {
+            if ($def['tipo'] === ConfigDoSite::BOOLEANO) {
+                ++$total;
+                $ligados += !empty($efetivas[$chave]) ? 1 : 0;
+            }
+        }
+        $corpo = Pagina::cabecalho($total === 0 ? 'Valores usados pelas páginas do site.' : $ligados . ' de ' . $total . ' opções de liga/desliga estão ligadas. Cada aba grava só o próprio grupo.', '', ['<a href="' . Painel::PREFIXO . '/site/' . $site->id . '/dominios">Domínios</a>'])
+            . Pagina::abas($paineis, $aba, $aviso, 'Grupos de configurações');
         $ajuda = 'Valores usados pelas páginas do site (nome, SEO, contato, rodapé, busca, menu). Cada aba grava só o próprio grupo; ao salvar, o site é republicado. Campo vazio volta ao padrão.';
 
         return Pagina::resposta('Configurações de ' . $site->nome, $corpo, $status, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Configurações', null]], '', Pagina::h($ajuda));

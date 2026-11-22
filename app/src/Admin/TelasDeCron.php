@@ -167,21 +167,27 @@ final class TelasDeCron
             . '<thead><tr><th scope="col">Tarefa</th><th scope="col">Frequência</th><th scope="col">Última execução</th><th scope="col">Próxima</th><th scope="col">Resultado</th><th scope="col"><span class="visually-hidden">Ação</span></th></tr></thead>'
             . '<tbody>' . $linhas . '</tbody></table></div>';
 
-        return Pagina::resposta('Tarefas agendadas', $aviso . $this->situacaoDoCron() . $tabela . $this->cartaoPseudo($sessao) . $this->cartaoDeConfiguracao(), $status, false, $this->barra($sessao), [], 'O que o PBL4 faz sozinho, de tempos em tempos: publicar por data, republicar, limpar e conferir atualizações.');
+        $atalhos = ['<a href="' . Painel::PREFIXO . '/copias">Cópias de segurança</a>', '<a href="' . Painel::PREFIXO . '/atualizacao">Atualização</a>'];
+        $corpo = $aviso . $this->situacaoDoCron() . Pagina::cabecalho('', '', $atalhos)
+            . '<h2 class="h5" id="titulo-tarefas">Tarefas</h2>' . $tabela
+            . '<div class="pbl-recolhiveis">' . Pagina::recolhivel('pseudo-cron', 'Pseudo-cron (hospedagem sem cron)', $this->cartaoPseudo($sessao))
+            . Pagina::recolhivel('configurar-cron', 'Como configurar o cron', $this->cartaoDeConfiguracao(), $this->estado->ultimoCiclo('cron') === null && !$this->estado->pseudoLigado()) . '</div>';
+
+        return Pagina::resposta('Tarefas agendadas', $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Tarefas agendadas', null]], 'O que o PBL4 faz sozinho, de tempos em tempos: publicar por data, republicar, limpar e conferir atualizações.');
     }
 
     private function situacaoDoCron(): string
     {
         $ultimo = $this->estado->ultimoCiclo('cron');
         if ($ultimo !== null && !$this->estado->cronAtrasado()) {
-            return Pagina::alerta('success', 'O cron do servidor está rodando (última rodada: ' . self::data($ultimo) . ').');
+            return Pagina::cartaoDeEstado('ok', 'O cron do servidor está rodando', 'Última rodada: ' . self::data($ultimo) . '.');
         }
         if ($this->estado->pseudoLigado()) {
-            return Pagina::alerta('info', 'O cron do servidor não está rodando; o pseudo-cron cobre as tarefas leves enquanto alguém usa o painel.');
+            return Pagina::cartaoDeEstado('atencao', 'O cron do servidor não está rodando', 'O pseudo-cron cobre as tarefas leves enquanto alguém usa o painel.');
         }
 
-        return Pagina::alerta('warning', ($ultimo === null ? 'O cron do servidor nunca rodou. ' : 'O cron do servidor não roda desde ' . self::data($ultimo) . '. ')
-            . 'Configure a linha abaixo no servidor (ou, sem acesso ao cron, ligue o pseudo-cron).');
+        return Pagina::cartaoDeEstado('erro', $ultimo === null ? 'O cron do servidor nunca rodou' : 'O cron do servidor não roda desde ' . self::data($ultimo),
+            'Configure a linha em "Como configurar o cron" no servidor (ou, sem acesso ao cron, ligue o pseudo-cron).');
     }
 
     private function cartaoPseudo(SessaoAtiva $sessao): string
@@ -194,7 +200,7 @@ final class TelasDeCron
                 . '<input type="hidden" name="ligar" value="' . ($ligado ? '0' : '1') . '"><p>Estado: <strong>' . ($ligado ? 'ligado' : 'desligado') . '</strong>.</p>'
                 . '<button class="btn btn-outline-secondary" type="submit">' . ($ligado ? 'Desligar' : 'Ligar') . ' o pseudo-cron</button></form>';
 
-        return $this->card('Pseudo-cron (hospedagem sem cron)', $form, 'Quando ligado e o cron do servidor está parado, um acesso ao painel roda as tarefas leves (sem rede, sem varrer arquivos), com limite de poucos segundos. Não roda nas páginas públicas. O cron de verdade é sempre melhor: use só se o servidor não tiver cron.', 'section');
+        return $this->card('Pseudo-cron', $form, 'Quando ligado e o cron do servidor está parado, um acesso ao painel roda as tarefas leves (sem rede, sem varrer arquivos), com limite de poucos segundos. Não roda nas páginas públicas. O cron de verdade é sempre melhor: use só se o servidor não tiver cron.', 'section');
     }
 
     private function cartaoDeConfiguracao(): string

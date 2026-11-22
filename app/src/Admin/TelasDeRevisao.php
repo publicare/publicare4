@@ -27,6 +27,7 @@ final class TelasDeRevisao
     use AuxiliaresDeTela;
 
     private const PASSOS = ['enviar', 'reenviar', 'retirar', 'aprovar', 'devolver'];
+    private const LOTE_MAX = 50;
     private const FUSO = 'America/Sao_Paulo';
 
     public function __construct(
@@ -48,6 +49,9 @@ final class TelasDeRevisao
         }
         if ($caminho === $prefixo . '/meus-envios') {
             return $metodo === 'GET' ? ['envios', null] : null;
+        }
+        if ($caminho === $prefixo . '/revisao/aprovar-lote') {
+            return $metodo === 'POST' ? ['aprovar-lote', null] : null;
         }
         if ($metodo === 'POST' && preg_match('#^' . preg_quote($prefixo, '#') . '/revisao/([1-9][0-9]{0,9})/(' . implode('|', self::PASSOS) . ')$#D', $caminho, $m) === 1) {
             return [$m[2], (int) $m[1]];
@@ -73,7 +77,40 @@ final class TelasDeRevisao
             return $this->recusado();
         }
 
+        if ($tela === 'aprovar-lote') {
+            return $this->aprovarEmLote($sessao, $requisicao);
+        }
+
         return $this->executar($sessao, $tela, (int) $id, $requisicao);
+    }
+
+    /**
+     * Aprovação em lote: cada marcado vale `id:versão`, e cada um passa pelas mesmas regras e conferências da aprovação
+     * individual (quem não pode, ou mudou desde a tela, fica de fora e é contado). Nada marcado volta com aviso.
+     */
+    private function aprovarEmLote(SessaoAtiva $sessao, Request $r): Response
+    {
+        $marcados = $r->request->all('itens');
+        $area = $this->numero($this->texto($r, 'area'));
+        $feitos = 0;
+        $falhas = 0;
+        $semSincronia = 0;
+        foreach (array_slice(array_filter($marcados, 'is_string'), 0, self::LOTE_MAX) as $item) {
+            if (preg_match('/^([1-9][0-9]{0,9}):([0-9]{1,9})$/D', $item, $m) !== 1) {
+                continue;
+            }
+            try {
+                $novo = $this->servicos->revisao->aprovar($sessao->usuario, (int) $m[1], (int) $m[2]);
+                ++$feitos;
+                $semSincronia += $this->sincronizar($novo) ? 0 : 1;
+            } catch (ErroDeRevisao) {
+                ++$falhas;
+            }
+        }
+        $query = ['aba' => 'pendencias', 'ok' => $feitos === 0 && $falhas === 0 ? 'nada' : 'lote', 'feitos' => (string) $feitos, 'falhas' => (string) $falhas]
+            + ($semSincronia > 0 ? ['aviso' => (string) $semSincronia] : []) + ($area !== null ? ['area' => (string) $area] : []);
+
+        return new RedirectResponse(Painel::PREFIXO . '/revisar?' . http_build_query($query), Response::HTTP_SEE_OTHER);
     }
 
     // ---------------------------------------------------------------- ações
@@ -208,12 +245,15 @@ final class TelasDeRevisao
         $lista = $revisao->pendencias($u, $areaId);
         $total = $areaId === null ? $revisao->contarPendencias($u) : count($lista);
 
-        $corpo = $abas . $this->avisoDe($q['ok'] ?? null) . $this->filtroDeArea($areas, $areaId);
+        $corpo = $abas . $this->avisoDe($q['ok'] ?? null, $q) . $this->filtroDeArea($areas, $areaId);
         if ($lista === []) {
             $corpo .= Pagina::alerta('info', $areaId === null ? 'Nada aguardando revisão agora.' : 'Nada aguardando revisão nesta área.');
         } else {
             $enviados = $revisao->ultimos(array_map(static fn (Objeto $o): int => $o->id, $lista), ['enviou', 'reenviou']);
-            $corpo .= '<p class="text-body-secondary">' . $total . ' envio(s) aguardando' . ($total > count($lista) ? '; mostrando os ' . count($lista) . ' mais antigos' : '') . '.</p><ul class="list-group pbl-pendencias mb-4">';
+            $corpo .= '<form id="lote" method="post" action="' . Painel::PREFIXO . '/revisao/aprovar-lote" class="d-flex flex-wrap gap-2 align-items-center mb-3">' . $this->campoCsrf($sessao)
+                . ($areaId === null ? '' : '<input type="hidden" name="area" value="' . $areaId . '">')
+                . '<span class="text-body-secondary me-auto">' . $total . ' envio(s) aguardando' . ($total > count($lista) ? '; mostrando os ' . count($lista) . ' mais antigos' : '') . '.</span>'
+                . '<button type="submit" class="btn btn-success bg-gradient">Aprovar os marcados</button></form><ul class="list-group pbl-pendencias mb-4">';
             foreach ($lista as $o) {
                 $corpo .= $this->itemDePendencia($sessao, $o, $enviados[$o->id] ?? null, $areaId);
             }
@@ -234,7 +274,7 @@ final class TelasDeRevisao
         $base = Painel::PREFIXO . '/revisao/' . $o->id;
         $idMotivo = 'motivo-' . $o->id;
 
-        return '<li class="list-group-item pbl-pendencia"><div class="mb-2"><a class="fw-semibold" href="' . Painel::PREFIXO . '/objeto/' . $o->id . '">' . Pagina::h($o->titulo) . '</a>'
+        return '<li class="list-group-item pbl-pendencia"><div class="mb-2"><input class="form-check-input me-2" type="checkbox" form="lote" name="itens[]" value="' . $o->id . ':' . $o->versao . '" id="marcar-' . $o->id . '" aria-label="Marcar para aprovar: ' . Pagina::h($o->titulo) . '"><a class="fw-semibold" href="' . Painel::PREFIXO . '/objeto/' . $o->id . '">' . Pagina::h($o->titulo) . '</a>'
             . '<div class="small text-body-secondary"><span class="badge text-bg-light border">' . Pagina::h($this->classe($o)) . '</span>' . $dentro . '</div>'
             . '<div class="small text-body-secondary">' . $quem . '</div></div>'
             . '<div class="d-flex flex-wrap gap-2 align-items-start">'
@@ -279,7 +319,7 @@ final class TelasDeRevisao
         $devolucoes = $revisao->ultimos($ids, ['devolveu']);
         $enviados = $revisao->ultimos($ids, ['enviou', 'reenviou']);
 
-        $corpo = $abas . $this->avisoDe($q['ok'] ?? null) . $this->abas($filtro);
+        $corpo = $abas . $this->avisoDe($q['ok'] ?? null, $q) . $this->abas($filtro);
         if ($lista === []) {
             $corpo .= Pagina::alerta('info', 'Nenhum envio por aqui.');
         } else {
@@ -404,9 +444,18 @@ final class TelasDeRevisao
 
     // ---------------------------------------------------------------- apoio
 
-    private function avisoDe(mixed $ok): string
+    private function avisoDe(mixed $ok, array $q = []): string
     {
+        if ($ok === 'lote') {
+            $f = (int) ($q['feitos'] ?? 0);
+            $x = (int) ($q['falhas'] ?? 0);
+            $a = (int) ($q['aviso'] ?? 0);
+            $t = $f . ' aprovado(s) e publicado(s).' . ($x > 0 ? ' ' . $x . ' ficou(aram) de fora: mudou ou não é mais seu para aprovar.' : '') . ($a > 0 ? ' ' . $a . ' publicado(s) no painel, mas a página pública não foi atualizada: publique o site de novo.' : '');
+
+            return Pagina::alerta($x > 0 || $a > 0 ? 'warning' : 'success', $t);
+        }
         $m = match ($ok) {
+            'nada' => ['info', 'Nenhum envio marcado.'],
             'enviado' => ['success', 'Enviado para revisão.'],
             'reenviado' => ['success', 'Reenviado para revisão.'],
             'retirado' => ['info', 'Envio retirado: o conteúdo voltou a ser privado.'],
