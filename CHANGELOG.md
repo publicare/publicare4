@@ -7,6 +7,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 ## [Não lançado]
 
 ### Adicionado
+- **CLI de conteúdo (`bin/pbl conteudo`)** para agentes e scripts: `listar`, `ver`, `historico`, `editar` (`--versao` obrigatória, `--publicar`, `--enviar-revisao`, `--json=-` para o texto vir do stdin), `criar`, `publicar`, `despublicar`, `enviar`, `retirar`, `mover`, `lixeira` (nunca apaga de vez), `restaurar-versao`, `imagem`, `arquivo` e `republicar`. Passa pelas mesmas regras do painel (permissões da conta de `--como`, limpeza de HTML, versões, endereços e 301, revisão, cache), saída `--json` estável (`api=1`) e códigos de saída 0–6. Operações destrutivas pedem `--confirmar`. Ver [docs/tecnica/cli-conteudo.md](docs/tecnica/cli-conteudo.md), [docs/usuario/agentes-e-scripts.md](docs/usuario/agentes-e-scripts.md) e ADR 0030.
+- **Conta de serviço:** `bin/pbl usuario criar <login> --servico` cria conta sem senha, que não entra pelo painel, nunca é administradora e pode ser desativada a qualquer momento. A auditoria identifica o agente e a origem ("via linha de comando") sem mudar o formato do autor; o registro de atividade do conteúdo mostra isso.
+- Migrações aditivas M026 (`usuario.tipo`) e M027 (`arquivo.alt`, texto alternativo de imagem).
+- `Pbl\Conteudo\Servico`: `ServicoDeConteudo`, `ValidadorDeCampos` e `SincronizadorDePaginas` (o painel já usa o validador e o sincronizador).
 - **Barra de edição:** novas ações `listar` e `criar` em `GET /_pbl/api/acoes` (sempre filtradas por permissão; `criar` abre o formulário se há um só tipo aceito ou o seletor do painel se há vários), conjunto próprio de ícones SVG (traço 1,5, 16px, `currentColor`) com `aria-label`/`title` em português, foco visível e alvos maiores no celular. CSS parametrizável por `--pbl-barra-*`, com tema escuro. Ver [docs/tecnica/barra-de-edicao.md](docs/tecnica/barra-de-edicao.md) e [docs/usuario/barra-de-edicao.md](docs/usuario/barra-de-edicao.md).
 - `Pbl\Conteudo\TiposAceitos`: tipos aceitos como filhos, compartilhado entre o painel e a API.
 

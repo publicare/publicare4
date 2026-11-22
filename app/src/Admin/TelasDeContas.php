@@ -135,7 +135,7 @@ final class TelasDeContas
                 . '<span class="d-flex flex-wrap align-items-center gap-2"><code class="fs-6 fw-semibold">' . Pagina::h($c->login) . '</code>'
                 . ($c->id === $sessao->usuario->id ? '<span class="badge text-bg-info">você</span>' : '')
                 . ($c->ativo ? '' : '<span class="badge text-bg-secondary">Desativada</span>')
-                . '<span class="badge text-bg-light border ms-auto">' . ($c->administrador ? 'Administrador' : 'Equipe') . '</span></span>'
+                . '<span class="badge text-bg-light border ms-auto">' . ($c->ehServico() ? 'Conta de serviço' : ($c->administrador ? 'Administrador' : 'Equipe')) . '</span></span>'
                 . '<span class="d-block small text-body-secondary text-break">' . Pagina::h($c->nome) . ' · ' . Pagina::h($c->email) . '</span></a>';
         }
         if ($r['itens'] === []) {
@@ -250,7 +250,9 @@ final class TelasDeContas
                     . '<label for="campo-admin" class="form-check-label">Administrador (vê e altera tudo, em todos os sites)</label></div>')
             . $this->campoSenha($sessao, 'campo-senha-editar')
             . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar dados</button></div></form>';
-        $senha = '<div class="pbl-rotulo"><h3 class="h6 mb-1">Trocar senha</h3>' . Pagina::ajuda('ajuda-trocar-senha', 'Trocar senha', $eu ? 'Ao trocar a sua senha você sai e precisa entrar de novo.' : 'A conta sai de todas as sessões abertas e entra com a senha nova.') . '</div>'
+        $senha = $c->ehServico()
+            ? '<p>Conta de serviço (agente ou script): não tem senha e não entra pelo painel. Use a aba Situação para desativá-la a qualquer momento.</p>'
+            : '<div class="pbl-rotulo"><h3 class="h6 mb-1">Trocar senha</h3>' . Pagina::ajuda('ajuda-trocar-senha', 'Trocar senha', $eu ? 'Ao trocar a sua senha você sai e precisa entrar de novo.' : 'A conta sai de todas as sessões abertas e entra com a senha nova.') . '</div>'
             . '<form method="post" action="' . $base . '/senha">' . $csrf . $this->camposDeSenha('nova senha')
             . $this->campoSenha($sessao, 'campo-senha-atual-redefinir', 'senha_atual')
             . '<div class="pbl-acoes"><button type="submit" class="btn btn-warning">Trocar senha</button></div></form>';

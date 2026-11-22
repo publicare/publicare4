@@ -20,6 +20,8 @@ No ambiente de desenvolvimento: `make pbl ARGS="<comando> …"`. Em um servidor:
 
 ## `usuario`
 
+Contas de serviço (agentes e scripts, sem senha e sem painel): `usuario criar claudim --servico --nome="Claudim"`. Editar conteúdo por comando: [`conteudo`](cli-conteudo.md).
+
 ```bash
 make pbl ARGS="usuario criar ana --email=ana@exemplo.org --nome='Ana Souza' --admin"   # pede a senha duas vezes (oculta)
 make pbl ARGS="usuario conceder bia editor 12"     # bia é editora do objeto 12 e de tudo abaixo dele

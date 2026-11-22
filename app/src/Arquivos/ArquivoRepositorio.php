@@ -31,6 +31,7 @@ final class ArquivoRepositorio
         ?int $altura,
         bool $sanitizada,
         ?int $criadoPor,
+        ?string $alt = null,
     ): Arquivo {
         $criadoEm = gmdate('c');
         $this->conexao->insert('arquivo', [
@@ -48,9 +49,10 @@ final class ArquivoRepositorio
             'sanitizada' => $sanitizada ? 1 : 0,
             'criado_em' => $criadoEm,
             'criado_por' => $criadoPor,
+            'alt' => $alt,
         ]);
 
-        return new Arquivo((int) $this->conexao->lastInsertId(), $siteId, $objetoId, $propriedade, $chave, $nome, $extensao, $mime, $tamanho, $sha256, $largura, $altura, $sanitizada, $criadoEm, $criadoPor);
+        return new Arquivo((int) $this->conexao->lastInsertId(), $siteId, $objetoId, $propriedade, $chave, $nome, $extensao, $mime, $tamanho, $sha256, $largura, $altura, $sanitizada, $criadoEm, $criadoPor, $alt);
     }
 
     public function porId(int $id): ?Arquivo
@@ -115,6 +117,7 @@ final class ArquivoRepositorio
             (int) $linha['sanitizada'] === 1,
             (string) $linha['criado_em'],
             $linha['criado_por'] === null ? null : (int) $linha['criado_por'],
+            isset($linha['alt']) ? (string) $linha['alt'] : null,
         );
     }
 }

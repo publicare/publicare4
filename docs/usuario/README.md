@@ -14,6 +14,7 @@ Esta parte é para quem **quer criar e cuidar de um site** (ou de um pequeno sis
 | Como instalar numa hospedagem | [Como instalar](instalar.md) |
 | Modelos opcionais (agenda, perguntas, destaques) e o site de demonstração | [Modelos e demo](modelos-e-demo.md) |
 | O que o site guarda de pessoas e como pedir cópia ou exclusão | [Privacidade](privacidade.md) |
+| Como um assistente automático ou um script edita o site | [Agentes e scripts editam o site](agentes-e-scripts.md) |
 | Dúvidas comuns (é grátis? preciso programar?) | [Perguntas frequentes](perguntas-frequentes.md) |
 | Como acompanhar e ajudar | [Como participar](como-participar.md) |
 

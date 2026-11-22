@@ -28,7 +28,7 @@ final class ServicoDeUpload
      * @param array{nome: string, tipo: string, tipos?: list<string>, tamanho_max_mb?: int} $propriedade
      * @throws ErroDeUpload com uma mensagem segura para mostrar a quem enviou
      */
-    public function enviar(UploadedFile $arquivo, array $propriedade, int $siteId, int $objetoId, ?int $criadoPor): Arquivo
+    public function enviar(UploadedFile $arquivo, array $propriedade, int $siteId, int $objetoId, ?int $criadoPor, ?string $alt = null): Arquivo
     {
         $this->confirmarEnvio($arquivo);
         $limite = TiposDeArquivo::limiteBytes($propriedade);
@@ -80,6 +80,7 @@ final class ServicoDeUpload
             $altura,
             $sanitizada,
             $criadoPor,
+            $alt,
         );
     }
 

@@ -33,6 +33,7 @@ final class UsuarioComando extends Command
         $this->addOption('email', null, InputOption::VALUE_REQUIRED, 'E-mail (criar)');
         $this->addOption('nome', null, InputOption::VALUE_REQUIRED, 'Nome (criar)');
         $this->addOption('admin', null, InputOption::VALUE_NONE, 'Administrador global (criar)');
+        $this->addOption('servico', null, InputOption::VALUE_NONE, 'Conta de serviço para agentes e scripts (criar): sem senha, sem e-mail, sem login pelo navegador');
         $this->addOption('senha-stdin', null, InputOption::VALUE_NONE, 'Lê a senha da entrada padrão (para scripts). A senha nunca vai na linha de comando.');
     }
 
@@ -44,7 +45,7 @@ final class UsuarioComando extends Command
             $login = (string) $input->getArgument('login');
             if ($acao === 'listar') {
                 foreach ($s->usuarios->todos() as $u) {
-                    $output->writeln(str_pad($u->login, 24) . str_pad($u->administrador ? 'administrador' : 'equipe', 15) . ($u->ativo ? 'ativo' : 'inativo') . '  ' . $u->email);
+                    $output->writeln(str_pad($u->login, 24) . str_pad($u->ehServico() ? 'serviço' : ($u->administrador ? 'administrador' : 'equipe'), 15) . ($u->ativo ? 'ativo' : 'inativo') . '  ' . ($u->ehServico() ? '[serviço] ' : '') . $u->email);
                 }
 
                 return Command::SUCCESS;
@@ -53,6 +54,15 @@ final class UsuarioComando extends Command
                 foreach ($s->auditoria->recentes(50) as $r) {
                     $output->writeln("{$r['quando']}  {$r['ator']}  {$r['acao']}" . ($r['objeto_id'] === null ? '' : "  objeto {$r['objeto_id']}") . ($r['detalhe'] === null ? '' : "  {$r['detalhe']}"));
                 }
+
+                return Command::SUCCESS;
+            }
+            if ($acao === 'criar' && (bool) $input->getOption('servico')) {
+                if ((bool) $input->getOption('admin') || $input->getOption('email') !== null || (bool) $input->getOption('senha-stdin')) {
+                    throw new \InvalidArgumentException('Conta de serviço não é administradora e não tem e-mail nem senha (--admin, --email e --senha-stdin não valem com --servico)');
+                }
+                $u = $s->usuarios->criarContaDeServico($login, (string) ($input->getOption('nome') ?? $login), self::ATOR);
+                $output->writeln("Conta de serviço {$u->login} criada (sem senha e sem login pelo painel). Dê um papel com: usuario conceder {$u->login} editor <id-da-seção>");
 
                 return Command::SUCCESS;
             }

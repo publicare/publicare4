@@ -23,6 +23,7 @@ use Pbl\Conteudo\ConflitoDeArvore;
 use Pbl\Conteudo\ConflitoDeVersao;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\ObjetoRepositorio;
+use Pbl\Conteudo\Servico\ValidadorDeCampos;
 use Pbl\Conteudo\TagRepositorio;
 use Pbl\Conteudo\TiposAceitos;
 use Pbl\Servicos;
@@ -41,12 +42,12 @@ use Symfony\Component\HttpFoundation\Response;
 final class TelasDeObjetos
 {
     public const POR_PAGINA = 100;
-    public const MAX_TITULO = 300;
-    public const MAX_DESCRICAO = 2000;
-    public const MAX_ROTULO_MENU = 60;
+    public const MAX_TITULO = ValidadorDeCampos::MAX_TITULO;
+    public const MAX_DESCRICAO = ValidadorDeCampos::MAX_DESCRICAO;
+    public const MAX_ROTULO_MENU = ValidadorDeCampos::MAX_ROTULO_MENU;
     /** Teto de uma propriedade `texto` e de uma `html` (em caracteres). */
-    public const MAX_TEXTO = 10000;
-    public const MAX_HTML = 200000;
+    public const MAX_TEXTO = ValidadorDeCampos::MAX_TEXTO;
+    public const MAX_HTML = ValidadorDeCampos::MAX_HTML;
     /** Até quantas versões a tela de histórico mostra (as mais novas). */
     public const MAX_VERSOES = 200;
     public const MAX_LOG = 200;
@@ -872,16 +873,7 @@ final class TelasDeObjetos
     /** Endereço livre a partir do título (`Notícia de Hoje!` → `noticia-de-hoje`, `-2`, `-3`… se já usado), ou null. */
     private function urlLivre(int $siteId, string $titulo): ?string
     {
-        $base = trim((string) preg_replace('/[^a-z0-9]+/', '-', Texto::normalizar($titulo)), '-');
-        $base = rtrim(substr($base !== '' ? $base : 'conteudo', 0, 80), '-');
-        for ($n = 1; $n <= 50; $n++) {
-            $candidata = $n === 1 ? $base : $base . '-' . $n;
-            if (Caminhos::urlValida($candidata) && $this->servicos->objetos->urlDisponivel($siteId, $candidata)) {
-                return $candidata;
-            }
-        }
-
-        return null;
+        return $this->servicos->validador->urlLivre($siteId, $titulo);
     }
 
     // ---------------------------------------------------------------- formulário (criar e editar)
@@ -1098,68 +1090,7 @@ final class TelasDeObjetos
      */
     private function lerPropriedade(SessaoAtiva $sessao, int $siteId, array $p, string $texto, ?string $guardado = null): array
     {
-        if ($texto === '') {
-            return [null, null];
-        }
-        if (!mb_check_encoding($texto, 'UTF-8')) {
-            return [null, 'Este campo tem caracteres que não são permitidos.'];
-        }
-        switch ($p['tipo']) {
-            case 'numero':
-                $n = str_replace(',', '.', $texto);
-                if (preg_match('/^-?[0-9]{1,15}$/D', $n) === 1) {
-                    return [(int) $n, null];
-                }
-                if (preg_match('/^-?[0-9]{1,15}\.[0-9]{1,10}$/D', $n) === 1) {
-                    return [(float) $n, null];
-                }
-
-                return [null, 'Este campo precisa ser um número (exemplo: 42 ou 3,5).'];
-            case 'booleano':
-                return in_array($texto, ['0', '1'], true) ? [(int) $texto, null] : [null, 'Escolha "Sim" ou "Não".'];
-            case 'data':
-                if (preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$/D', $texto) === 1) {
-                    $texto .= ':00';
-                }
-                foreach (['!Y-m-d', '!Y-m-d H:i:s', '!Y-m-d\TH:i:sP'] as $formato) {
-                    $d = \DateTimeImmutable::createFromFormat($formato, $texto);
-                    $problemas = \DateTimeImmutable::getLastErrors();
-                    if ($d !== false && ($problemas === false || ($problemas['warning_count'] === 0 && $problemas['error_count'] === 0))) {
-                        return [$texto, null];
-                    }
-                }
-
-                return [null, 'Use uma data válida no formato aaaa-mm-dd, com hora opcional (exemplo: 2026-12-31 ou 2026-12-31 18:30).'];
-            case 'ref':
-                $alvo = preg_match('/^[1-9][0-9]{0,9}$/D', $texto) === 1 ? $this->servicos->objetos->porId((int) $texto) : null;
-                // Mesma mensagem para "não existe", "é de outro site" e "você não pode ver": não revela ids alheios. A referência
-                // que já estava gravada continua valendo mesmo que a pessoa não possa ver o alvo (ela só não pode apontar para outro).
-                $mantida = $guardado !== null && $alvo !== null && (string) $alvo->id === $guardado;
-                if ($alvo === null || $alvo->siteId !== $siteId || (!$mantida && !$this->pode($sessao, Acao::Ver, $alvo))) {
-                    return [null, 'Indique o número de um conteúdo deste site que você possa ver.'];
-                }
-                if (isset($p['classe']) && $this->nomeDaClasse($alvo->classeId) !== $p['classe']) {
-                    return [null, 'Este campo precisa apontar para um conteúdo do tipo ' . $p['classe'] . '.'];
-                }
-
-                return [$alvo->id, null];
-            default: // texto e html
-                $max = $p['tipo'] === 'html' ? self::MAX_HTML : self::MAX_TEXTO;
-                if ($this->temControle($texto, true)) {
-                    return [null, 'Este campo tem caracteres de controle, que não são permitidos.'];
-                }
-                if (mb_strlen($texto) > $max) {
-                    return [null, 'Este campo pode ter até ' . $max . ' caracteres.'];
-                }
-                if ($p['tipo'] === 'html') {
-                    // O repositório limpa de novo ao gravar; limpar aqui faz o formulário mostrar o que de fato ficará salvo.
-                    $limpo = HtmlSeguro::limpar($texto);
-
-                    return $limpo === '' ? [null, 'Nada deste HTML é permitido (scripts, estilos, formulários e eventos são removidos). Escreva o texto com as marcações comuns.'] : [$limpo, null];
-                }
-
-                return [$texto, null];
-        }
+        return $this->servicos->validador->propriedade($sessao->usuario, $siteId, $p, $texto, $guardado);
     }
 
     /**
@@ -2010,6 +1941,13 @@ final class TelasDeObjetos
 
             return $nomes[(int) $m[1]] ??= $this->servicos->usuarios->porId((int) $m[1])->nome ?? ('pessoa nº ' . $m[1]);
         };
+        // Conta de serviço = agente; evento gravado pela linha de comando leva `via` no detalhe (ADR 0032). Eventos do painel não mudam.
+        $origem = function (array $e): string {
+            $porCli = $e['detalhe'] !== null && (json_decode($e['detalhe'], true)['via'] ?? null) === 'cli';
+            $agente = preg_match('/^usuario:([1-9][0-9]*)$/D', $e['ator'], $m) === 1 && ($this->servicos->usuarios->porId((int) $m[1])?->ehServico() ?? false);
+
+            return $agente ? ' (agente, via linha de comando)' : ($porCli ? ' (via linha de comando)' : '');
+        };
         $eventos = $this->servicos->auditoria->doObjeto($o->id, self::MAX_LOG);
         $corpo = $this->migalhas($sessao, $o) . '<h2 class="h5">Auditoria</h2>';
         if ($eventos === []) {
@@ -2018,7 +1956,7 @@ final class TelasDeObjetos
             $corpo .= '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Registro de atividade</caption>'
                 . '<thead><tr><th scope="col">Quando</th><th scope="col">Quem</th><th scope="col">Ação</th><th scope="col">Detalhe</th></tr></thead><tbody>';
             foreach ($eventos as $e) {
-                $corpo .= '<tr><td>' . Pagina::h($this->dataLegivel($e['quando'])) . '</td><td>' . Pagina::h($quem($e['ator'])) . '</td>'
+                $corpo .= '<tr><td>' . Pagina::h($this->dataLegivel($e['quando'])) . '</td><td>' . Pagina::h($quem($e['ator']) . $origem($e)) . '</td>'
                     . '<td><code>' . Pagina::h($e['acao']) . '</code></td><td>' . Pagina::h($this->detalheLegivel($e['detalhe'])) . '</td></tr>';
             }
             $corpo .= '</tbody></table></div>';
@@ -2139,23 +2077,12 @@ final class TelasDeObjetos
     /** Publicar, despublicar, agendar ou apagar um objeto com tags muda a nuvem e as listas por tag já publicadas. */
     private function visibilidadeMudou(Objeto $antes, Objeto $depois): bool
     {
-        $agora = gmdate('c');
-
-        return $antes->visivel($agora) !== $depois->visivel($agora) && $this->servicos->tags->porObjeto($depois->id) !== [];
+        return $this->servicos->paginas->visibilidadeMudou($antes, $depois);
     }
 
     private function republicarPorTags(Objeto $antes, Objeto $depois): bool
     {
-        $agora = gmdate('c');
-        if (!$antes->visivel($agora) && !$depois->visivel($agora)) {
-            return true;
-        }
-        $site = $this->servicos->sites->porId($depois->siteId);
-        try {
-            return $site !== null && $this->servicos->publicador->republicarPorConfiguracao($site);
-        } catch (\Throwable) {
-            return false;
-        }
+        return $this->servicos->paginas->republicarPorTags($antes, $depois);
     }
 
     private function pode(SessaoAtiva $sessao, Acao $acao, Objeto $o): bool
@@ -2196,47 +2123,13 @@ final class TelasDeObjetos
     /** Regrava (se visível) ou tira do cache (se não) a página de cada objeto, com o estado atual do banco. false = alguma falhou. */
     private function sincronizar(?Objeto ...$objetos): bool
     {
-        $vistos = [];
-        $ok = true;
-        $agora = gmdate('c');
-        foreach ($objetos as $o) {
-            if ($o === null || isset($vistos[$o->id])) {
-                continue;
-            }
-            $vistos[$o->id] = true;
-            $atual = $this->servicos->objetos->porId($o->id);
-            $site = $atual === null ? null : $this->servicos->sites->porId($atual->siteId);
-            if ($atual === null || $site === null) {
-                continue;
-            }
-            try {
-                if ($atual->visivel($agora)) {
-                    $this->servicos->publicador->publicar($site, $atual);
-                } else {
-                    $this->servicos->publicador->despublicar($site, $atual);
-                }
-            } catch (\Throwable) {
-                $ok = false; // a mudança já está salva; a próxima publicação do site recupera a página
-            }
-        }
-
-        return $ok;
+        return $this->servicos->paginas->sincronizar(...$objetos);
     }
 
     /** Tira do cache a página no endereço que o objeto tinha (o antigo passa a redirecionar pelo histórico de URLs). */
     private function tirarDoAr(Objeto $antigo): bool
     {
-        $site = $this->servicos->sites->porId($antigo->siteId);
-        if ($site === null) {
-            return false;
-        }
-        try {
-            $this->servicos->publicador->despublicar($site, $antigo);
-        } catch (\Throwable) {
-            return false;
-        }
-
-        return true;
+        return $this->servicos->paginas->tirarDoAr($antigo);
     }
 
     private function pai(Objeto $o): ?Objeto
