@@ -45,6 +45,26 @@ final class Auditoria
         ], $linhas);
     }
 
+    /**
+     * Ids dos conteúdos que a conta criou ou editou por último (mais recente primeiro, sem repetir), a partir do registro que já existe;
+     * é o que o Início usa em "Continuar de onde parou". Só ids: quem chama confere se ainda existe e se a pessoa ainda pode editar.
+     *
+     * @return list<int>
+     */
+    public function objetosEditadosPor(int $usuarioId, int $limite = 10): array
+    {
+        $linhas = $this->conexao->fetchFirstColumn("SELECT objeto_id FROM auditoria WHERE usuario_id = ? AND objeto_id IS NOT NULL AND acao IN ('objeto.atualizar', 'objeto.criar') ORDER BY id DESC LIMIT 60", [$usuarioId]);
+        $ids = [];
+        foreach ($linhas as $id) {
+            $ids[(int) $id] = true;
+            if (count($ids) >= max(1, $limite)) {
+                break;
+            }
+        }
+
+        return array_keys($ids);
+    }
+
     /** @return list<array{quando: string, ator: string, acao: string, objeto_id: ?int, detalhe: ?string}> mais recentes primeiro */
     public function recentes(int $limite = 50): array
     {

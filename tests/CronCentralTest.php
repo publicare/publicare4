@@ -373,7 +373,7 @@ final class CronCentralTest extends TestCase
         self::assertStringContainsString('Publicação e saída por data', $html);
         self::assertStringContainsString('bin/pbl cron', $html);
         self::assertStringContainsString('nunca rodou', $html);
-        self::assertStringContainsString('href="/_pbl/tarefas"', $html, 'item de menu');
+        self::assertStringContainsString('href="/_pbl/tarefas"', $this->html($this->req('GET', '/_pbl/mais', $t)), 'item em Mais');
 
         self::assertSame(403, $this->post($t, $url . '/executar', ['tarefa' => 'limpeza'], false)->getStatusCode(), 'sem CSRF');
         self::assertSame(403, $this->post($this->token('editor'), $url . '/executar', ['tarefa' => 'limpeza'])->getStatusCode(), 'editor');

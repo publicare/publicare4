@@ -1,58 +1,57 @@
-# QA_REPORT.md — PBL4: CLI `bin/pbl conteudo` e conta de serviço
+# QA_REPORT — PBL4 novo painel, fase 1 (rodada 2)
 
-**Veredito: GO condicional.** Nenhum defeito bloqueante. As condições estão em §5 e são de baixo custo.
+## Veredito: NO-GO para mesclar até a prévia subir e o dono responder
+O código e os testes estão em ordem. Mas **não consegui subir nem observar a prévia**: este ambiente não tem a ferramenta que envia o pedido de prévia à VSF, não tem navegador (nem Chromium nem Playwright) e não tem `curl`. Por isso as capturas (lacuna 2) não existem. A parada para o dono (lacuna 3) continua pendente: o sistema abre o marco quando a prévia sobe. Não declaro pronto.
 
-## 1. Evidências (rodadas nesta etapa)
-| Verificação | Resultado |
+## Lacuna 1 — por que a prévia não iniciou
+Só tenho a trilha como relato (`PreviaSolicitada` às 04:38, sem `PreviaIniciada`). Não vi os logs da VSF. **A causa exata não está confirmada.** O que verifiquei:
+
+| Hipótese | Resultado |
 |---|---|
-| Suíte completa `phpunit` | OK: 1644 testes, 46306 asserções, 2 ignorados, 1 deprecation. Duração: 14m54s |
-| Testes novos (`ConteudoComandoTest`, `ContaDeServicoTest`, `ConteudoAuditoriaTest`) | OK: 59 testes, 822 asserções |
-| `phpstan analyse` | Sem erros |
-| `DocumentacaoTest` (links e índices) | OK |
-| grep de `proc_open`, `exec`, `shell_exec`, `passthru` e SQL direto (`Connection`, `executeStatement`) em `Console/Conteudo*` e `Conteudo/Servico` | Sem ocorrências |
-| grep de segredo literal nos testes novos | Sem ocorrências |
-| Docs públicos | Só "Site Exemplo". Sem cliente real |
+| O gerador depende de `vendor/`, que o `.gitignore` exclui. Num clone limpo ele morria antes de gerar o pacote. | **Causa mais provável.** Corrigido: sem `vendor/`, o gerador roda `composer install --no-dev` a partir do `composer.lock` e falha com mensagem clara se não conseguir. Simulei um clone limpo (sem `vendor/`): o pacote saiu, 2,5 MB. |
+| Host `pv-…` recusado (Q6) | Já resolvido: `Aplicacao` aceita `pv-…` só com o marcador `dados/previa.flag`. Rodei o pacote com o servidor embutido do PHP e `Host: pv-abc123.previa.test`: entrada de prévia 303, `/_pbl/mais` 200 logado, `editor` e `autor` 303, host `outro.example` 404. |
+| Formato do pedido | `notas/previa-pedido.json` é v2 (`gerar_pacote`, `extrair_pacote`, docroot `pbl4/public`, `dados` gravável). 8 páginas × 2 viewports = 16, no limite que o teste assume. |
+| Pacote grande demais | 2,5 MB. Não é a causa. |
 
-## 2. Rastreabilidade: requisito → teste
-| Requisito | Teste | Status |
+Se a prévia falhar de novo, o primeiro lugar para olhar é a saída do passo `gerar_pacote`: o gerador agora escreve no stderr o código e a saída do composer.
+
+## O que mudou nesta rodada
+- `previa/gerar-pacote.php`: instala `vendor/` de produção quando falta e copia o `composer.lock`.
+- Pedido de prévia: a página `mais-escuro` virou `mais-escuro-menu-aberto` (`/_pbl/mais?menu=aberto`). O JS recolhe o menu no celular, então a captura precisava de um jeito de mantê-lo aberto. O limite de 16 capturas não deixa espaço para uma página a mais.
+- `pbl-admin.js`: `?menu=aberto` mantém o menu aberto (só no cliente, sem endpoint novo).
+- Q2 (seletor de conteúdo com busca): já estava implementado no código desta árvore. `TelasDeObjetos::controleDeReferencia` entrega um `<select data-pbl-seletor>` e o JS ganha o campo de busca. Sem JS vale a lista nativa. Sem conteúdo do tipo, ou acima do teto, volta ao campo numérico. A lista só traz o que a conta pode ver (teste de não vazamento).
+- Testes do `pbl-formulario.js`: `tests/unit/pbl-formulario.test.mjs` (37 testes) e `dom-falso.mjs`, na técnica `node:test` + `node:vm` do repositório. Cobrem abas, interruptores, contador, prévias, miniatura, aviso ao sair, validação ao vivo e seletor. Mais `pbl-admin-menu.test.mjs` (2 testes) e 2 testes novos do pedido e do gerador.
+
+## Resultado dos testes
+| Comando | Resultado |
+|---|---|
+| `node --test tests/unit/*.test.mjs tests/smoke/*.test.mjs tests/integration/*.test.mjs` | 68 passaram, 0 falharam, 0 ignorados (o teste do pedido de prévia roda porque `notas/previa-pedido.json` existe) |
+| `vendor/bin/phpunit tests/AdminObjetosTest.php` | passou (39 testes, 571 asserções) |
+| `vendor/bin/phpunit tests/PreviaDoPainelTest.php` | passou (12 testes, 51 asserções) |
+| `vendor/bin/phpunit tests/NovoPainelFase1Test.php` | passou (37 testes, 198 asserções) |
+| `vendor/bin/phpunit tests/AssetsAdminTest.php` | passou (11 testes, 173 asserções) |
+| Suíte PHPUnit completa e PHPStan | **não rodei nesta rodada.** Só mexi em JS, no gerador e em testes JS. A rodada anterior os registrou verdes; a CI do PR confirma. |
+| Verificação manual com servidor embutido | pacote gerado, entrada de prévia e as 4 telas do pedido respondem 200 logadas (Início, Conteúdo/1, Editar com aba Publicação e 5 interruptores ligados, Mais com `?menu=aberto`) |
+
+## Capturas e navegador
+**Não feitas.** Sem navegador aqui não vi layout, tema escuro, JS no navegador nem o menu aberto no celular. Sem JavaScript: a aba padrão e o menu aberto são cobertos só por testes de HTML do servidor (`NovoPainelFase1Test`), não por captura. A ferramenta de captura da prévia faz só GET, então a captura sem JS depende de ela permitir desligar o JS. Não sei se permite.
+
+## Mantido
+Nada em `.github/` ou `deploy/` foi alterado. A CSP continua sem inline (testes verdes). As rotas antigas seguem com 303 (`NovoPainelFase1Test`).
+
+## Riscos abertos
+| # | Risco | Ação |
 |---|---|---|
-| Permissão negada | `testPermissaoNegadaELeitorNaoEdita`, `testContaSemPermissaoDeVerRecebeNaoEncontrado` | OK |
-| Conflito de versão | `testConflitoDeVersaoDevolveAVersaoAtual`, `testEditarExigeAVersao` | OK |
-| Validação de tipo | `testValidacaoPorTipoCampoDesconhecidoEObrigatorio`, `testCriarRecusaTipoQueOPaiNaoAceita…`, `testEnderecoEmUso…` | OK |
-| HTML malicioso limpo | `testHtmlMaliciosoPassaPelaMesmaLimpezaDoPainel`, `testHtmlQueFicaVazioEhRecusado` | OK |
-| Upload inválido | `testImagemExigeAltEValidaOConteudoReal`, `testUploadInvalidoNaoAlteraOObjeto` | OK |
-| Conta de serviço sem login web | `ContaDeServicoTest` (autenticar, sessão, senha, desativação) | OK |
-| Auditoria do autor | `ConteudoAuditoriaTest`, `testHistoricoMostraAutorEAgente` | OK |
-| Fluxo de revisão | `testAutorSoEnviaParaRevisaoENaoPublica`, `testEditorGravaEPublica…` | OK |
-| `--confirmar` e lixeira nunca definitiva | `testOperacoesDestrutivasExigemConfirmar`, `testLixeiraNunca…`, `testNaoExisteCaminhoDeApagar…` | OK |
-| Stdin e limites | `testEntradaPorStdin…`, `testEntradaAcimaDoLimite…`, `testCampoAcimaDoLimite…` | OK |
-| Saída segura (terminal e JSON) | `testSaidaDeTexto…`, `testSaidaJsonEscapa…` | OK |
-| Sem segredo em argumentos | `testComandoNaoTemOpcaoDeSegredo` | OK |
-| Painel e CLI equivalentes | Teste de equivalência, mais os `Admin*Test` inalterados | OK |
+| R1 | A causa da falha da prévia é hipótese. | Conferir o log do `gerar_pacote` se subir de novo sem `PreviaIniciada`. |
+| R2 | Sem captura, tema escuro e celular não foram vistos. | O dono vê na prévia. |
+| R3 | O ambiente de prévia pode não ter `composer` nem rede. | O gerador falha com mensagem clara. Alternativa: pedir um passo de preparo que instale as dependências. |
 
-## 3. Pirâmide e risco
-- **Unidade e serviço:** o validador, o serviço e os repositórios têm cobertura indireta pelos testes de CLI e pelos `Admin*` (sem regressão).
-- **Integração:** SQLite real com migrações M026 e M027, atualizando os 4 testes que fixavam a versão do esquema em 25.
-- **E2E por CLI:** o ciclo `ver` → `editar` → conflito → `ver` → `editar` está coberto.
-- **Risco alto, com cobertura boa:** permissão, sanitização, conta de serviço.
-- **Risco médio, com cobertura parcial:** ver as lacunas em §4.
+## Como validar
+1. Rode `node --test tests/unit/*.test.mjs tests/smoke/*.test.mjs tests/integration/*.test.mjs`. Espere 68 passando e 0 falhas.
+2. Rode `vendor/bin/phpunit tests/PreviaDoPainelTest.php tests/NovoPainelFase1Test.php tests/AdminObjetosTest.php`. Espere OK.
+3. Num clone limpo (sem `vendor/`), na pasta de trabalho, rode `php previa/gerar-pacote.php`. Espere `pacote: …/gerado/pbl4.tar.gz`.
+4. Extraia o pacote e sirva `public/` com `php -S 127.0.0.1:8089 index.php`. Abra `http://pv-teste.localhost:8089/_pbl/previa-entrar?conta=admin&ir=/_pbl/mais?menu=aberto`. Espere o painel logado em "Mais" com o menu aberto. `conta=editor` e `conta=autor` também entram. As contas e a senha `demo-2026-pbl4` são fictícias.
+5. Na prévia da VSF, confira as 16 capturas (celular 390 px e desktop 1280 px, claro e escuro). Em Editar, a aba Publicação mostra interruptores ligados.
+6. Aceite quando: a prévia sobe e responde 200 logada; o marco do dono abre; o dono responde; a CI do PR continua verde.
 
-## 4. Achados e lacunas (nenhum bloqueante)
-| ID | Sev. | Achado | Recomendação |
-|---|---|---|---|
-| Q1 | Média | `open_basedir` foi verificado só à mão pelo dev. Nenhum teste automatizado cobre `imagem`/`arquivo` nem a leitura de stdin com a restrição ativa (risco R4 do plano). | Criar teste como o `LancadorDePhpOpenBasedirTest`. Não bloqueia o merge, mas deve entrar no próximo PR. |
-| Q2 | Média | Dívida de arquitetura documentada no ADR 0030: salvar, criar, mover, apagar e restaurar existem em dois lugares (painel e serviço). A proteção é o teste de equivalência, que cobre editar e criar. | Estender a equivalência a mover, lixeira e restaurar-versão. Planejar a migração do painel para o serviço. |
-| Q3 | Baixa | `--json` seguido de id (`ver --json 12`) é tratado de modo especial. A doc manda pôr `--json` por último. | Aceitável, e a doc cobre. Manter o teste de regressão. |
-| Q4 | Baixa | Tipo com campo de arquivo ou imagem obrigatório não pode ser criado pelo CLI. | Documentado. Registrar como limitação conhecida nas notas de versão. |
-| Q5 | Baixa | `--como` identifica, não autentica. Quem tem shell pode usar `--como=<admin>` (R2). | Risco aceito (P1), e a doc de segurança diz isso. Decisão do dono sobre `--permitir-admin`. |
-| Q6 | Info | O texto alternativo de imagem (`arquivo.alt`) é gravado, mas ainda não é exibido nas páginas. | Planejar para o próximo ciclo. Tem impacto de acessibilidade. |
-| Q7 | Info | A suíte leva ~15 min neste ambiente, e a suíte inteira passou. | Sem ação. |
-
-## 5. Condições do GO
-1. Aprovação do TL e portão do dono (DoD do plano).
-2. Registrar Q1, Q2 e Q6 como itens do backlog.
-3. Os commits convencionais e o CHANGELOG em `[Não lançado]` já estão no diff. Ainda falta confirmar na hora do commit que `.vsf/` não entra.
-
-## 6. Handoff
-- **QA Funcional / E2E:** exploratório manual do ciclo do Claudim com Site Exemplo (conta de serviço editor → `editar` → `--publicar` → página pública e 301 em mudança de endereço). Uma conta autor deve ficar em `submetido`. Desativar a conta deve dar saída 4 em todas as ações. Conferir os códigos de saída 0–6.
-- **SEC:** revisar as três camadas de bloqueio de login, o limite de entrada e a regra de "não existe" sem permissão de ver.
+**Ainda não pode ser validado:** a prévia no ar, as capturas e o comportamento no navegador. Falta a prévia subir.

@@ -21,6 +21,8 @@ no fim do CSS e do JS não são distribuídos (o navegador só os pede com as fe
 
 `pbl.css` é do próprio PBL4 (licença MIT do projeto).
 
+`pbl-formulario.css`, `pbl-formulario.js` e `pbl-js.js` (ADR 0033) são do próprio PBL4 (MIT): tokens, tema claro e escuro, menu, abas, interruptores e barra de ações; JS puro, sem biblioteca, sem inline. A única mudança de CSP que trazem é `blob:` em `img-src` nas telas com `data-pbl-imagem` (miniatura do arquivo escolhido).
+
 ## TinyMCE 6.8.6 (editor de texto rico, ADR 0020)
 
 Arquivos copiados sem alteração, só o necessário (núcleo, tema `silver`, skin `oxide`, ícones, plugins `lists`, `advlist`, `link`,

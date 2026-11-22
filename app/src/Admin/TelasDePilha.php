@@ -242,7 +242,7 @@ final class TelasDePilha
         $res = $colagem->colar($sessao->usuario, $destino, $tipo, $profunda);
         $corpo = '';
         if ($res['ok'] > 0) {
-            $corpo .= Pagina::alerta('success', $res['ok'] . ($res['ok'] === 1 ? ' item colado' : ' itens colados') . ' (' . $res['criados'] . ($res['criados'] === 1 ? ' objeto' : ' objetos') . ').');
+            $corpo .= Pagina::alerta('success', $res['ok'] . ($res['ok'] === 1 ? ' item colado' : ' itens colados') . ' (' . $res['criados'] . ($res['criados'] === 1 ? ' conteúdo' : ' conteúdos') . ').');
         }
         if ($res['falhas'] > 0) {
             $corpo .= Pagina::alerta('warning', $res['falhas'] . ($res['falhas'] === 1 ? ' item não foi colado' : ' itens não foram colados') . '. Veja o motivo de cada um abaixo; eles continuam na pilha.');
@@ -250,7 +250,7 @@ final class TelasDePilha
         if ($res['republicacao'] === 'falhou') {
             $corpo .= Pagina::alerta('warning', 'A mudança foi salva, mas alguma página pública não pôde ser atualizada agora. Publique o site de novo.');
         } elseif ($res['republicacao'] === 'fila') {
-            $corpo .= Pagina::alerta('info', 'Foram muitos objetos: as páginas públicas serão atualizadas aos poucos, pela fila de republicação.');
+            $corpo .= Pagina::alerta('info', 'Foram muitos conteúdos: as páginas públicas serão atualizadas aos poucos, pela fila de republicação.');
         }
         $corpo .= $this->tabelaDeLinhas($res['linhas'], true) . $this->voltar($destino, 'Ir para ' . $destino->titulo);
 
@@ -391,7 +391,7 @@ final class TelasDePilha
             . 'Em <strong>Colar aqui</strong> (na pasta de destino) há três jeitos: <em>mover</em> (itens recortados), <em>colar uma cópia</em> (rascunho, com título "Cópia de …" e endereço novo; '
             . 'opcionalmente com tudo o que está dentro; os arquivos anexados não são duplicados no disco) e <em>colar um link</em> para o original. '
             . 'A pilha tem um único site e um único modo: separar algo de outro site, ou no outro modo, esvazia o que já estava nela. '
-            . 'Cabem até ' . Pilha::LIMITE . ' itens e uma colagem cria ou move até ' . Colagem::LIMITE_TOTAL . ' objetos. '
+            . 'Cabem até ' . Pilha::LIMITE . ' itens e uma colagem cria ou move até ' . Colagem::LIMITE_TOTAL . ' conteúdos. '
             . 'Não é possível colar dentro do próprio item. Para recortar é preciso poder editar o item; para colar, poder criar no destino.';
     }
 }

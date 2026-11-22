@@ -288,7 +288,7 @@ final class ConfigDoSiteTest extends TestCase
         self::assertSame(5, substr_count($html, 'name="aba"'));
         self::assertStringContainsString('enctype="multipart/form-data"', $html);
         self::assertStringContainsString('id="painel-raros-identidade"', $html, 'imagem de abertura num bloco recolhido');
-        self::assertStringContainsString('aria-controls="cfg-nome-ajuda"', $html);
+        self::assertStringContainsString('<div id="cfg-nome-ajuda" class="pbl-ajuda-texto" role="note">', $html, 'ajuda num <details>, abre sem JS');
         self::assertSame(0, preg_match('/<script(?![^>]*\\ssrc=)/', $html), 'nenhum script inline');
         self::assertStringNotContainsString('onclick=', $html);
 

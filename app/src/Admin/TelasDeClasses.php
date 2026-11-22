@@ -202,7 +202,7 @@ final class TelasDeClasses
             . $this->campoCsrf($sessao)
             . $this->card('Identificação', $this->campo('campo-nome', 'nome', 'Nome técnico', $nome, [
                 'maxlength' => ClasseRepositorio::MAX_NOME, 'obrigatorio' => true,
-                'ajuda' => 'Letras minúsculas sem acento, números e <code>_</code>, começando por letra (por exemplo <code>noticia</code>). É o nome que os moldes usam e não muda depois.',
+                'ajuda' => 'Letras minúsculas sem acento, números e <code>_</code>, começando por letra (por exemplo <code>noticia</code>). É o nome que os modelos de página usam e não muda depois.',
             ]) . $this->camposDaClasse($descricao, $aceita, $filhas, $this->servicos->classes->todas(), null))
             . $this->acoes('Criar tipo de conteúdo', [['Cancelar', $this->linkLista()]]) . '</form>';
 
@@ -339,7 +339,7 @@ final class TelasDeClasses
         }
         foreach ($r['filhas'] as $f) {
             if ($f !== $classe->nome && $this->servicos->classes->porNome($f) === null) {
-                return 'Uma das classes filhas escolhidas não existe mais. Recarregue a página.';
+                return 'Um dos tipos de conteúdo escolhidos não existe mais. Recarregue a página.';
             }
         }
         $definidas = [];
@@ -638,7 +638,7 @@ final class TelasDeClasses
                 . $n . ' conteúdo' . ($n > 1 ? 's têm' : ' tem') . ' valor neste campo.</li>';
         }
         $corpo = '<div class="alert alert-warning" role="alert"><p>Você vai arquivar campos que estão em uso:</p><ul>' . $lista . '</ul>'
-            . '<p class="mb-0">Arquivar <strong>não apaga</strong> nada: o campo sai dos formulários de conteúdo, os valores continuam guardados e os moldes que já os mostram continuam mostrando. '
+            . '<p class="mb-0">Arquivar <strong>não apaga</strong> nada: o campo sai dos formulários de conteúdo, os valores continuam guardados e os modelos de página que já os mostram continuam mostrando. '
             . 'Dá para voltar o campo a "Ativo" depois.</p></div>'
             . '<form method="post" action="' . $this->link($classe->id) . '/editar">' . $this->campoCsrf($sessao)
             . '<input type="hidden" name="versao" value="' . $classe->versao . '">' . $this->camposOcultos($r)
@@ -738,7 +738,7 @@ final class TelasDeClasses
                     . ' <span class="pbl-resumo-meta ms-2">' . Pagina::h($this->descreverTipo($c['tipo'], $c['classe'])) . ' · ordem ' . Pagina::h($c['ordem']) . '</span>' . $selos;
                 $paineis .= Pagina::recolhivel($id, $resumo, $interno, $erro !== null);
             }
-            $corpo .= '<div class="accordion mb-3">' . $paineis . '</div>';
+            $corpo .= '<div class="pbl-recolhiveis">' . $paineis . '</div>';
         }
 
         $n = $r['novo'];
@@ -748,10 +748,10 @@ final class TelasDeClasses
             . $this->campo('novo-ordem', 'novo[ordem]', 'Ordem', $n['ordem'], ['inputmode' => 'numeric', 'pattern' => '[0-9]{1,4}', 'maxlength' => 4, 'ajuda' => 'Em branco: vai para o fim.', 'grupo' => 'mb-0'])
             . '<div class="pbl-largo">' . $this->seletorDeTipo('novo', 'novo', $n['tipo'], $n['classe'], $todas) . '</div>'
             . '<div class="pbl-largo">' . $this->checkbox('novo-obrigatorio', 'novo[obrigatorio]', 'Obrigatório', $n['obrigatorio'])
-            . $this->checkbox('novo-indexavel', 'novo[indexavel]', 'Indexável', $n['indexavel'], 'Permite filtrar e ordenar por este campo nos moldes. Não muda depois que houver valores. Referências são sempre indexáveis.') . '</div>'
+            . $this->checkbox('novo-indexavel', 'novo[indexavel]', 'Indexável', $n['indexavel'], 'Permite filtrar e ordenar por este campo nos modelos de página. Não muda depois que houver valores. Referências são sempre indexáveis.') . '</div>'
             . '<div class="pbl-largo">' . $this->camposDeArquivo('novo', 'novo', $n['tipos'], $n['tamanho_max_mb'], in_array($n['tipo'], ['arquivo', 'imagem'], true), true) . '</div>'
             . '</div>';
-        $corpo .= '<div class="accordion mb-3">' . Pagina::recolhivel('novo-campo', '<strong>Adicionar um campo</strong> <span class="pbl-resumo-meta ms-2">(opcional)</span>', $novo, $this->novoPreenchido($n)) . '</div>'
+        $corpo .= '<div class="pbl-recolhiveis">' . Pagina::recolhivel('novo-campo', '<strong>Adicionar um campo</strong> <span class="pbl-resumo-meta ms-2">(opcional)</span>', $novo, $this->novoPreenchido($n)) . '</div>'
             . $this->acoes('Salvar alterações', [['Voltar aos tipos', $this->linkLista()]], $classe->fixa ? null : ['Apagar este tipo de conteúdo', $this->link($classe->id) . '/apagar'])
             . '</form>';
 
@@ -781,8 +781,8 @@ final class TelasDeClasses
             }
         }
         $ajTipos = 'Sem marcar nenhum, vale a categoria inteira do tipo (imagens ou documentos).';
-        $html = '<fieldset><legend>Arquivos permitidos ' . Pagina::ajudaBotao($id . '-ajuda-tipos', 'Arquivos permitidos', $ajTipos) . '</legend>'
-            . Pagina::ajudaPainel($id . '-ajuda-tipos', $ajTipos)
+        $html = '<fieldset><legend>Arquivos permitidos</legend>'
+            . Pagina::ajuda($id . '-ajuda-tipos', 'Arquivos permitidos', $ajTipos)
             . '<div class="pbl-extensoes">' . $caixas . '</div></fieldset>'
             . $this->campo($id . '-tamanho-max-mb', $base . '[tamanho_max_mb]', 'Tamanho máximo (MB)', $tamanhoMaxMb, [
                 'tipo' => 'number', 'min' => 1, 'max' => TiposDeArquivo::TETO_MB, 'step' => 1, 'classe' => 'pbl-tamanho', 'grupo' => 'mb-0',
@@ -844,7 +844,7 @@ final class TelasDeClasses
         }
         $dentro .= '<div class="pbl-rotulo"><span class="form-label">Sobre esta regra</span>' . Pagina::ajuda('ajuda-regra-filhos', 'Regra de filhos', 'A regra de filhos fica guardada no tipo; a conferência ao criar ou mover conteúdo vem com as telas de conteúdo.') . '</div>';
 
-        return $html . '<div class="accordion mb-3">' . Pagina::recolhivel('filhos', '<strong>Que tipos podem ficar dentro</strong> <span class="pbl-resumo-meta ms-2">(conteúdo dentro deste tipo)</span>', $dentro, $filhas !== []) . '</div>';
+        return $html . '<div class="pbl-recolhiveis">' . Pagina::recolhivel('filhos', '<strong>Que tipos podem ficar dentro</strong> <span class="pbl-resumo-meta ms-2">(conteúdo dentro deste tipo)</span>', $dentro, $filhas !== []) . '</div>';
     }
 
     // ---------------------------------------------------------------- apagar
@@ -856,7 +856,7 @@ final class TelasDeClasses
             return Pagina::resposta('Apagar: ' . $classe->nome, $bloqueio . '<p><a href="' . $this->linkLista() . '">Voltar aos tipos de conteúdo</a></p>', Response::HTTP_OK, false, $this->barra($sessao));
         }
         $corpo = '<div class="alert alert-warning" role="alert">Nenhum conteúdo usa o tipo <code>' . Pagina::h($classe->nome) . '</code>. Apagar não tem volta: '
-            . 'moldes da pele com esse nome deixam de ser usados.</div>'
+            . 'modelos de página da pele com esse nome deixam de ser usados.</div>'
             . '<form method="post" action="' . $this->link($classe->id) . '/apagar">' . $this->campoCsrf($sessao)
             . '<input type="hidden" name="versao" value="' . $classe->versao . '">' . $this->campoSenha($sessao)
             . $this->acoes('Apagar o tipo ' . $classe->nome, [['Cancelar', $this->link($classe->id) . '/editar']], null, 'btn-danger') . '</form>';

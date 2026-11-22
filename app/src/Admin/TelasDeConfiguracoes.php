@@ -219,7 +219,7 @@ final class TelasDeConfiguracoes
             }
         }
         if ($raros !== '') {
-            $comuns .= '<div class="accordion mb-3">' . Pagina::recolhivel('raros-' . $aba, '<strong>Opções avançadas</strong> <span class="pbl-resumo-meta ms-2">(pouco usadas)</span>', $raros, $abrirRaros) . '</div>';
+            $comuns .= '<div class="pbl-recolhiveis">' . Pagina::recolhivel('raros-' . $aba, '<strong>Opções avançadas</strong> <span class="pbl-resumo-meta ms-2">(pouco usadas)</span>', $raros, $abrirRaros) . '</div>';
         }
 
         return '<form method="post" action="' . $this->link($site) . '?aba=' . $aba . '"' . ($temArquivo ? ' enctype="multipart/form-data"' : '') . ' novalidate>'

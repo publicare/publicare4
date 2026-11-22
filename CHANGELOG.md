@@ -6,6 +6,22 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+- Painel: campos que apontam para outro conteúdo agora têm lista com busca (sem JavaScript, a lista nativa; sem conteúdo do tipo, o número de antes).
+- Prévia: o gerador do pacote (`previa/gerar-pacote.php`) instala as dependências de produção quando o clone não traz `vendor/`; `?menu=aberto` mantém o menu aberto no celular (capturas).
+- Prévia: o pacote de demonstração aceita o host `pv-…` e tem entrada de prévia para as contas fictícias; só existe com o marcador `dados/previa.flag` do gerador.
+
+### Alterado
+- **Novo painel, fase 1** (ADR 0031), com a organização e a aparência do protótipo aprovado:
+  - **Menu por tarefa**, no máximo cinco itens: Início, Conteúdo, Revisar (com contador), Site e Mais. Funciona sem JavaScript em qualquer largura; o item ativo vale também em `/objeto/…` e `/classe…`; as migalhas ficam sempre visíveis.
+  - **Revisar** reúne Pendências e Meus envios (`/_pbl/revisar?aba=`); `/_pbl/pendencias` e `/_pbl/meus-envios` respondem 303 para ela. **Mais** (`/_pbl/mais`) lista Contas, Tipos de conteúdo, Peles, Atualização, Cópias e Tarefas para administradores; as outras contas veem lá só Tipos de conteúdo (leitura, como antes).
+  - **Vocabulário de usuário** nas telas e botões: Conteúdo, Tipo de conteúdo, Campo e Modelo de página (rotas e código mantêm os nomes técnicos).
+  - **Painéis recolhíveis e ajudas em `<details>`**: abrem sem JavaScript e sozinhos quando há valor ou erro; a ajuda de tela nasce recolhida.
+  - **Edição de conteúdo em abas** (Conteúdo · Publicação · Avançado) num único formulário e num único Salvar; agendamento, tags, buscadores e redes sociais, menu, posição e aparência ficam atrás de interruptores. Erro volta para a aba do primeiro erro. Barra de ações fixa (Salvar / Salvar e publicar) com estado "sem alterações / não salvo" e aviso ao sair.
+  - **Ações do conteúdo**: Editar, Publicar ou Tirar do ar e Ver no site ↗ com rótulo, mais "⋯ Mais ações"; alvo de toque de 44 px.
+  - **Início** com uma ação principal (Continuar de onde parou, Ver o site ou Criar página) e estado vazio com próximo passo.
+  - Componentes e tokens próprios (`pbl-formulario.css`, tema claro e escuro) e `pbl-formulario.js` (validação ao vivo, contador, prévias de busca e de rede social, miniatura de imagem, busca em listas), sem inline e com a CSP intacta; a única exceção é `blob:` em `img-src` nas telas com seletor de imagem.
+  - O botão de criar dentro de um conteúdo passa a se chamar "Criar conteúdo aqui dentro" (era "Criar filho").
+- `acao=salvar_publicar` no envio do formulário exige a permissão de publicar (403 e registro sem ela); `acao=publicar` continua valendo.
 ### Corrigido
 - **Geração de pacote de prévia em contêiner Alpine:** `bin/pbl demo-popular` e o nome de arquivo no download usavam `iconv(…//TRANSLIT)`, que não existe em musl e gerava aviso ("Wrong encoding"), derrubando a prévia da fábrica. Passa a usar `Pbl\Conteudo\Ascii` (intl quando há; tabela do português caso contrário), sem aviso.
 

@@ -7,13 +7,44 @@ import { RAIZ } from '../unit/raiz.mjs';
 const REPO = join(RAIZ, '..');
 const pedidoPath = join(REPO, '..', 'notas', 'previa-pedido.json');
 
-test('pedido de prévia: estático, docroot prototipo-ux, entrada existente, sem PHP', { skip: !existsSync(pedidoPath) && 'pedido fora do jail (CI do repositório)' }, () => {
+test('pedido de prévia: PHP v2, pacote gerado por script versionado, docroot dentro da pasta extraída, entrada logada pelas contas fictícias', { skip: !existsSync(pedidoPath) && 'pedido fora do jail (CI do repositório)' }, () => {
   const p = JSON.parse(readFileSync(pedidoPath, 'utf8'));
-  assert.ok([1, 2].includes(p.versao));
-  assert.equal(p.modo, 'estatico');
-  assert.equal(p.raiz, 'prototipo-ux');
-  assert.ok(existsSync(join(REPO, p.raiz, p.entrada)), 'entrada existe');
-  for (const t of p.paginas) assert.ok(existsSync(join(REPO, p.raiz, t.caminho.replace(/^\//, '') || p.entrada)), `tela ${t.caminho}`);
+  assert.equal(p.versao, 2);
+  assert.equal(p.modo, 'php');
+  const gerar = p.preparo.find((a) => a.acao === 'gerar_pacote');
+  const extrair = p.preparo.find((a) => a.acao === 'extrair_pacote');
+  assert.ok(gerar && extrair, 'gerar_pacote seguido de extrair_pacote');
+  assert.ok(existsSync(join(REPO, gerar.script)), 'script do pacote existe no repositório');
+  assert.equal(extrair.de, gerar.para);
+  assert.ok(p.docroot.startsWith(extrair.para + '/'), 'docroot dentro da pasta extraída');
+  assert.ok(p.gravaveis.includes(extrair.para + '/dados'));
+  assert.ok(p.paginas.length * p.viewports.length <= 16);
+  assert.equal(new Set(p.paginas.map((t) => t.nome)).size, p.paginas.length, 'nomes únicos');
+  for (const t of p.paginas) {
+    assert.match(t.nome, /^[a-z0-9-]{1,40}$/);
+    assert.ok(t.caminho.length <= 120, t.nome);
+    assert.match(t.caminho, /^\/_pbl\/previa-entrar\?conta=(admin|editor|autor)&/, 'entra pela rota de prévia (a captura só faz GET)');
+  }
+  const temas = new Set(p.paginas.map((t) => /tema=(claro|escuro)/.exec(t.caminho)?.[1]));
+  assert.deepEqual([...temas].sort(), ['claro', 'escuro']);
+  assert.ok(p.viewports.some((v) => v.largura === 390), 'viewport de celular (390 px)');
+  assert.ok(p.viewports.some((v) => v.largura >= 1024), 'viewport de desktop');
+  assert.ok(p.paginas.some((t) => t.caminho.includes('menu=aberto')), 'captura do menu aberto (o JS recolhe o menu no celular)');
+  for (const tela of ['/_pbl/&', '/_pbl/conteudo/', '/_pbl/objeto/1/editar?aba=publicacao', '/_pbl/mais']) {
+    assert.ok(p.paginas.some((t) => t.caminho.includes('ir=' + tela)), 'tela crítica ' + tela);
+  }
+});
+
+test('gerador do pacote instala as dependências de produção quando o clone não traz vendor/', () => {
+  const g = readFileSync(join(REPO, 'previa', 'gerar-pacote.php'), 'utf8');
+  assert.match(g, /composer install --no-dev/);
+  assert.match(g, /'composer\.lock'/);
+});
+
+test('gerador do pacote grava o marcador do modo prévia e o aceita só em dados/', () => {
+  const g = readFileSync(join(REPO, 'previa', 'gerar-pacote.php'), 'utf8');
+  assert.match(g, /ModoPrevia::MARCADOR/);
+  assert.match(g, /\$stage \. '\/dados\/'/);
 });
 
 test('o protótipo não tem PHP nem arquivos de servidor', () => {

@@ -557,10 +557,11 @@ final class AdminObjetosTest extends TestCase
         $this->evento('Filho um', $pai);
         $html = $this->html($this->req('GET', '/_pbl/objeto/' . $pai->id, $this->token('editor')));
 
-        foreach (['class="pbl-selos"', 'class="pbl-meta"', 'class="pbl-card pbl-conteudo"', 'pbl-btn-icone', 'Filtrar e ordenar', 'data-bs-target="#filtros-lista"', 'class="list-group pbl-filhos d-md-none', 'pbl-filho-titulo'] as $trecho) {
+        foreach (['class="pbl-selos"', 'class="pbl-meta"', 'class="pbl-card pbl-conteudo"', 'pbl-btn-icone', 'Filtrar e ordenar', '<details class="pbl-recolhivel" id="painel-filtros-lista"', 'class="list-group pbl-filhos d-md-none', 'pbl-filho-titulo'] as $trecho) {
             self::assertStringContainsString($trecho, $html, $trecho);
         }
-        self::assertStringContainsString('class="btn btn-primary bg-gradient pbl-btn-icone" title="Editar" href="/_pbl/objeto/' . $pai->id . '/editar"', $html, 'Editar sempre à vista');
+        self::assertStringContainsString('<a class="btn btn-primary" href="/_pbl/objeto/' . $pai->id . '/editar">Editar</a>', $html, 'Editar sempre à vista, com rótulo (D4)');
+        self::assertStringContainsString('<details class="pbl-mais">', $html, 'o resto em Mais ações');
         self::assertStringNotContainsString('<th scope="row">', $html, 'sem a tabela de propriedades de rótulo/valor');
         self::assertStringNotContainsString('style=', $html);
         self::assertStringNotContainsString('<script>', $html);
@@ -1037,5 +1038,20 @@ final class AdminObjetosTest extends TestCase
 
         self::assertSame(303, $r->getStatusCode(), $this->html($r));
         self::assertSame('<p style="text-align: center">Aviso</p>', $this->obj($this->idCriado($r))->dados['corpo']);
+    }
+    public function testCampoDeReferenciaViraListaComBuscaEsoMostraOQueAPessoaPodeVer(): void
+    {
+        $e = $this->evento('Com ref', null, ['pagina_relacionada' => $this->sobre->id]);
+
+        $admin = $this->html($this->req('GET', '/_pbl/objeto/' . $e->id . '/editar', $this->token('admin')));
+        self::assertMatchesRegularExpression('#<select[^>]*name="dados\[pagina_relacionada\]"[^>]*data-pbl-seletor#', $admin, 'lista com busca no lugar do número');
+        self::assertStringContainsString('#' . $this->inicio->id . ' · ' . $this->inicio->titulo, $admin);
+        self::assertMatchesRegularExpression('#<option value="' . $this->sobre->id . '" selected>#', $admin, 'valor atual marcado');
+        self::assertStringNotContainsString('type="number" min="1"', $admin);
+
+        // Quem só vê "sobre" não recebe o título do resto do site (sem vazar conteúdo alheio na lista).
+        $editor = $this->html($this->req('GET', '/_pbl/objeto/' . $e->id . '/editar', $this->token('editor')));
+        self::assertStringContainsString('#' . $this->sobre->id . ' · ' . $this->sobre->titulo, $editor);
+        self::assertStringNotContainsString('#' . $this->inicio->id . ' · ' . $this->inicio->titulo, $editor);
     }
 }

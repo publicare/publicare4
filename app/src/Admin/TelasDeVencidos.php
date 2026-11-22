@@ -71,7 +71,7 @@ final class TelasDeVencidos
             }
         }
 
-        return Pagina::resposta('Objetos vencidos', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Conteúdo publicado cuja <strong>data de validade já passou</strong>: saiu do ar sozinho e aguarda uma decisão (prorrogar a validade ou despublicar).');
+        return Pagina::resposta('Conteúdos vencidos', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Conteúdo publicado cuja <strong>data de validade já passou</strong>: saiu do ar sozinho e aguarda uma decisão (prorrogar a validade ou despublicar).');
     }
 
     private function linha(SessaoAtiva $sessao, Objeto $o): string

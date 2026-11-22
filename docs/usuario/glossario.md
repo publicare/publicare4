@@ -60,3 +60,10 @@ As palavras que o Publicare usa, em linguagem simples.
 | **SEO** | Título, descrição e imagem pensados para buscadores e redes sociais; opcionais, e sem eles o site usa o título, o resumo e a imagem de destaque. |
 | **Busca (do site)** | A caixa de busca do visitante e a página de resultados, que usam o mesmo motor de busca do sistema. |
 | **PBL3** | A versão anterior do Publicare. |
+
+## Nomes do painel (a partir do novo painel)
+- **Conteúdo**: cada página, notícia, pasta, imagem ou arquivo do site.
+- **Tipo de conteúdo**: o "molde de campos" de um conteúdo (página, notícia, evento…).
+- **Campo**: cada informação de um tipo de conteúdo (título, resumo, texto…).
+- **Modelo de página**: o arquivo que desenha a página no site (dentro de uma pele).
+- **Revisar**: pendências (o que espera a sua revisão) e meus envios.

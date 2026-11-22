@@ -15,6 +15,7 @@ use Pbl\Instalacao\Instalador;
 use Pbl\Conteudo\Site;
 use Pbl\Instalacao\InstaladorWeb;
 use Pbl\Instalacao\PaginaNaoInstalado;
+use Pbl\Previa\ModoPrevia;
 use Pbl\Publicacao\PaginasDinamicas;
 use Pbl\Publicacao\SitemapERobots;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
@@ -78,6 +79,11 @@ final class Aplicacao
             return $this->texto('Domínio inválido', Response::HTTP_BAD_REQUEST);
         }
         $dominio = $servicos->dominios->porHost($host);
+        if ($dominio === null && ModoPrevia::hostDaPrevia($host) && (new ModoPrevia($this->caminhos))->ativo()) {
+            // Prévia descartável: o host `pv-…` não é cadastrável de antemão; atende como o primeiro domínio (sem redirecionar).
+            $primeiro = $servicos->sites->todos()[0] ?? null;
+            $dominio = $primeiro === null ? null : new Dominio($host, $primeiro->id, Dominio::SERVIR);
+        }
         $site = $dominio === null ? null : $servicos->sites->porId($dominio->siteId);
         if ($dominio === null || $site === null) {
             return $this->texto('Domínio não configurado', Response::HTTP_NOT_FOUND);

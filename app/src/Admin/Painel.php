@@ -11,6 +11,7 @@ use Pbl\Acesso\SessaoAtiva;
 use Pbl\Acesso\SessaoRepositorio;
 use Pbl\Cron\PseudoCron;
 use Pbl\Demo\AvisoDaDemo;
+use Pbl\Previa\ModoPrevia;
 use Pbl\Servicos;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -69,6 +70,7 @@ final class Painel
         $rotaDeVencidos = TelasDeVencidos::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeLixeira = TelasDeLixeira::rota(self::PREFIXO, $caminho, $metodo);
         $resposta = match (true) {
+            $caminho === self::PREFIXO . '/mais' && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeMais($this->servicos, $this->csrf))->exibir($s)),
             $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s)),
             ApiDeAcoes::atende($caminho, $metodo) => $this->api($requisicao, $caminho),
             $objeto !== null && TelasDeObjetos::atende($subrota, $metodo) => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->objetos()->tratar($s, $objeto, $subrota, $requisicao)),
@@ -85,6 +87,7 @@ final class Painel
             $rotaDePilha !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDePilha($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDePilha, $requisicao)),
             $rotaDeVencidos !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeVencidos($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeVencidos, $requisicao)),
             $rotaDeLixeira !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeLixeira($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeLixeira, $requisicao)),
+            $caminho === self::PREFIXO . '/previa-entrar' && $metodo === 'GET' && (new ModoPrevia($this->servicos->caminhos))->ativo() => $this->entrarNaPrevia($requisicao),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'GET' => $this->formularioDeEntrar($requisicao),
             $caminho === self::PREFIXO . '/entrar' && $metodo === 'POST' => $this->entrar($requisicao),
             $caminho === self::PREFIXO . '/sair' && $metodo === 'POST' => $this->sair($requisicao),
@@ -124,6 +127,25 @@ final class Painel
         } catch (\Throwable) {
             Pagina::definirRevisao(0, false, false);
         }
+        try {
+            Pagina::definirMenu($sessao->usuario->administrador, $this->siteQueAdministra($sessao));
+        } catch (\Throwable) {
+            Pagina::definirMenu($sessao->usuario->administrador, null);
+        }
+    }
+
+    /** Primeiro site que a conta administra (item "Site" do menu); null se nenhum. */
+    private function siteQueAdministra(SessaoAtiva $sessao): ?int
+    {
+        $u = $sessao->usuario;
+        foreach ($this->servicos->sites->todos() as $site) {
+            $raiz = $site->objetoRaizId === null ? null : $this->servicos->objetos->porId($site->objetoRaizId);
+            if ($this->servicos->permissoes->podeAdministrarSite($u, $raiz)) {
+                return $site->id;
+            }
+        }
+
+        return null;
     }
 
     /** API da barra de edição: sem sessão devolve 401 em JSON (e não o redirecionamento das telas). */
@@ -156,6 +178,34 @@ final class Painel
             . Pagina::campo('campo-login', 'login', 'Login', '', ['autocomplete' => 'username', 'maxlength' => 64, 'obrigatorio' => true, 'autofocus' => true])
             . Pagina::campo('campo-senha', 'senha', 'Senha', '', ['tipo' => 'password', 'autocomplete' => 'current-password', 'maxlength' => 1024, 'obrigatorio' => true])
             . Pagina::acoes('Entrar') . '</form>', $status, false, '', [], 'Entre com o login e a senha da sua conta.');
+    }
+
+    /**
+     * Só no modo prévia (marcador gravado pelo gerador do pacote de demonstração): abre a sessão de uma conta fictícia e vai para `ir`
+     * (`?conta=admin|editor|autor&ir=/_pbl/...&tema=claro|escuro`). Em instalação real a rota nem existe (cai no 404 padrão).
+     */
+    private function entrarNaPrevia(Request $requisicao): Response
+    {
+        $conta = (string) $requisicao->query->get('conta', 'admin');
+        $usuario = in_array($conta, ModoPrevia::CONTAS, true) ? $this->servicos->usuarios->porLogin($conta) : null;
+        if ($usuario === null) {
+            return $this->pagina('Não encontrado', '<p>Conta de demonstração não encontrada.</p>', Response::HTTP_NOT_FOUND);
+        }
+        $antigo = $this->tokenDoCookie($requisicao);
+        if ($antigo !== null) {
+            $this->sessoes->encerrar($antigo);
+        }
+        $expira = time() + SessaoRepositorio::DURACAO_MAXIMA;
+        $resposta = new RedirectResponse(ModoPrevia::destinoSeguro((string) $requisicao->query->get('ir', '/_pbl/')), Response::HTTP_SEE_OTHER);
+        $resposta->headers->setCookie($this->cookie($requisicao, $this->sessoes->criar($usuario->id), $expira));
+        $resposta->headers->setCookie($this->indicador($requisicao, '1', $expira));
+        $tema = (string) $requisicao->query->get('tema', '');
+        if ($tema === 'claro' || $tema === 'escuro') {
+            // Preferência de tema da prévia (lida por pbl-js.js); sem segredo.
+            $resposta->headers->setCookie(Cookie::create('pbl-tema-previa', $tema, $expira, '/', null, $this->rede->seguro($requisicao), false, false, Cookie::SAMESITE_LAX));
+        }
+
+        return $resposta;
     }
 
     private function entrar(Request $requisicao): Response

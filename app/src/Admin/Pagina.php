@@ -19,6 +19,15 @@ final class Pagina
     public const ASSETS = '/_pbl/assets';
     public const BOOTSTRAP = self::ASSETS . '/bootstrap-5.3.8/bootstrap.min.css';
     public const CSS = self::ASSETS . '/pbl.css';
+    /** Sistema de formulário e casca do painel (ADR 0031): tokens, tema claro e escuro, menu, abas, interruptores e barra de ações. */
+    public const FORMULARIO_CSS = self::ASSETS . '/pbl-formulario.css';
+    /** Marca o `<html>` com `js` e aplica o tema antes de pintar; arquivo minúsculo, sem `defer`, nunca inline (CSP). */
+    public const BASE_JS = self::ASSETS . '/pbl-js.js';
+    /** Melhoria progressiva dos formulários (abas, interruptores, validação ao vivo, contador, prévias, seletores); só nas telas com `data-pbl-form`. */
+    public const FORMULARIO_JS = self::ASSETS . '/pbl-formulario.js';
+    public const MARCA_FORMULARIO = 'data-pbl-form';
+    /** Telas com campo de imagem: só nelas a CSP aceita `blob:` em `img-src` (miniatura do arquivo escolhido). */
+    public const MARCA_IMAGEM = 'data-pbl-imagem';
     /** Scripts da administração: só arquivos do próprio site (Bootstrap local + `pbl-admin.js`), nunca inline (CSP `script-src 'self'`). */
     public const BOOTSTRAP_JS = self::ASSETS . '/bootstrap-5.3.8/bootstrap.bundle.min.js';
     public const JS = self::ASSETS . '/pbl-admin.js';
@@ -152,6 +161,16 @@ final class Pagina
         self::$revisao = [$pendencias, $revisor, $envia];
     }
 
+    /** Site que a conta administra (primeiro, para o item "Site" do menu); null = não administra nenhum. Definido por `Painel`. */
+    private static ?int $siteDoMenu = null;
+    private static bool $administradorDoMenu = false;
+
+    public static function definirMenu(bool $administrador, ?int $siteId): void
+    {
+        self::$administradorDoMenu = $administrador;
+        self::$siteDoMenu = $siteId;
+    }
+
     /**
      * `$navegacao` (HTML já escapado, em geral uma `<nav>`) vai num `<header>` antes do `<main>`; o título vira o `<h1>`.
      * `$migalhas` (lista de `[rótulo, href|null]`, o último sem href = tela atual) vira o caminho de volta acima do título;
@@ -165,20 +184,25 @@ final class Pagina
         $instalar = str_contains($corpo, '<form method="post" action="/_pbl/instalar"') && str_contains($corpo, self::MARCA_INSTALAR);
         $progresso = str_contains($corpo, self::MARCA_PROGRESSO);
         $backup = str_contains($corpo, self::MARCA_BACKUP);
+        $formulario = str_contains($corpo, self::MARCA_FORMULARIO);
         $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
-            . '<meta name="robots" content="noindex"><title>' . self::h($titulo) . ' — PBL4</title>'
+            . '<meta name="robots" content="noindex"><meta name="color-scheme" content="light dark"><title>' . self::h($titulo) . ' — PBL4</title>'
             . '<link rel="stylesheet" href="' . self::urlVersionada(self::BOOTSTRAP) . '"><link rel="stylesheet" href="' . self::urlVersionada(self::CSS) . '">'
+            . '<link rel="stylesheet" href="' . self::urlVersionada(self::FORMULARIO_CSS) . '">'
+            . '<script src="' . self::urlVersionada(self::BASE_JS) . '"></script>'
             . '<script src="' . self::urlVersionada(self::BOOTSTRAP_JS) . '" defer></script><script src="' . self::urlVersionada(self::JS) . '" defer></script>'
+            . ($formulario ? '<script src="' . self::urlVersionada(self::FORMULARIO_JS) . '" defer></script>' : '')
             . ($instalar ? '<script src="' . self::urlVersionada(self::INSTALAR_JS) . '" defer></script>' : '')
             . ($progresso ? '<script src="' . self::urlVersionada(self::PROGRESSO_JS) . '" defer></script>' : '')
             . ($backup ? '<script src="' . self::urlVersionada(self::BACKUP_JS) . '" defer></script>' : '')
             . ($editor ? '<script src="' . self::urlVersionada(self::TINYMCE_JS) . '" defer></script><script src="' . self::urlVersionada(self::EDITOR_JS) . '" defer></script>' : '')
             . '</head><body>' . self::$avisoDeDemo . '<a class="visually-hidden-focusable" href="#conteudo">Pular para o conteúdo</a>'
-            . ($navegacao === '' ? '' : '<header>' . $navegacao . '</header>')
-            . '<main id="conteudo" class="container py-3 py-md-4">' . self::migalhas($migalhas)
+            . '<div class="pbl-app' . ($navegacao === '' ? ' pbl-sem-menu' : '') . '">'
+            . ($navegacao === '' ? '' : '<header class="pbl-lateral">' . $navegacao . '</header>')
+            . '<main id="conteudo" class="pbl-principal" tabindex="-1">' . self::migalhas($migalhas)
             . ($ajudaDaTela === '' ? '<h1 class="h3 mb-2">' . self::h($titulo) . '</h1>' : '<div class="pbl-rotulo"><h1 class="h3 mb-2">' . self::h($titulo) . '</h1>' . self::ajuda('ajuda-tela', $titulo, $ajudaDaTela) . '</div>')
             . ($descricao === '' ? '<div class="mb-4"></div>' : '<p class="text-body-secondary mb-4">' . $descricao . '</p>')
-            . self::tabelasEmCartoes($corpo) . '</main></body></html>';
+            . self::tabelasEmCartoes($corpo) . '</main></div></body></html>';
 
         return self::protegida(new Response($html, $status, ['Content-Type' => 'text/html; charset=utf-8']), $seguro, $editor);
     }
@@ -237,68 +261,71 @@ final class Pagina
     }
 
     /**
-     * Barra de quem entrou: na primeira linha a marca, o nome, o botão Sair e (no celular) o botão do menu; os links das seções ficam
-     * num `collapse` do Bootstrap, abaixo no celular e em linha a partir de 768 px. A seção atual leva `aria-current="page"`. `$nome` e `$tokenCsrf` chegam sem escape.
+     * Item do menu principal que a rota ocupa (D7): o mapa de prefixos é o único lugar que decide, e `/objeto/…` e `/classe…`
+     * deixam de cair em "Início". Telas novas registram o prefixo aqui. Valores: inicio, conteudo, revisar, site, mais.
      */
-    public static function barra(string $nome, string $tokenCsrf, bool $administrador = false): string
+    public static function itemAtivo(string $caminho): string
     {
-        $caminho = rtrim(self::$caminhoAtual, '/');
-        $secao = match (true) {
-            str_starts_with($caminho, '/_pbl/classes'), str_starts_with($caminho, '/_pbl/modelos') => 'classes',
-            str_starts_with($caminho, '/_pbl/conteudo') => 'conteudo',
-            str_starts_with($caminho, '/_pbl/vencidos') => 'vencidos',
-            str_starts_with($caminho, '/_pbl/lixeira') => 'lixeira',
-            str_starts_with($caminho, '/_pbl/contas') => 'contas',
-            str_starts_with($caminho, '/_pbl/atualizacao') => 'atualizacao',
-            str_starts_with($caminho, '/_pbl/copias') => 'copias',
-            str_starts_with($caminho, '/_pbl/tarefas') => 'tarefas',
-            str_starts_with($caminho, '/_pbl/pendencias') => 'pendencias',
-            str_starts_with($caminho, '/_pbl/meus-envios') => 'envios',
-            default => 'inicio',
-        };
-        [$pendencias, $revisor, $envia] = self::$revisao;
-        $itens = ['inicio' => ['/_pbl/', 'Sites e conteúdo']];
-        $itens['conteudo'] = ['/_pbl/conteudo', 'Conteúdo'];
-        $itens['vencidos'] = ['/_pbl/vencidos', 'Vencidos'];
-        $itens['lixeira'] = ['/_pbl/lixeira', 'Lixeira'];
-        if ($revisor) {
-            $itens['pendencias'] = ['/_pbl/pendencias', 'Pendências' . ($pendencias > 0 ? ' <span class="badge text-bg-warning" title="Aguardando revisão">' . $pendencias . '</span>' : '')];
-        }
-        if ($envia) {
-            $itens['envios'] = ['/_pbl/meus-envios', 'Meus envios'];
-        }
-        $itens['classes'] = ['/_pbl/classes', 'Tipos de conteúdo'];
-        if ($administrador) {
-            $itens['contas'] = ['/_pbl/contas', 'Contas'];
-            $itens['atualizacao'] = ['/_pbl/atualizacao', 'Atualização'];
-            $itens['copias'] = ['/_pbl/copias', 'Cópias de segurança'];
-            $itens['tarefas'] = ['/_pbl/tarefas', 'Tarefas agendadas'];
-        }
-        $links = '';
-        foreach ($itens as $chave => [$href, $rotulo]) {
-            $links .= '<li class="nav-item"><a class="nav-link' . ($chave === $secao ? ' active' : '') . '" href="' . $href . '"' . ($chave === $secao ? ' aria-current="page"' : '') . '>' . $rotulo . '</a></li>';
+        $caminho = rtrim($caminho, '/');
+        $mapa = [
+            'conteudo' => ['/_pbl/conteudo', '/_pbl/objeto', '/_pbl/vencidos', '/_pbl/lixeira', '/_pbl/pilha'],
+            'revisar' => ['/_pbl/revisar', '/_pbl/pendencias', '/_pbl/meus-envios', '/_pbl/revisao'],
+            'site' => ['/_pbl/site'],
+            'mais' => ['/_pbl/mais', '/_pbl/classes', '/_pbl/classe', '/_pbl/modelos', '/_pbl/contas', '/_pbl/conta', '/_pbl/atualizacao', '/_pbl/copias', '/_pbl/tarefas'],
+        ];
+        foreach ($mapa as $item => $prefixos) {
+            foreach ($prefixos as $prefixo) {
+                if ($caminho === $prefixo || str_starts_with($caminho, $prefixo . '/')) {
+                    return $item;
+                }
+            }
         }
 
-        return '<nav class="navbar navbar-expand-xl bg-dark pbl-barra" data-bs-theme="dark" aria-label="Administração"><div class="container">'
-            . '<a class="navbar-brand" href="/_pbl/">PBL4</a>'
-            . '<div class="pbl-usuario d-flex align-items-center gap-2 ms-auto"><span class="navbar-text pbl-nome">' . self::h($nome) . '</span>'
-            . '<form method="post" action="/_pbl/sair"><input type="hidden" name="_csrf" value="' . self::h($tokenCsrf) . '">'
-            . '<button type="submit" class="btn btn-sm btn-outline-light">Sair</button></form></div>'
-            . '<button class="navbar-toggler ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#menu-principal" aria-controls="menu-principal" aria-expanded="false" aria-label="Abrir o menu">'
-            . '<span class="navbar-toggler-icon"></span></button>'
-            . '<div class="collapse navbar-collapse" id="menu-principal"><ul class="navbar-nav pbl-links">' . $links . '</ul></div></div></nav>';
+        return 'inicio';
     }
 
     /**
-     * Painel recolhível do Bootstrap (`accordion` + `collapse`, sem `data-bs-parent`: abrir um não fecha os outros). `$resumo` e `$corpo`
-     * chegam como HTML já escapado; `$id` precisa ser único na página. Agrupe vários dentro de `<div class="accordion">`.
+     * Menu por tarefa (ADR 0031): no máximo cinco itens, Início, Conteúdo, Revisar (com contador, só para quem revisa ou envia), Site (só
+     * quem administra um site) e Mais (todos; dentro, cada pessoa só vê o que pode abrir). Funciona sem JavaScript: é um `<details open>` e o botão "Menu" só aparece
+     * abaixo de 1024 px; o `pbl-admin.js` recolhe o menu no celular. A tela atual leva `aria-current="page"`. `$nome` e `$tokenCsrf` chegam sem escape.
+     */
+    public static function barra(string $nome, string $tokenCsrf, bool $administrador = false): string
+    {
+        $administrador = $administrador || self::$administradorDoMenu;
+        $ativo = self::itemAtivo(self::$caminhoAtual);
+        [$pendencias, $revisor, $envia] = self::$revisao;
+        $itens = ['inicio' => ['/_pbl/', 'Início'], 'conteudo' => ['/_pbl/conteudo', 'Conteúdo']];
+        if ($revisor || $envia) {
+            $itens['revisar'] = ['/_pbl/revisar' . ($revisor ? '' : '?aba=envios'), 'Revisar' . ($pendencias > 0 ? ' <span class="pbl-contagem" title="Aguardando revisão">' . $pendencias . '<span class="visually-hidden"> aguardando revisão</span></span>' : '')];
+        }
+        if (self::$siteDoMenu !== null) {
+            $itens['site'] = ['/_pbl/site/' . self::$siteDoMenu . '/configuracoes', 'Site'];
+        }
+        $itens['mais'] = ['/_pbl/mais', 'Mais'];
+        $links = '';
+        foreach ($itens as $chave => [$href, $rotulo]) {
+            $links .= '<li><a href="' . $href . '"' . ($chave === $ativo ? ' aria-current="page"' : '') . '>' . $rotulo . '</a></li>';
+        }
+
+        return '<div class="pbl-topo"><a class="pbl-marca" href="/_pbl/">PBL4</a></div>'
+            . '<details class="pbl-menu" open data-pbl-menu><summary>Menu</summary>'
+            . '<nav class="pbl-menu-nav" aria-label="Principal"><ul class="pbl-itens">' . $links . '</ul>'
+            . '<div class="pbl-pessoa"><span class="pbl-nome">' . self::h($nome) . '</span>'
+            . '<button type="button" class="btn btn-sm btn-outline-secondary pbl-tema" data-pbl-tema>Tema</button>'
+            . '<form method="post" action="/_pbl/sair"><input type="hidden" name="_csrf" value="' . self::h($tokenCsrf) . '">'
+            . '<button type="submit" class="btn btn-sm btn-outline-secondary">Sair</button></form></div></nav></details>';
+    }
+
+    /**
+     * Painel recolhível: `<details>`/`<summary>` nativos (D3, ADR 0031), que abrem e fecham sem JavaScript e pelo teclado; o navegador
+     * já expõe o estado aberto/fechado ao leitor de tela. `$aberto` (há valor ou erro dentro) nasce com `open`. `$resumo` e `$corpo`
+     * chegam como HTML já escapado; `$id` precisa ser único na página (vira o `id` do `<details>`, âncora de `aria-describedby`/foco).
+     * Agrupe vários dentro de `<div class="pbl-recolhiveis">`.
      */
     public static function recolhivel(string $id, string $resumo, string $corpo, bool $aberto = false): string
     {
-        $alvo = self::h('painel-' . $id);
-
-        return '<div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button pbl-resumo' . ($aberto ? '' : ' collapsed') . '" type="button" data-bs-toggle="collapse" data-bs-target="#' . $alvo . '" aria-expanded="' . ($aberto ? 'true' : 'false') . '" aria-controls="' . $alvo . '">'
-            . $resumo . '</button></h3><div id="' . $alvo . '" class="accordion-collapse collapse' . ($aberto ? ' show' : '') . '"><div class="accordion-body">' . $corpo . '</div></div></div>';
+        return '<details class="pbl-recolhivel" id="' . self::h('painel-' . $id) . '"' . ($aberto ? ' open' : '') . '><summary class="pbl-resumo">' . $resumo . '</summary>'
+            . '<div class="pbl-recolhivel-corpo">' . $corpo . '</div></details>';
     }
 
     /**
@@ -341,30 +368,31 @@ final class Pagina
     // ---------------------------------------------------------------- componentes de formulário (HTML sempre escapado)
 
     /**
-     * Ajuda de um campo, bloco ou tela atrás de um botão "?" (collapse do Bootstrap local, sem JavaScript inline): o botão leva
-     * `aria-expanded`/`aria-controls`, funciona por teclado e tem nome acessível ("Ajuda: assunto"); o painel (`role="note"`) tem o
-     * `id` pedido, então o campo pode apontá-lo em `aria-describedby` e o leitor de tela lê o texto mesmo recolhido. Devolve botão +
-     * painel: ponha-os logo depois do rótulo/título, dentro de um `.pbl-rotulo` (o painel ocupa a linha de baixo).
-     * `$id` único na página; `$assunto` é texto puro (nome do campo); `$html` é HTML já escapado.
+     * Ajuda de um campo, bloco ou tela atrás de um "?" (`<details>`, D15): abre sem JavaScript, por teclado, e nasce recolhida. O texto
+     * (`role="note"`, `id` pedido) está sempre no HTML, então o campo pode apontá-lo em `aria-describedby` e o leitor de tela o lê
+     * mesmo fechado. Nome acessível do "?": "Ajuda: assunto". Ponha logo depois do rótulo/título, dentro de um `.pbl-rotulo`.
+     * `$id` único na página; `$assunto` é texto puro (nome do campo); `$html` é HTML já escapado; `$aberta` abre (ex.: erro no campo).
      */
-    public static function ajuda(string $id, string $assunto, string $html): string
-    {
-        return self::ajudaBotao($id, $assunto, $html) . self::ajudaPainel($id, $html);
-    }
-
-    public static function ajudaBotao(string $id, string $assunto, string $html): string
+    public static function ajuda(string $id, string $assunto, string $html, bool $aberta = false): string
     {
         if ($html === '') {
             return '';
         }
-        $i = self::h($id);
 
-        return '<button type="button" class="btn btn-sm btn-outline-secondary pbl-ajuda-botao" data-bs-toggle="collapse" data-bs-target="#' . $i . '" aria-expanded="false" aria-controls="' . $i . '" aria-label="Ajuda: ' . self::h($assunto) . '"><span aria-hidden="true">?</span></button>';
+        return '<details class="pbl-ajuda"' . ($aberta ? ' open' : '') . '><summary aria-label="Ajuda: ' . self::h($assunto) . '"><span aria-hidden="true">?</span></summary>'
+            . '<div id="' . self::h($id) . '" class="pbl-ajuda-texto" role="note">' . $html . '</div></details>';
     }
 
+    /** Só o "?" (para quem separa botão e painel); com `<details>` os dois são uma peça só, então devolve a ajuda inteira. */
+    public static function ajudaBotao(string $id, string $assunto, string $html): string
+    {
+        return self::ajuda($id, $assunto, $html);
+    }
+
+    /** Mantida por compatibilidade: o painel agora vai junto do "?" (ver `ajuda`), então aqui não há nada a acrescentar. */
     public static function ajudaPainel(string $id, string $html): string
     {
-        return $html === '' ? '' : '<div id="' . self::h($id) . '" class="collapse pbl-ajuda-painel form-text" role="note">' . $html . '</div>';
+        return '';
     }
 
     /** Linha do rótulo (`<label>`, título) com o "?" de ajuda ao lado; `$rotuloHtml` já escapado. */
@@ -428,11 +456,10 @@ final class Pagina
     {
         static $n = 0;
         $id = 'ajuda-bloco-' . (++$n);
-        $botao = self::ajudaBotao($id, $titulo, $ajuda);
-        $rot = self::h($titulo) . ($botao === '' ? '' : ' ' . $botao);
+        $rot = self::h($titulo);
         $cab = $tag === 'fieldset' ? '<legend>' . $rot . '</legend>' : '<h2 class="pbl-card-titulo">' . $rot . '</h2>';
 
-        return '<' . $tag . ' class="pbl-card' . ($classe === '' ? '' : ' ' . $classe) . '">' . $cab . self::ajudaPainel($id, $ajuda) . $corpo . '</' . $tag . '>';
+        return '<' . $tag . ' class="pbl-card' . ($classe === '' ? '' : ' ' . $classe) . '">' . $cab . self::ajuda($id, $titulo, $ajuda) . $corpo . '</' . $tag . '>';
     }
 
     /** Aviso Bootstrap: `$tipo` = danger, success, warning ou info; erro/aviso usam `role="alert"`, o resto `role="status"`. `$texto` é texto puro. */
@@ -440,6 +467,97 @@ final class Pagina
     {
         return '<div' . ($id === '' ? '' : ' id="' . self::h($id) . '"') . ' class="alert alert-' . self::h($tipo) . '" role="' . (in_array($tipo, ['danger', 'warning'], true) ? 'alert' : 'status') . '">'
             . ($html ? $texto : self::h($texto)) . '</div>';
+    }
+
+    /**
+     * Seção de formulário (ADR 0031): título (h2), uma linha de descrição e o corpo em coluna, separada da anterior por uma linha fina.
+     * Sem cartão por campo. `$corpo` é HTML já escapado; título e descrição são texto puro.
+     */
+    public static function secao(string $titulo, string $descricao, string $corpo): string
+    {
+        return '<section class="pbl-secao"><div class="pbl-secao-cab"><h2>' . self::h($titulo) . '</h2>'
+            . ($descricao === '' ? '' : '<p>' . self::h($descricao) . '</p>') . '</div><div class="pbl-secao-corpo">' . $corpo . '</div></section>';
+    }
+
+    /**
+     * Interruptor com rótulo e frase de explicação que revela os campos ao ligar (D2). Contrato com o servidor: o envio traz
+     * `$nome=0` (campo oculto) e, se ligado, `$nome=1`; o servidor é a autoridade e grava o padrão do grupo quando vem `0`.
+     * Contrato com o JavaScript: `data-pbl-toggle` na raiz, `data-pbl-inicial` ("ligado" quando há valor ou erro) e o painel `data-pbl-toggle-campos`.
+     * Sem JavaScript a caixa nasce marcada e os campos ficam visíveis: o fluxo completo funciona e nada digitado se perde.
+     * `$ehValor`: o interruptor é o próprio dado (ex.: "Mostrar no menu"), então a caixa reflete `$ligado` também sem JavaScript.
+     * `$titulo` e `$explicacao` são texto puro; `$campos` é HTML já escapado.
+     */
+    public static function toggle(string $id, string $nome, string $titulo, string $explicacao, bool $ligado, string $campos, bool $ehValor = false): string
+    {
+        $i = self::h($id);
+
+        return '<div class="pbl-toggle" data-pbl-toggle' . ($ehValor ? ' data-pbl-valor' : '') . ' data-pbl-inicial="' . ($ligado ? 'ligado' : 'desligado') . '"><div class="pbl-toggle-cab">'
+            . '<label class="pbl-toggle-texto" for="' . $i . '"><span class="pbl-toggle-titulo">' . self::h($titulo) . '</span><span class="pbl-toggle-ajuda" id="' . $i . '-ajuda">' . self::h($explicacao) . '</span></label>'
+            . '<span class="pbl-interruptor"><input type="hidden" name="' . self::h($nome) . '" value="0">'
+            . '<input type="checkbox" role="switch" id="' . $i . '" name="' . self::h($nome) . '" value="1"' . (!$ehValor || $ligado ? ' checked' : '') . ' aria-describedby="' . $i . '-ajuda" aria-controls="' . $i . '-campos">'
+            . '<span class="pbl-trilho" aria-hidden="true"></span></span></div>'
+            . '<div class="pbl-toggle-campos" id="' . $i . '-campos" data-pbl-toggle-campos>' . $campos . '</div></div>';
+    }
+
+    /**
+     * Abas de um formulário com UM só `<form>` e UM só envio (ADR 0031): todos os painéis estão no HTML, empilhados e com título quando
+     * não há JavaScript; com JavaScript a barra (`role="tablist"`, setas, Home e End) mostra um painel por vez. `$ativa` = aba inicial
+     * (`?aba=` ou a do primeiro erro). `$erros` = número de campos com erro por aba: aparece como texto ("• 2 erros"), nunca só cor.
+     *
+     * @param array<string, array{0: string, 1: string}> $abas chave => [rótulo, HTML do painel]
+     * @param array<string, int> $erros chave da aba => quantidade de erros
+     */
+    public static function abasDeFormulario(array $abas, string $ativa, string $rotuloDaBarra, array $erros = []): string
+    {
+        $nav = '<ul class="pbl-abas-nav" role="tablist" aria-label="' . self::h($rotuloDaBarra) . '" hidden data-pbl-abas-nav>';
+        $paineis = '';
+        foreach ($abas as $chave => [$rotulo, $html]) {
+            $on = $chave === $ativa;
+            $n = $erros[$chave] ?? 0;
+            $marca = $n > 0 ? ' <span class="pbl-marca-aba">• ' . $n . ($n === 1 ? ' erro' : ' erros') . '</span>' : '';
+            $nav .= '<li role="presentation"><button type="button" id="aba-botao-' . $chave . '" role="tab" data-pbl-aba="' . $chave . '" aria-controls="aba-painel-' . $chave . '" aria-selected="' . ($on ? 'true' : 'false') . '"' . ($on ? '' : ' tabindex="-1"') . '>' . self::h($rotulo) . $marca . '</button></li>';
+            $paineis .= '<div id="aba-painel-' . $chave . '" class="pbl-aba-painel" role="tabpanel" aria-labelledby="aba-botao-' . $chave . '" tabindex="-1"' . ($on ? ' data-ativa' : '') . '>'
+                . '<h2 class="pbl-aba-titulo">' . self::h($rotulo) . $marca . '</h2>' . $html . '</div>';
+        }
+
+        return '<div data-pbl-abas-form data-pbl-aba-inicial="' . self::h($ativa) . '">' . $nav . '</ul>' . $paineis . '</div>';
+    }
+
+    /**
+     * Barra de ações fixa de um formulário (F3): a esquerda o estado (`role="status"`: "Sem alterações", "Alterações não salvas"), a direita
+     * Cancelar, Salvar e, se `$publicar`, "Salvar e publicar" (`acao=salvar_publicar`; o servidor confere a permissão de novo). O botão
+     * principal é o "Salvar e publicar" quando existe e o conteúdo ainda não está no ar; senão é o Salvar. Fica fixa no pé sem JavaScript.
+     */
+    public static function barraDeAcoes(string $voltarHref, bool $publicar, bool $principalPublicar = false, string $estado = 'salvo', string $rotuloSalvar = 'Salvar'): string
+    {
+        $texto = $estado === 'alterado' ? 'Alterações não salvas' : 'Sem alterações';
+
+        return '<div class="pbl-barra-form" data-pbl-barra><div class="pbl-barra-miolo">'
+            . '<p class="pbl-estado" role="status" aria-live="polite" data-pbl-estado data-estado="' . self::h($estado) . '">' . $texto . '</p>'
+            . '<div class="pbl-barra-botoes"><a class="btn btn-outline-secondary pbl-voltar" href="' . self::h($voltarHref) . '">Cancelar</a>'
+            . '<button type="submit" name="acao" value="salvar" class="btn ' . ($publicar && $principalPublicar ? 'btn-outline-secondary' : 'btn-primary') . '">' . self::h($rotuloSalvar) . '</button>'
+            . ($publicar ? '<button type="submit" name="acao" value="salvar_publicar" class="btn ' . ($principalPublicar ? 'btn-primary' : 'btn-outline-secondary') . '">Salvar e publicar</button>' : '')
+            . '</div></div></div>';
+    }
+
+    /**
+     * "⋯ Mais ações": um `<details>` com o resto das ações de um conteúdo, cada item já gerado pela mesma checagem de permissão de
+     * sempre (o chamador só inclui o que a pessoa pode). Alvo de toque ≥ 44 px. Itens: `[HTML do link ou botão, classe do <li>]`.
+     *
+     * @param list<array{0: string, 1?: string}> $itens
+     */
+    public static function maisAcoes(array $itens, string $rotulo = 'Mais ações'): string
+    {
+        if ($itens === []) {
+            return '';
+        }
+        $lis = '';
+        foreach ($itens as $item) {
+            $classe = $item[1] ?? '';
+            $lis .= '<li' . ($classe === '' ? '' : ' class="' . self::h($classe) . '"') . '>' . $item[0] . '</li>';
+        }
+
+        return '<details class="pbl-mais"><summary><span aria-hidden="true">⋯</span>&nbsp;' . self::h($rotulo) . '</summary><ul class="pbl-mais-lista">' . $lis . '</ul></details>';
     }
 
     /**
@@ -479,12 +597,14 @@ final class Pagina
         // O painel passa por aqui de novo depois da tela: a página que traz o editor é reconhecida pela marca no corpo.
         $html = str_starts_with((string) $r->headers->get('Content-Type'), 'text/html') ? (string) $r->getContent() : '';
         $editor = $editor || ($html !== '' && (str_contains($html, self::MARCA_EDITOR) || str_contains($html, self::MARCA_PREVIA)));
+        // blob: só onde há seletor de imagem com miniatura (URL.createObjectURL do arquivo escolhido); nenhuma outra tela o aceita.
+        $imagem = $html !== '' && str_contains($html, self::MARCA_IMAGEM);
         $r->headers->set('Cache-Control', 'no-store');
         $r->headers->set('X-Frame-Options', 'DENY');
         $r->headers->set('X-Content-Type-Options', 'nosniff');
         $r->headers->set('Referrer-Policy', 'same-origin');
         // img-src data: só porque o CSS do Bootstrap desenha alguns ícones de formulário como SVG embutido.
-        $r->headers->set('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'" . ($editor ? " 'unsafe-inline'" : '') . "; img-src 'self' data:" . ($editor ? ' https:' : '') . "; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+        $r->headers->set('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'" . ($editor ? " 'unsafe-inline'" : '') . "; img-src 'self' data:" . ($imagem ? ' blob:' : '') . ($editor ? ' https:' : '') . "; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
         if ($seguro) {
             // o `max-age` configurável (seguranca.json) é aplicado depois, por `Http\CabecalhosDeSeguranca::aplicar`, em toda resposta
             $r->headers->set('Strict-Transport-Security', 'max-age=' . \Pbl\Http\CabecalhosDeSeguranca::HSTS_PADRAO);

@@ -147,8 +147,8 @@ final class AdminNavegacaoTest extends TestCase
         self::assertStringContainsString('Subir um nível', $html);
         self::assertStringContainsString('href="/_pbl/conteudo/' . $this->inicio->id . '"', $html, 'migalha do pai');
         self::assertStringContainsString('href="/_pbl/conteudo"', $html, 'migalha Conteúdo');
-        self::assertStringContainsString('Criar filho', $html);
-        self::assertStringContainsString('Editar este objeto', $html);
+        self::assertStringContainsString('Criar conteúdo aqui dentro', $html, 'vocabulário de usuário (D12)');
+        self::assertStringContainsString('Editar este conteúdo', $html);
         self::assertStringContainsString('data-pbl-marcar-todos', $html);
         self::assertStringNotContainsString('onclick=', $html);
     }
@@ -172,7 +172,7 @@ final class AdminNavegacaoTest extends TestCase
         $html = $this->html($this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $this->token('leitor')));
         self::assertStringContainsString('Rascunho', $html);
         self::assertStringNotContainsString('/editar', $html);
-        self::assertStringNotContainsString('Criar filho', $html);
+        self::assertStringNotContainsString('Criar conteúdo aqui dentro', $html);
                 self::assertStringNotContainsString('/apagar', $html);
     }
 
@@ -333,17 +333,16 @@ final class AdminNavegacaoTest extends TestCase
     public function testMenuETelaInicialTemEntradaParaConteudo(): void
     {
         $h = $this->html($this->req('GET', '/_pbl/', $this->token('admin')));
-        self::assertStringContainsString('href="/_pbl/conteudo"', $h);
-        self::assertStringContainsString('Navegar no conteúdo', $h);
+        self::assertStringContainsString('<a href="/_pbl/conteudo">Conteúdo</a>', $h, 'item Conteúdo no menu');
+        self::assertMatchesRegularExpression('/Continuar de onde parou|Ver o site|Criar página/', $h, 'uma ação principal no Início');
     }
 
     public function testBarraColapsaAteXlSemLarguraFixa(): void
     {
         $h = $this->html($this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $this->token('admin')));
-        self::assertStringContainsString('navbar-expand-xl', $h);
-        self::assertStringNotContainsString('navbar-expand-md', $h);
+        self::assertStringContainsString('<details class="pbl-menu" open', $h, 'menu sem JavaScript em qualquer largura');
+        self::assertStringNotContainsString('navbar-toggler', $h);
         self::assertStringContainsString('viewport-fit=cover', $h);
-        self::assertStringContainsString('class="navbar-toggler', $h);
         self::assertDoesNotMatchRegularExpression('/style="[^"]*width\s*:\s*\d/', $h, 'sem largura fixa inline');
         self::assertStringContainsString('class="table-responsive"', $h);
         $css = (string) file_get_contents(__DIR__ . '/../public/_pbl/assets/pbl.css');

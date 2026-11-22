@@ -11,6 +11,7 @@ Esta parte é para quem **quer criar e cuidar de um site** (ou de um pequeno sis
 | O que é o Publicare e para que serve | [O que é o Publicare](o-que-e.md) |
 | O que já funciona e o que ainda não | [Estado do projeto](estado-do-projeto.md) |
 | O significado das palavras que o projeto usa | [Glossário](glossario.md) |
+| Onde fica cada coisa no painel e como editar um conteúdo | [Usar o painel](painel.md) |
 | Como instalar numa hospedagem | [Como instalar](instalar.md) |
 | Modelos opcionais (agenda, perguntas, destaques) e o site de demonstração | [Modelos e demo](modelos-e-demo.md) |
 | O que o site guarda de pessoas e como pedir cópia ou exclusão | [Privacidade](privacidade.md) |

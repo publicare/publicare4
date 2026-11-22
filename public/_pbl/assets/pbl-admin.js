@@ -10,6 +10,42 @@
     return erro && erro.message ? erro.message : 'Falha de comunicação com o servidor.';
   }
 
+
+  /* Menu por tarefa (ADR 0031): sem JavaScript é um <details open> e funciona em qualquer largura. Aqui ele só recolhe no celular
+     (abaixo de 1024 px) para o conteúdo aparecer primeiro, e volta a abrir ao alargar a janela. */
+  var menu = document.querySelector('[data-pbl-menu]');
+  if (menu && window.matchMedia) {
+    var largo = window.matchMedia('(min-width: 1024px)');
+    // `?menu=aberto` mantém o menu aberto no celular (usado nas capturas da prévia e em links de suporte).
+    var forcado = /(?:^|[?&])menu=aberto(?:&|$)/.test(window.location.search || '');
+    var ajustar = function () { menu.open = forcado || largo.matches; };
+    ajustar();
+    if (largo.addEventListener) {
+      largo.addEventListener('change', ajustar);
+    }
+  }
+
+  /* Tema: alterna entre claro e escuro e guarda a escolha neste navegador (o pbl-js.js aplica antes de pintar). */
+  document.querySelectorAll('[data-pbl-tema]').forEach(function (botao) {
+    botao.addEventListener('click', function () {
+      var raiz = document.documentElement;
+      var escuro = raiz.getAttribute('data-bs-theme') !== 'dark';
+      raiz.setAttribute('data-bs-theme', escuro ? 'dark' : 'light');
+      try {
+        window.localStorage.setItem('pbl-tema', escuro ? 'escuro' : 'claro');
+      } catch (e) { /* sem armazenamento: vale só nesta página */ }
+    });
+  });
+
+  /* Campo inválido dentro de <details> fechado: abre, senão o navegador não consegue mostrar o erro. */
+  document.addEventListener('invalid', function (e) {
+    var d = e.target && e.target.closest ? e.target.closest('details:not([open])') : null;
+    while (d) {
+      d.open = true;
+      d = d.parentElement ? d.parentElement.closest('details:not([open])') : null;
+    }
+  }, true);
+
   /* data-pbl-visivel-se="id-do-select:valor1,valor2": o elemento só aparece quando o select tem um desses valores. */
   document.querySelectorAll('[data-pbl-visivel-se]').forEach(function (el) {
     var partes = (el.getAttribute('data-pbl-visivel-se') || '').split(':');

@@ -124,7 +124,7 @@ final class AssetsAdminTest extends TestCase
         $publico = (string) file_get_contents($this->raiz() . '/public/.htaccess');
         self::assertStringContainsString('RewriteCond %{REQUEST_FILENAME} !-f', $publico, 'arquivo existente não vai para o index.php');
         $negados = preg_match('/<FilesMatch "([^"]+)">/', $publico, $m) === 1 ? $m[1] : self::fail('FilesMatch não encontrado');
-        foreach (['bootstrap.min.css', 'bootstrap.bundle.min.js', 'pbl.css', 'pbl-admin.js', 'pbl-atualizacao-progresso.js', 'pbl-editor.js', 'tinymce.min.js', 'plugin.min.js', 'pt_BR.js', 'LICENSE.txt'] as $nome) {
+        foreach (['bootstrap.min.css', 'bootstrap.bundle.min.js', 'pbl.css', 'pbl-formulario.css', 'pbl-formulario.js', 'pbl-js.js', 'pbl-admin.js', 'pbl-atualizacao-progresso.js', 'pbl-editor.js', 'tinymce.min.js', 'plugin.min.js', 'pt_BR.js', 'LICENSE.txt'] as $nome) {
             self::assertSame(0, preg_match('/' . str_replace('/', '\/', $negados) . '/', $nome), "{$nome} não pode cair na lista negada");
         }
 

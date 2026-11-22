@@ -331,7 +331,7 @@ final class TelasDeContas
             . '<div class="col-sm-4">' . $this->campoSenha($sessao, 'campo-senha-conceder') . '<button type="submit" class="btn btn-primary">Conceder</button></div>'
             . '</form>';
         if ($c->administrador) {
-            return $corpo . '<div class="accordion mb-3">' . Pagina::recolhivel('papel-admin', 'Conceder papel por conteúdo (só vale se a marca de administrador sair)', $formulario) . '</div>';
+            return $corpo . '<div class="pbl-recolhiveis">' . Pagina::recolhivel('papel-admin', 'Conceder papel por conteúdo (só vale se a marca de administrador sair)', $formulario) . '</div>';
         }
 
         return $corpo . '<h3 class="h6">Conceder papel</h3>' . $formulario;

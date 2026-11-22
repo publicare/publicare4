@@ -8,20 +8,17 @@ use Pbl\Admin\Pagina;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 
-/** O botão "?" de ajuda (`Pagina::ajuda`), os campos e blocos que o usam e as abas reaproveitáveis: estrutura acessível, sem JavaScript inline. */
+/** O "?" de ajuda (`Pagina::ajuda`, um `<details>`), os campos e blocos que o usam e as abas reaproveitáveis: estrutura acessível, sem JavaScript inline. */
 final class PaginaAjudaTest extends TestCase
 {
     public function testAjudaTemBotaoAcessivelEPainelLigados(): void
     {
         $html = Pagina::ajuda('ajuda-x', 'Nome do site', 'Texto <em>da</em> ajuda.');
-        self::assertStringContainsString('<button type="button"', $html);
-        self::assertStringContainsString('data-bs-toggle="collapse"', $html);
-        self::assertStringContainsString('data-bs-target="#ajuda-x"', $html);
-        self::assertStringContainsString('aria-controls="ajuda-x"', $html);
-        self::assertStringContainsString('aria-expanded="false"', $html);
-        self::assertStringContainsString('aria-label="Ajuda: Nome do site"', $html);
-        self::assertStringContainsString('<span aria-hidden="true">?</span>', $html);
-        self::assertStringContainsString('<div id="ajuda-x" class="collapse pbl-ajuda-painel form-text" role="note">Texto <em>da</em> ajuda.</div>', $html);
+        // <details>/<summary>: abre e fecha sem JavaScript, com teclado (Enter/Espaço) e com estado anunciado pelo leitor de tela.
+        self::assertStringStartsWith('<details class="pbl-ajuda">', $html, 'começa recolhida');
+        self::assertStringContainsString('<summary aria-label="Ajuda: Nome do site"><span aria-hidden="true">?</span></summary>', $html);
+        self::assertStringContainsString('<div id="ajuda-x" class="pbl-ajuda-texto" role="note">Texto <em>da</em> ajuda.</div>', $html);
+        self::assertStringNotContainsString('data-bs-toggle', $html);
         self::assertStringNotContainsString('onclick', $html);
         self::assertSame('', Pagina::ajuda('ajuda-y', 'Vazia', ''));
     }
@@ -40,14 +37,14 @@ final class PaginaAjudaTest extends TestCase
         self::assertStringContainsString('id="f-nome"', $html);
         self::assertStringContainsString('aria-describedby="f-nome-ajuda"', $html);
         self::assertStringContainsString('id="f-nome-ajuda"', $html);
-        self::assertStringContainsString('aria-controls="f-nome-ajuda"', $html);
+        self::assertStringContainsString('<details class="pbl-ajuda"><summary aria-label="Ajuda: Nome">', $html);
         self::assertStringNotContainsString('aria-describedby', Pagina::campo('f-b', 'b', 'B'));
     }
 
     public function testCardEChecklistTambemUsamOBotao(): void
     {
         $card = Pagina::card('Bloco', '<p>x</p>', 'Ajuda do bloco');
-        self::assertStringContainsString('<legend>Bloco <button', $card);
+        self::assertStringContainsString('<legend>Bloco</legend><details class="pbl-ajuda">', $card);
         self::assertStringContainsString('role="note"', $card);
         $cb = Pagina::checkbox('c1', 'c', 'Marcar', true, 'Por quê');
         self::assertStringContainsString('aria-describedby="c1-ajuda"', $cb);
@@ -60,7 +57,7 @@ final class PaginaAjudaTest extends TestCase
         self::assertStringContainsString('<div class="pbl-rotulo"><h1 class="h3 mb-2">Título</h1>', $html);
         self::assertStringContainsString('id="ajuda-tela"', $html);
         self::assertSame(0, preg_match('/<script(?![^>]*\ssrc=)/', $html), 'nenhum script inline');
-        self::assertStringNotContainsString('<details class="pbl-ajuda', $html);
+        self::assertStringContainsString('<details class="pbl-ajuda"><summary aria-label="Ajuda: Título">', $html, 'ajuda de tela recolhida');
     }
 
     public function testAbasReaproveitavelEAbaDe(): void

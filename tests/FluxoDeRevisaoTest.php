@@ -86,7 +86,7 @@ final class FluxoDeRevisaoTest extends TestCase
         $o = $this->conteudo('Texto da Saúde', $this->saude);
         self::assertSame(303, $this->passo('autor_saude', $o, 'enviar'));
         self::assertSame('submetido', $this->estado($o));
-        $fila = $this->html($this->req('GET', '/_pbl/pendencias', $this->token('editor_saude')));
+        $fila = $this->html($this->req('GET', '/_pbl/revisar?aba=pendencias', $this->token('editor_saude')));
         self::assertStringContainsString('Texto da Saúde', $fila);
         self::assertSame(303, $this->passo('editor_saude', $o, 'aprovar', [], 'pendencias'));
         self::assertSame('publicado', $this->estado($o));
@@ -100,17 +100,17 @@ final class FluxoDeRevisaoTest extends TestCase
     public function testRevisorEhEditorDaAreaDeCimaOuAdminENuncaDeOutraSecretaria(): void
     {
         $o = $this->submetido('Alerta de vigilância', $this->vigilancia);
-        $quem = fn (string $login): bool => str_contains($this->html($this->req('GET', '/_pbl/pendencias', $this->token($login))), 'Alerta de vigilância');
+        $quem = fn (string $login): bool => str_contains($this->html($this->req('GET', '/_pbl/revisar?aba=pendencias', $this->token($login))), 'Alerta de vigilância');
         self::assertTrue($quem('editor_vigilancia'), 'editor do setor');
         self::assertTrue($quem('editor_saude'), 'editor da secretaria (cascata)');
         self::assertTrue($quem('editor'), 'editor da raiz (cascata)');
         self::assertTrue($quem('admin'), 'administrador');
         self::assertFalse($quem('editor_edu'), 'outra secretaria');
-        self::assertSame(403, $this->req('GET', '/_pbl/pendencias', $this->token('autor_saude'))->getStatusCode(), 'autor não revisa');
-        self::assertSame(403, $this->req('GET', '/_pbl/pendencias', $this->token('leitor'))->getStatusCode());
+        self::assertSame(403, $this->req('GET', '/_pbl/revisar?aba=pendencias', $this->token('autor_saude'))->getStatusCode(), 'autor não revisa');
+        self::assertSame(403, $this->req('GET', '/_pbl/revisar?aba=pendencias', $this->token('leitor'))->getStatusCode());
         // E o editor de outro setor da mesma secretaria não vê o que é do setor ao lado.
         $z = $this->submetido('Zoonose suspeita', $this->zoonoses);
-        self::assertFalse(str_contains($this->html($this->req('GET', '/_pbl/pendencias', $this->token('editor_vigilancia'))), 'Zoonose suspeita'));
+        self::assertFalse(str_contains($this->html($this->req('GET', '/_pbl/revisar?aba=pendencias', $this->token('editor_vigilancia'))), 'Zoonose suspeita'));
         self::assertSame(403, $this->passo('editor_vigilancia', $z, 'aprovar'));
         self::assertSame(403, $this->passo('editor_edu', $o, 'aprovar'));
         self::assertSame(403, $this->passo('editor_edu', $o, 'devolver', ['motivo' => 'não é minha área']));
@@ -144,7 +144,7 @@ final class FluxoDeRevisaoTest extends TestCase
         self::assertSame(303, $this->passo('editor_saude', $o, 'devolver', ['motivo' => 'Falta a fonte dos números.'], 'pendencias'));
         self::assertSame('rejeitado', $this->estado($o));
 
-        $meus = $this->html($this->req('GET', '/_pbl/meus-envios', $this->token('autor_saude')));
+        $meus = $this->html($this->req('GET', '/_pbl/revisar?aba=envios', $this->token('autor_saude')));
         self::assertStringContainsString('Para devolver', $meus);
         self::assertStringContainsString('devolvido', $meus);
         self::assertStringContainsString('Falta a fonte dos números.', $meus);
@@ -233,8 +233,8 @@ final class FluxoDeRevisaoTest extends TestCase
         $this->passo('editor_saude', $devolvido, 'devolver', ['motivo' => 'Ajustar o título.']);
 
         $editor = $this->html($this->req('GET', '/_pbl/', $this->token('editor_saude')));
-        self::assertStringContainsString('/_pbl/pendencias', $editor);
-        self::assertMatchesRegularExpression('#Pendências <span class="badge text-bg-warning"[^>]*>2</span>#', $editor);
+        self::assertStringContainsString('/_pbl/revisar?aba=pendencias', $editor);
+        self::assertMatchesRegularExpression('#Revisar <span class="pbl-contagem"[^>]*>2<#', $editor, 'contador no menu');
         self::assertStringContainsString('<strong>2</strong> envios aguardam', $editor);
         self::assertStringNotContainsString('Meus envios', $this->html($this->req('GET', '/_pbl/', $this->token('leitor'))));
 
@@ -244,7 +244,7 @@ final class FluxoDeRevisaoTest extends TestCase
         self::assertStringContainsString('1</strong> conteúdo seu foi devolvido', $autor);
 
         $outra = $this->html($this->req('GET', '/_pbl/', $this->token('editor_edu')));
-        self::assertDoesNotMatchRegularExpression('#Pendências <span class="badge#', $outra);
+        self::assertDoesNotMatchRegularExpression('#Revisar <span class="pbl-contagem#', $outra);
         // Contagem e fila vêm da mesma regra.
         self::assertSame(2, $this->s->revisao->contarPendencias($this->usuario('editor_saude')));
         self::assertCount(2, $this->s->revisao->pendencias($this->usuario('editor_saude')));
@@ -257,23 +257,23 @@ final class FluxoDeRevisaoTest extends TestCase
         $this->submetido('Na vigilância', $this->vigilancia);
         $this->submetido('Nas zoonoses', $this->zoonoses);
         $t = $this->token('editor_saude');
-        $todas = $this->html($this->req('GET', '/_pbl/pendencias', $t));
+        $todas = $this->html($this->req('GET', '/_pbl/revisar?aba=pendencias', $t));
         self::assertStringContainsString('Na vigilância', $todas);
         self::assertStringContainsString('Nas zoonoses', $todas);
-        $so = $this->html($this->req('GET', '/_pbl/pendencias?area=' . $this->vigilancia, $t));
+        $so = $this->html($this->req('GET', '/_pbl/revisar?aba=pendencias&area=' . $this->vigilancia, $t));
         self::assertStringContainsString('Na vigilância', $so);
         self::assertStringNotContainsString('Nas zoonoses', $so);
         // Área fora das opções da conta é ignorada (não vaza nada).
-        $fora = $this->html($this->req('GET', '/_pbl/pendencias?area=' . $this->educacao, $t));
+        $fora = $this->html($this->req('GET', '/_pbl/revisar?aba=pendencias&area=' . $this->educacao, $t));
         self::assertStringContainsString('Na vigilância', $fora);
         // Meus envios: o autor vê só o que é dele, por aba.
-        $meus = $this->html($this->req('GET', '/_pbl/meus-envios?estado=revisao', $this->token('autor_saude')));
+        $meus = $this->html($this->req('GET', '/_pbl/revisar?aba=envios&estado=revisao', $this->token('autor_saude')));
         self::assertStringContainsString('Na vigilância', $meus);
         self::assertStringContainsString('/retirar', $meus);
         self::assertStringNotContainsString('/aprovar', $meus);
-        $outro = $this->html($this->req('GET', '/_pbl/meus-envios', $this->token('autor_saude2')));
+        $outro = $this->html($this->req('GET', '/_pbl/revisar?aba=envios', $this->token('autor_saude2')));
         self::assertStringNotContainsString('Na vigilância', $outro);
-        self::assertSame(200, $this->req('GET', '/_pbl/meus-envios?estado=qualquer', $this->token('autor_saude'))->getStatusCode());
+        self::assertSame(200, $this->req('GET', '/_pbl/revisar?aba=envios&estado=qualquer', $this->token('autor_saude'))->getStatusCode());
     }
 
     public function testBotoesPorPapelNaPaginaDoConteudo(): void
