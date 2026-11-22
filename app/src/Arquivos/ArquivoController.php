@@ -119,8 +119,7 @@ final class ArquivoController
     /** `Content-Disposition` aceita só ASCII no `filename` básico; o nome de verdade (com acento) vai em `filename*` (RFC 5987), que o `setContentDisposition` do Symfony já monta a partir do nome dado. */
     private function nomeAscii(string $nome): string
     {
-        $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT', $nome);
-        $ascii = is_string($ascii) ? preg_replace('/[^A-Za-z0-9._-]/', '_', $ascii) : null;
+        $ascii = preg_replace('/[^A-Za-z0-9._-]/', '_', \Pbl\Conteudo\Ascii::de($nome));
 
         return $ascii === null || $ascii === '' ? 'arquivo' : $ascii;
     }

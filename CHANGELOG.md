@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Corrigido
+- **Geração de pacote de prévia em contêiner Alpine:** `bin/pbl demo-popular` e o nome de arquivo no download usavam `iconv(…//TRANSLIT)`, que não existe em musl e gerava aviso ("Wrong encoding"), derrubando a prévia da fábrica. Passa a usar `Pbl\Conteudo\Ascii` (intl quando há; tabela do português caso contrário), sem aviso.
+
 ## [0.1.0-rc.6] - 2026-11-22
 
 > **Em resumo:** agentes e scripts passam a editar o conteúdo do site pelo terminal (`bin/pbl conteudo`), com conta de serviço própria, e a barra de edição das páginas ganha as ações "listar" e "criar" com ícones novos, discretos e temáveis. A atualização rc.5 → rc.6 é a primeira feita pela tela depois do teste de ontem.
