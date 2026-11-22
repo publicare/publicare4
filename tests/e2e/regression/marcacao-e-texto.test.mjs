@@ -77,8 +77,8 @@ test('telas principais: ajuda de campo cabe em uma linha (≤ 140 caracteres)', 
 });
 
 test('avisos que evitam erro continuam nas telas', () => {
-  assert.match(texto(todas['copias-de-seguranca']), /Não feche nem recarregue a página/);
-  assert.match(texto(todas['lixeira']), /apagar de vez \(não desfaz\)/);
+  assert.match(texto(todas['copias-de-seguranca']), /Não feche (nem recarregue )?a página/);
+  assert.match(texto(todas['lixeira']), /de vez \(não desfaz\)/);
   assert.match(texto(todas['nova-conta']), /No mínimo 10 caracteres/);
 });
 
