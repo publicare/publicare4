@@ -38,7 +38,7 @@ final class BackupAgendadoTarefa implements Tarefa, ComProgramacao
 
     public function descricao(): string
     {
-        return 'Cria a cópia de segurança (banco e dados) no horário configurado em "Cópias de segurança" e apaga as mais antigas conforme a retenção. Desativada até o administrador ligar.';
+        return 'Cria a cópia no horário de "Cópias de segurança" e apaga as antigas. Desligada até você ligar.';
     }
 
     public function intervalo(): int

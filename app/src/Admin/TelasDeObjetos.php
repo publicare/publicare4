@@ -1369,7 +1369,7 @@ final class TelasDeObjetos
         if (in_array($p['tipo'], ['arquivo', 'imagem'], true)) {
             return $this->campoDeArquivo($p, $valor, $erros, $criando);
         }
-        $comum = ' id="' . Pagina::h($id) . '" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '"' . $this->descrito($erros, $chave, true)
+        $comum = ' id="' . Pagina::h($id) . '" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '"' . $this->descrito($erros, $chave, $p['tipo'] !== 'booleano')
             . (($p['obrigatorio'] ?? false) ? ' required' : '');
         [$controle, $ajuda] = match ($p['tipo']) {
             'numero' => ['<input class="form-control' . $classe . '"' . $comum . ' inputmode="decimal" value="' . Pagina::h($valor) . '">', 'Número (use vírgula ou ponto para decimais).'],
@@ -1627,7 +1627,7 @@ final class TelasDeObjetos
             $novo = $this->servicos->objetos->atualizar($o->id, $mudancas, self::MOTIVO, $versao, false, $sessao->usuario->id);
         } catch (ConflitoDeVersao) {
             $atual = $this->servicos->objetos->porId($o->id) ?? $o;
-            $erro = 'Outra pessoa alterou este conteúdo depois que você abriu esta tela. Agora ele está "' . $atual->status . '". '
+            $erro = 'Outra pessoa alterou este conteúdo enquanto você editava. Agora ele está "' . $atual->status . '". '
                 . 'As suas escolhas continuam no formulário; salve de novo só se quiser substituí-lo.';
 
             return $this->telaDeEstado($sessao, $atual, $estado, $inicio, $fim, $atual->versao, ['_' => $erro], Response::HTTP_CONFLICT);
@@ -1857,7 +1857,7 @@ final class TelasDeObjetos
         } catch (ConflitoDeVersao) {
             $atual = $this->servicos->objetos->porId($o->id) ?? $o;
 
-            return $this->telaDeMover($sessao, $atual, $destino->id, $atual->versao, 'Outra pessoa alterou este conteúdo depois que você abriu esta tela. Confira e confirme de novo.', Response::HTTP_CONFLICT);
+            return $this->telaDeMover($sessao, $atual, $destino->id, $atual->versao, 'Outra pessoa alterou este conteúdo enquanto você editava. Confira e confirme de novo.', Response::HTTP_CONFLICT);
         }
         // Defesa em profundidade: destino foi para a lixeira apesar da trava? Volta para o lugar de antes.
         if ($this->servicos->objetos->porId($destino->id)?->status === self::LIXEIRA && $paiAntigo !== null) {
@@ -2055,7 +2055,7 @@ final class TelasDeObjetos
         } catch (ConflitoDeVersao) {
             $atual = $this->servicos->objetos->porId($o->id) ?? $o;
 
-            return $this->telaDeApagar($sessao, $atual, 'Outra pessoa alterou este conteúdo depois que você abriu esta tela. Confira e confirme de novo.', Response::HTTP_CONFLICT);
+            return $this->telaDeApagar($sessao, $atual, 'Outra pessoa alterou este conteúdo enquanto você editava. Confira e confirme de novo.', Response::HTTP_CONFLICT);
         }
         // Defesa em profundidade: apareceu filho fora da lixeira apesar da trava? Volta ao estado anterior.
         if ($this->servicos->objetos->filhosForaDaLixeira($novo->id) > 0) {

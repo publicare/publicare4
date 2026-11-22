@@ -258,7 +258,7 @@ final class AdminContasTest extends TestCase
     {
         $admin = $this->token('admin');
         $html = $this->html($this->req('GET', '/_pbl/conta/' . $this->ids['admin'], $admin));
-        self::assertStringContainsString('Administrador: acesso total a todos os sites e conteúdos', $html);
+        self::assertStringContainsString('Administrador: acesso total', $html);
         self::assertStringNotContainsString('Nenhum papel concedido', $html);
         self::assertStringContainsString('id="painel-papel-admin"', $html);
 

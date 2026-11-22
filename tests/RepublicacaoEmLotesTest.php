@@ -185,7 +185,7 @@ final class RepublicacaoEmLotesTest extends TestCase
 
         $html = $this->html($this->req('GET', "/_pbl/site/{$this->siteId}/publicacao", $this->token('admin')));
 
-        self::assertStringContainsString('republicação em andamento (3 de ' . ($this->base + 10), $html);
+        self::assertStringContainsString('Republicação em andamento (3 de ' . ($this->base + 10), $html);
         self::assertStringContainsString('>Continuar<', $html);
     }
 

@@ -38,7 +38,7 @@ final class VerificarAtualizacaoTarefa implements Tarefa
 
     public function descricao(): string
     {
-        return 'Consulta o canal de atualizações (uma vez por dia) para avisar no painel que há versão nova. Não aplica nada.';
+        return 'Avisa quando há versão nova (1 vez por dia). Não instala.';
     }
 
     public function intervalo(): int

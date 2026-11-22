@@ -159,7 +159,7 @@ final class AdminVencidosELixeiraTest extends TestCase
         $token = $this->tokenSemElevar('admin');
 
         $tela = $this->html($this->req('GET', $caminho, $token));
-        self::assertStringContainsString('não há como desfazer', $tela);
+        self::assertStringContainsString('Não dá para desfazer.', $tela);
         self::assertStringContainsString('name="senha"', $tela);
 
         self::assertSame(403, $this->post($token, $caminho, ['versao' => (string) $item->versao, 'senha' => self::SENHA], false)->getStatusCode(), 'sem CSRF');

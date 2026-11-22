@@ -31,7 +31,7 @@ final class ReinicioDaDemoTarefa implements Tarefa, ComProgramacao
 
     public function descricao(): string
     {
-        return 'Apaga as alterações dos visitantes e recria o conteúdo de exemplo, as contas e os arquivos da demo (faz backup antes; o site fica em manutenção por alguns instantes).';
+        return 'Desfaz as alterações dos visitantes e recria o conteúdo da demo. Faz backup antes.';
     }
 
     public function intervalo(): int

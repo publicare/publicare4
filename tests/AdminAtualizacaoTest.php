@@ -502,7 +502,7 @@ final class AdminAtualizacaoTest extends TestCase
         $this->agora += EstadoDoPainel::LIMITE_EXECUCAO + 1;
         self::assertSame('sem_resposta', $this->estado()->situacao()['estado']);
         $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
-        self::assertStringContainsString('não deu sinal de término', $h);
+        self::assertStringContainsString('sem sinal há mais de 1 hora', $h);
         self::assertSame(303, $this->tela('admin', 'POST', '/_pbl/atualizacao/aplicar', $this->aplicarCampos())->getStatusCode());
         self::assertSame(2, $this->lancador->chamadas);
     }

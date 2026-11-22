@@ -87,7 +87,7 @@ final class TelasDeLixeira
             }
         }
 
-        return Pagina::resposta('Lixeira', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Conteúdo que foi mandado para a lixeira. Dá para <strong>tirar de lá</strong> com o histórico inteiro, ou <strong>apagar de vez</strong> (não desfaz).');
+        return Pagina::resposta('Lixeira', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Restaure com o histórico ou apague de vez (não desfaz).');
     }
 
     private function linha(SessaoAtiva $sessao, Objeto $o): string
@@ -138,7 +138,7 @@ final class TelasDeLixeira
         $dentro = count($this->servicos->objetos->todosDaSubarvore($o->siteId, $o->caminho)) - 1;
         $corpo = ($erro === null ? '' : Pagina::alerta('danger', $erro))
             . '<p>Apagar <strong>' . Pagina::h($o->titulo) . '</strong> de vez' . ($dentro > 0 ? ', com os ' . $dentro . ' ' . ($dentro === 1 ? 'conteúdo' : 'conteúdos') . ' que estão dentro dele' : '') . '? '
-            . 'As versões, os endereços antigos, as tags e os papéis dele somem e <strong>não há como desfazer</strong>. A auditoria guarda que foi apagado.</p>'
+            . 'Versões, endereços antigos, tags e papéis somem. <strong>Não dá para desfazer.</strong></p>'
             . '<form method="post" action="' . Painel::PREFIXO . '/lixeira/apagar-de-vez/' . $o->id . '">' . $this->campoCsrf($sessao)
             . '<input type="hidden" name="versao" value="' . $o->versao . '">' . $this->campoSecaoOculto($this->secaoPedida($sessao, $r))
             . $this->campoSenha($sessao)
@@ -167,9 +167,9 @@ final class TelasDeLixeira
         try {
             $n = $this->servicos->objetos->apagarDefinitivamente($o->id, $versao, $sessao->usuario->id);
         } catch (ConflitoDeVersao) {
-            return $this->telaApagar($sessao, $id, $r, 'Outra pessoa alterou este conteúdo depois que você abriu esta tela. Confira e confirme de novo.', Response::HTTP_CONFLICT);
+            return $this->telaApagar($sessao, $id, $r, 'Outra pessoa alterou este conteúdo. Confira e confirme de novo.', Response::HTTP_CONFLICT);
         } catch (ConflitoDeArvore) {
-            return $this->telaApagar($sessao, $id, $r, 'Este conteúdo não pode ser apagado de vez agora: não está mais na lixeira, ou há algo fora dela dentro dele.', Response::HTTP_CONFLICT);
+            return $this->telaApagar($sessao, $id, $r, 'Não dá para apagar: o conteúdo saiu da lixeira ou tem itens fora dela.', Response::HTTP_CONFLICT);
         }
 
         return new RedirectResponse(Painel::PREFIXO . '/lixeira' . $this->consultaDeSecao($this->secaoPedida($sessao, $r), ['ok' => 'apagado', 'n' => (string) $n]), Response::HTTP_SEE_OTHER);

@@ -233,7 +233,8 @@ final class TelasDeConfiguracoes
     {
         $id = 'cfg-' . $chave;
         $desc = $id . '-ajuda';
-        $atr = ' aria-describedby="' . $desc . ($erro !== null ? ' ' . $id . '-erro' : '') . '"' . ($erro !== null ? ' aria-invalid="true"' : '');
+        $alvos = trim(($def['ajuda'] !== '' ? $desc : '') . ($erro !== null ? ' ' . $id . '-erro' : ''));
+        $atr = ($alvos !== '' ? ' aria-describedby="' . $alvos . '"' : '') . ($erro !== null ? ' aria-invalid="true"' : '');
         $texto = is_array($valor) ? implode("\n", array_map('strval', $valor)) : (is_bool($valor) ? ($valor ? '1' : '0') : (string) $valor);
         $ajuda = Pagina::ajuda($desc, $def['rotulo'], Pagina::h($def['ajuda']));
         $rotulo = Pagina::rotulo($id, Pagina::h($def['rotulo']), $ajuda);

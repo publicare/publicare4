@@ -280,7 +280,7 @@ final class TelasDeBackup
             . $this->secaoFazerAgora($sessao, $base, $csrf)
             . $this->secaoAgenda($sessao, $config, $base, $csrf)
             . $this->secaoLista($copias, $espaco, $sessao, $base, $csrf)
-            . $this->card('Cópia para outro lugar pela rede', '<p class="mb-0">Desligada. O envio para SFTP ou S3 ainda não está disponível nesta versão; suas cópias ficam só neste servidor. Baixe uma cópia de vez em quando e guarde-a fora daqui.</p>', '', 'section', 'mb-4')
+            . $this->card('Envio para outro servidor', '<p class="mb-0">Não disponível ainda. As cópias ficam neste servidor: baixe uma de vez em quando.</p>', '', 'section', 'mb-4')
             . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
 
         return Pagina::resposta('Cópias de segurança', $corpo, $status, false, $this->barra($sessao), [['Cópias de segurança', null]]);
@@ -289,11 +289,11 @@ final class TelasDeBackup
     private function secaoFazerAgora(SessaoAtiva $sessao, string $base, string $csrf): string
     {
         return '<section class="mb-4" aria-labelledby="titulo-agora" data-pbl-backup><h2 class="h5" id="titulo-agora">Fazer uma cópia agora</h2>'
-            . '<p>Guarda o banco e os arquivos do site (<code>dados/</code>) num pacote. Pode levar alguns minutos em sites grandes: não feche a página.</p>'
+            . '<p>Banco e <code>dados/</code> num só pacote. Em sites grandes leva minutos.</p>'
             . '<form method="post" action="' . $base . '/criar" class="row g-3" data-pbl-backup-form>' . $csrf
             . '<div class="col-12 col-md-6">' . $this->campoSenha($sessao, 'campo-senha-criar') . '</div>'
             . '<div class="col-12"><button type="submit" class="btn btn-primary">Fazer agora</button></div>'
-            . '<div class="col-12" hidden data-pbl-backup-andamento role="status" aria-live="polite"><p class="mb-1"><strong>Fazendo a cópia…</strong> Isso pode demorar. Não feche nem recarregue a página.</p>'
+            . '<div class="col-12" hidden data-pbl-backup-andamento role="status" aria-live="polite"><p class="mb-1"><strong>Fazendo a cópia…</strong> Não feche a página.</p>'
             . '<div class="progress" role="progressbar" aria-label="Fazendo a cópia" aria-valuetext="Em andamento"><div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div></div></div>'
             . '</form></section>';
     }
@@ -302,9 +302,9 @@ final class TelasDeBackup
     {
         $e = EstadoDoBackup::ler($this->servicos->caminhos);
         $situacao = '<p class="small text-body-secondary">'
-            . ($c->ativo ? 'Cópia agendada <strong>ligada</strong>: ' . Pagina::h((new AgendaDeBackup($c))->texto()) . '.' : 'Cópia agendada <strong>desligada</strong>.')
+            . ($c->ativo ? 'Automática <strong>ligada</strong>: ' . Pagina::h((new AgendaDeBackup($c))->texto()) . '.' : 'Automática <strong>desligada</strong>.')
             . ($e['em'] > 0 ? ' Última tentativa: ' . $this->quando($e['em'], $c->fuso) . ' — ' . ($e['ok'] ? 'ok' : 'falhou') . ($e['mensagem'] === '' ? '' : ' (' . Pagina::h($e['mensagem']) . ')') . '.' : '')
-            . ' Depende do cron do servidor (veja <a href="' . Painel::PREFIXO . '/tarefas">Tarefas agendadas</a>).</p>';
+            . ' Precisa do cron (<a href="' . Painel::PREFIXO . '/tarefas">Tarefas agendadas</a>).</p>';
         $dias = '';
         foreach (self::NOMES_DIAS as $n => $nome) {
             $dias .= '<div class="form-check form-check-inline">' . $this->checkbox('campo-dia-' . $n, 'dias[]', $nome, in_array($n, $c->dias, true), '', (string) $n) . '</div>';
@@ -322,7 +322,7 @@ final class TelasDeBackup
             . '<div class="col-12"><fieldset><legend class="h6">Dias da semana <span class="small text-body-secondary">(só na frequência semanal)</span></legend>' . $dias . '</fieldset></div>'
             . '<div class="col-6 col-md-3">' . $this->campo('campo-ultimas', 'reter_ultimas', 'Guardar as últimas', (string) $c->reterUltimas, ['tipo' => 'number', 'min' => 0, 'max' => 1000, 'inputmode' => 'numeric', 'obrigatorio' => true]) . '</div>'
             . '<div class="col-6 col-md-3">' . $this->campo('campo-reter-dias', 'reter_dias', 'Guardar por (dias)', (string) $c->reterDias, ['tipo' => 'number', 'min' => 0, 'max' => 3650, 'inputmode' => 'numeric', 'obrigatorio' => true, 'ajuda' => '0 = não limitar.']) . '</div>'
-            . '<div class="col-12 col-md-8">' . $this->campo('campo-pasta', 'pasta', 'Pasta das cópias', $c->pasta, ['maxlength' => 300, 'ajuda' => 'Padrão: ' . ConfigDeBackup::PASTA_PADRAO . '. Pode ser uma pasta fora do site (caminho absoluto); precisa existir e ser gravável.']) . '</div>'
+            . '<div class="col-12 col-md-8">' . $this->campo('campo-pasta', 'pasta', 'Pasta das cópias', $c->pasta, ['maxlength' => 300, 'ajuda' => 'Padrão: ' . ConfigDeBackup::PASTA_PADRAO . '. Pasta existente e gravável.']) . '</div>'
             . '<div class="col-12 col-md-6">' . $this->campoSenha($sessao, 'campo-senha-config') . '</div>'
             . '<div class="col-12">' . $this->acoes('Salvar') . '</div></form></section>';
     }
@@ -347,13 +347,13 @@ final class TelasDeBackup
                 . '<td data-rotulo="Integridade (SHA-256)">' . ($c->legado ? '<span class="text-body-secondary">cópia do atualizador</span>' : $integra) . '</td><td data-rotulo="Ações">' . $acoes . '</td></tr>';
         }
         $tabela = $copias === []
-            ? '<p class="text-body-secondary">Nenhuma cópia ainda. Use "Fazer agora" acima.</p>'
+            ? '<p class="text-body-secondary">Nenhuma cópia. Use "Fazer agora".</p>'
             : '<table class="table align-middle"><caption class="visually-hidden">Cópias existentes</caption><thead><tr><th scope="col">Data</th><th scope="col">Tipo</th><th scope="col">Tamanho</th><th scope="col">Versão do PBL4</th><th scope="col">Integridade</th><th scope="col">Ações</th></tr></thead><tbody>' . $linhas . '</tbody></table>';
 
         return '<section class="mb-4" aria-labelledby="titulo-lista"><h2 class="h5" id="titulo-lista">Cópias no disco</h2>' . ($espaco === '' ? '' : '<p class="small text-body-secondary">' . $espaco . '</p>')
             . $tabela
             . '<form method="post" action="' . $base . '/limpar" class="row g-3">' . $csrf . '<div class="col-12 col-md-6">' . $this->campoSenha($sessao, 'campo-senha-limpar') . '</div>'
-            . '<div class="col-12"><button type="submit" class="btn btn-outline-secondary">Limpar antigas</button> <span class="small text-body-secondary">Apaga o que passar da retenção; a cópia do "voltar atrás" nunca é apagada.</span></div></form></section>';
+            . '<div class="col-12"><button type="submit" class="btn btn-outline-secondary">Limpar antigas</button> <span class="small text-body-secondary">A cópia do "voltar atrás" nunca é apagada.</span></div></form></section>';
     }
 
     /** Confirmação de restaurar (ou de apagar, com `apagar=1`): tela própria, com o aviso do que se perde. */
@@ -375,7 +375,7 @@ final class TelasDeBackup
         $corpo = $this->erro($erro)
             . '<dl class="row"><dt class="col-sm-3">Cópia</dt><dd class="col-sm-9"><code>' . $n . '</code></dd><dt class="col-sm-3">Feita em</dt><dd class="col-sm-9">' . $quando . '</dd>'
             . '<dt class="col-sm-3">Versão do PBL4</dt><dd class="col-sm-9">' . Pagina::h($info->versao) . '</dd></dl>'
-            . $this->alerta('warning', 'Restaurar volta o site ao estado de ' . $quando . ': tudo o que foi criado depois — conteúdo, uploads, contas e configurações — será perdido. Antes, o PBL4 guarda uma cópia do estado atual (tipo "pré-restauração"), confere o pacote (SHA-256 e esquema do banco) e põe o site em manutenção por alguns instantes.')
+            . $this->alerta('warning', 'O site volta ao estado de ' . $quando . '. Conteúdo, uploads, contas e configurações criados depois serão perdidos. Antes, o PBL4 guarda uma cópia "pré-restauração".')
             . '<form method="post" action="' . $base . '/restaurar" class="row g-3" data-pbl-backup-form>' . $csrf . '<input type="hidden" name="arquivo" value="' . $n . '">'
             . '<div class="col-12 col-md-6"><label for="campo-senha-restaurar" class="form-label">Sua senha, para confirmar</label><input id="campo-senha-restaurar" class="form-control" name="senha" type="password" autocomplete="current-password" maxlength="1024" required></div>'
             . '<div class="col-12 col-md-6">' . $this->campo('campo-palavra', 'palavra', 'Digite ' . self::CONFIRMACAO . ' para confirmar', '', ['obrigatorio' => true, 'autocomplete' => 'off', 'maxlength' => 20]) . '</div>'
@@ -384,7 +384,7 @@ final class TelasDeBackup
             . '<div class="col-12" hidden data-pbl-backup-andamento role="status" aria-live="polite"><p class="mb-1"><strong>Restaurando…</strong> Não feche a página.</p>'
             . '<div class="progress" role="progressbar" aria-label="Restaurando" aria-valuetext="Em andamento"><div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div></div></div></form>'
             . '<hr><h2 class="h5">Ou apagar esta cópia</h2>'
-            . ($info->protegida ? '<p>Esta cópia é protegida e não pode ser apagada.</p>' : '<form method="post" action="' . $base . '/apagar" class="row g-3">' . $csrf . '<input type="hidden" name="arquivo" value="' . $n . '">'
+            . ($info->protegida ? '<p>Cópia protegida: não pode ser apagada.</p>' : '<form method="post" action="' . $base . '/apagar" class="row g-3">' . $csrf . '<input type="hidden" name="arquivo" value="' . $n . '">'
                 . '<div class="col-12 col-md-6">' . $this->campoSenha($sessao, 'campo-senha-apagar') . '</div>'
                 . '<div class="col-12">' . $this->checkbox('campo-apagar', 'confirmar', 'Quero apagar esta cópia para sempre.', false) . '</div>'
                 . '<div class="col-12"><button type="submit" class="btn btn-outline-danger">Apagar cópia</button></div></form>');
@@ -449,7 +449,7 @@ final class TelasDeBackup
             $ok === 'criada' => 'Cópia criada.',
             $ok === 'config' => 'Configuração salva.',
             $ok === 'apagada' => 'Cópia apagada.',
-            $ok === 'restaurada' => 'Cópia restaurada. O estado anterior ficou guardado como cópia "pré-restauração".',
+            $ok === 'restaurada' => 'Cópia restaurada. O estado anterior ficou como "pré-restauração".',
             is_string($ok) && preg_match('/^limpa_(\d{1,3})$/D', $ok, $m) === 1 => (int) $m[1] . ' cópia(s) antiga(s) apagada(s).',
             default => null,
         };
@@ -489,6 +489,6 @@ final class TelasDeBackup
         $usado = array_sum(array_map(static fn (InfoDeBackup $c): int => $c->tamanho, $copias));
         $livre = ValidadorDePasta::espacoLivre($pasta);
 
-        return 'Espaço usado pelas cópias: <strong>' . $this->tamanho($usado) . '</strong>; livre no disco: <strong>' . ($livre === null ? 'não informado' : $this->tamanho($livre)) . '</strong>.';
+        return 'Cópias: <strong>' . $this->tamanho($usado) . '</strong> · livre: <strong>' . ($livre === null ? 'não informado' : $this->tamanho($livre)) . '</strong>.';
     }
 }

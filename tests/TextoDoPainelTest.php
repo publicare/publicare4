@@ -27,10 +27,7 @@ final class TextoDoPainelTest extends TestCase
      * Telas da onda 2 (aguardam a aprovação do dono da prévia): os padrões proibidos já valem, os limites de tamanho ainda não.
      * Esvaziar esta lista ao concluir a onda 2.
      */
-    private const ONDA_2 = [
-        'redirecionamentos', 'peles', 'busca', 'publicacao', 'dominios', 'atualizacao', 'copias', 'tarefas', 'contas', 'conta-nova', 'conta',
-        'classes', 'classe-nova', 'modelos', 'revisar', 'pendencias', 'vencidos', 'lixeira', 'pilha', 'meus-envios', 'entrar',
-    ];
+    private const ONDA_2 = [];
 
     /** @return array<string, string> nome => caminho GET (admin) */
     private function telas(): array
