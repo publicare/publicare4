@@ -35,7 +35,13 @@
 <header class="cabecalho"><div><h1>Suíte Master<span class="selo">Privado</span></h1><p>Página · versão 7 · alterada há 2 dias por Ana</p></div><div class="acoes"><a class="btn btn--secundario" href="site-exemplo.html" target="_blank" rel="noopener">Ver no site <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 3h4v4M13 3 7 9"/></svg><span class="so-leitor"> (abre em outra aba)</span></a><a class="btn btn--principal" href="editar-pagina.html">Editar</a></div></header>
 <section aria-labelledby="dados-t"><h2 id="dados-t" class="so-leitor">Dados</h2>
 <dl class="dados"><dt>Título</dt><dd>Suíte Master</dd><dt>Texto</dt><dd>A Suíte Master tem 42 m², cama king e varanda com vista para o jardim. Café da manhã incluso.</dd><dt>Endereço</dt><dd class="mono">/quartos/suite-master</dd><dt>Tags</dt><dd>hotel, suíte</dd><dt>Publicação</dt><dd>Ainda não publicada</dd></dl></section>
-<section class="secao-tela" aria-labelledby="dentro-t"><h2 id="dentro-t">Dentro desta página</h2><p>Nada dentro desta página ainda.</p><p><a href="criar.html">Criar conteúdo aqui dentro</a></p></section>
+<section class="secao-tela" aria-label="Dentro desta página"><div class="opcao opcao--bloco">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="bloco-dentro"><span class="opcao-titulo">Dentro desta página</span><span class="opcao-ajuda" id="bloco-dentro-aj">Conteúdos que ficam dentro desta página.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="bloco-dentro" name="bloco-dentro" checked aria-describedby="bloco-dentro-aj" aria-controls="bloco-dentro-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="bloco-dentro-campos"><p>Nada dentro desta página ainda.</p><p><a href="criar.html">Criar conteúdo aqui dentro</a></p></div>
+</div></section>
 <section class="secao-tela" aria-labelledby="rev-t" data-linha><h2 id="rev-t">Revisão</h2><p>Quem não publica diretamente envia para a revisão de alguém. <span class="selo" data-estado-revisao>Fora da revisão</span></p>
 <p><button type="button" class="btn btn--secundario" data-efeito="enviar">Enviar para revisão</button></p><p class="item-meta" data-msg role="status" hidden></p></section>
     </div>

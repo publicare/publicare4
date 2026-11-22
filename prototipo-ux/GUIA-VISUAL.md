@@ -65,7 +65,7 @@ Nada abaixo de 14 px. Campo com 16 px (o iOS não amplia a tela).
 
 **Seção.** Título (h2), uma linha de descrição e os campos. Separada da anterior por linha fina e 40 px de respiro. Sem cartão por campo.
 
-**Interruptor (toggle).** Linha com texto à esquerda (título 600 + explicação 14 px) e o interruptor à direita. Desligado: campos escondidos. Ligado: os campos aparecem logo abaixo, recuados 16 px com uma linha à esquerda. O que foi digitado não se perde ao desligar. Quando já há valor, nasce ligado.
+**Interruptor (toggle).** Linha com texto à esquerda (título 600 + explicação 14 px) e o interruptor à direita. Desligado: campos escondidos. Ligado: os campos aparecem logo abaixo, recuados 16 px com uma linha à esquerda. O que foi digitado não se perde ao desligar. Quando já há valor, nasce ligado. **Bloco ligável:** o mesmo interruptor, com título maior, serve para blocos secundários de uma tela (“Mexidos por último”, “Seções do site”, “Atalhos”, “Dentro desta página”): desligado, só o título e a explicação ficam. No formulário, tudo que é opcional (resumo, imagem, tags, endereço próprio, local, posição nas listas) fica atrás de interruptor.
 
 **Abas.** Texto com sublinhado de 2 px na cor de ação na ativa. Marcador em texto ("•1") quando há erro. Sem abas dentro de abas.
 

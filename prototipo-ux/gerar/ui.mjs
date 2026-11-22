@@ -57,9 +57,9 @@ export function imagem({ id, rotulo, ajuda, atual, opcional = true }) {
 </div>`;
 }
 
-export function etiquetas({ id, rotulo, ajuda, valor, sugestoes = [] }) {
+export function etiquetas({ id, rotulo, ajuda, valor, sugestoes = [], opcional = true }) {
   return `<div class="campo">
-  <div class="campo-cab"><label for="${id}">${esc(rotulo)}<span class="opcional"> (opcional)</span></label></div>
+  <div class="campo-cab"><label for="${id}">${esc(rotulo)}${opcional ? '<span class="opcional"> (opcional)</span>' : ''}</label></div>
   <div class="etiquetas" data-tags><input type="text" id="${id}" value="${esc(valor)}" aria-describedby="${id}-ajuda ${id}-erro" placeholder="Escreva e aperte Enter"><input type="hidden" name="${id}-lista"></div>
   ${sugestoes.length ? `<div class="sugestoes"><span>Já usadas:</span>${sugestoes.map((s) => `<button type="button" data-sugestao="${esc(s)}">${esc(s)}</button>`).join('')}</div>` : ''}
   <p class="ajuda" id="${id}-ajuda">${esc(ajuda)}</p>
@@ -91,8 +91,8 @@ export const secao = ({ titulo, desc, corpo, id }) => `<section class="secao"${i
 
 export const slug = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-export function opcao({ id, titulo, ajuda, ligado, campos }) {
-  return `<div class="opcao">
+export function opcao({ id, titulo, ajuda, ligado, campos, classe = '' }) {
+  return `<div class="opcao${classe ? ' ' + classe : ''}">
   <div class="opcao-cab">
     <label class="opcao-texto" for="${id}"><span class="opcao-titulo">${esc(titulo)}</span><span class="opcao-ajuda" id="${id}-aj">${esc(ajuda)}</span></label>
     <span class="interruptor"><input type="checkbox" role="switch" id="${id}" name="${id}"${ligado ? ' checked' : ''} aria-describedby="${id}-aj"${campos ? ` aria-controls="${id}-campos"` : ''}><span class="trilho" aria-hidden="true"></span></span>
@@ -137,3 +137,6 @@ export function linha({ titulo, href, meta, fim = '', atributos = '', depois = '
 }
 export const linhaLink = ({ titulo, href, meta, fim = '' }) => `<a class="item" href="${href}"><div class="item-texto"><span class="item-titulo">${esc(titulo)}</span>${meta ? `<span class="item-meta">${esc(meta)}</span>` : ''}</div><div class="item-fim">${fim}<span class="seta" aria-hidden="true">›</span></div></a>`;
 export const lista = (itens, classe = '') => `<ul class="lista${classe ? ' ' + classe : ''}">${itens.join('')}</ul>`;
+
+/** Bloco de tela que o usuário liga/desliga (interruptor no cabeçalho do bloco). */
+export const blocoLigavel = ({ id, titulo, ajuda, ligado = true, corpo }) => opcao({ id, titulo, ajuda, ligado, campos: corpo, classe: 'opcao--bloco' });

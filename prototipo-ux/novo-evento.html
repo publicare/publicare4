@@ -43,13 +43,24 @@
   <input id="titulo" name="titulo" aria-describedby="titulo-ajuda titulo-erro" aria-required="true" data-obrigatorio="" data-max="80" type="text" value="">
   <p class="ajuda" id="titulo-ajuda">Como as pessoas vão chamar o evento.</p>
   <p class="erro" id="titulo-erro"></p>
-</div><div class="campo">
-  <div class="campo-cab"><label for="resumo">Resumo<span class="opcional"> (opcional)</span></label><span class="contador" data-contador-de="resumo" data-max="200">até 200 caracteres</span></div>
-  <textarea id="resumo" name="resumo" aria-describedby="resumo-ajuda resumo-erro" data-max="200" rows="3"></textarea>
-  <p class="ajuda" id="resumo-ajuda">Uma ou duas frases para a lista de eventos.</p>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="resumo-ligado"><span class="opcao-titulo">Escrever um resumo</span><span class="opcao-ajuda" id="resumo-ligado-aj">Uma ou duas frases para a lista de eventos.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="resumo-ligado" name="resumo-ligado" aria-describedby="resumo-ligado-aj" aria-controls="resumo-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="resumo-ligado-campos"><div class="campo">
+  <div class="campo-cab"><label for="resumo">Resumo</label><span class="contador" data-contador-de="resumo" data-max="200">até 200 caracteres</span></div>
+  <textarea id="resumo" name="resumo" aria-describedby="resumo-erro" data-max="200" rows="3"></textarea>
+  
   <p class="erro" id="resumo-erro"></p>
-</div><div class="campo">
-  <div class="campo-cab"><label for="imagem">Imagem<span class="opcional"> (opcional)</span></label></div>
+</div></div>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="imagem-ligado"><span class="opcao-titulo">Usar imagem</span><span class="opcao-ajuda" id="imagem-ligado-aj">Aparece no evento e na lista de eventos.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="imagem-ligado" name="imagem-ligado" aria-describedby="imagem-ligado-aj" aria-controls="imagem-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="imagem-ligado-campos"><div class="campo">
+  <div class="campo-cab"><label for="imagem">Imagem</label></div>
   <div class="arquivo" data-arquivo>
     <div class="miniatura">Sem imagem</div>
     <div class="arquivo-info">
@@ -62,6 +73,7 @@
   
   <p class="erro" id="imagem-erro"></p>
 </div></div>
+</div></div>
 </section><section class="secao" aria-labelledby="quando-e-onde-t">
   <div class="secao-cab"><h2 id="quando-e-onde-t">Quando e onde</h2><p>O que as pessoas precisam para chegar.</p></div>
   <div class="secao-corpo"><div class="campo campo-curto">
@@ -69,11 +81,17 @@
   <input id="data-evento" name="data-evento" aria-describedby="data-evento-ajuda data-evento-erro" aria-required="true" data-obrigatorio="" type="datetime-local" value="">
   <p class="ajuda" id="data-evento-ajuda">Horário de Brasília.</p>
   <p class="erro" id="data-evento-erro"></p>
-</div><div class="campo">
-  <div class="campo-cab"><label for="local">Local<span class="opcional"> (opcional)</span></label><span class="contador" data-contador-de="local" data-max="120">até 120 caracteres</span></div>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="local-ligado"><span class="opcao-titulo">Informar o local</span><span class="opcao-ajuda" id="local-ligado-aj">Mostra onde o evento acontece. Deixe desligado para eventos online.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="local-ligado" name="local-ligado" aria-describedby="local-ligado-aj" aria-controls="local-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="local-ligado-campos"><div class="campo">
+  <div class="campo-cab"><label for="local">Local</label><span class="contador" data-contador-de="local" data-max="120">até 120 caracteres</span></div>
   <input id="local" name="local" aria-describedby="local-ajuda local-erro" data-max="120" type="text" value="">
   <p class="ajuda" id="local-ajuda">Nome do lugar ou endereço curto.</p>
   <p class="erro" id="local-erro"></p>
+</div></div>
 </div><div class="opcao">
   <div class="opcao-cab">
     <label class="opcao-texto" for="vagas-ligado"><span class="opcao-titulo">Limitar o número de vagas</span><span class="opcao-ajuda" id="vagas-ligado-aj">Mostra “vagas limitadas” e o número no evento.</span></label>
@@ -99,17 +117,29 @@
 </div></div>
 </section><section class="secao" aria-labelledby="endereco-e-organizacao-t">
   <div class="secao-cab"><h2 id="endereco-e-organizacao-t">Endereço e organização</h2><p>Como este conteúdo é encontrado.</p></div>
-  <div class="secao-corpo"><div class="campo">
+  <div class="secao-corpo"><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="endereco-ligado"><span class="opcao-titulo">Personalizar o endereço na internet</span><span class="opcao-ajuda" id="endereco-ligado-aj">Por padrão o endereço sai do título. Ligue para escolher um você mesmo.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="endereco-ligado" name="endereco-ligado" aria-describedby="endereco-ligado-aj" aria-controls="endereco-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="endereco-ligado-campos"><div class="campo">
   <div class="campo-cab"><label for="endereco">Endereço na internet</label><span class="contador" data-contador-de="endereco" data-max="60">até 60 caracteres</span></div>
   <div class="com-prefixo"><span aria-hidden="true">/</span><input id="endereco" name="endereco" aria-describedby="endereco-ajuda endereco-erro" aria-required="true" data-obrigatorio="" data-max="60" data-tipo="slug" type="text" value=""></div>
   <p class="ajuda" id="endereco-ajuda">Só letras minúsculas, números e hífen. Preenchido pelo título.</p>
   <p class="erro" id="endereco-erro"></p>
-</div><div class="campo">
-  <div class="campo-cab"><label for="tags">Tags<span class="opcional"> (opcional)</span></label></div>
+</div></div>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="tags-ligado"><span class="opcao-titulo">Organizar com tags</span><span class="opcao-ajuda" id="tags-ligado-aj">Palavras que ajudam a achar o conteúdo e agrupam o que é parecido.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="tags-ligado" name="tags-ligado" aria-describedby="tags-ligado-aj" aria-controls="tags-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="tags-ligado-campos"><div class="campo">
+  <div class="campo-cab"><label for="tags">Tags</label></div>
   <div class="etiquetas" data-tags><input type="text" id="tags" value="" aria-describedby="tags-ajuda tags-erro" placeholder="Escreva e aperte Enter"><input type="hidden" name="tags-lista"></div>
   <div class="sugestoes"><span>Já usadas:</span><button type="button" data-sugestao="hotel">hotel</button><button type="button" data-sugestao="suíte">suíte</button><button type="button" data-sugestao="inverno">inverno</button><button type="button" data-sugestao="gastronomia">gastronomia</button></div>
-  <p class="ajuda" id="tags-ajuda">Palavras que ajudam a achar o conteúdo. Até 10; separe com Enter ou vírgula.</p>
+  <p class="ajuda" id="tags-ajuda">Até 10; separe com Enter ou vírgula.</p>
   <p class="erro" id="tags-erro"></p>
+</div></div>
 </div></div>
 </section><section class="secao" aria-labelledby="buscadores-e-redes-sociais-t">
   <div class="secao-cab"><h2 id="buscadores-e-redes-sociais-t">Buscadores e redes sociais</h2><p>Por padrão usamos o título e o resumo acima.</p></div>
@@ -191,11 +221,17 @@
   <p class="ajuda" id="menu-nome-ajuda">Curto, de preferência uma palavra.</p>
   <p class="erro" id="menu-nome-erro"></p>
 </div></div>
-</div><div class="campo campo-curto">
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="peso-ligado"><span class="opcao-titulo">Escolher a posição nas listas</span><span class="opcao-ajuda" id="peso-ligado-aj">Sem isto, os mais novos aparecem primeiro.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="peso-ligado" name="peso-ligado" aria-describedby="peso-ligado-aj" aria-controls="peso-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="peso-ligado-campos"><div class="campo campo-curto">
   <div class="campo-cab"><label for="peso">Posição nas listas</label></div>
   <input id="peso" name="peso" aria-describedby="peso-ajuda peso-erro" data-tipo="inteiro" data-min="0" data-max-valor="99" type="number" value="10">
   <p class="ajuda" id="peso-ajuda">Número menor aparece primeiro. De 0 a 99.</p>
   <p class="erro" id="peso-erro"></p>
+</div></div>
 </div></div>
 </section></section>
 <section class="painel" id="painel-avancado" aria-label="Avançado"><section class="secao" aria-labelledby="aparencia-t">

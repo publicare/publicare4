@@ -34,7 +34,7 @@ const menuEOrdem = (nome) => secao({
   corpo: opcao({
     id: 'menu', titulo: 'Mostrar no menu do site', ajuda: 'Cria um link para este conteúdo no menu principal do site.', ligado: false,
     campos: campo({ id: 'menu-nome', rotulo: 'Nome no menu', valor: nome, max: 30, ajuda: 'Curto, de preferência uma palavra.', medio: true }),
-  }) + campo({ id: 'peso', rotulo: 'Posição nas listas', tipo: 'number', valor: '10', regra: 'inteiro', min: 0, maxValor: 99, curto: true, ajuda: 'Número menor aparece primeiro. De 0 a 99.' }),
+  }) + opcao({ id: 'peso-ligado', titulo: 'Escolher a posição nas listas', ligado: false, ajuda: 'Sem isto, os mais novos aparecem primeiro.', campos: campo({ id: 'peso', rotulo: 'Posição nas listas', tipo: 'number', valor: '10', regra: 'inteiro', min: 0, maxValor: 99, curto: true, ajuda: 'Número menor aparece primeiro. De 0 a 99.' }) }),
 });
 
 const seo = (prefixo, titulo = '', desc = '') => secao({
@@ -75,26 +75,26 @@ export function formularioEdicao({ tipo, novo, titulo, versao = 7, estadoConteud
   const essencial = {
     pagina: campo({ id: 'titulo', rotulo: 'Título', obrigatorio: true, max: 80, valor: t, ajuda: 'Aparece no topo da página e nas listas.' })
       + campo({ id: 'texto', rotulo: rotuloTexto, area: true, alto: true, valor: novo ? '' : 'A Suíte Master tem 42 m², cama king e varanda com vista para o jardim. Café da manhã incluso.', ajuda: 'Negrito, listas e links funcionam como no editor de sempre.' })
-      + imagem({ id: 'imagem', rotulo: 'Imagem de capa', atual: novo ? '' : 'suite-master.jpg' }),
+      + opcao({ id: 'capa-ligado', titulo: 'Usar imagem de capa', ligado: !novo, ajuda: 'Uma imagem no topo da página e nas listas.', campos: imagem({ id: 'imagem', rotulo: 'Imagem de capa', atual: novo ? '' : 'suite-master.jpg', opcional: false }) }),
     noticia: campo({ id: 'titulo', rotulo: 'Título', obrigatorio: true, max: 80, valor: t, ajuda: 'Diga o que aconteceu, em poucas palavras.' })
-      + campo({ id: 'resumo', rotulo: 'Resumo', area: true, linhas: 3, max: 200, valor: novo ? '' : 'A varanda ganhou vista livre para o jardim depois da poda.', ajuda: 'Aparece nas listas e quando alguém compartilha.', opcional: true })
       + campo({ id: 'texto', rotulo: rotuloTexto, area: true, alto: true, valor: novo ? '' : 'Depois de três meses de obra, a varanda está aberta para os hóspedes.', ajuda: 'Negrito, listas e links funcionam como no editor de sempre.' })
-      + imagem({ id: 'imagem', rotulo: 'Imagem', atual: novo ? '' : 'varanda.jpg' }),
+      + opcao({ id: 'resumo-ligado', titulo: 'Escrever um resumo', ligado: !novo, ajuda: 'Uma frase curta para as listas e para quando alguém compartilha. Sem ele, usamos o começo do texto.', campos: campo({ id: 'resumo', rotulo: 'Resumo', area: true, linhas: 3, max: 200, valor: novo ? '' : 'A varanda ganhou vista livre para o jardim depois da poda.' }) })
+      + opcao({ id: 'imagem-ligado', titulo: 'Usar imagem', ligado: !novo, ajuda: 'Aparece no topo da notícia e na lista de novidades.', campos: imagem({ id: 'imagem', rotulo: 'Imagem', atual: novo ? '' : 'varanda.jpg', opcional: false }) }),
     evento: campo({ id: 'titulo', rotulo: 'Nome do evento', obrigatorio: true, max: 80, valor: t, ajuda: 'Como as pessoas vão chamar o evento.' })
-      + campo({ id: 'resumo', rotulo: 'Resumo', area: true, linhas: 3, max: 200, valor: novo ? '' : 'Trio de jazz no salão, com entrada gratuita.', ajuda: 'Uma ou duas frases para a lista de eventos.', opcional: true })
-      + imagem({ id: 'imagem', rotulo: 'Imagem', atual: novo ? '' : 'jazz.jpg' }),
+      + opcao({ id: 'resumo-ligado', titulo: 'Escrever um resumo', ligado: !novo, ajuda: 'Uma ou duas frases para a lista de eventos.', campos: campo({ id: 'resumo', rotulo: 'Resumo', area: true, linhas: 3, max: 200, valor: novo ? '' : 'Trio de jazz no salão, com entrada gratuita.' }) })
+      + opcao({ id: 'imagem-ligado', titulo: 'Usar imagem', ligado: !novo, ajuda: 'Aparece no evento e na lista de eventos.', campos: imagem({ id: 'imagem', rotulo: 'Imagem', atual: novo ? '' : 'jazz.jpg', opcional: false }) }),
   }[tipo];
   const evento = tipo === 'evento' ? secao({
     titulo: 'Quando e onde', desc: 'O que as pessoas precisam para chegar.',
     corpo: campo({ id: 'data-evento', rotulo: 'Data e hora do evento', tipo: 'datetime-local', obrigatorio: true, valor: novo ? '' : '2027-12-12T20:00', curto: true, ajuda: 'Horário de Brasília.' })
-      + campo({ id: 'local', rotulo: 'Local', valor: novo ? '' : 'Salão principal', max: 120, ajuda: 'Nome do lugar ou endereço curto.', opcional: true })
+      + opcao({ id: 'local-ligado', titulo: 'Informar o local', ligado: !novo, ajuda: 'Mostra onde o evento acontece. Deixe desligado para eventos online.', campos: campo({ id: 'local', rotulo: 'Local', valor: novo ? '' : 'Salão principal', max: 120, ajuda: 'Nome do lugar ou endereço curto.' }) })
       + opcao({ id: 'vagas-ligado', titulo: 'Limitar o número de vagas', ligado: false, ajuda: 'Mostra “vagas limitadas” e o número no evento.', campos: campo({ id: 'vagas', rotulo: 'Quantas vagas', tipo: 'number', regra: 'inteiro', min: 1, maxValor: 5000, curto: true, ajuda: 'De 1 a 5.000.' }) })
       + opcao({ id: 'inscricao', titulo: 'Pedir inscrição por um link', ligado: false, ajuda: 'Mostra um botão “Quero ir” que leva para o endereço que você escolher.', campos: campo({ id: 'inscricao-url', rotulo: 'Endereço da inscrição', tipo: 'url', regra: 'url', placeholder: 'https://', ajuda: 'Começa com https://.' }) }),
   }) : '';
   const organizacao = secao({
     titulo: 'Endereço e organização', desc: 'Como este conteúdo é encontrado.',
-    corpo: campo({ id: 'endereco', rotulo: 'Endereço na internet', prefixo: '/', valor: slug.replace(/^-|-$/g, ''), regra: 'slug', max: 60, ajuda: 'Só letras minúsculas, números e hífen. Preenchido pelo título.', obrigatorio: true })
-      + etiquetas({ id: 'tags', rotulo: 'Tags', valor: novo ? '' : (tipo === 'pagina' ? 'hotel, suíte' : 'novidades'), sugestoes: TAGS_USADAS, ajuda: 'Palavras que ajudam a achar o conteúdo. Até 10; separe com Enter ou vírgula.' }),
+    corpo: opcao({ id: 'endereco-ligado', titulo: 'Personalizar o endereço na internet', ligado: false, ajuda: 'Por padrão o endereço sai do título. Ligue para escolher um você mesmo.', campos: campo({ id: 'endereco', rotulo: 'Endereço na internet', prefixo: '/', valor: slug.replace(/^-|-$/g, ''), regra: 'slug', max: 60, ajuda: 'Só letras minúsculas, números e hífen. Preenchido pelo título.', obrigatorio: true }) })
+      + opcao({ id: 'tags-ligado', titulo: 'Organizar com tags', ligado: !novo, ajuda: 'Palavras que ajudam a achar o conteúdo e agrupam o que é parecido.', campos: etiquetas({ id: 'tags', rotulo: 'Tags', valor: novo ? '' : (tipo === 'pagina' ? 'hotel, suíte' : 'novidades'), sugestoes: TAGS_USADAS, ajuda: 'Até 10; separe com Enter ou vírgula.', opcional: false }) }),
   });
   const abaConteudo = painel('conteudo', 'Conteúdo', secao({ titulo: 'O essencial', desc: 'O que quem visita vai ler.', corpo: essencial }) + evento + organizacao + seo(pref, '', ''));
   const abaPublicacao = painel('publicacao', 'Publicação', estado(estadoConteudo) + quando(tipo === 'evento' && !novo ? { validade: '2027-12-13T02:00' } : {}) + menuEOrdem(titulo || ''));

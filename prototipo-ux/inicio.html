@@ -35,10 +35,20 @@
 <header class="cabecalho"><div><h1>Início</h1><p>Olá, Ana. Você é administradora do Site Exemplo.</p></div><div class="acoes"><a class="btn btn--principal" href="criar.html">Criar conteúdo</a></div></header>
 <section aria-labelledby="fazer-t"><h2 id="fazer-t">Para fazer</h2>
 <ul class="lista lista--link"><li><a class="item" href="revisar.html"><div class="item-texto"><span class="item-titulo">2 envios esperam a sua revisão</span><span class="item-meta">Nova vista da varanda e Cardápio de inverno</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li><li><a class="item" href="editar-pagina.html"><div class="item-texto"><span class="item-titulo">Continuar: Suíte Master</span><span class="item-meta">Você mexeu nela há 2 dias. Ainda está privada.</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li></ul></section>
-<section class="secao-tela" aria-labelledby="secoes-t"><h2 id="secoes-t">Seções do site</h2>
-<ul class="lista lista--link"><li><a class="item" href="conteudo-quartos.html"><div class="item-texto"><span class="item-titulo">Quartos</span><span class="item-meta">3 itens · As páginas que apresentam cada quarto.</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li><li><a class="item" href="conteudo-eventos.html"><div class="item-texto"><span class="item-titulo">Eventos</span><span class="item-meta">3 itens · Noites, feiras e festas com data marcada.</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li><li><a class="item" href="conteudo-novidades.html"><div class="item-texto"><span class="item-titulo">Novidades</span><span class="item-meta">3 itens · Notícias curtas sobre o que muda no site.</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li></ul></section>
-<section class="secao-tela" aria-labelledby="atalhos-t"><h2 id="atalhos-t">Atalhos</h2>
-<p><a href="configuracoes.html">Configurações do site</a> · <a href="site-exemplo.html" target="_blank" rel="noopener">Ver o site <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 3h4v4M13 3 7 9"/></svg><span class="so-leitor"> (abre em outra aba)</span></a></p></section>
+<section class="secao-tela" aria-label="Seções do site"><div class="opcao opcao--bloco">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="bloco-secoes"><span class="opcao-titulo">Seções do site</span><span class="opcao-ajuda" id="bloco-secoes-aj">Atalho para cada parte do site.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="bloco-secoes" name="bloco-secoes" checked aria-describedby="bloco-secoes-aj" aria-controls="bloco-secoes-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="bloco-secoes-campos"><ul class="lista lista--link"><li><a class="item" href="conteudo-quartos.html"><div class="item-texto"><span class="item-titulo">Quartos</span><span class="item-meta">3 itens · As páginas que apresentam cada quarto.</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li><li><a class="item" href="conteudo-eventos.html"><div class="item-texto"><span class="item-titulo">Eventos</span><span class="item-meta">3 itens · Noites, feiras e festas com data marcada.</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li><li><a class="item" href="conteudo-novidades.html"><div class="item-texto"><span class="item-titulo">Novidades</span><span class="item-meta">3 itens · Notícias curtas sobre o que muda no site.</span></div><div class="item-fim"><span class="seta" aria-hidden="true">›</span></div></a></li></ul></div>
+</div>
+<div class="opcao opcao--bloco">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="bloco-atalhos"><span class="opcao-titulo">Atalhos</span><span class="opcao-ajuda" id="bloco-atalhos-aj">Os dois lugares que você mais abre fora do conteúdo.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="bloco-atalhos" name="bloco-atalhos" checked aria-describedby="bloco-atalhos-aj" aria-controls="bloco-atalhos-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="bloco-atalhos-campos"><p><a href="configuracoes.html">Configurações do site</a> · <a href="site-exemplo.html" target="_blank" rel="noopener">Ver o site <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 3h4v4M13 3 7 9"/></svg><span class="so-leitor"> (abre em outra aba)</span></a></p></div>
+</div></section>
     </div>
   </main>
 </div>

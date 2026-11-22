@@ -405,3 +405,9 @@ fieldset.campo > legend { margin-bottom: var(--pbl-e2); padding: 0; }
 .tela--form { max-width: none; }
 .tela--form .cabecalho, .tela--form .formulario > *:not(.barra-acoes) { max-width: var(--pbl-coluna-form); }
 .tela--form > .tela-interna { max-width: var(--pbl-coluna-form); }
+
+/* Bloco de tela ligável: interruptor no cabeçalho, conteúdo abaixo sem recuo */
+.opcao--bloco { border-top: 1px solid var(--pbl-linha); }
+.opcao--bloco .opcao-titulo { font-size: 1.125rem; line-height: 1.75rem; }
+.opcao--bloco > .opcao-campos { margin: 0 0 var(--pbl-e4); padding: 0; border-left: 0; }
+.opcao--bloco + .opcao--bloco { margin-top: var(--pbl-e2); }

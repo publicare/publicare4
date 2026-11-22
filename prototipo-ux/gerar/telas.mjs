@@ -1,5 +1,5 @@
 import { pagina } from './casca.mjs';
-import { campo, secao, opcao, recolhido, caixa, selo, seloDe, cabecalho, botao, externo, abas, painel, lista, linha, linhaLink, esc, icone, imagem, seletorDeConteudo, opcoes, barra, resumoErros, ESTADOS } from './ui.mjs';
+import { blocoLigavel, campo, secao, opcao, recolhido, caixa, selo, seloDe, cabecalho, botao, externo, abas, painel, lista, linha, linhaLink, esc, icone, imagem, seletorDeConteudo, opcoes, barra, resumoErros, ESTADOS } from './ui.mjs';
 import { SECOES, ITENS, nomeSecao, OPCOES_CONTEUDO } from './dados.mjs';
 import { formularioEdicao, formularioConfig } from './formularios.mjs';
 
@@ -40,10 +40,8 @@ ${lista([
     `<li>${linhaLink({ titulo: '2 envios esperam a sua revisão', href: 'revisar.html', meta: 'Nova vista da varanda e Cardápio de inverno' })}</li>`,
     `<li>${linhaLink({ titulo: 'Continuar: Suíte Master', href: 'editar-pagina.html', meta: 'Você mexeu nela há 2 dias. Ainda está privada.' })}</li>`,
   ], 'lista--link')}</section>
-<section class="secao-tela" aria-labelledby="secoes-t"><h2 id="secoes-t">Seções do site</h2>
-${lista(SECOES.map((s) => `<li>${linhaLink({ titulo: s.nome, href: s.arquivo, meta: `${ITENS.filter((i) => i.secao === s.id && i.estado !== 'lixeira').length} itens · ${s.desc}` })}</li>`), 'lista--link')}</section>
-<section class="secao-tela" aria-labelledby="atalhos-t"><h2 id="atalhos-t">Atalhos</h2>
-<p><a href="configuracoes.html">Configurações do site</a> · <a href="site-exemplo.html" target="_blank" rel="noopener">Ver o site ${icone.externo}<span class="so-leitor"> (abre em outra aba)</span></a></p></section>`,
+<section class="secao-tela" aria-label="Seções do site">${blocoLigavel({ id: 'bloco-secoes', titulo: 'Seções do site', ajuda: 'Atalho para cada parte do site.', corpo: lista(SECOES.map((s) => `<li>${linhaLink({ titulo: s.nome, href: s.arquivo, meta: `${ITENS.filter((i) => i.secao === s.id && i.estado !== 'lixeira').length} itens · ${s.desc}` })}</li>`), 'lista--link') })}
+${blocoLigavel({ id: 'bloco-atalhos', titulo: 'Atalhos', ajuda: 'Os dois lugares que você mais abre fora do conteúdo.', corpo: `<p><a href="configuracoes.html">Configurações do site</a> · <a href="site-exemplo.html" target="_blank" rel="noopener">Ver o site ${icone.externo}<span class="so-leitor"> (abre em outra aba)</span></a></p>` })}</section>`,
 });
 
 /* ---------- Conteúdo ---------- */
@@ -52,9 +50,8 @@ T['conteudo.html'] = pagina({
   corpo: `${cabecalho({ titulo: 'Conteúdo', desc: 'Tudo o que está no site, por seção.', acao: botao('Criar conteúdo', 'criar.html', 'principal') })}
 <section aria-labelledby="sec-t"><h2 id="sec-t" class="so-leitor">Seções</h2>
 ${lista(SECOES.map((s) => `<li>${linhaLink({ titulo: s.nome, href: s.arquivo, meta: s.desc, fim: `<span class="item-meta">${ITENS.filter((i) => i.secao === s.id && i.estado !== 'lixeira').length} itens</span>` })}</li>`), 'lista--link')}</section>
-<section class="secao-tela" aria-labelledby="rec-t"><h2 id="rec-t">Mexidos por último</h2>
-${lista(ITENS.filter((i) => i.estado !== 'lixeira').slice(0, 5).sort((a, b) => 0).map((i) => `<li>${linha({ titulo: i.titulo, href: 'ver.html', meta: `${nomeSecao(i.secao)} · ${i.tipo} · ${i.quando}`, fim: seloDe(i.estado) })}</li>`))}
-<p class="pequeno suave">Procurando algo apagado? Abra uma seção e escolha “Na lixeira”, ou use a busca.</p></section>`,
+<section class="secao-tela" aria-label="Mexidos por último">${blocoLigavel({ id: 'bloco-recentes', titulo: 'Mexidos por último', ajuda: 'Os cinco conteúdos que mudaram mais recentemente.', corpo: `${lista(ITENS.filter((i) => i.estado !== 'lixeira').slice(0, 5).map((i) => `<li>${linha({ titulo: i.titulo, href: 'ver.html', meta: `${nomeSecao(i.secao)} · ${i.tipo} · ${i.quando}`, fim: seloDe(i.estado) })}</li>`))}
+<p class="pequeno suave">Procurando algo apagado? Abra uma seção e escolha “Na lixeira”, ou use a busca.</p>` })}</section>`,
 });
 
 const linhaItem = (i) => {
@@ -86,7 +83,7 @@ T['ver.html'] = pagina({
   corpo: `${cabecalho({ titulo: 'Suíte Master', selo: seloDe('privado'), desc: 'Página · versão 7 · alterada há 2 dias por Ana', acao: `${externo('Ver no site', 'site-exemplo.html')}${botao('Editar', 'editar-pagina.html', 'principal')}` })}
 <section aria-labelledby="dados-t"><h2 id="dados-t" class="so-leitor">Dados</h2>
 <dl class="dados"><dt>Título</dt><dd>Suíte Master</dd><dt>Texto</dt><dd>A Suíte Master tem 42 m², cama king e varanda com vista para o jardim. Café da manhã incluso.</dd><dt>Endereço</dt><dd class="mono">/quartos/suite-master</dd><dt>Tags</dt><dd>hotel, suíte</dd><dt>Publicação</dt><dd>Ainda não publicada</dd></dl></section>
-<section class="secao-tela" aria-labelledby="dentro-t"><h2 id="dentro-t">Dentro desta página</h2><p>Nada dentro desta página ainda.</p><p><a href="criar.html">Criar conteúdo aqui dentro</a></p></section>
+<section class="secao-tela" aria-label="Dentro desta página">${blocoLigavel({ id: 'bloco-dentro', titulo: 'Dentro desta página', ajuda: 'Conteúdos que ficam dentro desta página.', corpo: '<p>Nada dentro desta página ainda.</p><p><a href="criar.html">Criar conteúdo aqui dentro</a></p>' })}</section>
 <section class="secao-tela" aria-labelledby="rev-t" data-linha><h2 id="rev-t">Revisão</h2><p>Quem não publica diretamente envia para a revisão de alguém. <span class="selo" data-estado-revisao>Fora da revisão</span></p>
 <p><button type="button" class="btn btn--secundario" data-efeito="enviar">Enviar para revisão</button></p><p class="item-meta" data-msg role="status" hidden></p></section>`,
 });
