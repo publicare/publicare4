@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Alterado
+- **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.8`.
+
 ## [0.1.0-rc.8] - 2026-11-22
 
 > **Em resumo:** nova listagem de conteúdo (ícone da classe, título em destaque, metadados em linha e menu ⋯), painel com texto mais enxuto e ajuda "?" menor, linha de ações no celular em grade de botões iguais e instruções para agentes (`AGENTS.md`).
