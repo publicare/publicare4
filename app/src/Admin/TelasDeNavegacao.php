@@ -53,8 +53,6 @@ final class TelasDeNavegacao
 
     /** @var array<int, string> */
     private array $nomesDeClasse = [];
-    /** @var array<int, string> */
-    private array $nomesDeUsuario = [];
 
     public function __construct(
         private readonly Servicos $servicos,
@@ -352,21 +350,15 @@ final class TelasDeNavegacao
         $linhas = '';
         foreach ($lista as $x) {
             $res = $resumos[$x->id] ?? ['atualizado_em' => '', 'alterado_por' => null, 'filhos' => 0];
-            $linhas .= '<tr><td>' . ($lote ? '<input class="form-check-input" type="checkbox" name="ids[]" value="' . $x->id . '" form="lote" aria-label="Selecionar ' . Pagina::h($x->titulo) . '">'
-                . '<input type="hidden" name="versao[' . $x->id . ']" value="' . $x->versao . '" form="lote">' : '') . '</td>'
-                . '<td><span class="badge text-bg-light border" title="Tipo">' . $this->iconeDaClasse($x->classeId) . Pagina::h($this->nomeDaClasse($x->classeId)) . '</span></td>'
-                . '<td><a class="fw-semibold" href="' . $this->link($x->id) . '">' . Pagina::h($x->titulo) . '</a></td>'
-                . '<td>' . $this->selo($x, $agora) . '</td>'
-                . '<td>' . Pagina::h($this->data($res['atualizado_em'])) . '</td>'
-                . '<td>' . Pagina::h($res['alterado_por'] === null ? '—' : $this->nomeDe($res['alterado_por'])) . '</td>'
-                . '<td>' . $res['filhos'] . '</td>'
-                . '<td class="text-end">' . $this->acoesDaLinha($sessao, $x, $res['filhos'], $atual->id, $volta, $csrf) . '</td></tr>';
+            $datas = DadosDaLinha::datas($res['atualizado_em'], self::FUSO);
+            $linhas .= LinhaDeConteudo::renderizar(new DadosDaLinha(
+                $x->id, $x->titulo, $this->link($x->id), $this->servicos->classes->porId($x->classeId), $this->nomeDaClasse($x->classeId),
+                $this->selo($x, $agora), $datas[0] ?? '', $datas[1] ?? '', $datas[2] ?? '', $res['filhos'], $lote ? $x->versao : null,
+            ), $this->acoesDaLinha($sessao, $x, $res['filhos'], $atual->id, $volta, $csrf));
         }
 
-        return '<div class="table-responsive"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Conteúdo dentro de ' . Pagina::h($atual->titulo) . '</caption>'
-            . '<thead><tr><th scope="col">' . ($lote ? '<input class="form-check-input" type="checkbox" data-pbl-marcar-todos="ids[]" aria-label="Selecionar todos desta página">' : '<span class="visually-hidden">Seleção</span>') . '</th>'
-            . '<th scope="col">Tipo</th><th scope="col">Título</th><th scope="col">Estado</th><th scope="col">Alterado em</th><th scope="col">Por</th><th scope="col">Filhos</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead>'
-            . '<tbody>' . $linhas . '</tbody></table></div>'
+        return ($lote ? '<label class="pbl-lc-todos"><input class="form-check-input" type="checkbox" data-pbl-marcar-todos="ids[]"> Selecionar todos desta página</label>' : '')
+            . '<ul class="pbl-lista-conteudo" aria-label="Conteúdo dentro de ' . Pagina::h($atual->titulo) . '">' . $linhas . '</ul>'
             . ($lote ? $this->barraDeLote($sessao, $atual, $volta) : '');
     }
 
@@ -382,51 +374,46 @@ final class TelasDeNavegacao
             . '<span class="small text-body-secondary">Para mover, recorte para a pilha ou use o ícone de mover na linha.</span></form>';
     }
 
-    private function acoesDaLinha(SessaoAtiva $sessao, Objeto $x, int $filhos, int $nivel, string $volta, string $csrf): string
+    /** @return list<AcaoDeLinha> só 3 à vista (editar, estado, abrir no site); o resto vai para o menu "⋯ Mais" (ADR 0032) */
+    private function acoesDaLinha(SessaoAtiva $sessao, Objeto $x, int $filhos, int $nivel, string $volta, string $csrf): array
     {
         $naLixeira = $x->status === self::LIXEIRA;
-        $b = '';
-        $item = $x->titulo;
-        if (!$naLixeira && $this->pode($sessao, Acao::Editar, $x)) {
-            $b .= Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $this->objeto($x->id) . '/editar', 'item' => $item]);
+        $acoes = [];
+        $editar = !$naLixeira && $this->pode($sessao, Acao::Editar, $x);
+        if ($editar) {
+            $acoes[] = AcaoDeLinha::link('Editar', 'editar', AcaoDeLinha::PRIMARIA, $this->objeto($x->id) . '/editar');
         }
-        $b .= Pagina::botaoIcone('abrir', $filhos > 0 ? 'Abrir (' . $filhos . ')' : 'Abrir', 'btn-outline-secondary', ['href' => $this->link($x->id), 'item' => $item]);
-        $publica = $this->urlPublica($x);
+        $acao = Painel::PREFIXO . '/conteudo/acao';
+        $campos = fn (string $nome): array => [['acao', $nome], ['ids[]', (string) $x->id], ['versao[' . $x->id . ']', (string) $x->versao], ['nivel', (string) $nivel], ['volta', $volta]];
         $publicar = !$naLixeira && $this->pode($sessao, Acao::Publicar, $x);
         if ($publicar && $x->status === 'publicado') {
-            $b .= $this->formularioUnico('despublicar', 'Despublicar', 'despublicar', 'btn-warning bg-gradient', $x, $nivel, $volta, $csrf);
+            $acoes[] = AcaoDeLinha::post('Tirar do ar', 'despublicar', AcaoDeLinha::ESTADO, $acao, $csrf, $campos('despublicar'));
         } elseif ($publicar && in_array($x->status, ['privado', 'rejeitado', 'submetido'], true)) {
-            $b .= $this->formularioUnico('publicar', 'Publicar', 'publicar', 'btn-success bg-gradient', $x, $nivel, $volta, $csrf);
-        } elseif (!$naLixeira && in_array($x->status, ['privado', 'rejeitado'], true) && $this->pode($sessao, Acao::Editar, $x)) {
-            $b .= $this->formularioUnico('enviar', $x->status === 'rejeitado' ? 'Reenviar para revisão' : 'Enviar para revisão', 'enviar', 'btn-success bg-gradient', $x, $nivel, $volta, $csrf);
+            $acoes[] = AcaoDeLinha::post('Publicar', 'publicar', AcaoDeLinha::ESTADO, $acao, $csrf, $campos('publicar'));
+        } elseif ($editar && in_array($x->status, ['privado', 'rejeitado'], true)) {
+            $acoes[] = AcaoDeLinha::post($x->status === 'rejeitado' ? 'Reenviar para revisão' : 'Enviar para revisão', 'enviar', AcaoDeLinha::ESTADO, $acao, $csrf, $campos('enviar'));
+        } elseif ($naLixeira && $this->pode($sessao, Acao::Apagar, $x)) {
+            $acoes[] = AcaoDeLinha::post('Tirar da lixeira', 'restaurar', AcaoDeLinha::ESTADO, $this->objeto($x->id) . '/recuperar', $csrf, [['versao', (string) $x->versao]]);
         }
+        $publica = $this->urlPublica($x);
         if ($publica !== null) {
-            $b .= Pagina::botaoIcone('externo', 'Ver página pública', 'btn-outline-secondary', ['href' => $publica, 'externo' => true, 'item' => $item]);
+            $acoes[] = AcaoDeLinha::link('Abrir no site', 'externo', AcaoDeLinha::EXTERNA, $publica, true);
         }
-        $b .= Pagina::botaoIcone('historico', 'Histórico', 'btn-outline-secondary', ['href' => $this->objeto($x->id) . '/versoes', 'item' => $item]);
+        $acoes[] = AcaoDeLinha::link($filhos > 0 ? 'Abrir pasta (' . $filhos . ')' : 'Abrir pasta', 'abrir', AcaoDeLinha::MENU, $this->link($x->id));
+        $acoes[] = AcaoDeLinha::link('Histórico', 'historico', AcaoDeLinha::MENU, $this->objeto($x->id) . '/versoes');
         if (!$naLixeira && $x->paiId !== null) {
-            $b .= $this->formularioDePilha('copiar', 'Copiar para a pilha', 'copiar', $x, $nivel, $csrf);
-            if ($this->pode($sessao, Acao::Editar, $x)) {
-                $b .= $this->formularioDePilha('recortar', 'Recortar para a pilha', 'recortar', $x, $nivel, $csrf);
+            $pilha = fn (string $modo): array => [['modo', $modo], ['ids[]', (string) $x->id], ['versao[' . $x->id . ']', (string) $x->versao], ['nivel', (string) $nivel]];
+            $acoes[] = AcaoDeLinha::post('Copiar', 'copiar', AcaoDeLinha::MENU, Painel::PREFIXO . '/pilha/adicionar', $csrf, $pilha('copiar'));
+            if ($editar) {
+                $acoes[] = AcaoDeLinha::post('Recortar', 'recortar', AcaoDeLinha::MENU, Painel::PREFIXO . '/pilha/adicionar', $csrf, $pilha('recortar'));
+            }
+            if ($this->pode($sessao, Acao::Apagar, $x)) {
+                $acoes[] = AcaoDeLinha::link('Mover', 'mover', AcaoDeLinha::MENU, $this->objeto($x->id) . '/mover');
+                $acoes[] = AcaoDeLinha::link('Apagar', 'excluir', AcaoDeLinha::PERIGO, $this->objeto($x->id) . '/apagar');
             }
         }
-        if (!$naLixeira && $x->paiId !== null && $this->pode($sessao, Acao::Apagar, $x)) {
-            $b .= Pagina::botaoIcone('mover', 'Mover', 'btn-outline-secondary', ['href' => $this->objeto($x->id) . '/mover', 'item' => $item])
-                . Pagina::botaoIcone('excluir', 'Excluir (lixeira)', 'btn-danger bg-gradient', ['href' => $this->objeto($x->id) . '/apagar', 'item' => $item]);
-        }
-        if ($naLixeira && $this->pode($sessao, Acao::Apagar, $x)) {
-            $b .= '<form method="post" action="' . $this->objeto($x->id) . '/recuperar">' . $csrf . '<input type="hidden" name="versao" value="' . $x->versao . '">'
-                . Pagina::botaoIcone('restaurar', 'Tirar da lixeira', 'btn-outline-dark', ['item' => $item]) . '</form>';
-        }
 
-        return '<div class="pbl-linha-acoes">' . $b . '</div>';
-    }
-
-    private function formularioDePilha(string $modo, string $rotulo, string $icone, Objeto $x, int $nivel, string $csrf): string
-    {
-        return '<form method="post" action="' . Painel::PREFIXO . '/pilha/adicionar">' . $csrf
-            . '<input type="hidden" name="modo" value="' . $modo . '"><input type="hidden" name="ids[]" value="' . $x->id . '"><input type="hidden" name="versao[' . $x->id . ']" value="' . $x->versao . '">'
-            . '<input type="hidden" name="nivel" value="' . $nivel . '">' . Pagina::botaoIcone($icone, $rotulo, 'btn-outline-secondary', ['item' => $x->titulo]) . '</form>';
+        return $acoes;
     }
 
     /**
@@ -451,14 +438,6 @@ final class TelasDeNavegacao
         return '<div class="alert alert-info d-flex flex-wrap align-items-center gap-2" role="status"><span>'
             . count($itens) . ($recortar ? (count($itens) === 1 ? ' item recortado' : ' itens recortados') : (count($itens) === 1 ? ' item copiado' : ' itens copiados')) . ' na pilha.</span>'
             . '<span class="ms-auto d-flex flex-wrap align-items-center gap-2">' . $botoes . Pagina::ajuda('ajuda-pilha', 'Pilha', TelasDePilha::ajudaDaPilha()) . '</span></div>';
-    }
-
-    private function formularioUnico(string $acao, string $rotulo, string $icone, string $classe, Objeto $x, int $nivel, string $volta, string $csrf): string
-    {
-        return '<form method="post" action="' . Painel::PREFIXO . '/conteudo/acao" class="d-inline">' . $csrf
-            . '<input type="hidden" name="acao" value="' . $acao . '"><input type="hidden" name="ids[]" value="' . $x->id . '"><input type="hidden" name="versao[' . $x->id . ']" value="' . $x->versao . '">'
-            . '<input type="hidden" name="nivel" value="' . $nivel . '"><input type="hidden" name="volta" value="' . Pagina::h($volta) . '">'
-            . '' . Pagina::botaoIcone($icone, $rotulo, $classe, ['item' => $x->titulo]) . '</form>';
     }
 
     /** @param array{q: string, estado: string, classe: int|null, ordem: string, inicio: int, por: int} $f */
@@ -762,17 +741,12 @@ final class TelasDeNavegacao
         return false;
     }
 
-    private function nomeDe(int $usuarioId): string
-    {
-        return $this->nomesDeUsuario[$usuarioId] ??= $this->servicos->usuarios->porId($usuarioId)->nome ?? 'conta removida';
-    }
-
     /** @var array<int, string> */
     private array $iconesDeClasse = [];
 
     private function iconeDaClasse(int $classeId): string
     {
-        $this->iconesDeClasse[$classeId] ??= IconesDeClasse::svg($this->servicos->classes->porId($classeId)->icone ?? '');
+        $this->iconesDeClasse[$classeId] ??= IconesDeClasse::svg(IconesDeClasse::resolver($this->servicos->classes->porId($classeId)));
 
         return $this->iconesDeClasse[$classeId] === '' ? '' : $this->iconesDeClasse[$classeId] . ' ';
     }

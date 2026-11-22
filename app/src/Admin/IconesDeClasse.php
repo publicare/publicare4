@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pbl\Admin;
 
+use Pbl\Conteudo\Classe;
+
 /**
  * Ícones que um tipo de conteúdo pode ter na listagem do painel (ADR 0026). Conjunto fechado de SVGs de traço simples
  * (`currentColor`, sem cor própria: a paleta é a do painel), escritos aqui mesmo, sem arquivo externo nem biblioteca. O banco guarda só a
@@ -27,6 +29,36 @@ final class IconesDeClasse
         'estrela' => ['Destaque', '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/>'],
     ];
 
+    /** Ícone de quem não tem ícone gravado nem é de um tipo fixo; fora do seletor (não se grava). */
+    private const GENERICO = '<path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5"/>';
+
+    /** Tipo fixo (ADR 0015) => chave do ícone padrão. */
+    private const PADRAO_DO_TIPO = [
+        'pasta' => 'pasta', 'pagina' => 'documento', 'formulario' => 'formulario',
+        'arquivo' => 'arquivo', 'imagem' => 'imagem', 'link' => 'link',
+    ];
+
+    /** A chave a desenhar: a gravada (válida), senão a do tipo fixo, senão 'generico'. */
+    public static function resolver(?Classe $classe): string
+    {
+        if ($classe !== null && $classe->icone !== '' && isset(self::ICONES[$classe->icone])) {
+            return $classe->icone;
+        }
+
+        return $classe !== null && $classe->fixa ? (self::PADRAO_DO_TIPO[$classe->nome] ?? 'generico') : 'generico';
+    }
+
+    /**
+     * Ícone da classe na listagem: `<span class="pbl-icone" title="Nome" role="img" aria-label="Tipo: Nome">` com o SVG decorativo.
+     * O nome é escapado aqui.
+     */
+    public static function marca(?Classe $classe, string $nome, int $tamanho = 22): string
+    {
+        $n = htmlspecialchars($nome, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        return '<span class="pbl-icone" role="img" title="' . $n . '" aria-label="Tipo: ' . $n . '">' . self::svg(self::resolver($classe), $tamanho) . '</span>';
+    }
+
     /** @return array<string, string> chave => rótulo */
     public static function opcoes(): array
     {
@@ -41,11 +73,12 @@ final class IconesDeClasse
     /** O SVG inline (decorativo, `aria-hidden`) da chave, ou '' se não há ícone. */
     public static function svg(string $chave, int $tamanho = 16): string
     {
-        if (!isset(self::ICONES[$chave])) {
+        $caminhos = $chave === 'generico' ? self::GENERICO : (self::ICONES[$chave][1] ?? null);
+        if ($caminhos === null) {
             return '';
         }
 
         return '<svg class="pbl-icone-classe" width="' . $tamanho . '" height="' . $tamanho . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
-            . self::ICONES[$chave][1] . '</svg>';
+            . $caminhos . '</svg>';
     }
 }

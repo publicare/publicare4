@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Pbl\Testes;
 
+use Pbl\Admin\AcaoDeLinha;
+use Pbl\Admin\DadosDaLinha;
+use Pbl\Admin\IconesDeClasse;
+use Pbl\Admin\LinhaDeConteudo;
 use Pbl\Acesso\Perfil;
 use Pbl\Acesso\SessaoRepositorio;
 use Pbl\Aplicacao;
@@ -322,6 +326,76 @@ final class AdminNavegacaoTest extends TestCase
         self::assertStringContainsString('ok=nada', (string) $r->headers->get('Location'));
     }
 
+    public function testLinhaNovaMostraIconeNomeDaClasseEEstadoSemRuido(): void
+    {
+        $f = $this->filho($this->inicio, 'Varanda com cadeiras', 'varanda', 'privado');
+        $h = $this->html($this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $this->token('admin')));
+
+        self::assertStringContainsString('<ul class="pbl-lista-conteudo"', $h);
+        self::assertStringNotContainsString('<table', explode('pbl-lista-conteudo', $h, 2)[1]);
+        self::assertStringContainsString('class="pbl-icone" role="img" title="pagina" aria-label="Tipo: pagina"', $h);
+        self::assertStringContainsString('<span class="pbl-lc-classe">pagina</span>', $h);
+        self::assertStringContainsString('>privado</span>', $h);
+        self::assertStringNotContainsString('Por:', $h);
+        self::assertStringNotContainsString('0 filhos', $h);
+        self::assertStringContainsString('name="ids[]" value="' . $f->id . '" form="lote"', $h);
+    }
+
+    public function testSoTresAcoesAVistaEOrestoNoMenuMais(): void
+    {
+        $f = $this->filho($this->sobre, 'Equipe', 'sobre/equipe', 'publicado');
+        $h = $this->html($this->req('GET', '/_pbl/conteudo/' . $this->sobre->id, $this->token('admin')));
+        $linha = explode('<li class="pbl-lc', explode('Selecionar Equipe', $h, 2)[1], 2)[0];
+        [$vista, $menu] = explode('<details class="pbl-mais">', $linha, 2);
+
+        self::assertStringContainsString('aria-label="Editar: Equipe"', $vista);
+        self::assertStringContainsString('aria-label="Tirar do ar: Equipe"', $vista);
+        self::assertStringNotContainsString('Copiar', $vista);
+        self::assertStringNotContainsString('Mover', $vista);
+        self::assertStringNotContainsString('Apagar', $vista);
+        foreach (['Abrir pasta', 'Histórico', 'Copiar', 'Recortar', 'Mover', 'Apagar'] as $rotulo) {
+            self::assertStringContainsString($rotulo, $menu);
+        }
+        self::assertStringContainsString('/_pbl/objeto/' . $f->id . '/apagar', $menu, 'Apagar segue para a confirmação existente');
+        self::assertLessThan(strpos($menu, 'Apagar'), strpos($menu, 'Recortar'));
+    }
+
+    public function testMenuMaisRespeitaPermissoesPorPerfil(): void
+    {
+        $f = $this->filho($this->inicio, 'Rascunho', 'rascunho', 'privado');
+        $linha = static function (string $h): string {
+            return explode('<li class="pbl-lc', explode('Selecionar Rascunho', $h, 2)[1] ?? '', 2)[0];
+        };
+        $f2 = $this->filho($this->sobre, 'Rascunho', 'sobre/rascunho', 'privado');
+        $editor = $linha($this->html($this->req('GET', '/_pbl/conteudo/' . $this->sobre->id, $this->token('editor'))));
+        self::assertStringContainsString('/_pbl/objeto/' . $f2->id . '/editar', $editor);
+        self::assertStringContainsString('aria-label="Publicar: Rascunho"', $editor);
+
+        $leitor = $this->html($this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $this->token('leitor')));
+        self::assertStringNotContainsString('pbl-lc-acao--primaria', $leitor);
+        self::assertStringNotContainsString('/apagar', $leitor);
+        self::assertStringNotContainsString('name="ids[]" value="' . $f->id . '" form="lote"', $leitor, 'sem lote para o leitor');
+        self::assertStringNotContainsString('pbl-lc-todos', $leitor);
+    }
+
+    public function testTituloEIconeDaClasseComHtmlSaemEscapadosNaLinha(): void
+    {
+        $this->filho($this->inicio, '<img src=x onerror=1>', 'xss2');
+        $h = $this->html($this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $this->token('admin')));
+        self::assertStringNotContainsString('<img src=x', $h);
+        self::assertStringContainsString('&lt;img src=x onerror=1&gt;', $h);
+    }
+
+    public function testPaginacaoMostraIntervaloComALinhaNova(): void
+    {
+        for ($i = 0; $i < 26; ++$i) {
+            $this->filho($this->inicio, 'Pg ' . $i, 'pg-' . $i);
+        }
+        $h = $this->html($this->req('GET', '/_pbl/conteudo/' . $this->inicio->id . '?q=pg', $this->token('admin')));
+        self::assertStringContainsString('Mostrando 1 a 25 de 26', $h);
+        self::assertSame(25, substr_count($h, 'class="pbl-lc"') + substr_count($h, 'class="pbl-lc pbl-lc-sem-sel"'));
+    }
+
     public function testTituloComHtmlEhEscapado(): void
     {
         $this->filho($this->inicio, '<script>alert(1)</script>', 'xss');
@@ -344,9 +418,85 @@ final class AdminNavegacaoTest extends TestCase
         self::assertStringNotContainsString('navbar-toggler', $h);
         self::assertStringContainsString('viewport-fit=cover', $h);
         self::assertDoesNotMatchRegularExpression('/style="[^"]*width\s*:\s*\d/', $h, 'sem largura fixa inline');
-        self::assertStringContainsString('class="table-responsive"', $h);
+        self::assertStringContainsString('class="pbl-lista-conteudo"', $h);
         $css = (string) file_get_contents(__DIR__ . '/../public/_pbl/assets/pbl.css');
         self::assertStringContainsString('safe-area-inset-left', $css);
         self::assertStringContainsString('@media (min-width: 1200px)', $css);
+    }
+
+    public function testLinhaMostraIconeNomeDaClasseEEstadoESoTresAcoesAVista(): void
+    {
+        $this->filho($this->inicio, 'Linha nova', 'linha-nova', 'publicado');
+        $h = $this->html($this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $this->token('admin')));
+        self::assertStringContainsString('<ul class="pbl-lista-conteudo"', $h);
+        self::assertStringContainsString('class="pbl-icone" role="img" title="pagina"', $h);
+        self::assertStringContainsString('<span class="pbl-lc-classe">pagina</span>', $h);
+        self::assertMatchesRegularExpression('/class="pbl-lc-selo"><span class="badge[^>]*>publicado/', $h);
+        self::assertStringContainsString('<time class="pbl-lc-data"', $h);
+        self::assertStringNotContainsString('Por: —', $h);
+        self::assertStringNotContainsString('>—</td>', $h);
+        self::assertStringNotContainsString(' 0 filhos', $h);
+        preg_match('/<li class="pbl-lc[^"]*">(?:(?!<\/li><li class="pbl-lc).)*Linha nova.*?<\/li><\/ul><\/div>|<li class="pbl-lc[^"]*">(?:(?!<li class="pbl-lc).)*?Linha nova.*?<\/ul><\/details><\/div><\/li>/s', $h, $m);
+        self::assertNotEmpty($m, 'linha encontrada');
+        self::assertArrayHasKey(0, $m);
+        $linha = $m[0] ?? '';
+        [$aVista, $menu] = explode('<details class="pbl-mais">', $linha, 2);
+        self::assertSame(3, substr_count($aVista, 'class="pbl-lc-acao '), 'editar, estado e abrir no site');
+        self::assertStringContainsString('/editar', $aVista);
+        self::assertStringContainsString('Tirar do ar', $aVista);
+        self::assertStringContainsString('Abrir no site', $aVista);
+        foreach (['Abrir pasta', 'Histórico', 'Copiar', 'Recortar', 'Mover', 'Apagar'] as $rotulo) {
+            self::assertStringContainsString($rotulo, $menu);
+            self::assertStringNotContainsString('>' . $rotulo, $aVista);
+        }
+        self::assertGreaterThan(strpos($menu, 'Mover'), strpos($menu, 'Apagar'), 'Apagar é o último do menu');
+        self::assertStringContainsString('pbl-lc-item--perigo', $menu);
+    }
+
+    public function testLinhaSemJavaScriptNemEstiloEmLinha(): void
+    {
+        $this->filho($this->inicio, 'Qualquer', 'qualquer');
+        $h = $this->html($this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $this->token('admin')));
+        $lista = substr($h, (int) strpos($h, '<ul class="pbl-lista-conteudo"'));
+        self::assertDoesNotMatchRegularExpression('/\sstyle=|\son[a-z]+=/i', $lista);
+    }
+
+    public function testNomeDaClasseComHtmlEhEscapadoNaLinha(): void
+    {
+        $c = $this->s->classes->porNome('pagina');
+        self::assertNotNull($c);
+        $h = LinhaDeConteudo::renderizar(
+            new DadosDaLinha(7, '<b>t</b>', '/x', $c, '<img src=x onerror=alert(1)>', '', '2026-11-22T01:36:00+00:00', '22/11 01:36', '22/11/2026 01:36', 2),
+            [AcaoDeLinha::link('Editar', 'editar', AcaoDeLinha::PRIMARIA, '/x/editar')],
+        );
+        self::assertStringNotContainsString('<img', $h);
+        self::assertStringNotContainsString('<b>t', $h);
+        self::assertStringContainsString('&lt;img src=x onerror=alert(1)&gt;', $h);
+        self::assertStringContainsString('2 filhos', $h);
+        self::assertStringContainsString('22/11 01:36', $h);
+    }
+
+    public function testIconePadraoPorTipoFixoEGenerico(): void
+    {
+        foreach (['pasta' => 'pasta', 'pagina' => 'documento', 'formulario' => 'formulario', 'arquivo' => 'arquivo', 'imagem' => 'imagem', 'link' => 'link'] as $tipo => $chave) {
+            $c = $this->s->classes->porNome($tipo);
+            if ($c !== null && $c->icone === '') {
+                self::assertSame($chave, IconesDeClasse::resolver($c), $tipo);
+            }
+        }
+        self::assertSame('generico', IconesDeClasse::resolver(null));
+        self::assertStringContainsString('<svg', IconesDeClasse::svg('generico'));
+    }
+
+    public function testLeitorNaoTemAcoesDeEscritaNoMenu(): void
+    {
+        $this->filho($this->inicio, 'Somente leitura', 'somente-leitura', 'privado');
+        $h = $this->html($this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $this->token('leitor')));
+        $lista = substr($h, (int) strpos($h, '<ul class="pbl-lista-conteudo"'));
+        $lista = substr($lista, 0, (int) strpos($lista, '</ul></li></ul>') ?: null);
+        foreach (['Recortar', 'Apagar', 'Publicar', 'Editar', 'type="checkbox"'] as $x) {
+            self::assertStringNotContainsString($x, $lista, $x);
+        }
+        self::assertStringContainsString('Somente leitura', $lista);
     }
 }

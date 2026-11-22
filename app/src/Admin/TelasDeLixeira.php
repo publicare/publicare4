@@ -75,12 +75,11 @@ final class TelasDeLixeira
         if ($itens === []) {
             $corpo .= Pagina::alerta('info', 'A lixeira está vazia' . ($pedida === null ? '.' : ' nesta seção.'));
         } else {
-            $corpo .= '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Conteúdo na lixeira</caption>'
-                . '<thead><tr><th scope="col">Título</th><th scope="col">Tipo</th><th scope="col">Site</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
+            $corpo .= '<ul class="pbl-lista-conteudo" aria-label="Conteúdo na lixeira">';
             foreach ($itens as $o) {
                 $corpo .= $this->linha($sessao, $o);
             }
-            $corpo .= '</tbody></table></div>';
+            $corpo .= '</ul>';
             $apagaveis = $this->apagaveis($sessao, $itens);
             if ($apagaveis !== []) {
                 $corpo .= '<p><a class="btn btn-outline-danger" href="' . Pagina::h(Painel::PREFIXO . '/lixeira/esvaziar' . $this->consultaDeSecao($pedida)) . '">Esvaziar a lixeira' . ($pedida === null ? '' : ' desta seção') . '</a></p>';
@@ -95,22 +94,25 @@ final class TelasDeLixeira
         $base = Painel::PREFIXO . '/objeto/' . $o->id;
         $pai = $o->paiId === null ? null : $this->servicos->objetos->porId($o->paiId);
         $paiNaLixeira = $pai !== null && $pai->status === self::LIXEIRA;
-        $acoes = '';
+        $acoes = [];
+        $extras = [];
         if ($this->servicos->permissoes->pode($sessao->usuario, Acao::Apagar, $o)) {
             if ($paiNaLixeira) {
-                $acoes .= '<span class="small text-body-secondary">dentro de “' . Pagina::h($pai->titulo) . '”</span> ';
+                $extras[] = 'dentro de “' . $pai->titulo . '”';
             } else {
-                $acoes .= '<form method="post" action="' . $base . '/recuperar" class="d-inline">' . $this->campoCsrf($sessao)
-                    . '<input type="hidden" name="versao" value="' . $o->versao . '"><button type="submit" class="btn btn-sm btn-outline-primary">Tirar da lixeira<span class="visually-hidden">: ' . Pagina::h($o->titulo) . '</span></button></form> ';
+                $acoes[] = AcaoDeLinha::post('Tirar da lixeira', 'restaurar', AcaoDeLinha::ESTADO, $base . '/recuperar', $this->campoCsrf($sessao), [['versao', (string) $o->versao]]);
             }
-            $acoes .= '<a class="btn btn-sm btn-outline-danger" href="' . Painel::PREFIXO . '/lixeira/apagar-de-vez/' . $o->id . '">Apagar de vez<span class="visually-hidden">: ' . Pagina::h($o->titulo) . '</span></a>';
+            $acoes[] = AcaoDeLinha::link('Apagar de vez', 'excluir', AcaoDeLinha::PERIGO, Painel::PREFIXO . '/lixeira/apagar-de-vez/' . $o->id);
         }
         $site = $this->servicos->sites->porId($o->siteId);
+        if ($site !== null) {
+            $extras[] = $site->nome;
+        }
+        $classe = $this->servicos->classes->porId($o->classeId);
 
-        return '<tr><td><a href="' . $base . '">' . Pagina::h($o->titulo) . '</a></td>'
-            . '<td>' . Pagina::h($this->servicos->classes->porId($o->classeId)->nome ?? '?') . '</td>'
-            . '<td>' . Pagina::h($site->nome ?? '—') . '</td>'
-            . '<td class="text-nowrap">' . $acoes . '</td></tr>';
+        return LinhaDeConteudo::renderizar(new DadosDaLinha(
+            $o->id, $o->titulo, $base, $classe, $classe->nome ?? '?', '<span class="badge text-bg-danger">na lixeira</span>', extras: $extras,
+        ), $acoes);
     }
 
     private function avisoDeResultado(Request $r): string
