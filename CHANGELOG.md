@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.8] - 2026-11-22
+
+> **Em resumo:** nova listagem de conteúdo (ícone da classe, título em destaque, metadados em linha e menu ⋯), painel com texto mais enxuto e ajuda "?" menor, linha de ações no celular em grade de botões iguais e instruções para agentes (`AGENTS.md`).
+
 ### Alterado
 - **Painel, ajuda "?":** ícone de 18 px com área de toque de 44 px, ajuda sempre abaixo do rótulo; Esc fecha e devolve o foco.
 - **Painel, texto (onda 1: Início, Conteúdo, Edição, Configurações):** ajudas e avisos mais curtos, −43% de texto corrido nessas telas. Guia em `docs/ux/voz-e-texto.md`, teste `TextoDoPainelTest` e `bin/auditar-texto`. ADR 0032.
