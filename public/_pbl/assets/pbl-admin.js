@@ -16,7 +16,9 @@
   var menu = document.querySelector('[data-pbl-menu]');
   if (menu && window.matchMedia) {
     var largo = window.matchMedia('(min-width: 1024px)');
-    var ajustar = function () { menu.open = largo.matches; };
+    // `?menu=aberto` mantém o menu aberto no celular (usado nas capturas da prévia e em links de suporte).
+    var forcado = /(?:^|[?&])menu=aberto(?:&|$)/.test(window.location.search || '');
+    var ajustar = function () { menu.open = forcado || largo.matches; };
     ajustar();
     if (largo.addEventListener) {
       largo.addEventListener('change', ajustar);

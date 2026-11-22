@@ -30,33 +30,45 @@ function copiar(string $de, string $para): void
     }
 }
 
-foreach (['app', 'bin', 'public', 'composer.json'] as $p) {
+foreach (['app', 'bin', 'public', 'composer.json', 'composer.lock'] as $p) {
     copiar($raiz . '/' . $p, $stage . '/' . $p);
 }
-// vendor só com o que roda em produção (o pacote tem limite de tamanho)
-$inst = json_decode((string) file_get_contents($raiz . '/vendor/composer/installed.json'), true);
-$dev = array_flip($inst['dev-package-names'] ?? []);
-copiar($raiz . '/vendor/composer', $stage . '/vendor/composer');
-copiar($raiz . '/vendor/autoload.php', $stage . '/vendor/autoload.php');
-foreach ($inst['packages'] as $pacote) {
-    if (!isset($dev[$pacote['name']])) {
-        copiar($raiz . '/vendor/' . $pacote['name'], $stage . '/vendor/' . $pacote['name']);
+if (is_file($raiz . '/vendor/autoload.php')) {
+    // vendor só com o que roda em produção (o pacote tem limite de tamanho)
+    $inst = json_decode((string) file_get_contents($raiz . '/vendor/composer/installed.json'), true);
+    $dev = array_flip($inst['dev-package-names'] ?? []);
+    copiar($raiz . '/vendor/composer', $stage . '/vendor/composer');
+    copiar($raiz . '/vendor/autoload.php', $stage . '/vendor/autoload.php');
+    foreach ($inst['packages'] as $pacote) {
+        if (!isset($dev[$pacote['name']])) {
+            copiar($raiz . '/vendor/' . $pacote['name'], $stage . '/vendor/' . $pacote['name']);
+        }
     }
-}
-// tira dos mapas do autoload o que apontava para pacotes só de desenvolvimento
-foreach (['composer/autoload_static.php', 'composer/autoload_files.php', 'composer/autoload_psr4.php', 'composer/autoload_classmap.php', 'composer/autoload_namespaces.php'] as $mapa) {
-    $arq = $stage . '/vendor/' . $mapa;
-    if (!is_file($arq)) {
-        continue;
-    }
-    $linhas = [];
-    foreach (explode("\n", (string) file_get_contents($arq)) as $linha) {
-        if (preg_match("#(?:\\\$vendorDir|__DIR__ \\. '/\\.\\.') \\. '(/[^']+)'#", $linha, $m) === 1 && !file_exists($stage . '/vendor' . $m[1])) {
+    // tira dos mapas do autoload o que apontava para pacotes só de desenvolvimento
+    foreach (['composer/autoload_static.php', 'composer/autoload_files.php', 'composer/autoload_psr4.php', 'composer/autoload_classmap.php', 'composer/autoload_namespaces.php'] as $mapa) {
+        $arq = $stage . '/vendor/' . $mapa;
+        if (!is_file($arq)) {
             continue;
         }
-        $linhas[] = $linha;
+        $linhas = [];
+        foreach (explode("\n", (string) file_get_contents($arq)) as $linha) {
+            if (preg_match("#(?:\\\$vendorDir|__DIR__ \\. '/\\.\\.') \\. '(/[^']+)'#", $linha, $m) === 1 && !file_exists($stage . '/vendor' . $m[1])) {
+                continue;
+            }
+            $linhas[] = $linha;
+        }
+        file_put_contents($arq, implode("\n", $linhas));
     }
-    file_put_contents($arq, implode("\n", $linhas));
+} else {
+    // Clone limpo do repositório (vendor/ não é versionado): instala só as dependências de produção a partir do composer.lock.
+    // Causa mais provável de a prévia da rodada 1 nunca ter iniciado: o gerador morria aqui, sem pacote.
+    $codigo = 0;
+    $saidaComposer = [];
+    exec('cd ' . escapeshellarg($stage) . ' && composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader 2>&1', $saidaComposer, $codigo);
+    if ($codigo !== 0 || !is_file($stage . '/vendor/autoload.php')) {
+        fwrite(STDERR, "vendor/ ausente e 'composer install --no-dev' falhou (código {$codigo}):\n" . implode("\n", $saidaComposer) . "\n");
+        exit(1);
+    }
 }
 
 require $stage . '/vendor/autoload.php';

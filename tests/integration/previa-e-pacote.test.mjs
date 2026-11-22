@@ -27,6 +27,18 @@ test('pedido de prévia: PHP v2, pacote gerado por script versionado, docroot de
   }
   const temas = new Set(p.paginas.map((t) => /tema=(claro|escuro)/.exec(t.caminho)?.[1]));
   assert.deepEqual([...temas].sort(), ['claro', 'escuro']);
+  assert.ok(p.viewports.some((v) => v.largura === 390), 'viewport de celular (390 px)');
+  assert.ok(p.viewports.some((v) => v.largura >= 1024), 'viewport de desktop');
+  assert.ok(p.paginas.some((t) => t.caminho.includes('menu=aberto')), 'captura do menu aberto (o JS recolhe o menu no celular)');
+  for (const tela of ['/_pbl/&', '/_pbl/conteudo/', '/_pbl/objeto/1/editar?aba=publicacao', '/_pbl/mais']) {
+    assert.ok(p.paginas.some((t) => t.caminho.includes('ir=' + tela)), 'tela crítica ' + tela);
+  }
+});
+
+test('gerador do pacote instala as dependências de produção quando o clone não traz vendor/', () => {
+  const g = readFileSync(join(REPO, 'previa', 'gerar-pacote.php'), 'utf8');
+  assert.match(g, /composer install --no-dev/);
+  assert.match(g, /'composer\.lock'/);
 });
 
 test('gerador do pacote grava o marcador do modo prévia e o aceita só em dados/', () => {
