@@ -359,4 +359,26 @@ final class FluxoDeRevisaoTest extends TestCase
     {
         return $this->s->usuarios->porId($this->ids[$login]) ?? self::fail();
     }
+
+    public function testPendenciasEMeusEnviosUsamLinhaNovaComIconeEMenu(): void
+    {
+        $o = $this->submetido('Alerta <i>novo</i>', $this->saude);
+
+        foreach ([['editor_saude', 'pendencias'], ['autor_saude', 'envios']] as [$login, $aba]) {
+            $h = $this->html($this->req('GET', '/_pbl/revisar?aba=' . $aba, $this->token($login)));
+            self::assertStringContainsString('class="pbl-lc', $h, $login);
+            self::assertStringContainsString('aria-label="Tipo: pagina"', $h, $login);
+            self::assertStringContainsString('<span class="pbl-lc-classe">pagina</span>', $h, $login);
+            self::assertStringContainsString('Alerta &lt;i&gt;novo&lt;/i&gt;', $h, $login);
+            self::assertStringNotContainsString('<i>novo', $h, $login);
+            self::assertStringNotContainsString('Por: —', $h, $login);
+            self::assertStringContainsString('/_pbl/objeto/' . $o->id, $h, $login);
+        }
+        $fila = $this->html($this->req('GET', '/_pbl/revisar?aba=pendencias', $this->token('editor_saude')));
+        self::assertStringContainsString('/aprovar', $fila);
+        self::assertStringContainsString('Devolver', $fila);
+        $meus = $this->html($this->req('GET', '/_pbl/revisar?aba=envios', $this->token('autor_saude')));
+        self::assertStringContainsString('/retirar', $meus);
+        self::assertStringNotContainsString('/aprovar', $meus, 'autor não aprova');
+    }
 }
