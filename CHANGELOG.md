@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Alterado
+- **`AGENTS.md`:** instruções para agentes (não rodar a suíte completa de ~40 min, só testes filtrados e o phpstan; não apagar `prototipo-ux/`; escopo do PR).
+
 ### Corrigido
 - **Linha de ações das listas no celular:** os botões de ícone (editar, abrir, publicar/despublicar, agendar, copiar, recortar, mover, apagar) ficavam de tamanhos diferentes (o amarelo, que é um formulário, saía menor) e quebravam em duas linhas desencontradas, alinhadas à direita. No celular agora formam uma grade de 5 botões iguais por linha, com a mesma altura de toque (44 px).
 
