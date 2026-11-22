@@ -85,22 +85,24 @@ final class TelasDeRevisao
     }
 
     /**
-     * Aprovação em lote: cada marcado vale `id:versão`, e cada um passa pelas mesmas regras e conferências da aprovação
+     * Aprovação em lote: cada marcado vem em `ids[]` com a versão em `versao[id]`, e cada um passa pelas mesmas regras e conferências da aprovação
      * individual (quem não pode, ou mudou desde a tela, fica de fora e é contado). Nada marcado volta com aviso.
      */
     private function aprovarEmLote(SessaoAtiva $sessao, Request $r): Response
     {
-        $marcados = $r->request->all('itens');
+        $marcados = $r->request->all('ids');
+        $versoes = $r->request->all('versao');
         $area = $this->numero($this->texto($r, 'area'));
         $feitos = 0;
         $falhas = 0;
         $semSincronia = 0;
         foreach (array_slice(array_filter($marcados, 'is_string'), 0, self::LOTE_MAX) as $item) {
-            if (preg_match('/^([1-9][0-9]{0,9}):([0-9]{1,9})$/D', $item, $m) !== 1) {
+            $versao = $versoes[$item] ?? null;
+            if (preg_match('/^[1-9][0-9]{0,9}$/D', $item) !== 1 || !is_string($versao) || preg_match('/^[0-9]{1,9}$/D', $versao) !== 1) {
                 continue;
             }
             try {
-                $novo = $this->servicos->revisao->aprovar($sessao->usuario, (int) $m[1], (int) $m[2]);
+                $novo = $this->servicos->revisao->aprovar($sessao->usuario, (int) $item, (int) $versao);
                 ++$feitos;
                 $semSincronia += $this->sincronizar($novo) ? 0 : 1;
             } catch (ErroDeRevisao) {
@@ -140,7 +142,7 @@ final class TelasDeRevisao
         }
         if ($passo === 'aprovar' && !$this->sincronizar($novo)) {
             $link = $voltar === 'objeto' ? Painel::PREFIXO . '/objeto/' . $novo->id : $this->urlDeRevisar($voltar);
-            $corpo = Pagina::alerta('warning', 'O envio foi aprovado e o conteúdo está publicado no painel, mas a página pública não pôde ser atualizada agora. Publique de novo pelo painel ou rode a publicação do site.')
+            $corpo = Pagina::alerta('warning', 'Envio aprovado, mas a página pública não atualizou. Republique o site.')
                 . '<p><a class="btn btn-outline-secondary" href="' . Pagina::h($link) . '">Voltar</a></p>';
 
             return Pagina::resposta('Aprovado, com aviso', $corpo, Response::HTTP_OK, false, $this->barra($sessao));
@@ -159,7 +161,7 @@ final class TelasDeRevisao
         [$status, $texto] = match ($e->codigo) {
             ErroDeRevisao::NEGADO => [Response::HTTP_FORBIDDEN, 'Você não pode fazer isto com este conteúdo, ou ele não existe.'],
             ErroDeRevisao::ESTADO => [Response::HTTP_CONFLICT, 'Este conteúdo não está mais no estado esperado: outra pessoa pode ter agido antes. Volte e confira a situação atual.'],
-            ErroDeRevisao::CONFLITO => [Response::HTTP_CONFLICT, 'Outra pessoa alterou este conteúdo depois que a tela foi aberta. Volte, recarregue e confira antes de decidir.'],
+            ErroDeRevisao::CONFLITO => [Response::HTTP_CONFLICT, 'Outra pessoa alterou este conteúdo. Recarregue e confira antes de decidir.'],
             default => [Response::HTTP_UNPROCESSABLE_ENTITY, $e->getMessage()],
         };
         $link = $voltar === 'objeto' ? Painel::PREFIXO . '/' : $this->urlDeRevisar($voltar);
@@ -253,14 +255,14 @@ final class TelasDeRevisao
             $corpo .= '<form id="lote" method="post" action="' . Painel::PREFIXO . '/revisao/aprovar-lote" class="d-flex flex-wrap gap-2 align-items-center mb-3">' . $this->campoCsrf($sessao)
                 . ($areaId === null ? '' : '<input type="hidden" name="area" value="' . $areaId . '">')
                 . '<span class="text-body-secondary me-auto">' . $total . ' envio(s) aguardando' . ($total > count($lista) ? '; mostrando os ' . count($lista) . ' mais antigos' : '') . '.</span>'
-                . '<button type="submit" class="btn btn-success bg-gradient">Aprovar os marcados</button></form><ul class="list-group pbl-pendencias mb-4">';
+                . '<button type="submit" class="btn btn-success bg-gradient">Aprovar os marcados</button></form><ul class="list-group mb-4 pbl-pendencias" aria-label="Envios aguardando revisão">';
             foreach ($lista as $o) {
                 $corpo .= $this->itemDePendencia($sessao, $o, $enviados[$o->id] ?? null, $areaId);
             }
             $corpo .= '</ul>';
         }
 
-        return Pagina::resposta('Revisar', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Revisar', null]], 'Envios aguardando a sua revisão. Aprovar publica; devolver exige dizer o motivo.');
+        return Pagina::resposta('Revisar', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Revisar', null]], 'Aprovar publica; devolver pede o motivo.');
     }
 
     /** @param array{acao: string, quando: string, quem: string, motivo: ?string}|null $envio */
@@ -274,12 +276,16 @@ final class TelasDeRevisao
         $base = Painel::PREFIXO . '/revisao/' . $o->id;
         $idMotivo = 'motivo-' . $o->id;
 
-        return '<li class="list-group-item pbl-pendencia"><div class="mb-2"><input class="form-check-input me-2" type="checkbox" form="lote" name="itens[]" value="' . $o->id . ':' . $o->versao . '" id="marcar-' . $o->id . '" aria-label="Marcar para aprovar: ' . Pagina::h($o->titulo) . '"><a class="fw-semibold" href="' . Painel::PREFIXO . '/objeto/' . $o->id . '">' . Pagina::h($o->titulo) . '</a>'
+        return '<li class="list-group-item pbl-pendencia"><div class="mb-2">'
+            . '<input type="checkbox" form="lote" class="form-check-input me-2" name="ids[]" value="' . $o->id . '" id="sel-' . $o->id . '" aria-label="Marcar: ' . Pagina::h($o->titulo) . '">'
+            . '<input type="hidden" form="lote" name="versao[' . $o->id . ']" value="' . $o->versao . '">'
+            . '<a class="fw-semibold" href="' . Painel::PREFIXO . '/objeto/' . $o->id . '">' . Pagina::h($o->titulo) . '</a>'
             . '<div class="small text-body-secondary"><span class="badge text-bg-light border">' . Pagina::h($this->classe($o)) . '</span>' . $dentro . '</div>'
             . '<div class="small text-body-secondary">' . $quem . '</div></div>'
             . '<div class="d-flex flex-wrap gap-2 align-items-start">'
+            . '<a class="btn btn-sm btn-primary bg-gradient" href="' . Painel::PREFIXO . '/objeto/' . $o->id . '">Abrir para revisar</a>'
             . '<form method="post" action="' . $base . '/aprovar">' . $campos . Pagina::botaoIcone('aprovar', 'Aprovar e publicar', 'btn-success bg-gradient', ['item' => $o->titulo, 'tamanho' => '']) . '</form>'
-            . '<details class="pbl-devolver"><summary class="btn btn-sm btn-warning bg-gradient pbl-btn-icone" title="Devolver" aria-label="Devolver: ' . Pagina::h($o->titulo) . '">' . Pagina::icone('devolver') . '<span class="visually-hidden">Devolver…</span></summary>'
+            . '<details class="pbl-devolver"><summary class="btn btn-sm btn-warning bg-gradient pbl-btn-icone" title="Devolver" aria-label="Devolver: ' . Pagina::h($o->titulo) . '">' . Pagina::icone('devolver') . '<span>Devolver…</span></summary>'
             . '<form method="post" action="' . $base . '/devolver" class="mt-2">' . $campos
             . Pagina::campo($idMotivo, 'motivo', 'Motivo da devolução', '', ['tipo' => 'textarea', 'linhas' => 3, 'obrigatorio' => true, 'maxlength' => FluxoDeRevisao::MOTIVO_MAX, 'ajuda' => 'A pessoa que enviou lê este texto. Obrigatório.'])
             . '<button type="submit" class="btn btn-warning bg-gradient">Devolver ao autor</button></form></details></div></li>';
@@ -323,14 +329,14 @@ final class TelasDeRevisao
         if ($lista === []) {
             $corpo .= Pagina::alerta('info', 'Nenhum envio por aqui.');
         } else {
-            $corpo .= '<ul class="list-group pbl-envios mb-4">';
+            $corpo .= '<ul class="list-group mb-4 pbl-envios" aria-label="Meus envios">';
             foreach ($lista as $o) {
                 $corpo .= $this->itemDeEnvio($sessao, $o, $devolucoes[$o->id] ?? null, $enviados[$o->id] ?? null);
             }
             $corpo .= '</ul>';
         }
 
-        return Pagina::resposta('Revisar', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Revisar', Painel::PREFIXO . '/revisar'], ['Meus envios', null]], 'O que você mandou para revisão e o que ainda é rascunho seu.');
+        return Pagina::resposta('Revisar', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Revisar', Painel::PREFIXO . '/revisar'], ['Meus envios', null]], 'Seus envios e rascunhos.');
     }
 
     private function abas(string $atual): string
@@ -367,13 +373,13 @@ final class TelasDeRevisao
         }
         $podeEditarSimples = $this->servicos->permissoes->pode($u, Acao::Editar, $o);
         if ($o->status === 'rejeitado' && $podeEditarSimples) {
-            $botoes .= '<form method="post" action="' . $base . '/reenviar">' . $campos . '' . Pagina::botaoIcone('enviar', 'Reenviar para revisão', 'btn-success bg-gradient', ['item' => $o->titulo]) . '</form>';
+            $botoes .= '<form method="post" action="' . $base . '/reenviar">' . $campos . Pagina::botaoIcone('enviar', 'Reenviar para revisão', 'btn-success bg-gradient', ['item' => $o->titulo]) . '</form>';
         }
         if ($o->status === 'privado' && $podeEditarSimples) {
-            $botoes .= '<form method="post" action="' . $base . '/enviar">' . $campos . '' . Pagina::botaoIcone('enviar', 'Enviar para revisão', 'btn-success bg-gradient', ['item' => $o->titulo]) . '</form>';
+            $botoes .= '<form method="post" action="' . $base . '/enviar">' . $campos . Pagina::botaoIcone('enviar', 'Enviar para revisão', 'btn-success bg-gradient', ['item' => $o->titulo]) . '</form>';
         }
         if ($this->servicos->revisao->podeRetirar($u, $o)) {
-            $botoes .= '<form method="post" action="' . $base . '/retirar">' . $campos . '' . Pagina::botaoIcone('retirar', 'Retirar envio', 'btn-outline-secondary', ['item' => $o->titulo]) . '</form>';
+            $botoes .= '<form method="post" action="' . $base . '/retirar">' . $campos . Pagina::botaoIcone('retirar', 'Retirar envio', 'btn-outline-secondary', ['item' => $o->titulo]) . '</form>';
         }
         $detalhe = '';
         if ($o->status === 'rejeitado') {
@@ -417,7 +423,7 @@ final class TelasDeRevisao
                 . '<button type="submit" class="btn btn-warning bg-gradient">Devolver ao autor</button></form></details>';
         }
         if ($o->status === 'submetido' && $acoes === '') {
-            $texto = '<p class="mb-2">Aguardando revisão. Enquanto isso o conteúdo não pode ser editado por quem o enviou.</p>';
+            $texto = '<p class="mb-2">Aguardando revisão. Não dá para editar até a decisão.</p>';
         }
         $historico = $revisao->historico($o->id, 5);
         if ($o->status === 'rejeitado') {
@@ -444,6 +450,7 @@ final class TelasDeRevisao
 
     // ---------------------------------------------------------------- apoio
 
+    /** @param array<array-key, mixed> $q */
     private function avisoDe(mixed $ok, array $q = []): string
     {
         if ($ok === 'lote') {

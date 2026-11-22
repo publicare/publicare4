@@ -74,10 +74,10 @@ final class TelasDeCron
             }
             $ultimo = $estado->ultimoCiclo('cron');
             $texto = $ultimo === null
-                ? 'O cron do servidor nunca rodou: publicação e saída por data, republicação e limpezas não acontecem sozinhas.'
-                : 'O cron do servidor não roda há mais de ' . max(5, intdiv($estado->agora() - $ultimo, 60)) . ' minutos: publicação e saída por data, republicação e limpezas estão paradas.';
+                ? 'O cron nunca rodou: publicação por data, republicação e limpezas não acontecem.'
+                : 'O cron não roda há mais de ' . max(5, intdiv($estado->agora() - $ultimo, 60)) . ' minutos: publicação por data, republicação e limpezas estão paradas.';
 
-            return '<div class="alert alert-warning" role="alert">' . Pagina::h($texto) . ' <a href="' . Painel::PREFIXO . '/tarefas">Ver como configurar</a>.</div>';
+            return '<div class="alert alert-warning" role="alert">' . Pagina::h($texto) . ' <a href="' . Painel::PREFIXO . '/tarefas">Configurar</a>.</div>';
         } catch (\Throwable) {
             return '';
         }
@@ -116,7 +116,7 @@ final class TelasDeCron
         $r = (new Executor($this->servicos->caminhos, $this->servicos, $this->estado, $tarefas))->rodar('manual', self::ORCAMENTO_MANUAL, [$tarefa->id()], true);
         $this->servicos->auditoria->registrar('cron.executar', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['tarefa' => $tarefa->id()]);
         if ($r['ocupado']) {
-            $aviso = Pagina::alerta('warning', 'Outra rodada das tarefas está em andamento. Tente de novo em instantes.');
+            $aviso = Pagina::alerta('warning', 'Outra rodada está em andamento. Tente de novo em instantes.');
         } elseif ($r['linhas'] === []) {
             $aviso = Pagina::alerta('info', $tarefa->nome() . ': nada a fazer agora.');
         } else {
@@ -132,7 +132,7 @@ final class TelasDeCron
     private function pseudo(SessaoAtiva $sessao, Request $requisicao): Response
     {
         if ($this->estado->pseudoPorAmbiente()) {
-            return $this->pagina($sessao, Pagina::alerta('warning', 'O pseudo-cron está fixado pelo servidor (variável PBL_PSEUDO_CRON) e não pode ser mudado aqui.'), Response::HTTP_CONFLICT);
+            return $this->pagina($sessao, Pagina::alerta('warning', 'O servidor fixa o pseudo-cron (PBL_PSEUDO_CRON). Não dá para mudar aqui.'), Response::HTTP_CONFLICT);
         }
         $ligar = $this->texto($requisicao, 'ligar') === '1';
         $this->estado->definirPseudo($ligar);
@@ -173,7 +173,7 @@ final class TelasDeCron
             . '<div class="pbl-recolhiveis">' . Pagina::recolhivel('pseudo-cron', 'Pseudo-cron (hospedagem sem cron)', $this->cartaoPseudo($sessao))
             . Pagina::recolhivel('configurar-cron', 'Como configurar o cron', $this->cartaoDeConfiguracao(), $this->estado->ultimoCiclo('cron') === null && !$this->estado->pseudoLigado()) . '</div>';
 
-        return Pagina::resposta('Tarefas agendadas', $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Tarefas agendadas', null]], 'O que o PBL4 faz sozinho, de tempos em tempos: publicar por data, republicar, limpar e conferir atualizações.');
+        return Pagina::resposta('Tarefas agendadas', $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Tarefas agendadas', null]], 'O que roda sozinho: publicar por data, republicar, limpar, conferir atualizações.');
     }
 
     private function situacaoDoCron(): string
@@ -183,11 +183,11 @@ final class TelasDeCron
             return Pagina::cartaoDeEstado('ok', 'O cron do servidor está rodando', 'Última rodada: ' . self::data($ultimo) . '.');
         }
         if ($this->estado->pseudoLigado()) {
-            return Pagina::cartaoDeEstado('atencao', 'O cron do servidor não está rodando', 'O pseudo-cron cobre as tarefas leves enquanto alguém usa o painel.');
+            return Pagina::cartaoDeEstado('atencao', 'O cron do servidor está parado', 'O pseudo-cron cobre as tarefas leves enquanto alguém usa o painel.');
         }
 
-        return Pagina::cartaoDeEstado('erro', $ultimo === null ? 'O cron do servidor nunca rodou' : 'O cron do servidor não roda desde ' . self::data($ultimo),
-            'Configure a linha em "Como configurar o cron" no servidor (ou, sem acesso ao cron, ligue o pseudo-cron).');
+        return Pagina::cartaoDeEstado('erro', $ultimo === null ? 'O cron nunca rodou' : 'O cron parou em ' . self::data($ultimo),
+            'Configure a linha em "Como configurar o cron" ou ligue o pseudo-cron.');
     }
 
     private function cartaoPseudo(SessaoAtiva $sessao): string
@@ -200,17 +200,16 @@ final class TelasDeCron
                 . '<input type="hidden" name="ligar" value="' . ($ligado ? '0' : '1') . '"><p>Estado: <strong>' . ($ligado ? 'ligado' : 'desligado') . '</strong>.</p>'
                 . '<button class="btn btn-outline-secondary" type="submit">' . ($ligado ? 'Desligar' : 'Ligar') . ' o pseudo-cron</button></form>';
 
-        return $this->card('Pseudo-cron', $form, 'Quando ligado e o cron do servidor está parado, um acesso ao painel roda as tarefas leves (sem rede, sem varrer arquivos), com limite de poucos segundos. Não roda nas páginas públicas. O cron de verdade é sempre melhor: use só se o servidor não tiver cron.', 'section');
+        return $this->card('Pseudo-cron', $form, 'Só para hospedagem sem cron: um acesso ao painel roda as tarefas leves.', 'section');
     }
 
     private function cartaoDeConfiguracao(): string
     {
         $raiz = $this->servicos->caminhos->raiz;
         $linha = '* * * * * php ' . $raiz . '/bin/pbl cron >/dev/null 2>&1';
-        $corpo = '<p class="mb-1">Uma única linha, a cada minuto (Hestia, cPanel e crontab comum):</p><pre class="bg-body-secondary p-2 rounded"><code>' . Pagina::h($linha) . '</code></pre>'
-            . '<p class="mb-1">Em Docker: <code>docker compose exec -T app php bin/pbl cron</code> (a cada minuto, no cron do host). '
-            . 'Para conferir: <code>php bin/pbl cron --listar</code> mostra cada tarefa e a última execução, e esta página passa a mostrar "O cron do servidor está rodando".</p>'
-            . '<p class="form-text mb-0">O comando é silencioso quando não há nada a fazer e não sobrepõe duas rodadas. As linhas antigas de <code>bin/pbl agendados</code>, <code>bin/pbl publicar</code> e <code>bin/pbl verificar-atualizacao</code> podem ser removidas.</p>';
+        $corpo = '<p class="mb-1">Uma linha, a cada minuto:</p><pre class="bg-body-secondary p-2 rounded"><code>' . Pagina::h($linha) . '</code></pre>'
+            . '<p class="mb-1">Docker: <code>docker compose exec -T app php bin/pbl cron</code></p>'
+            . '<details class="mt-2"><summary>Saiba mais</summary><p class="form-text mb-0">Confira com <code>php bin/pbl cron --listar</code>. Pode remover as linhas antigas de <code>bin/pbl agendados</code>, <code>publicar</code> e <code>verificar-atualizacao</code>.</p></details>';
 
         return $this->card('Como configurar o cron', $corpo, '', 'section');
     }

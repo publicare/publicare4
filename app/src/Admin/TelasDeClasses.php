@@ -40,7 +40,7 @@ final class TelasDeClasses
 {
     use AuxiliaresDeTela;
 
-    private const DESCRICAO_LISTA = 'Um tipo de conteúdo diz quais campos um conteúdo tem, como "Notícia" com data e autor. Os tipos valem para todos os sites desta instalação.';
+    private const DESCRICAO_LISTA = 'Campos de cada conteúdo, como "Notícia" com data e autor.';
     public const SITUACOES = ['ativa' => 'Ativo', 'arquivada' => 'Arquivado', 'remover' => 'Remover'];
     public const NOMES_DOS_TIPOS = [
         'texto' => 'Texto curto', 'numero' => 'Número', 'html' => 'Texto formatado (HTML)', 'data' => 'Data',
@@ -205,11 +205,11 @@ final class TelasDeClasses
             . $this->campoCsrf($sessao)
             . $this->card('Identificação', $this->campo('campo-nome', 'nome', 'Nome técnico', $nome, [
                 'maxlength' => ClasseRepositorio::MAX_NOME, 'obrigatorio' => true,
-                'ajuda' => 'Letras minúsculas sem acento, números e <code>_</code>, começando por letra (por exemplo <code>noticia</code>). É o nome que os modelos de página usam e não muda depois.',
+                'ajuda' => 'Minúsculas, números e <code>_</code>, como <code>noticia</code>. Não muda depois.',
             ]) . $this->campoDeDescricao($descricao) . $this->camposDaClasse($aceita, $filhas, $this->servicos->classes->todas(), null))
             . $this->acoes('Criar tipo de conteúdo', [['Cancelar', $this->linkLista()]]) . '</form>';
 
-        return Pagina::resposta('Novo tipo de conteúdo', $corpo, $status, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], ['Novo', null]], 'Dê um nome ao tipo; os campos entram na tela seguinte.', 'Os campos (propriedades) são adicionados depois de criar o tipo.');
+        return Pagina::resposta('Novo tipo de conteúdo', $corpo, $status, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], ['Novo', null]], 'Os campos entram na tela seguinte.');
     }
 
     private function criar(SessaoAtiva $sessao, Request $requisicao): Response
@@ -692,7 +692,7 @@ final class TelasDeClasses
             . $this->campoCsrf($sessao) . '<input type="hidden" name="versao" value="' . $classe->versao . '">'
             . '';
         $ondeFica = $this->camposDaClasse($r['aceita_filhos'], $r['filhas'], $todas, $classe->nome);
-        $campos = $this->campoDeDescricao($r['descricao']) . '<div class="pbl-rotulo mt-2"><h3 class="h6">Campos deste tipo</h3>' . Pagina::ajuda('ajuda-campos', 'Campos deste tipo', 'Mude a ordem trocando os números (menor primeiro). Campo com valores guardados não troca de tipo e não pode ser removido, só arquivado. "Obrigatório" fica guardado no tipo; a exigência ao salvar um conteúdo vem com as telas de conteúdo.') . '</div>';
+        $campos = $this->campoDeDescricao($r['descricao']) . '<div class="pbl-rotulo mt-2"><h3 class="h6">Campos deste tipo</h3>' . Pagina::ajuda('ajuda-campos', 'Campos deste tipo', 'Menor número vem primeiro. Campo com dados não troca de tipo nem se remove: só se arquiva.') . '</div>';
 
         if ($r['campos'] === []) {
             $campos .= '<p class="text-body-secondary">Este tipo ainda não tem campos.</p>';
@@ -829,17 +829,18 @@ final class TelasDeClasses
         return $tipo === 'ref' && $alvo !== '' ? $nome . ' (' . $alvo . ')' : $nome;
     }
 
+    /** Descrição: comum a criar e editar. */
+    private function campoDeDescricao(string $descricao): string
+    {
+        return $this->campo('campo-descricao', 'descricao', 'Descrição', $descricao, ['tipo' => 'textarea', 'linhas' => 3, 'maxlength' => ClasseRepositorio::MAX_DESCRICAO, 'ajuda' => 'Opcional. Para que serve este tipo.']);
+    }
+
     /**
-     * Descrição e filhos aceitos: comuns a criar e editar.
+     * Filhos aceitos: comuns a criar e editar.
      *
      * @param list<string> $filhas
      * @param list<Classe> $todas
      */
-    private function campoDeDescricao(string $descricao): string
-    {
-        return $this->campo('campo-descricao', 'descricao', 'Descrição', $descricao, ['tipo' => 'textarea', 'linhas' => 3, 'maxlength' => ClasseRepositorio::MAX_DESCRICAO, 'ajuda' => 'Opcional: para que serve este tipo, em poucas palavras.']);
-    }
-
     private function camposDaClasse(bool $aceita, array $filhas, array $todas, ?string $propria): string
     {
         $dentro = $this->checkbox('campo-aceita', 'aceita_filhos', 'Pode ter conteúdo dentro (filhos)', $aceita);
@@ -852,9 +853,9 @@ final class TelasDeClasses
             $opcoes .= $this->checkbox('filha-' . $i, 'filhas[]', '<code>' . Pagina::h($nome) . '</code>' . ($nome === $propria ? ' (o próprio)' : ''), in_array($nome, $filhas, true), '', $nome, true);
         }
         if ($opcoes !== '') {
-            $dentro .= '<div class="pbl-rotulo mt-2"><span class="form-label">Tipos aceitos dentro</span>' . Pagina::ajuda('ajuda-filhos-aceitos', 'Tipos aceitos dentro', 'Que tipos podem ficar dentro. Nenhum marcado: qualquer tipo. Ignorado se não pode ter filhos.') . '</div><div class="pbl-extensoes">' . $opcoes . '</div>';
+            $dentro .= '<div class="pbl-rotulo mt-2"><span class="form-label">Tipos aceitos dentro</span>' . Pagina::ajuda('ajuda-filhos-aceitos', 'Tipos aceitos dentro', 'Nenhum marcado: qualquer tipo.') . '</div><div class="pbl-extensoes">' . $opcoes . '</div>';
         }
-        $dentro .= '<div class="pbl-rotulo"><span class="form-label">Sobre esta regra</span>' . Pagina::ajuda('ajuda-regra-filhos', 'Regra de filhos', 'A regra de filhos fica guardada no tipo; a conferência ao criar ou mover conteúdo vem com as telas de conteúdo.') . '</div>';
+        $dentro .= '<div class="pbl-rotulo"><span class="form-label">Sobre esta regra</span>' . Pagina::ajuda('ajuda-regra-filhos', 'Regra de filhos', 'Vale ao criar ou mover conteúdo.') . '</div>';
 
         return '<div class="pbl-recolhiveis">' . Pagina::recolhivel('filhos', '<strong>Que tipos podem ficar dentro</strong> <span class="pbl-resumo-meta ms-2">(conteúdo dentro deste tipo)</span>', $dentro, $filhas !== []) . '</div>';
     }

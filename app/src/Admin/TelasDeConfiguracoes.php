@@ -194,7 +194,7 @@ final class TelasDeConfiguracoes
         }
         $corpo = Pagina::cabecalho($total === 0 ? 'Valores usados pelas páginas do site.' : $ligados . ' de ' . $total . ' opções de liga/desliga estão ligadas. Cada aba grava só o próprio grupo.', '', ['<a href="' . Painel::PREFIXO . '/site/' . $site->id . '/dominios">Domínios</a>'])
             . Pagina::abas($paineis, $aba, $aviso, 'Grupos de configurações');
-        $ajuda = 'Valores usados pelas páginas do site (nome, SEO, contato, rodapé, busca, menu). Cada aba grava só o próprio grupo; ao salvar, o site é republicado. Campo vazio volta ao padrão.';
+        $ajuda = 'Cada aba grava só o seu grupo e republica o site. Campo vazio volta ao padrão.';
 
         return Pagina::resposta('Configurações de ' . $site->nome, $corpo, $status, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Configurações', null]], '', Pagina::h($ajuda));
     }
@@ -242,7 +242,8 @@ final class TelasDeConfiguracoes
     {
         $id = 'cfg-' . $chave;
         $desc = $id . '-ajuda';
-        $atr = ' aria-describedby="' . $desc . ($erro !== null ? ' ' . $id . '-erro' : '') . '"' . ($erro !== null ? ' aria-invalid="true"' : '');
+        $alvos = trim(($def['ajuda'] !== '' ? $desc : '') . ($erro !== null ? ' ' . $id . '-erro' : ''));
+        $atr = ($alvos !== '' ? ' aria-describedby="' . $alvos . '"' : '') . ($erro !== null ? ' aria-invalid="true"' : '');
         $texto = is_array($valor) ? implode("\n", array_map('strval', $valor)) : (is_bool($valor) ? ($valor ? '1' : '0') : (string) $valor);
         $ajuda = Pagina::ajuda($desc, $def['rotulo'], Pagina::h($def['ajuda']));
         $rotulo = Pagina::rotulo($id, Pagina::h($def['rotulo']), $ajuda);
@@ -268,7 +269,7 @@ final class TelasDeConfiguracoes
         $id = 'cfg-' . $chave;
         $desc = $id . '-ajuda';
         $limite = self::LIMITE_MB[$chave] ?? 2;
-        $ajuda = Pagina::h($def['ajuda']) . ' Até ' . $limite . ' MB. Escolher outra imagem substitui a atual.';
+        $ajuda = Pagina::h($def['ajuda']) . ' Até ' . $limite . ' MB.';
         $arquivo = ctype_digit($atual) ? $this->servicos->arquivos->porId((int) $atual) : null;
         if ($arquivo !== null && ($arquivo->siteId !== $site->id || !$arquivo->ehImagem())) {
             $arquivo = null;

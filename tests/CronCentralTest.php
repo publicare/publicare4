@@ -412,7 +412,7 @@ final class CronCentralTest extends TestCase
     public function testHomeDoAdminMostraAvisoDeCronParado(): void
     {
         $html = $this->html($this->req('GET', '/_pbl/', $this->token('admin')));
-        self::assertStringContainsString('O cron do servidor nunca rodou', $html);
+        self::assertStringContainsString('O cron nunca rodou', $html);
         $editor = $this->html($this->req('GET', '/_pbl/', $this->token('editor')));
         self::assertStringNotContainsString('cron do servidor', $editor);
     }

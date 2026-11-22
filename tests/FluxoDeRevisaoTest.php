@@ -103,15 +103,14 @@ final class FluxoDeRevisaoTest extends TestCase
         $b = $this->submetido('Lote B', $this->saude);
         $fila = $this->html($this->req('GET', '/_pbl/revisar?aba=pendencias', $this->token('editor_saude')));
         self::assertStringContainsString('Aprovar os marcados', $fila);
-        self::assertStringContainsString('name="itens[]"', $fila);
-        $itens = [$a->id . ':' . $a->versao, $b->id . ':' . $b->versao];
-        $r = $this->post($this->token('editor_saude'), '/_pbl/revisao/aprovar-lote', ['itens' => $itens]);
+        self::assertStringContainsString('name="ids[]"', $fila);
+        $r = $this->post($this->token('editor_saude'), '/_pbl/revisao/aprovar-lote', ['ids' => [(string) $a->id, (string) $b->id], 'versao' => [$a->id => (string) $a->versao, $b->id => (string) $b->versao]]);
         self::assertSame(303, $r->getStatusCode());
         self::assertSame('publicado', $this->estado($a));
         self::assertSame('publicado', $this->estado($b));
         // quem não revisa não aprova nada pelo lote
         $c = $this->submetido('Lote C', $this->saude);
-        $this->post($this->token('autor_saude'), '/_pbl/revisao/aprovar-lote', ['itens' => [$c->id . ':' . $c->versao]]);
+        $this->post($this->token('autor_saude'), '/_pbl/revisao/aprovar-lote', ['ids' => [(string) $c->id], 'versao' => [$c->id => (string) $c->versao]]);
         self::assertSame('submetido', $this->estado($c));
     }
 
