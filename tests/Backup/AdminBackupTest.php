@@ -58,9 +58,7 @@ final class AdminBackupTest extends TestCase
         self::assertStringContainsString('Nenhuma cópia ainda', $h);
         self::assertStringContainsString('desligada', $h);
         self::assertStringContainsString('Espaço usado', $h);
-        // novo painel (fase 1): Cópias mora em "Mais" (o menu principal tem no máximo 5 itens por tarefa)
-        $mais = $this->html($this->req('GET', '/_pbl/mais', $this->token('admin')));
-        self::assertStringContainsString('href="/_pbl/copias"', $mais);
+        self::assertStringContainsString('href="/_pbl/copias"', $h);
         self::assertStringContainsString('/_pbl/assets/pbl-backup.js?v=', $h);
         self::assertFileExists(__DIR__ . '/../../public/_pbl/assets/pbl-backup.js');
         self::assertStringNotContainsString('<script>', $h);
