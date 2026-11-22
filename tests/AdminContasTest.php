@@ -119,7 +119,7 @@ final class AdminContasTest extends TestCase
         self::assertStringContainsString('<a href="/_pbl/">Início</a>', $html, 'migalha de volta ao início');
         self::assertStringContainsString('<a href="/_pbl/">Início</a>', $this->html($this->req('GET', '/_pbl/conta/' . $this->ids['leitor'], $this->token('admin'))));
         self::assertStringContainsString('<a href="/_pbl/">Início</a>', $this->html($this->req('GET', '/_pbl/contas/nova', $this->token('admin'))));
-        self::assertStringContainsString('href="/_pbl/contas"', $this->html($this->req('GET', '/_pbl/', $this->token('admin'))), 'link na barra para administrador');
+        self::assertStringContainsString('href="/_pbl/contas"', $this->html($this->req('GET', '/_pbl/mais', $this->token('admin'))), 'link em Mais para administrador');
         self::assertStringContainsString("default-src 'none'", (string) $r->headers->get('Content-Security-Policy'));
     }
 

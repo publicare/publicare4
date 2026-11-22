@@ -174,7 +174,8 @@ final class AdminClassesTest extends TestCase
         self::assertStringNotContainsString('Conteúdos que usam', $html, 'quem não modela não vê contagem (que cruza sites)');
         self::assertStringContainsString('Só administradores', $html);
 
-        self::assertStringContainsString('href="/_pbl/classes"', (string) $this->req('GET', '/_pbl/', $this->token('leitor'))->getContent(), 'link na barra');
+        self::assertStringContainsString('href="/_pbl/mais"', (string) $this->req('GET', '/_pbl/', $this->token('leitor'))->getContent(), 'link na barra (Mais)');
+        self::assertStringContainsString('href="/_pbl/classes"', (string) $this->req('GET', '/_pbl/mais', $this->token('leitor'))->getContent(), 'tipos de conteúdo em Mais');
     }
 
     public function testQuemNaoEhAdministradorNaoAbreNemGravaEATentativaFicaNaAuditoria(): void
@@ -626,20 +627,19 @@ final class AdminClassesTest extends TestCase
         // Campo novo: o bloco existe, mas oculto e ligado ao seletor de tipo (o pbl-admin.js o mostra para arquivo/imagem).
         self::assertMatchesRegularExpression('/<div class="border-top pt-3" data-pbl-visivel-se="novo-tipo:arquivo,imagem" hidden>/', $html);
         self::assertSame(2, substr_count($html, 'Opções de arquivo e imagem'), 'campo capa + bloco condicional do campo novo');
-        self::assertStringContainsString('data-bs-target="#painel-campo-1-titulo_extra"', $html);
-        self::assertMatchesRegularExpression('/<div id="painel-campo-1-titulo_extra" class="accordion-collapse collapse">/', $html, 'campo existente começa fechado');
-        self::assertMatchesRegularExpression('/<div id="painel-novo-campo" class="accordion-collapse collapse">/', $html);
+        self::assertStringContainsString('<details class="pbl-recolhivel" id="painel-campo-1-titulo_extra">', $html, 'campo existente começa fechado (sem JS)');
+        self::assertStringContainsString('<details class="pbl-recolhivel" id="painel-novo-campo">', $html);
+        self::assertStringNotContainsString('data-bs-toggle="collapse"', $html);
         self::assertStringContainsString('<strong>Adicionar um campo</strong>', $html);
     }
 
     public function testNovoTipoMostraSoNomeEDescricaoEBarraTemMenuRecolhivel(): void
     {
         $html = (string) $this->req('GET', '/_pbl/classes/nova', $this->token('admin'))->getContent();
-        self::assertMatchesRegularExpression('/<div id="painel-filhos" class="accordion-collapse collapse">/', $html, 'filhos aceitos começam recolhidos');
+        self::assertStringContainsString('<details class="pbl-recolhivel" id="painel-filhos">', $html, 'filhos aceitos começam recolhidos');
         self::assertStringContainsString('name="aceita_filhos"', $html, 'o campo continua no formulário (envia mesmo recolhido)');
-        self::assertStringContainsString('navbar-expand-xl', $html);
-        self::assertStringContainsString('data-bs-toggle="collapse" data-bs-target="#menu-principal"', $html);
-        self::assertStringNotContainsString('<details', $html);
+        self::assertStringContainsString('<details class="pbl-menu"', $html, 'menu abre sem JavaScript');
+        self::assertStringNotContainsString('data-bs-toggle="collapse"', $html);
     }
 
     public function testTabelasViramCartoesComRotuloPorCelula(): void

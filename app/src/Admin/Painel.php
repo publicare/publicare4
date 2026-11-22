@@ -69,6 +69,7 @@ final class Painel
         $rotaDeVencidos = TelasDeVencidos::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeLixeira = TelasDeLixeira::rota(self::PREFIXO, $caminho, $metodo);
         $resposta = match (true) {
+            $caminho === self::PREFIXO . '/mais' && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeMais($this->servicos, $this->csrf))->exibir($s)),
             $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s)),
             ApiDeAcoes::atende($caminho, $metodo) => $this->api($requisicao, $caminho),
             $objeto !== null && TelasDeObjetos::atende($subrota, $metodo) => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->objetos()->tratar($s, $objeto, $subrota, $requisicao)),
@@ -124,6 +125,25 @@ final class Painel
         } catch (\Throwable) {
             Pagina::definirRevisao(0, false, false);
         }
+        try {
+            Pagina::definirMenu($sessao->usuario->administrador, $this->siteQueAdministra($sessao));
+        } catch (\Throwable) {
+            Pagina::definirMenu($sessao->usuario->administrador, null);
+        }
+    }
+
+    /** Primeiro site que a conta administra (item "Site" do menu); null se nenhum. */
+    private function siteQueAdministra(SessaoAtiva $sessao): ?int
+    {
+        $u = $sessao->usuario;
+        foreach ($this->servicos->sites->todos() as $site) {
+            $raiz = $site->objetoRaizId === null ? null : $this->servicos->objetos->porId($site->objetoRaizId);
+            if ($this->servicos->permissoes->podeAdministrarSite($u, $raiz)) {
+                return $site->id;
+            }
+        }
+
+        return null;
     }
 
     /** API da barra de edição: sem sessão devolve 401 em JSON (e não o redirecionamento das telas). */

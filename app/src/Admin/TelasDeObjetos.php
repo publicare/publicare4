@@ -74,6 +74,8 @@ final class TelasDeObjetos
         'rejeitado' => 'Devolvido ao autor (fora do ar)', 'publicado' => 'Publicado',
     ];
     private const LIXEIRA = 'apagado';
+    /** Campos de SEO por conteúdo (`ClassesPadrao::camposDeSeo`): ficam atrás do interruptor de buscadores e redes sociais. */
+    private const SEO = ['seo_titulo', 'seo_descricao', 'seo_imagem', 'seo_nao_indexar'];
 
     /** @var array<int, string> nomes de classe já lidos nesta requisição */
     private array $classes = [];
@@ -100,7 +102,7 @@ final class TelasDeObjetos
 
         return match ($subrota) {
             '' => $this->ver($sessao, $id, $r),
-            'editar' => $post ? $this->salvar($sessao, $id, $r) : $this->formulario($sessao, $id),
+            'editar' => $post ? $this->salvar($sessao, $id, $r) : $this->formulario($sessao, $id, Pagina::abaDe($r, '', array_keys(self::ABAS))),
             'novo' => $post ? $this->criar($sessao, $id, $r) : $this->formularioNovo($sessao, $id, $r),
             'estado' => $post ? $this->salvarEstado($sessao, $id, $r) : $this->formularioEstado($sessao, $id),
             'mover' => $post ? $this->mover($sessao, $id, $r) : $this->formularioMover($sessao, $id, $r),
@@ -494,27 +496,44 @@ final class TelasDeObjetos
      * Ações que a pessoa pode fazer aqui (esconder é só conforto: cada rota confere de novo). Botões só de ícone, em uma linha que quebra
      * conforme a largura; o rótulo fica no `title` e em texto para leitor de tela.
      */
+    /**
+     * Barra de ações do conteúdo (F5, D4): três ações primárias com rótulo (Editar, Publicar ou Tirar do ar, Ver no site ↗) e "⋯ Mais ações"
+     * com o resto. Cada item passa pela mesma checagem de permissão de sempre e só aparece para quem pode (cada rota confere de novo).
+     * Alvo de toque de 44 px. "Ver no site" abre em outra aba (`rel="noopener"`); com o conteúdo fora do ar o lugar é da prévia.
+     */
     private function botoes(SessaoAtiva $sessao, Objeto $o): string
     {
         $naLixeira = $o->status === self::LIXEIRA;
-        $b = '';
+        $agora = gmdate('c');
+        $primarias = '';
         if (!$naLixeira && $this->pode($sessao, Acao::Editar, $o)) {
-            $b .= Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $this->link($o->id) . '/editar', 'tamanho' => '']);
-        }
-        if (!$naLixeira && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o) && $this->classesAceitas($o) !== []) {
-            $b .= Pagina::botaoIcone('mais', 'Criar conteúdo aqui dentro', 'btn-success bg-gradient', ['href' => $this->link($o->id) . '/novo', 'tamanho' => '']);
+            $primarias .= '<a class="btn btn-primary" href="' . $this->link($o->id) . '/editar">Editar</a>';
         }
         if (!$naLixeira && $this->pode($sessao, Acao::Publicar, $o)) {
-            $b .= Pagina::botaoIcone('publicar', 'Publicar ou tirar do ar', 'btn-outline-success', ['href' => $this->link($o->id) . '/estado', 'tamanho' => '']);
+            $primarias .= $o->status === 'publicado'
+                ? '<a class="btn btn-warning" href="' . $this->link($o->id) . '/estado">Tirar do ar</a>'
+                : '<a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '/estado">Publicar</a>';
+        }
+        $publica = !$naLixeira && $o->visivel($agora) ? $this->servicos->enderecos->base($o->siteId) : '';
+        if ($publica !== '') {
+            $primarias .= '<a class="btn btn-outline-secondary" href="' . Pagina::h($publica . '/' . ltrim($o->urlAmigavel, '/')) . '" target="_blank" rel="noopener">Ver no site <span aria-hidden="true">↗</span><span class="visually-hidden">(abre em outra aba)</span></a>';
+        } elseif (!$naLixeira) {
+            $primarias .= '<a class="btn btn-outline-secondary" href="' . $this->link($o->id) . '/previa">Ver prévia</a>';
+        }
+
+        $mais = [];
+        $item = static fn (string $href, string $rotulo): string => '<a href="' . Pagina::h($href) . '">' . Pagina::h($rotulo) . '</a>';
+        if (!$naLixeira && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o) && $this->classesAceitas($o) !== []) {
+            $mais[] = [$item($this->link($o->id) . '/novo', 'Criar conteúdo aqui dentro')];
         }
         if ($this->nomeDaClasse($o->classeId) === \Pbl\Formularios\FormularioRepositorio::CLASSE) {
-            $b .= Pagina::botaoIcone('conteudo', 'Envios recebidos', 'btn-outline-primary', ['href' => $this->link($o->id) . '/envios', 'tamanho' => '']);
+            $mais[] = [$item($this->link($o->id) . '/envios', 'Envios recebidos')];
         }
-        $b .= Pagina::botaoIcone('historico', 'Histórico de versões', 'btn-outline-secondary', ['href' => $this->link($o->id) . '/versoes', 'tamanho' => '']);
-        $b .= Pagina::botaoIcone('log', 'Registro de atividade', 'btn-outline-secondary', ['href' => $this->link($o->id) . '/log', 'tamanho' => '']);
-        $b .= Pagina::botaoIcone('qr', 'QR code', 'btn-outline-secondary', ['href' => $this->link($o->id) . '/qr', 'tamanho' => '']);
+        $mais[] = [$item($this->link($o->id) . '/versoes', 'Histórico de versões')];
+        $mais[] = [$item($this->link($o->id) . '/log', 'Registro de atividade')];
+        $mais[] = [$item($this->link($o->id) . '/qr', 'QR code')];
         if (!$naLixeira && $o->paiId !== null && $this->pode($sessao, Acao::Apagar, $o)) {
-            $b .= Pagina::botaoIcone('mover', 'Mover', 'btn-outline-secondary', ['href' => $this->link($o->id) . '/mover', 'tamanho' => '']);
+            $mais[] = [$item($this->link($o->id) . '/mover', 'Mover')];
         }
         if (!$naLixeira && $o->paiId !== null) {
             $csrf = '<input type="hidden" name="_csrf" value="' . Pagina::h($this->csrf->daSessao($sessao->idHash)) . '">';
@@ -525,17 +544,17 @@ final class TelasDeObjetos
             foreach ($modos as [$modo, $rotulo]) {
                 $campos = $csrf . '<input type="hidden" name="modo" value="' . $modo . '"><input type="hidden" name="ids[]" value="' . $o->id . '"><input type="hidden" name="versao[' . $o->id . ']" value="' . $o->versao . '">'
                     . '<input type="hidden" name="nivel" value="' . $o->id . '"><input type="hidden" name="tela" value="objeto">';
-                $b .= '<form method="post" action="' . Painel::PREFIXO . '/pilha/adicionar">' . $campos . Pagina::botaoIcone($modo, $rotulo, 'btn-outline-secondary', ['tamanho' => '']) . '</form>';
+                $mais[] = ['<form method="post" action="' . Painel::PREFIXO . '/pilha/adicionar">' . $campos . '<button type="submit">' . Pagina::h($rotulo) . '</button></form>'];
             }
         }
         if (!$naLixeira && $this->servicos->pilha->contar($sessao->usuario->id) > 0 && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o)) {
-            $b .= Pagina::botaoIcone('colar', 'Colar aqui', 'btn-success bg-gradient', ['href' => Painel::PREFIXO . '/pilha/colar/' . $o->id, 'tamanho' => '']);
+            $mais[] = [$item(Painel::PREFIXO . '/pilha/colar/' . $o->id, 'Colar aqui')];
         }
         if (!$naLixeira && $o->paiId !== null && $this->pode($sessao, Acao::Apagar, $o)) {
-            $b .= Pagina::botaoIcone('excluir', 'Mandar para a lixeira', 'btn-danger bg-gradient', ['href' => $this->link($o->id) . '/apagar', 'tamanho' => '']);
+            $mais[] = ['<a class="pbl-perigo" href="' . $this->link($o->id) . '/apagar">Mandar para a lixeira</a>', 'pbl-separador'];
         }
 
-        return '<div class="pbl-barra-acoes">' . $b . '</div>';
+        return '<div class="pbl-acoes-conteudo">' . $primarias . Pagina::maisAcoes($mais) . '</div>';
     }
 
     /** @param list<Classe> $classes */
@@ -557,17 +576,18 @@ final class TelasDeObjetos
 
         $filtrando = $ordem !== 'peso' || $classeId !== null || $estado !== '';
 
-        return '<p class="mb-2"><button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtros-lista" aria-expanded="' . ($filtrando ? 'true' : 'false') . '" aria-controls="filtros-lista">Filtrar e ordenar' . ($filtrando ? ' (ativo)' : '') . '</button></p>'
-            . '<div id="filtros-lista" class="collapse' . ($filtrando ? ' show' : '') . '"><form method="get" action="' . $this->link($o->id) . '" class="pbl-filtros mb-3" aria-label="Ordem e filtros da lista">'
+        $form = '<form method="get" action="' . $this->link($o->id) . '" class="pbl-filtros mb-3" aria-label="Ordem e filtros da lista">'
             . '<div><label for="campo-ordem" class="form-label">Ordem</label><select id="campo-ordem" name="ordem" class="form-select form-select-sm">' . $opcoesOrdem . '</select></div>'
             . '<div><label for="campo-classe" class="form-label">Tipo</label><select id="campo-classe" name="classe" class="form-select form-select-sm">' . $opcoesClasse . '</select></div>'
             . '<div><label for="campo-estado" class="form-label">Estado</label><select id="campo-estado" name="estado" class="form-select form-select-sm">' . $opcoesEstado . '</select></div>'
-            . '<div class="pbl-filtros-aplicar"><button type="submit" class="btn btn-sm btn-primary">Aplicar</button></div></form></div>';
+            . '<div class="pbl-filtros-aplicar"><button type="submit" class="btn btn-sm btn-primary">Aplicar</button></div></form>';
+
+        return '<div class="pbl-recolhiveis">' . Pagina::recolhivel('filtros-lista', 'Filtrar e ordenar' . ($filtrando ? ' (ativo)' : ''), $form, $filtrando) . '</div>';
     }
 
     // ---------------------------------------------------------------- editar
 
-    private function formulario(SessaoAtiva $sessao, int $id): Response
+    private function formulario(SessaoAtiva $sessao, int $id, string $aba = ''): Response
     {
         $o = $this->servicos->objetos->porId($id);
         if ($o === null || !$this->pode($sessao, Acao::Editar, $o)) {
@@ -581,7 +601,7 @@ final class TelasDeObjetos
             return $this->classeSumiu($sessao);
         }
 
-        return $this->telaDeEdicao($sessao, $o, $classe, $this->digitadoDe($o, $classe), $o->versao);
+        return $this->telaDeEdicao($sessao, $o, $classe, $this->digitadoDe($o, $classe), $o->versao, [], Response::HTTP_OK, false, $aba);
     }
 
     private function salvar(SessaoAtiva $sessao, int $id, Request $r): Response
@@ -597,14 +617,22 @@ final class TelasDeObjetos
         if ($o->status === self::LIXEIRA) {
             return $this->naLixeira($sessao, $o);
         }
-        // "Gravar e publicar" (ADR 0022): o mesmo envio, com o estado forçado a publicado; a permissão é conferida aqui, no servidor.
-        if (($campos['acao'] ?? '') === 'publicar' && $this->pode($sessao, Acao::Publicar, $o)) {
+        // "Salvar e publicar" (ADR 0022 e 0032): o mesmo envio, com o estado forçado a publicado; a permissão é conferida aqui, no servidor.
+        // `salvar_publicar` sem a permissão é 403 (com registro); `publicar` é o nome antigo do mesmo botão e mantém o comportamento de antes.
+        $acao = $campos['acao'] ?? '';
+        if ($acao === 'salvar_publicar' && !$this->pode($sessao, Acao::Publicar, $o)) {
+            $this->servicos->auditoria->registrar('objeto.publicar.negado', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, $o->id);
+
+            return $this->semAcesso($sessao);
+        }
+        if (in_array($acao, ['publicar', 'salvar_publicar'], true) && $this->pode($sessao, Acao::Publicar, $o)) {
             $campos['estado'] = 'publicado';
         }
         $classe = $this->classeDe($o);
         if ($classe === null) {
             return $this->classeSumiu($sessao);
         }
+        $campos = $this->aplicarInterruptores($campos, $classe);
         $versao = $this->numero($campos['versao'] ?? null);
         $lido = $this->lerFormulario($sessao, $o->siteId, $classe, $campos, $o, $r);
         if ($versao === null || $versao < 1 || $lido === null) {
@@ -709,12 +737,15 @@ final class TelasDeObjetos
      * @param array<string, string> $digitado
      * @param array<string, string> $erros campo => mensagem (`_` = erro geral)
      */
-    private function telaDeEdicao(SessaoAtiva $sessao, Objeto $o, Classe $classe, array $digitado, int $versao, array $erros = [], int $status = Response::HTTP_OK, bool $mostrarAtual = false): Response
+    private function telaDeEdicao(SessaoAtiva $sessao, Objeto $o, Classe $classe, array $digitado, int $versao, array $erros = [], int $status = Response::HTTP_OK, bool $mostrarAtual = false, string $aba = ''): Response
     {
+        $podePublicar = $this->pode($sessao, Acao::Publicar, $o);
+        $pele = $digitado['pele'] ?? ($o->pele ?? '');
+        $molde = $digitado['molde'] ?? ($o->molde ?? '');
         $corpo = $this->migalhas($sessao, $o) . $this->resumoDeErros($erros)
-            . '<form method="post" action="' . $this->link($o->id) . '/editar" enctype="multipart/form-data" novalidate>' . $this->camposOcultos($sessao, $versao)
-            . $this->camposDoFormulario($classe, $digitado, $erros, $o->paiId === null, false, $this->pode($sessao, Acao::Publicar, $o) ? $this->vigencia($o, gmdate('c')) : null, $this->pode($sessao, Acao::Publicar, $o) ? $this->campoDeAparencia($o, $digitado, $erros) : '')
-            . Pagina::acoes('Gravar', [['Cancelar', $this->link($o->id)]], null, 'btn-primary', 'pbl-acoes-fixas', $this->pode($sessao, Acao::Publicar, $o) ? 'Gravar e publicar' : '') . '</form>';
+            . '<form method="post" action="' . $this->link($o->id) . '/editar" enctype="multipart/form-data" class="pbl-form" ' . Pagina::MARCA_FORMULARIO . ' novalidate>' . $this->camposOcultos($sessao, $versao)
+            . $this->camposDoFormulario($classe, $digitado, $erros, $o->paiId === null, false, $podePublicar ? $this->vigencia($o, gmdate('c')) : null, $podePublicar ? $this->campoDeAparencia($o, $digitado, $erros) : '', $pele !== '' || $molde !== '', $aba, $this->servicos->enderecos->base($o->siteId))
+            . Pagina::barraDeAcoes($this->link($o->id), $podePublicar, $podePublicar && $o->status !== 'publicado', $erros === [] ? 'salvo' : 'alterado') . '</form>';
         if ($mostrarAtual) {
             $corpo .= '<h2 class="h5 mt-4">Salvo agora (versão ' . $o->versao . ')</h2><div class="table-responsive"><table class="table table-sm"><caption class="visually-hidden">Valores salvos agora</caption><tbody>'
                 . '<tr><th scope="row">Título</th><td>' . Pagina::h($o->titulo) . '</td></tr>'
@@ -764,8 +795,8 @@ final class TelasDeObjetos
         }
         $corpo = $this->migalhas($sessao, $pai)
             . '<p>O novo conteúdo vai ficar dentro de <strong>' . Pagina::h($pai->titulo) . '</strong>.</p>'
-            . '<form method="get" action="' . $this->link($pai->id) . '/novo">'
-            . '<div class="mb-3"><label for="campo-tipo" class="form-label">Tipo de conteúdo</label><select id="campo-tipo" name="classe" class="form-select" required>' . $opcoes . '</select></div>'
+            . '<form method="get" action="' . $this->link($pai->id) . '/novo" ' . Pagina::MARCA_FORMULARIO . '>'
+            . '<div class="mb-3"><label for="campo-tipo" class="form-label">Tipo de conteúdo</label><select id="campo-tipo" name="classe" data-pbl-seletor class="form-select" required>' . $opcoes . '</select></div>'
             . Pagina::acoes('Continuar', [['Cancelar', $this->link($pai->id)]]) . '</form>';
 
         return Pagina::resposta('Criar conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', 'Primeiro escolha o tipo: os campos do formulário dependem dele.');
@@ -791,6 +822,7 @@ final class TelasDeObjetos
         }
         $classeId = $this->numero($campos['classe'] ?? null);
         $classe = $classeId === null ? null : $this->servicos->classes->porId($classeId);
+        $campos = $classe === null ? $campos : $this->aplicarInterruptores($campos, $classe);
         $lido = $classe === null ? null : $this->lerFormulario($sessao, $pai->siteId, $classe, $campos, null, $r);
         if ($classe === null || $lido === null) {
             return $this->pedidoInvalido($sessao);
@@ -851,11 +883,11 @@ final class TelasDeObjetos
     {
         $corpo = $this->migalhas($sessao, $pai) . $this->resumoDeErros($erros)
             . '<p>Novo conteúdo do tipo <strong>' . Pagina::h($classe->nome) . '</strong> dentro de <strong>' . Pagina::h($pai->titulo) . '</strong>. Ele começa fora do ar (privado).</p>'
-            . '<form method="post" action="' . $this->link($pai->id) . '/novo" enctype="multipart/form-data" novalidate>'
+            . '<form method="post" action="' . $this->link($pai->id) . '/novo" enctype="multipart/form-data" class="pbl-form" ' . Pagina::MARCA_FORMULARIO . ' novalidate>'
             . '<input type="hidden" name="_csrf" value="' . Pagina::h($this->csrf->daSessao($sessao->idHash)) . '">'
             . '<input type="hidden" name="classe" value="' . $classe->id . '">'
-            . $this->camposDoFormulario($classe, $digitado, $erros, false, true)
-            . Pagina::acoes('Criar', [['Cancelar', $this->link($pai->id)]], null, 'btn-primary', 'pbl-acoes-fixas') . '</form>';
+            . $this->camposDoFormulario($classe, $digitado, $erros, false, true, null, '', false, '', $this->servicos->enderecos->base($pai->siteId))
+            . Pagina::barraDeAcoes($this->link($pai->id), false, false, $erros === [] ? 'salvo' : 'alterado', 'Criar') . '</form>';
 
         return Pagina::resposta('Criar conteúdo', $corpo, $status, false, $this->barra($sessao));
     }
@@ -877,6 +909,55 @@ final class TelasDeObjetos
     }
 
     // ---------------------------------------------------------------- formulário (criar e editar)
+
+    /**
+     * Interruptores do formulário (ADR 0031): o servidor é a autoridade. O envio traz `usar_x=0` quando o interruptor está desligado e
+     * `usar_x=1` quando ligado; desligado = o grupo volta ao padrão (tags vazias, SEO vazio e indexável, datas vazias, pele herdada e modelo
+     * automático, posição 0, endereço gerado do título), seja qual for o valor que ficou nos campos escondidos. Sem o marcador (formulário
+     * antigo ou pedido parcial) nada é tocado. Campo obrigatório nunca fica atrás de interruptor, então nada obrigatório é apagado aqui.
+     *
+     * @param array<string, mixed> $campos
+     * @return array<string, mixed>
+     */
+    private function aplicarInterruptores(array $campos, Classe $classe): array
+    {
+        $desligado = static fn (string $nome): bool => ($campos[$nome] ?? null) === '0';
+        if ($desligado('usar_tags')) {
+            $campos['tags'] = '';
+        }
+        if ($desligado('usar_agenda')) {
+            $campos['data_publicacao'] = '';
+            $campos['data_validade'] = '';
+        }
+        if ($desligado('usar_aparencia')) {
+            $campos['pele'] = '';
+            $campos['molde'] = '';
+        }
+        if ($desligado('usar_posicao')) {
+            $campos['peso'] = '0';
+        }
+        if ($desligado('usar_url')) {
+            $campos['url'] = '';
+        }
+        if ($desligado('usar_seo')) {
+            $dados = is_array($campos['dados'] ?? null) ? $campos['dados'] : [];
+            $remover = is_array($campos['dados_remover'] ?? null) ? $campos['dados_remover'] : [];
+            foreach ($classe->propriedades as $p) {
+                if (!in_array($p['nome'], self::SEO, true)) {
+                    continue;
+                }
+                if ($p['tipo'] === 'imagem' || $p['tipo'] === 'arquivo') {
+                    $remover[$p['nome']] = '1';
+                } else {
+                    $dados[$p['nome']] = '';
+                }
+            }
+            $campos['dados'] = $dados;
+            $campos['dados_remover'] = $remover;
+        }
+
+        return $campos;
+    }
 
     /**
      * Lê e valida título, descrição, endereço, peso e as propriedades da classe. null = o pedido veio malformado (campo não
@@ -1118,31 +1199,80 @@ final class TelasDeObjetos
         return $d;
     }
 
+    /** Abas do formulário de conteúdo, na ordem em que aparecem. */
+    private const ABAS = ['conteudo' => 'Conteúdo', 'publicacao' => 'Publicação', 'avancado' => 'Avançado'];
+
+    /** Aba em que cada campo mora (a do primeiro erro é a que o POST 422 mostra). */
+    private function abaDoCampo(string $chave): string
+    {
+        if (in_array($chave, ['titulo', 'descricao'], true)) {
+            return 'conteudo';
+        }
+        if (str_starts_with($chave, 'dados.')) {
+            return in_array(substr($chave, 6), self::SEO, true) ? 'publicacao' : 'conteudo';
+        }
+
+        return in_array($chave, ['peso', 'pele', 'molde'], true) ? 'avancado' : 'publicacao';
+    }
+
     /**
-     * Formulário de conteúdo em seções: "Identificação", um cartão por campo do tipo, "Publicação" (estado e datas só para quem pode
-     * publicar na edição; endereço, peso) e o menu num accordion fechado. `$vigencia` = null esconde estado e datas (criação ou sem
-     * permissão de publicar); texto (pode ser '') mostra e usa como aviso de agendamento.
+     * Aba inicial: a pedida em `?aba=` (se válida) ou, depois de um erro, a primeira aba que tem erro.
+     *
+     * @param array<string, string> $erros
+     */
+    private function abaInicial(array $erros, string $pedida = ''): string
+    {
+        $comErro = [];
+        foreach (array_keys($erros) as $chave) {
+            if ($chave !== '_') {
+                $comErro[$this->abaDoCampo((string) $chave)] = true;
+            }
+        }
+        foreach (array_keys(self::ABAS) as $aba) {
+            if (isset($comErro[$aba])) {
+                return $aba;
+            }
+        }
+
+        return isset(self::ABAS[$pedida]) ? $pedida : 'conteudo';
+    }
+
+    /**
+     * Formulário de conteúdo em três abas dentro de UM só `<form>` (ADR 0031): Conteúdo (título, descrição e os campos do tipo, no máximo
+     * seis controles nos tipos padrão), Publicação (estado, endereço e, atrás de interruptores, agendamento, tags, buscadores e menu) e
+     * Avançado (posição nas listas e aparência). Interruptor desligado = o servidor grava o padrão do grupo; ligado por padrão quando há
+     * valor ou erro. `$vigencia` = null esconde estado e datas (criação ou sem permissão de publicar); texto (pode ser '') mostra e usa
+     * como aviso de agendamento.
      *
      * @param array<string, string> $digitado
      * @param array<string, string> $erros
      */
-    private function camposDoFormulario(Classe $classe, array $digitado, array $erros, bool $raiz, bool $criando = false, ?string $vigencia = null, string $aparencia = ''): string
+    private function camposDoFormulario(Classe $classe, array $digitado, array $erros, bool $raiz, bool $criando = false, ?string $vigencia = null, string $aparencia = '', bool $aparenciaLigada = false, string $aba = '', string $base = ''): string
     {
-        $identificacao = $this->campo('titulo', 'Título', '<input id="campo-titulo" class="form-control' . $this->invalido($erros, 'titulo') . '" name="titulo" maxlength="' . self::MAX_TITULO . '" required value="' . Pagina::h($digitado['titulo'] ?? '') . '"' . $this->descrito($erros, 'titulo') . '>', $erros)
-            . $this->campo('descricao', 'Descrição', '<textarea id="campo-descricao" class="form-control' . $this->invalido($erros, 'descricao') . '" name="descricao" rows="3" maxlength="' . self::MAX_DESCRICAO . '"' . $this->descrito($erros, 'descricao', true) . '>' . Pagina::h($digitado['descricao'] ?? '') . '</textarea>', $erros, 'Opcional, até ' . self::MAX_DESCRICAO . ' caracteres.');
-        if (!$raiz) {
-            $identificacao .= $this->campo('url', 'Endereço (URL amigável)', '<div class="input-group"><span class="input-group-text">/</span><input id="campo-url" class="form-control' . $this->invalido($erros, 'url') . '" name="url" maxlength="' . Caminhos::URL_TAMANHO_MAXIMO . '" value="' . Pagina::h($digitado['url'] ?? '') . '"' . $this->descrito($erros, 'url', true) . '></div>', $erros,
-                ($criando ? 'Opcional: se vazio, vem do título.' : 'Se mudar, o endereço antigo leva ao novo.') . ' ' . 'Letras minúsculas sem acento, números, hífen e "/".');
-        }
-        $identificacao .= $this->campo('tags', 'Tags', '<input id="campo-tags" class="form-control' . $this->invalido($erros, 'tags') . '" name="tags" maxlength="' . (TagRepositorio::MAX_POR_OBJETO * (TagRepositorio::MAX_NOME + 2)) . '" value="' . Pagina::h($digitado['tags'] ?? '') . '"' . $this->descrito($erros, 'tags', true) . '>', $erros,
-            'Opcional: palavras que agrupam conteúdos parecidos, separadas por vírgula (exemplo: educação, eventos 2026). Cada tag vira uma página que lista tudo o que tem a mesma tag. Até ' . TagRepositorio::MAX_POR_OBJETO . ' tags de ' . TagRepositorio::MAX_NOME . ' caracteres.');
-        $html = Pagina::card('Identificação', $identificacao);
+        $tem = static fn (string $k): bool => trim($digitado[$k] ?? '') !== '';
+        $temErro = static function (array $erros, string ...$chaves): bool {
+            foreach ($chaves as $c) {
+                if (isset($erros[$c])) {
+                    return true;
+                }
+            }
 
+            return false;
+        };
+
+        // ---- Conteúdo
+        $conteudo = $this->campo('titulo', 'Título', '<input id="campo-titulo" class="form-control' . $this->invalido($erros, 'titulo') . '" name="titulo" maxlength="' . self::MAX_TITULO . '" required data-pbl-contador value="' . Pagina::h($digitado['titulo'] ?? '') . '"' . $this->descrito($erros, 'titulo') . '>', $erros)
+            . $this->campo('descricao', 'Descrição', '<textarea id="campo-descricao" class="form-control' . $this->invalido($erros, 'descricao') . '" name="descricao" rows="3" maxlength="' . self::MAX_DESCRICAO . '" data-pbl-contador' . $this->descrito($erros, 'descricao', true) . '>' . Pagina::h($digitado['descricao'] ?? '') . '</textarea>', $erros, 'Opcional, até ' . self::MAX_DESCRICAO . ' caracteres.');
+        $seo = [];
         foreach ($this->propriedadesAtivas($classe) as $p) {
-            $html .= $this->campoDePropriedade($p, $digitado['dados.' . $p['nome']] ?? '', $erros, $criando);
+            if (in_array($p['nome'], self::SEO, true)) {
+                $seo[] = $p;
+                continue;
+            }
+            $conteudo .= $this->campoDePropriedade($p, $digitado['dados.' . $p['nome']] ?? '', $erros, $criando);
         }
 
-        $ajudaData = 'Horário de Brasília. ';
+        // ---- Publicação
         $publicacao = '';
         if ($vigencia !== null) {
             $opcoes = '';
@@ -1150,25 +1280,68 @@ final class TelasDeObjetos
                 $opcoes .= $this->opcao($chave, $rotulo, $chave === ($digitado['estado'] ?? 'privado'));
             }
             $publicacao .= ($vigencia === '' ? '' : '<p class="pbl-vigencia"><span class="badge text-bg-warning">' . Pagina::h($vigencia) . '</span></p>')
-                . $this->campo('estado', 'Estado', '<select id="campo-estado" name="estado" class="form-select' . $this->invalido($erros, 'estado') . '"' . $this->descrito($erros, 'estado') . '>' . $opcoes . '</select>', $erros)
-                . '<div class="pbl-grade">'
+                . $this->campo('estado', 'Estado', '<select id="campo-estado" name="estado" class="form-select' . $this->invalido($erros, 'estado') . '"' . $this->descrito($erros, 'estado') . '>' . $opcoes . '</select>', $erros);
+            $ajudaData = 'Horário de Brasília. ';
+            $datas = '<div class="pbl-grade2">'
                 . $this->campo('data_publicacao', 'Publicar a partir de', '<input id="campo-data_publicacao" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_publicacao') . '" name="data_publicacao" value="' . Pagina::h($digitado['data_publicacao'] ?? '') . '"' . $this->descrito($erros, 'data_publicacao', true) . '>', $erros, $ajudaData . 'Vazio = assim que publicado.')
                 . $this->campo('data_validade', 'Tirar do ar a partir de', '<input id="campo-data_validade" type="datetime-local" class="form-control' . $this->invalido($erros, 'data_validade') . '" name="data_validade" value="' . Pagina::h($digitado['data_validade'] ?? '') . '"' . $this->descrito($erros, 'data_validade', true) . '>', $erros, $ajudaData . 'Vazio = sem prazo.')
                 . '</div>';
+            $publicacao .= Pagina::toggle('usar-agenda', 'usar_agenda', 'Agendar a publicação e a validade', 'Escolha quando entra no ar e quando sai. Sem isso, vale assim que for publicado e não vence.',
+                $tem('data_publicacao') || $tem('data_validade') || $temErro($erros, 'data_publicacao', 'data_validade'), $datas);
         }
-        $publicacao .= $this->campo('peso', 'Peso', '<input id="campo-peso" class="form-control campo-ordem' . $this->invalido($erros, 'peso') . '" name="peso" type="number" step="1" min="-999999" max="999999" value="' . Pagina::h($digitado['peso'] ?? '0') . '"' . $this->descrito($erros, 'peso', true) . '>', $erros, 'Menor aparece primeiro nas listas e no menu.');
-        $html .= Pagina::card('Publicação', $publicacao . $aparencia);
-
+        if (!$raiz) {
+            $url = $this->campo('url', 'Endereço (URL amigável)', '<div class="input-group"><span class="input-group-text">/</span><input id="campo-url" class="form-control' . $this->invalido($erros, 'url') . '" name="url" maxlength="' . Caminhos::URL_TAMANHO_MAXIMO . '" data-pbl-url-previa value="' . Pagina::h($digitado['url'] ?? '') . '"' . $this->descrito($erros, 'url', true) . '></div>', $erros,
+                ($criando ? 'Se vazio, vem do título.' : 'Se mudar, o endereço antigo leva ao novo.') . ' Letras minúsculas sem acento, números, hífen e "/".')
+                . '<p class="form-text mb-0">Endereço completo: <code data-pbl-endereco-previa data-pbl-base="' . Pagina::h($base) . '">' . Pagina::h($base . '/' . ($digitado['url'] ?? '')) . '</code></p>';
+            $publicacao .= $criando
+                ? Pagina::toggle('usar-url', 'usar_url', 'Escolher o endereço', 'Sem isso, o endereço é gerado a partir do título.', $tem('url') || $temErro($erros, 'url'), $url)
+                : $url;
+        }
+        $tags = $this->campo('tags', 'Tags', '<input id="campo-tags" class="form-control' . $this->invalido($erros, 'tags') . '" name="tags" maxlength="' . (TagRepositorio::MAX_POR_OBJETO * (TagRepositorio::MAX_NOME + 2)) . '" value="' . Pagina::h($digitado['tags'] ?? '') . '"' . $this->descrito($erros, 'tags', true) . '>', $erros,
+            'Palavras que agrupam conteúdos parecidos, separadas por vírgula (exemplo: educação, eventos 2026). Cada tag vira uma página que lista tudo o que tem a mesma tag. Até ' . TagRepositorio::MAX_POR_OBJETO . ' tags de ' . TagRepositorio::MAX_NOME . ' caracteres.');
+        $publicacao .= Pagina::toggle('usar-tags', 'usar_tags', 'Tags', 'Agrupe este conteúdo com outros parecidos.', $tem('tags') || $temErro($erros, 'tags'), $tags);
+        if ($seo !== []) {
+            $camposSeo = '';
+            $ligadoSeo = false;
+            foreach ($seo as $p) {
+                $v = $digitado['dados.' . $p['nome']] ?? '';
+                $ligadoSeo = $ligadoSeo || ($v !== '' && $v !== '0') || isset($erros['dados.' . $p['nome']]);
+                $camposSeo .= $this->campoDePropriedade($p, $v, $erros, $criando);
+            }
+            $publicacao .= Pagina::toggle('usar-seo', 'usar_seo', 'Aparecer bem nas buscas e nas redes sociais', 'Ajuste o título, a descrição e a imagem que aparecem no Google e quando alguém compartilha a página.', $ligadoSeo, $camposSeo . $this->previaDeBusca($base));
+        }
         if ($criando || !$raiz) {
-            $menu = $this->campo('no_menu', 'Aparece no menu do site', '<select id="campo-no-menu" class="form-select" name="no_menu">' . $this->opcao('1', 'Sim', ($digitado['no_menu'] ?? '0') === '1') . $this->opcao('0', 'Não', ($digitado['no_menu'] ?? '0') !== '1') . '</select>', $erros, 'Vale para conteúdo direto na página inicial ou dentro de um item do menu.')
-                . $this->campo('rotulo_menu', 'Texto no menu', '<input id="campo-rotulo-menu" class="form-control' . $this->invalido($erros, 'rotulo_menu') . '" name="rotulo_menu" maxlength="' . self::MAX_ROTULO_MENU . '" value="' . Pagina::h($digitado['rotulo_menu'] ?? '') . '"' . $this->descrito($erros, 'rotulo_menu', true) . '>', $erros, 'Opcional: vazio usa o título.');
-            $abrir = isset($erros['no_menu']) || isset($erros['rotulo_menu']);
-            $html .= '<div class="accordion mb-3" id="acc-secundarias"><div class="accordion-item"><h2 class="accordion-header">'
-                . '<button class="accordion-button' . ($abrir ? '' : ' collapsed') . '" type="button" data-bs-toggle="collapse" data-bs-target="#sec-menu" aria-expanded="' . ($abrir ? 'true' : 'false') . '" aria-controls="sec-menu">Menu do site</button></h2>'
-                . '<div id="sec-menu" class="accordion-collapse collapse' . ($abrir ? ' show' : '') . '"><div class="accordion-body">' . $menu . '</div></div></div></div>';
+            $menu = $this->campo('rotulo_menu', 'Texto no menu', '<input id="campo-rotulo-menu" class="form-control' . $this->invalido($erros, 'rotulo_menu') . '" name="rotulo_menu" maxlength="' . self::MAX_ROTULO_MENU . '" data-pbl-contador value="' . Pagina::h($digitado['rotulo_menu'] ?? '') . '"' . $this->descrito($erros, 'rotulo_menu', true) . '>', $erros, 'Vazio usa o título.');
+            $publicacao .= Pagina::toggle('campo-no-menu', 'no_menu', 'Mostrar no menu do site', 'Vale para conteúdo direto na página inicial ou dentro de um item do menu.', ($digitado['no_menu'] ?? '0') === '1' || $temErro($erros, 'rotulo_menu'), $menu, true);
         }
 
-        return $html;
+        // ---- Avançado
+        $peso = $this->campo('peso', 'Posição nas listas (peso)', '<input id="campo-peso" class="form-control campo-ordem' . $this->invalido($erros, 'peso') . '" name="peso" type="number" step="1" min="-999999" max="999999" value="' . Pagina::h($digitado['peso'] ?? '0') . '"' . $this->descrito($erros, 'peso', true) . '>', $erros, 'Menor aparece primeiro nas listas e no menu.');
+        $avancado = Pagina::toggle('usar-posicao', 'usar_posicao', 'Definir a posição nas listas', 'Sem isso, a posição é 0 e a ordem vem do título.', !in_array($digitado['peso'] ?? '0', ['0', ''], true) || $temErro($erros, 'peso'), $peso);
+        if ($aparencia !== '') {
+            $avancado .= Pagina::toggle('usar-aparencia', 'usar_aparencia', 'Aparência própria', 'Escolha uma pele e um modelo de página só para este conteúdo. Sem isso, ele herda a do site.', $aparenciaLigada || $temErro($erros, 'pele', 'molde'), $aparencia);
+        }
+
+        $contagem = [];
+        foreach (array_keys($erros) as $chave) {
+            if ($chave !== '_') {
+                $contagem[$this->abaDoCampo((string) $chave)] = ($contagem[$this->abaDoCampo((string) $chave)] ?? 0) + 1;
+            }
+        }
+        return Pagina::abasDeFormulario([
+            'conteudo' => [self::ABAS['conteudo'], '<div class="pbl-secao-corpo">' . $conteudo . '</div>'],
+            'publicacao' => [self::ABAS['publicacao'], '<div class="pbl-secao-corpo">' . $publicacao . '</div>'],
+            'avancado' => [self::ABAS['avancado'], '<div class="pbl-secao-corpo">' . $avancado . '</div>'],
+        ], $this->abaInicial($erros, $aba), 'Partes do formulário', $contagem);
+    }
+
+    /** Prévia (só leitura, montada pelo JavaScript com `textContent`) de como o conteúdo aparece numa busca e ao ser compartilhado. */
+    private function previaDeBusca(string $base): string
+    {
+        return '<div class="pbl-previa" data-pbl-previa-busca hidden data-pbl-base="' . Pagina::h($base) . '">'
+            . '<span class="pbl-previa-rotulo">Como pode aparecer numa busca</span>'
+            . '<span class="pbl-previa-url" data-pbl-previa-url></span><span class="pbl-previa-titulo" data-pbl-previa-titulo></span>'
+            . '<span class="pbl-previa-texto" data-pbl-previa-texto></span><span class="pbl-previa-corte" data-pbl-previa-corte></span></div>';
     }
 
     /**
@@ -1192,10 +1365,10 @@ final class TelasDeObjetos
             'booleano' => ['<select class="form-select' . $classe . '"' . $comum . '>' . $this->opcao('', '(sem valor)', $valor === '') . $this->opcao('1', 'Sim', $valor === '1') . $this->opcao('0', 'Não', $valor === '0') . '</select>', 'Sim ou não.'],
             'ref' => ['<input class="form-control' . $classe . '"' . $comum . ' type="number" min="1" step="1" value="' . Pagina::h($valor) . '">', 'Número de outro conteúdo deste site' . (isset($p['classe']) ? ' (do tipo ' . Pagina::h($p['classe']) . ')' : '') . '.' . ' ' . 'O número aparece na página de cada conteúdo.'],
             'html' => ['<textarea class="form-control font-monospace' . $classe . '"' . $comum . ' rows="10" maxlength="' . self::MAX_HTML . '" ' . Pagina::MARCA_EDITOR . 'html" data-pbl-editor-base="' . Pagina::h(Pagina::TINYMCE) . '">' . Pagina::h($valor) . '</textarea>', 'Use os botões acima para formatar. Até ' . self::MAX_HTML . ' caracteres.' . ' ' . 'Dá para colar do Word, do Google Docs ou de uma página. Títulos, negrito, listas, links, tabelas e imagens por endereço funcionam; o botão de código-fonte mostra o HTML. Ao salvar, o HTML é limpo: ficam só marcações comuns; scripts, formulários, eventos e estilos além de alinhamento e tamanho do texto são removidos. Sem JavaScript, o campo aceita HTML direto.'],
-            default => ['<textarea class="form-control' . $classe . '"' . $comum . ' rows="3" maxlength="' . self::MAX_TEXTO . '">' . Pagina::h($valor) . '</textarea>', 'Texto, até ' . self::MAX_TEXTO . ' caracteres.'],
+            default => ['<textarea class="form-control' . $classe . '"' . $comum . ' rows="3" maxlength="' . self::MAX_TEXTO . '" data-pbl-contador' . ($p['nome'] === 'seo_titulo' ? ' data-pbl-limite-bom="60"' : ($p['nome'] === 'seo_descricao' ? ' data-pbl-limite-bom="160"' : '')) . '>' . Pagina::h($valor) . '</textarea>', 'Texto, até ' . self::MAX_TEXTO . ' caracteres.'],
         };
 
-        return '<div class="pbl-card pbl-campo-tipo">' . $this->campo($chave, Classe::rotuloDe($p) . (($p['obrigatorio'] ?? false) ? ' (obrigatório)' : ''), $controle, $erros, $ajuda, $id) . '</div>';
+        return '<div class="pbl-campo-tipo">' . $this->campo($chave, Classe::rotuloDe($p) . (($p['obrigatorio'] ?? false) ? ' (obrigatório)' : ''), $controle, $erros, $ajuda, $id) . '</div>';
     }
 
     /**
@@ -1219,14 +1392,18 @@ final class TelasDeObjetos
             $atual = $valor !== '' && ctype_digit($valor) ? $this->arquivoLegivel((int) $valor) : '<em>nenhum arquivo enviado</em>';
             $controle .= '<div class="mb-2">' . $atual . '</div>';
         }
-        $controle .= '<input class="form-control' . $this->invalido($erros, $chave) . '" id="' . Pagina::h($id) . '" type="file" name="' . Pagina::h('dados[' . $p['nome'] . ']') . '" accept="' . Pagina::h(implode(',', array_map(static fn (string $e): string => '.' . $e, $extensoes))) . '"' . $this->descrito($erros, $chave, true) . '>';
+        $ehImagem = $p['tipo'] === 'imagem';
+        $controle .= '<input class="form-control' . $this->invalido($erros, $chave) . '" id="' . Pagina::h($id) . '" type="file"' . ($ehImagem ? ' ' . Pagina::MARCA_IMAGEM : '') . ' name=""' . Pagina::h('dados[' . $p['nome'] . ']') . '" accept="' . Pagina::h(implode(',', array_map(static fn (string $e): string => '.' . $e, $extensoes))) . '"' . $this->descrito($erros, $chave, true) . '>';
+        if ($ehImagem) {
+            $controle .= '<div class="pbl-miniatura" data-pbl-miniatura hidden><img alt="" src="" width="72" height="72"><span data-pbl-miniatura-nome></span></div>';
+        }
         if (!$criando && $valor !== '') {
             $controle .= '<div class="form-check mt-1"><input class="form-check-input" type="checkbox" value="1" id="' . $id . '-remover" name="' . Pagina::h('dados_remover[' . $p['nome'] . ']') . '"><label class="form-check-label" for="' . $id . '-remover">Remover o arquivo atual</label></div>';
         }
         $ajuda = 'Tipos aceitos: ' . implode(', ', $extensoes) . '. Até ' . $limiteMb . ' MB.'
             . ($criando ? '' : ' Deixe em branco para manter o arquivo atual.');
 
-        return '<div class="pbl-card pbl-campo-tipo">' . $this->campo($chave, $rotulo, $controle, $erros, $ajuda, $id) . '</div>';
+        return '<div class="pbl-campo-tipo">' . $this->campo($chave, $rotulo, $controle, $erros, $ajuda, $id) . '</div>';
     }
 
     /**
@@ -1243,7 +1420,7 @@ final class TelasDeObjetos
         $molde = $digitado['molde'] ?? ($o->molde ?? '');
         $herdada = $this->peleHerdada($o);
         $opcoesPele = $this->opcao('', 'Herdar (' . $herdada . ')', $pele === '');
-        $opcoesMolde = $this->opcao('', 'Automático (pela classe)', $molde === '');
+        $opcoesMolde = $this->opcao('', 'Automático (pelo tipo de conteúdo)', $molde === '');
         foreach ($peles as $nome) {
             $opcoesPele .= $this->opcao($nome, $nome, $pele === $nome);
             $grupo = '';
@@ -1253,8 +1430,8 @@ final class TelasDeObjetos
             $opcoesMolde .= '<optgroup label="' . Pagina::h($nome) . '">' . $grupo . '</optgroup>';
         }
 
-        return $this->campo('pele', 'Pele', '<select id="campo-pele" name="pele" class="form-select' . $this->invalido($erros, 'pele') . '"' . $this->descrito($erros, 'pele', true) . '>' . $opcoesPele . '</select>', $erros, 'A pele vale para este conteúdo e tudo que está dentro dele. Mudar refaz as páginas dessa parte do site.')
-            . $this->campo('molde', 'Aparência (molde)', '<select id="campo-molde" name="molde" class="form-select' . $this->invalido($erros, 'molde') . '"' . $this->descrito($erros, 'molde', true) . '>' . $opcoesMolde . '</select>', $erros, 'Só desta página (não passa para o que está dentro). O molde precisa existir na pele em uso.');
+        return $this->campo('pele', 'Pele', '<select id="campo-pele" name="pele" data-pbl-seletor class="form-select' . $this->invalido($erros, 'pele') . '"' . $this->descrito($erros, 'pele', true) . '>' . $opcoesPele . '</select>', $erros, 'A pele vale para este conteúdo e tudo que está dentro dele. Mudar refaz as páginas dessa parte do site.')
+            . $this->campo('molde', 'Modelo de página', '<select id="campo-molde" name="molde" data-pbl-seletor class="form-select' . $this->invalido($erros, 'molde') . '"' . $this->descrito($erros, 'molde', true) . '>' . $opcoesMolde . '</select>', $erros, 'Só desta página (não passa para o que está dentro). O modelo de página precisa existir na pele em uso.');
     }
 
     /** Nome da pele que o objeto herda (a do pai ou ancestral; senão a do site). */
@@ -1280,7 +1457,7 @@ final class TelasDeObjetos
         }
         $efetiva = $pele !== '' && !isset($erros['pele']) ? $pele : $this->peleHerdada($o);
         if ($molde !== '' && !in_array($molde, $this->servicos->peles->moldes($efetiva), true)) {
-            $erros['molde'] = 'Esse molde não existe na pele "' . $efetiva . '". Escolha um molde dela ou deixe "Automático".';
+            $erros['molde'] = 'Esse modelo de página não existe na pele "' . $efetiva . '". Escolha um modelo de página dela ou deixe "Automático".';
         }
 
         return $erros;
@@ -1297,7 +1474,7 @@ final class TelasDeObjetos
         $base = Pagina::h($this->idDe($chave));
 
         return '<div class="mb-3">' . Pagina::rotulo($id, Pagina::h($rotulo), Pagina::ajuda('ajuda-' . $base, $rotulo, $ajuda)) . $controle
-            . (isset($erros[$chave]) ? '<div id="erro-' . $base . '" class="invalid-feedback d-block">' . Pagina::h($erros[$chave]) . '</div>' : '') . '</div>';
+            . '<div id="erro-' . $base . '" class="pbl-msg-campo" data-pbl-msg>' . (isset($erros[$chave]) ? Pagina::h($erros[$chave]) : '') . '</div></div>';
     }
 
     /** @param array<string, string> $erros */
@@ -1325,7 +1502,11 @@ final class TelasDeObjetos
         return str_replace('.', '-', $chave);
     }
 
-    /** @param array<string, string> $erros */
+    /**
+     * Resumo de erros no topo do formulário (foco ao carregar, `role="alert"`): cada erro é um link para o campo e diz em que aba ele está.
+     *
+     * @param array<string, string> $erros
+     */
     private function resumoDeErros(array $erros): string
     {
         if ($erros === []) {
@@ -1334,8 +1515,15 @@ final class TelasDeObjetos
         if (isset($erros['_'])) {
             return Pagina::alerta('danger', $erros['_']);
         }
+        $ids = ['rotulo_menu' => 'campo-rotulo-menu', 'no_menu' => 'campo-no-menu'];
+        $itens = '';
+        foreach ($erros as $chave => $mensagem) {
+            $chave = (string) $chave;
+            $itens .= '<li><a href="#' . Pagina::h($ids[$chave] ?? 'campo-' . $this->idDe($chave)) . '">' . Pagina::h($mensagem) . '</a> <span class="text-body-secondary">(aba ' . Pagina::h(self::ABAS[$this->abaDoCampo($chave)]) . ')</span></li>';
+        }
 
-        return Pagina::alerta('danger', 'Confira ' . (count($erros) === 1 ? 'o campo marcado' : 'os ' . count($erros) . ' campos marcados') . ' abaixo.');
+        return '<div class="pbl-resumo-erros" id="resumo-de-erros" role="alert" tabindex="-1" data-pbl-resumo-erros><div><strong>Confira ' . (count($erros) === 1 ? 'o campo marcado' : 'os ' . count($erros) . ' campos marcados') . ' abaixo.</strong>'
+            . '<ul>' . $itens . '</ul></div></div>';
     }
 
     // ---------------------------------------------------------------- estado e datas
@@ -2242,7 +2430,7 @@ final class TelasDeObjetos
             return '';
         }
 
-        return '<nav aria-label="Caminho"><ol class="breadcrumb">' . implode('', $partes)
+        return '<nav aria-label="Caminho" class="pbl-migalhas"><ol class="breadcrumb">' . implode('', $partes)
             . '<li class="breadcrumb-item"><a href="' . $this->link($o->id) . '" aria-current="page">' . Pagina::h($o->titulo) . '</a></li></ol></nav>';
     }
 

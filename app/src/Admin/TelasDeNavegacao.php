@@ -291,10 +291,10 @@ final class TelasDeNavegacao
             $botoes .= '<span class="btn btn-outline-secondary disabled" aria-disabled="true">Subir um nível</span>';
         }
         if ($o->status !== self::LIXEIRA && $this->pode($sessao, Acao::Editar, $o)) {
-            $botoes .= Pagina::botaoIcone('editar', 'Editar este objeto', 'btn-primary bg-gradient', ['href' => $this->objeto($o->id) . '/editar', 'tamanho' => '']);
+            $botoes .= Pagina::botaoIcone('editar', 'Editar este conteúdo', 'btn-primary bg-gradient', ['href' => $this->objeto($o->id) . '/editar', 'tamanho' => '']);
         }
         if ($o->status !== self::LIXEIRA && $this->servicos->permissoes->podeCriarSob($sessao->usuario, $o) && $this->aceitaFilhos($o)) {
-            $botoes .= Pagina::botaoIcone('mais', 'Criar filho', 'btn-success bg-gradient', ['href' => $this->objeto($o->id) . '/novo', 'tamanho' => '']);
+            $botoes .= Pagina::botaoIcone('mais', 'Criar conteúdo aqui dentro', 'btn-success bg-gradient', ['href' => $this->objeto($o->id) . '/novo', 'tamanho' => '']);
         }
         $botoes .= Pagina::botaoIcone('detalhes', 'Detalhes', 'btn-outline-secondary', ['href' => $this->objeto($o->id), 'tamanho' => '']);
         $publica = $this->urlPublica($o);

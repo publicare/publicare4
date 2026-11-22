@@ -510,9 +510,9 @@ final class FormulariosTest extends TestCase
         self::assertStringNotContainsString('Bruno', $corpo, 'a lista não despeja os valores; cada envio abre na tela de conteúdo');
 
         $tela = (string) $this->admin('/_pbl/objeto/' . $this->formId, $token)->getContent();
-        self::assertStringContainsString('title="Envios recebidos" href="/_pbl/objeto/' . $this->formId . '/envios"', $tela);
+        self::assertStringContainsString('<a href="/_pbl/objeto/' . $this->formId . '/envios">Envios recebidos</a>', $tela, 'em Mais ações, com rótulo');
         $semLink = (string) $this->admin('/_pbl/objeto/' . $this->destinoId, $token)->getContent();
-        self::assertStringNotContainsString('title="Envios recebidos"', $semLink);
+        self::assertStringNotContainsString('Envios recebidos', $semLink);
     }
 
     public function testTelaDeEnviosExigeSessaoPermissaoEUmFormulario(): void

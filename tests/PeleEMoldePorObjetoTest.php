@@ -402,8 +402,8 @@ final class PeleEMoldePorObjetoTest extends TestCase
         $this->s->objetos->atualizar($p->id, ['status' => 'privado']);
         $p = $this->s->objetos->porId($p->id) ?? self::fail();
         $tela = $this->html($this->req('GET', '/_pbl/objeto/' . $p->id . '/editar', $this->token('admin')));
-        self::assertStringContainsString('btn btn-success bg-gradient', $tela);
-        self::assertStringContainsString('Gravar e publicar', $tela);
+        self::assertStringContainsString('name="acao" value="salvar_publicar"', $tela);
+        self::assertStringContainsString('Salvar e publicar', $tela);
 
         $r = $this->post($this->token('admin'), '/_pbl/objeto/' . $p->id . '/editar', ['titulo' => 'Pagina', 'versao' => (string) $p->versao, 'estado' => 'privado', 'corpo' => '<p>x</p>', 'acao' => 'publicar', 'descricao' => '', 'url' => $p->urlAmigavel, 'peso' => '0']);
         self::assertContains($r->getStatusCode(), [302, 303]);
@@ -417,7 +417,7 @@ final class PeleEMoldePorObjetoTest extends TestCase
         $this->s->usuarios->conceder($u->id, $this->inicioId, \Pbl\Acesso\Perfil::Autor);
         $p = $this->s->objetos->criar($this->siteId, $this->s->classes->porNome('pagina') ?? self::fail(), $this->inicioId, 'Do autor', 'do-autor', ['corpo' => 'x'], 'privado', ['criado_por' => $u->id]);
         $tela = $this->html($this->req('GET', '/_pbl/objeto/' . $p->id . '/editar', $this->token('autor')));
-        self::assertStringNotContainsString('Gravar e publicar', $tela);
+        self::assertStringNotContainsString('Salvar e publicar', $tela);
         self::assertStringNotContainsString('name="pele"', $tela);
     }
 }

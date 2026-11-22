@@ -21,7 +21,7 @@ final class TelasDeModelos
 {
     use AuxiliaresDeTela;
 
-    private const DESCRICAO = 'Pacotes prontos de tipos de conteúdo, com exemplos e moldes na pele básica. Ativar não apaga nem substitui nada que você já ajustou.';
+    private const DESCRICAO = 'Pacotes prontos de tipos de conteúdo, com exemplos e modelos de página na pele básica. Ativar não apaga nem substitui nada que você já ajustou.';
 
     public function __construct(
         private readonly Servicos $servicos,

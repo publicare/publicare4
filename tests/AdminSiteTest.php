@@ -314,7 +314,7 @@ final class AdminSiteTest extends TestCase
         $r = $this->post($t, "{$b}/molde", ['nome' => 'padrao', 'conteudo' => "<p>ok</p>\n<p><@se #titulo@>sem fechar</p>\n", 'base' => $base]);
         self::assertSame(422, $r->getStatusCode());
         self::assertMatchesRegularExpression('/linha \d+/', $this->html($r));
-        self::assertStringContainsString('O molde não foi salvo', $this->html($r));
+        self::assertStringContainsString('O modelo de página não foi salvo', $this->html($r));
         self::assertSame($original, file_get_contents($this->caminhos->peles() . '/basica/padrao.pbl'));
         // Grande demais e UTF-8 inválido.
         $grande = str_repeat('a', 200_001);

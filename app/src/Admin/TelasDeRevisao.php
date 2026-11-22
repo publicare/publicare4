@@ -39,6 +39,10 @@ final class TelasDeRevisao
     /** @return array{0: string, 1: int|null}|null */
     public static function rota(string $prefixo, string $caminho, string $metodo): ?array
     {
+        if ($caminho === $prefixo . '/revisar') {
+            return $metodo === 'GET' ? ['revisar', null] : null;
+        }
+        // Endereços antigos: continuam respondendo, em 303, para a tela nova (ADR 0031).
         if ($caminho === $prefixo . '/pendencias') {
             return $metodo === 'GET' ? ['pendencias', null] : null;
         }
@@ -56,11 +60,14 @@ final class TelasDeRevisao
     public function tratar(SessaoAtiva $sessao, array $rota, Request $requisicao): Response
     {
         [$tela, $id] = $rota;
-        if ($tela === 'pendencias') {
-            return $this->pendencias($sessao, $requisicao);
+        if ($tela === 'pendencias' || $tela === 'envios') {
+            // nenhum endereço quebra: 303 (nunca 301, reversível) para "Revisar", com a consulta (?estado=, ?area=, ?ok=) preservada
+            $consulta = ['aba' => $tela] + array_filter($requisicao->query->all(), static fn (mixed $v, mixed $k): bool => is_string($v) && $k !== 'aba', ARRAY_FILTER_USE_BOTH);
+
+            return new RedirectResponse(Painel::PREFIXO . '/revisar?' . http_build_query($consulta), Response::HTTP_SEE_OTHER);
         }
-        if ($tela === 'envios') {
-            return $this->meusEnvios($sessao, $requisicao);
+        if ($tela === 'revisar') {
+            return $this->revisar($sessao, $requisicao);
         }
         if (!$this->postConfere($sessao, $requisicao)) {
             return $this->recusado();
@@ -95,7 +102,7 @@ final class TelasDeRevisao
             return $this->falha($sessao, $e, $voltar);
         }
         if ($passo === 'aprovar' && !$this->sincronizar($novo)) {
-            $link = $voltar === 'objeto' ? Painel::PREFIXO . '/objeto/' . $novo->id : Painel::PREFIXO . '/' . $voltar;
+            $link = $voltar === 'objeto' ? Painel::PREFIXO . '/objeto/' . $novo->id : $this->urlDeRevisar($voltar);
             $corpo = Pagina::alerta('warning', 'O envio foi aprovado e o conteúdo está publicado no painel, mas a página pública não pôde ser atualizada agora. Publique de novo pelo painel ou rode a publicação do site.')
                 . '<p><a class="btn btn-outline-secondary" href="' . Pagina::h($link) . '">Voltar</a></p>';
 
@@ -105,9 +112,9 @@ final class TelasDeRevisao
         if ($voltar === 'objeto') {
             return new RedirectResponse(TelasDeObjetos::urlDaPrevia($novo->id, $codigo), Response::HTTP_SEE_OTHER);
         }
-        $query = ['ok' => $codigo] + ($voltar === 'pendencias' && $area !== null ? ['area' => (string) $area] : []);
+        $query = ['aba' => $voltar === 'pendencias' ? 'pendencias' : 'envios', 'ok' => $codigo] + ($voltar === 'pendencias' && $area !== null ? ['area' => (string) $area] : []);
 
-        return new RedirectResponse(Painel::PREFIXO . '/' . $voltar . '?' . http_build_query($query), Response::HTTP_SEE_OTHER);
+        return new RedirectResponse(Painel::PREFIXO . '/revisar?' . http_build_query($query), Response::HTTP_SEE_OTHER);
     }
 
     private function falha(SessaoAtiva $sessao, ErroDeRevisao $e, string $voltar): Response
@@ -118,7 +125,7 @@ final class TelasDeRevisao
             ErroDeRevisao::CONFLITO => [Response::HTTP_CONFLICT, 'Outra pessoa alterou este conteúdo depois que a tela foi aberta. Volte, recarregue e confira antes de decidir.'],
             default => [Response::HTTP_UNPROCESSABLE_ENTITY, $e->getMessage()],
         };
-        $link = $voltar === 'objeto' ? Painel::PREFIXO . '/' : Painel::PREFIXO . '/' . $voltar;
+        $link = $voltar === 'objeto' ? Painel::PREFIXO . '/' : $this->urlDeRevisar($voltar);
         $corpo = Pagina::alerta('warning', $texto) . '<p><a class="btn btn-outline-secondary" href="' . Pagina::h($link) . '">Voltar</a></p>';
 
         return Pagina::resposta('Não foi possível concluir', $corpo, $status, false, $this->barra($sessao));
@@ -147,9 +154,45 @@ final class TelasDeRevisao
         return $ok;
     }
 
+    // ---------------------------------------------------------------- Revisar (pendências + meus envios)
+
+    private function urlDeRevisar(string $voltar): string
+    {
+        return Painel::PREFIXO . '/revisar?aba=' . ($voltar === 'pendencias' ? 'pendencias' : 'envios');
+    }
+
+    /** "Revisar": uma tela só, com as abas Pendências (quem revisa) e Meus envios (quem envia), em `?aba=`. */
+    private function revisar(SessaoAtiva $sessao, Request $r): Response
+    {
+        $u = $sessao->usuario;
+        $revisor = $this->servicos->revisao->ehRevisor($u);
+        $envia = $this->servicos->revisao->podeEnviar($u);
+        if (!$revisor && !$envia) {
+            return Pagina::resposta('Sem acesso', Pagina::alerta('warning', 'Só quem é autor ou editor de alguma seção (ou administrador) usa a revisão.'), Response::HTTP_FORBIDDEN, false, $this->barra($sessao));
+        }
+        $pedida = $r->query->all()['aba'] ?? null;
+        $aba = in_array($pedida, ['pendencias', 'envios'], true) ? $pedida : ($revisor ? 'pendencias' : 'envios');
+
+        return $aba === 'pendencias' ? $this->pendencias($sessao, $r, $this->abasDeRevisar($sessao, $aba, $revisor, $envia)) : $this->meusEnvios($sessao, $r, $this->abasDeRevisar($sessao, $aba, $revisor, $envia));
+    }
+
+    private function abasDeRevisar(SessaoAtiva $sessao, string $atual, bool $revisor, bool $envia): string
+    {
+        $pendentes = $revisor ? $this->servicos->revisao->contarPendencias($sessao->usuario) : 0;
+        $itens = '';
+        if ($revisor) {
+            $itens .= '<li><a href="' . Painel::PREFIXO . '/revisar?aba=pendencias"' . ($atual === 'pendencias' ? ' aria-current="page"' : '') . '>Pendências' . ($pendentes > 0 ? ' <span class="pbl-contagem">' . $pendentes . '</span>' : '') . '</a></li>';
+        }
+        if ($envia) {
+            $itens .= '<li><a href="' . Painel::PREFIXO . '/revisar?aba=envios"' . ($atual === 'envios' ? ' aria-current="page"' : '') . '>Meus envios</a></li>';
+        }
+
+        return '<ul class="pbl-abas-links" aria-label="Revisar">' . $itens . '</ul>';
+    }
+
     // ---------------------------------------------------------------- Pendências
 
-    private function pendencias(SessaoAtiva $sessao, Request $r): Response
+    private function pendencias(SessaoAtiva $sessao, Request $r, string $abas = ''): Response
     {
         $u = $sessao->usuario;
         $revisao = $this->servicos->revisao;
@@ -165,7 +208,7 @@ final class TelasDeRevisao
         $lista = $revisao->pendencias($u, $areaId);
         $total = $areaId === null ? $revisao->contarPendencias($u) : count($lista);
 
-        $corpo = $this->avisoDe($q['ok'] ?? null) . $this->filtroDeArea($areas, $areaId);
+        $corpo = $abas . $this->avisoDe($q['ok'] ?? null) . $this->filtroDeArea($areas, $areaId);
         if ($lista === []) {
             $corpo .= Pagina::alerta('info', $areaId === null ? 'Nada aguardando revisão agora.' : 'Nada aguardando revisão nesta área.');
         } else {
@@ -177,7 +220,7 @@ final class TelasDeRevisao
             $corpo .= '</ul>';
         }
 
-        return Pagina::resposta('Pendências', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Pendências', null]], 'Envios aguardando a sua revisão. Aprovar publica; devolver exige dizer o motivo.');
+        return Pagina::resposta('Revisar', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Revisar', null]], 'Envios aguardando a sua revisão. Aprovar publica; devolver exige dizer o motivo.');
     }
 
     /** @param array{acao: string, quando: string, quem: string, motivo: ?string}|null $envio */
@@ -213,14 +256,14 @@ final class TelasDeRevisao
             $opcoes[(string) $a->id] = $a->titulo;
         }
 
-        return '<form method="get" action="' . Painel::PREFIXO . '/pendencias" class="row g-2 align-items-end mb-3">'
+        return '<form method="get" action="' . Painel::PREFIXO . '/revisar" class="row g-2 align-items-end mb-3"><input type="hidden" name="aba" value="pendencias">'
             . Pagina::campo('filtro-area', 'area', 'Área', $escolhida === null ? '' : (string) $escolhida, ['tipo' => 'select', 'opcoes' => $opcoes, 'grupo' => 'col-12 col-md-6'])
             . '<div class="col-12 col-md-auto mb-3"><button type="submit" class="btn btn-outline-secondary">Filtrar</button></div></form>';
     }
 
     // ---------------------------------------------------------------- Meus envios
 
-    private function meusEnvios(SessaoAtiva $sessao, Request $r): Response
+    private function meusEnvios(SessaoAtiva $sessao, Request $r, string $abas = ''): Response
     {
         $u = $sessao->usuario;
         $revisao = $this->servicos->revisao;
@@ -236,7 +279,7 @@ final class TelasDeRevisao
         $devolucoes = $revisao->ultimos($ids, ['devolveu']);
         $enviados = $revisao->ultimos($ids, ['enviou', 'reenviou']);
 
-        $corpo = $this->avisoDe($q['ok'] ?? null) . $this->abas($filtro);
+        $corpo = $abas . $this->avisoDe($q['ok'] ?? null) . $this->abas($filtro);
         if ($lista === []) {
             $corpo .= Pagina::alerta('info', 'Nenhum envio por aqui.');
         } else {
@@ -247,7 +290,7 @@ final class TelasDeRevisao
             $corpo .= '</ul>';
         }
 
-        return Pagina::resposta('Meus envios', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Meus envios', null]], 'O que você mandou para revisão e o que ainda é rascunho seu.');
+        return Pagina::resposta('Revisar', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Revisar', Painel::PREFIXO . '/revisar'], ['Meus envios', null]], 'O que você mandou para revisão e o que ainda é rascunho seu.');
     }
 
     private function abas(string $atual): string
@@ -255,7 +298,7 @@ final class TelasDeRevisao
         $abas = ['' => 'Todos', 'revisao' => 'Em revisão', 'devolvidos' => 'Devolvidos', 'publicados' => 'Publicados', 'rascunhos' => 'Rascunhos'];
         $html = '<ul class="nav nav-pills mb-3 flex-wrap">';
         foreach ($abas as $chave => $rotulo) {
-            $html .= '<li class="nav-item"><a class="nav-link' . ($chave === $atual ? ' active' : '') . '"' . ($chave === $atual ? ' aria-current="page"' : '') . ' href="' . Painel::PREFIXO . '/meus-envios' . ($chave === '' ? '' : '?estado=' . $chave) . '">' . $rotulo . '</a></li>';
+            $html .= '<li class="nav-item"><a class="nav-link' . ($chave === $atual ? ' active' : '') . '"' . ($chave === $atual ? ' aria-current="page"' : '') . ' href="' . Painel::PREFIXO . '/revisar?aba=envios' . ($chave === '' ? '' : '&amp;estado=' . $chave) . '">' . $rotulo . '</a></li>';
         }
 
         return $html . '</ul>';
