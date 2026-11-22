@@ -257,24 +257,17 @@ final class TelasDeObjetos
         if ($filhos === []) {
             $corpo .= '<p class="text-body-secondary">Nenhum.</p>';
         } else {
-            $cartoes = '';
-            $linhas = '';
+            $itens = '';
             foreach ($filhos as $f) {
                 $quando = $f->visivel($agora) ? $f->status : $this->estadoLegivel($f, $agora, true);
-                $tipo = $this->nomeDaClasse($f->classeId);
-                $editar = $f->status !== self::LIXEIRA && $this->pode($sessao, Acao::Editar, $f)
-                    ? Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $this->link($f->id) . '/editar', 'item' => $f->titulo]) : '';
-                $cartoes .= '<li class="list-group-item pbl-filho"><div class="pbl-filho-corpo"><a class="pbl-filho-titulo" href="' . $this->link($f->id) . '">' . Pagina::h($f->titulo) . '</a>'
-                    . '<div class="pbl-filho-meta"><span class="badge text-bg-light border">' . Pagina::h($tipo) . '</span> <span class="badge ' . $this->classeDoEstado($f, $agora) . '">' . Pagina::h($quando) . '</span>'
-                    . ' <span class="text-body-secondary small">peso ' . $f->peso . '</span></div></div>' . $editar . '</li>';
-                $linhas .= '<tr><td><a href="' . $this->link($f->id) . '">' . Pagina::h($f->titulo) . '</a></td>'
-                    . '<td>' . Pagina::h($tipo) . '</td>'
-                    . '<td>' . Pagina::h($quando) . '</td>'
-                    . '<td>' . $f->peso . '</td><td class="text-end">' . $editar . '</td></tr>';
+                $acoes = $f->status !== self::LIXEIRA && $this->pode($sessao, Acao::Editar, $f)
+                    ? [AcaoDeLinha::link('Editar', 'editar', AcaoDeLinha::PRIMARIA, $this->link($f->id) . '/editar')] : [];
+                $itens .= LinhaDeConteudo::renderizar(new DadosDaLinha(
+                    $f->id, $f->titulo, $this->link($f->id), $this->servicos->classes->porId($f->classeId), $this->nomeDaClasse($f->classeId),
+                    '<span class="badge ' . $this->classeDoEstado($f, $agora) . '">' . Pagina::h($quando) . '</span>', extras: ['peso ' . $f->peso],
+                ), $acoes);
             }
-            $corpo .= '<ul class="list-group pbl-filhos d-md-none mb-3">' . $cartoes . '</ul>'
-                . '<div class="table-responsive d-none d-md-block"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Conteúdo dentro desta página</caption>'
-                . '<thead><tr><th scope="col">Título</th><th scope="col">Tipo</th><th scope="col">Estado</th><th scope="col">Peso</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>' . $linhas . '</tbody></table></div>';
+            $corpo .= '<ul class="pbl-lista-conteudo mb-3" aria-label="Conteúdo dentro desta página">' . $itens . '</ul>';
             if ($total > self::POR_PAGINA) {
                 $base = $this->link($o->id) . '?' . http_build_query(array_filter(['ordem' => $ordem === 'peso' ? '' : $ordem, 'classe' => $classeId === null ? '' : (string) $classeId, 'estado' => $estado], static fn (string $v): bool => $v !== ''));
                 $corpo .= '<p class="text-body-secondary">Mostrando ' . ($inicio + 1) . ' a ' . min($total, $inicio + count($filhos)) . ' de ' . $total . '.';

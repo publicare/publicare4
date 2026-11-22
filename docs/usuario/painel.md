@@ -14,6 +14,9 @@ São no máximo cinco itens, pelo que você quer fazer:
 | **Mais** | Contas, Tipos de conteúdo, Atualização, Cópias de segurança e Tarefas agendadas (cada pessoa vê só o que pode abrir). |
 
 No celular o menu fica atrás do botão **Menu**. As migalhas (Início › Conteúdo › …) mostram sempre onde você está.
+
+## A lista de conteúdo
+Em Conteúdo, Revisar, Vencidos e Lixeira cada item é uma linha: **ícone do tipo** (passe o dedo ou o mouse para ver o nome), **título** em destaque e, abaixo, o tipo, o estado (publicado, privado, agendado…), a data da última alteração e o número de filhos, só quando existem. À direita ficam três botões: **Editar**, **Publicar / Tirar do ar** e **Abrir no site ↗** (quando está publicado). Os demais (Abrir pasta, Histórico, Copiar, Recortar, Mover e **Apagar**, em vermelho, por último) ficam no botão **⋯ Mais**. Tudo funciona sem JavaScript. No celular em pé cada item vira um cartão; deitado e no tablet, uma linha só; no computador, uma lista compacta. Cada tipo escolhe o ícone em Mais › Tipos de conteúdo; sem escolha, vale o ícone padrão do tipo.
 Endereços antigos, como `/_pbl/pendencias` e `/_pbl/meus-envios`, continuam funcionando: levam para a tela nova.
 
 ## Editar um conteúdo

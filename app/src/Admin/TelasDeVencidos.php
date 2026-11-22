@@ -60,12 +60,11 @@ final class TelasDeVencidos
         if ($achados === []) {
             $corpo .= Pagina::alerta('info', 'Nenhum conteúdo publicado está com a validade vencida' . ($pedida === null ? '.' : ' nesta seção.'));
         } else {
-            $corpo .= '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Conteúdo vencido</caption>'
-                . '<thead><tr><th scope="col">Título</th><th scope="col">Tipo</th><th scope="col">Site</th><th scope="col">Venceu em</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>';
+            $corpo .= '<ul class="pbl-lista-conteudo" aria-label="Conteúdo vencido">';
             foreach ($achados as $o) {
                 $corpo .= $this->linha($sessao, $o);
             }
-            $corpo .= '</tbody></table></div>';
+            $corpo .= '</ul>';
             if ($total > count($achados)) {
                 $corpo .= '<p class="text-body-secondary">Mostrando ' . count($achados) . ' de ' . $total . '. Escolha uma seção para ver o resto.</p>';
             }
@@ -77,18 +76,21 @@ final class TelasDeVencidos
     private function linha(SessaoAtiva $sessao, Objeto $o): string
     {
         $base = Painel::PREFIXO . '/objeto/' . $o->id;
-        $acoes = '<a class="btn btn-sm btn-outline-secondary" href="' . $base . '">Abrir<span class="visually-hidden">: ' . Pagina::h($o->titulo) . '</span></a>';
+        $acoes = [];
         if ($this->servicos->permissoes->pode($sessao->usuario, Acao::Editar, $o)) {
-            $acoes .= ' <a class="btn btn-sm btn-outline-secondary" href="' . $base . '/editar">Editar<span class="visually-hidden">: ' . Pagina::h($o->titulo) . '</span></a>';
+            $acoes[] = AcaoDeLinha::link('Editar', 'editar', AcaoDeLinha::PRIMARIA, $base . '/editar');
         }
         if ($this->servicos->permissoes->pode($sessao->usuario, Acao::Publicar, $o)) {
-            $acoes .= ' <a class="btn btn-sm btn-outline-primary" href="' . $base . '/estado">Prorrogar ou despublicar<span class="visually-hidden">: ' . Pagina::h($o->titulo) . '</span></a>';
+            $acoes[] = AcaoDeLinha::link('Prorrogar ou despublicar', 'despublicar', AcaoDeLinha::ESTADO, $base . '/estado');
         }
+        $acoes[] = AcaoDeLinha::link('Abrir', 'abrir', AcaoDeLinha::MENU, $base);
         $site = $this->servicos->sites->porId($o->siteId);
+        $classe = $this->servicos->classes->porId($o->classeId);
+        $datas = DadosDaLinha::datas((string) $o->dataValidade, 'America/Sao_Paulo');
 
-        return '<tr><td><a href="' . $base . '">' . Pagina::h($o->titulo) . '</a></td>'
-            . '<td>' . Pagina::h($this->servicos->classes->porId($o->classeId)->nome ?? '?') . '</td>'
-            . '<td>' . Pagina::h($site->nome ?? '—') . '</td>'
-            . '<td>' . Pagina::h($this->dataBrasilia($o->dataValidade)) . '</td><td class="text-nowrap">' . $acoes . '</td></tr>';
+        return LinhaDeConteudo::renderizar(new DadosDaLinha(
+            $o->id, $o->titulo, $base, $classe, $classe->nome ?? '?', '<span class="badge text-bg-warning">vencido</span>',
+            $datas[0] ?? '', $datas[1] ?? '', $datas[2] ?? '', extras: $site === null ? [] : [$site->nome], rotuloDaData: 'Venceu em',
+        ), $acoes);
     }
 }
