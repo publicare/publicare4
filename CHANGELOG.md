@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Corrigido
+- **Linha de ações das listas no celular:** os botões de ícone (editar, abrir, publicar/despublicar, agendar, copiar, recortar, mover, apagar) ficavam de tamanhos diferentes (o amarelo, que é um formulário, saía menor) e quebravam em duas linhas desencontradas, alinhadas à direita. No celular agora formam uma grade de 5 botões iguais por linha, com a mesma altura de toque (44 px).
+
 ## [0.1.0-rc.7] - 2026-11-22
 
 > **Em resumo:** novo painel de administração (fase 1): menu por tarefa que funciona sem JavaScript, edição de conteúdo em abas com interruptores para o que é opcional, barra de ações fixa, telas com vocabulário de usuário e campos de conteúdo com lista com busca. Também corrige a geração do pacote de prévia em contêiner Alpine.

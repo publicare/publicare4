@@ -188,7 +188,14 @@ main .form-check { flex-wrap: wrap; }
 /* Botões de ação só com ícone (Pagina::botaoIcone): alvo de pelo menos 32px, 44px no celular; o rótulo fica em .visually-hidden. */
 .pbl-btn-icone { display: inline-flex; align-items: center; justify-content: center; min-width: 2rem; min-height: 2rem; padding-left: .5rem; padding-right: .5rem; }
 .pbl-btn-icone svg { flex: none; }
-@media (max-width: 767.98px) { main .pbl-btn-icone { min-width: 44px; } }
+@media (max-width: 767.98px) {
+  main .pbl-btn-icone { min-width: 44px; min-height: 44px; }
+  /* Linha de ações no celular: grade de botões iguais (5 por linha), alinhada à esquerda; formulários (publicar/despublicar, apagar) ocupam a mesma célula e o botão preenche */
+  .pbl-linha-acoes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; justify-content: stretch; align-items: stretch; }
+  .pbl-linha-acoes > .btn, .pbl-linha-acoes > form { width: 100%; min-width: 0; }
+  .pbl-linha-acoes > form { display: flex; }
+  .pbl-linha-acoes > form > .btn { flex: 1 1 auto; width: 100%; min-height: 44px; }
+}
 
 /* Assistente de instalação (/_pbl/instalar): passos e barra de progresso, sem estilo em linha (CSP). */
 .pbl-passos { margin-bottom: 1.25rem; }
