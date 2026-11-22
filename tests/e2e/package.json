@@ -1,0 +1,11 @@
+{
+  "name": "pbl4-prototipo-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test contract/*.test.mjs regression/*.test.mjs",
+    "instalar:navegador": "playwright install chromium",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": { "@playwright/test": "^1.48.0" }
+}

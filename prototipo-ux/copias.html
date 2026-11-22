@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Cópias de segurança · Painel PBL4 (protótipo)</title>
+<script src="assets/tema.js"></script>
+<link rel="stylesheet" href="assets/proto.css">
+</head>
+<body data-tela="Mais › Cópias de segurança">
+<a class="pular" href="#principal">Pular para o conteúdo</a>
+<div class="app">
+  <header class="topo">
+    <button type="button" class="btn btn--secundario btn--pequeno btn-menu" aria-controls="lateral" aria-expanded="true">Menu</button>
+    <a class="btn confuso" href="index.html#anotacoes" data-confuso>Isto ficou confuso</a>
+    <nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><a href="mais.html">Mais</a></li><li><span aria-current="page">Cópias de segurança</span></li></ol></nav>
+  </header>
+  <aside class="lateral" id="lateral" aria-label="Menu do painel">
+    <a class="marca" href="inicio.html">Site Exemplo <small>protótipo</small></a>
+    <form class="busca" role="search" action="buscar.html" method="get">
+      <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <label class="so-leitor" for="busca-global">Buscar conteúdo</label>
+      <input type="search" id="busca-global" name="q" placeholder="Buscar conteúdo" autocomplete="off" data-ignorar>
+      <kbd aria-hidden="true">/</kbd>
+    </form>
+    <nav class="menu-principal" id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar<span class="contagem" data-contagem-revisar>2</span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html" aria-current="page">Mais</a></li></ul></nav>
+    <div class="pessoa">
+      <div><strong>Ana</strong><span class="pequeno suave">Administradora</span></div>
+      <div class="acoes-pessoa"><button type="button" class="btn btn--discreto btn--pequeno" data-tema-alternar>Tema escuro</button> <a class="btn btn--discreto btn--pequeno" href="index.html">Sair</a></div>
+    </div>
+  </aside>
+  <main id="principal" class="principal" tabindex="-1">
+    <div class="tela">
+<header class="cabecalho"><div><h1>Cópias de segurança</h1><p>Uma foto do site num dia. Dá para voltar a ela.</p></div><div class="acoes"><button type="button" class="btn btn--principal" data-nova-copia>Criar cópia agora</button></div></header>
+<ul class="lista" id="lista-copias"><li data-linha><div class="item"><div class="item-texto"><span class="item-titulo">Cópia automática de ontem</span><span class="item-meta">03:00 · 38 MB · feita pelo painel</span></div><div class="item-fim"><button type="button" class="btn btn--aviso btn--pequeno" data-revela="rest-ontem" aria-expanded="false" aria-controls="rest-ontem">Restaurar<span class="so-leitor"> Cópia automática de ontem</span></button></div></div><p class="item-meta" data-msg role="status" hidden></p>
+<div class="confirmacao" id="rest-ontem" data-confirmacao hidden><p><strong>O que será perdido</strong></p><ul><li>Tudo o que mudou depois desta cópia: 14 páginas editadas e 2 contas novas.</li><li>Não dá para desfazer.</li></ul>
+<fieldset class="campo"><legend class="rotulo">Confirmação</legend><div class="opcoes"><label for="ciente-ontem"><input type="checkbox" name="ciente-ontem" id="ciente-ontem" data-exigir="Marque para confirmar."><span>Entendi que isso não pode ser desfeito</span></label></div></fieldset><p class="erro" id="ciente-ontem-erro"></p>
+<div class="campo">
+  <div class="campo-cab"><label for="senha-rest-ontem">Sua senha</label></div>
+  <input data-exigir="Confirme com a sua senha." id="senha-rest-ontem" name="senha-rest-ontem" aria-describedby="senha-rest-ontem-ajuda senha-rest-ontem-erro" autocomplete="current-password" type="password" value="">
+  <p class="ajuda" id="senha-rest-ontem-ajuda">Simulação: escreva qualquer coisa.</p>
+  <p class="erro" id="senha-rest-ontem-erro"></p>
+</div><p><button type="button" class="btn btn--perigo" data-efeito="restaurar">Restaurar esta cópia</button> <button type="button" class="btn btn--discreto" data-fecha="rest-ontem">Cancelar</button></p></div></li><li data-linha><div class="item"><div class="item-texto"><span class="item-titulo">Cópia de 12/11</span><span class="item-meta">14:10 · 37 MB · feita por Ana</span></div><div class="item-fim"><button type="button" class="btn btn--aviso btn--pequeno" data-revela="rest-doze" aria-expanded="false" aria-controls="rest-doze">Restaurar<span class="so-leitor"> Cópia de 12/11</span></button></div></div><p class="item-meta" data-msg role="status" hidden></p>
+<div class="confirmacao" id="rest-doze" data-confirmacao hidden><p><strong>O que será perdido</strong></p><ul><li>Tudo o que mudou depois desta cópia: 14 páginas editadas e 2 contas novas.</li><li>Não dá para desfazer.</li></ul>
+<fieldset class="campo"><legend class="rotulo">Confirmação</legend><div class="opcoes"><label for="ciente-doze"><input type="checkbox" name="ciente-doze" id="ciente-doze" data-exigir="Marque para confirmar."><span>Entendi que isso não pode ser desfeito</span></label></div></fieldset><p class="erro" id="ciente-doze-erro"></p>
+<div class="campo">
+  <div class="campo-cab"><label for="senha-rest-doze">Sua senha</label></div>
+  <input data-exigir="Confirme com a sua senha." id="senha-rest-doze" name="senha-rest-doze" aria-describedby="senha-rest-doze-ajuda senha-rest-doze-erro" autocomplete="current-password" type="password" value="">
+  <p class="ajuda" id="senha-rest-doze-ajuda">Simulação: escreva qualquer coisa.</p>
+  <p class="erro" id="senha-rest-doze-erro"></p>
+</div><p><button type="button" class="btn btn--perigo" data-efeito="restaurar">Restaurar esta cópia</button> <button type="button" class="btn btn--discreto" data-fecha="rest-doze">Cancelar</button></p></div></li></ul>
+<div class="vazio" data-vazio hidden>Nenhuma cópia ainda. Crie a primeira.</div>
+    </div>
+  </main>
+</div>
+<dialog id="dlg-confuso" aria-labelledby="dlg-confuso-t">
+  <form method="dialog">
+    <h2 id="dlg-confuso-t">O que ficou confuso?</h2>
+    <p class="suave">Tela: <strong data-tela-nome></strong></p>
+    <div class="campo">
+      <div class="campo-cab"><label for="confuso-texto">Conte em poucas palavras</label><span class="contador" data-contador-confuso>0 de 300</span></div>
+      <textarea id="confuso-texto" rows="4" aria-describedby="confuso-texto-ajuda confuso-texto-erro"></textarea>
+      <p class="ajuda" id="confuso-texto-ajuda">Fica só neste aparelho. Não escreva nomes, e-mails ou senhas reais.</p>
+      <p class="erro" id="confuso-texto-erro"></p>
+    </div>
+    <div class="barra-botoes"><button type="button" class="btn btn--discreto" data-cancelar>Cancelar</button><button type="button" class="btn btn--principal" data-anotar>Anotar</button></div>
+  </form>
+</dialog>
+<p class="caixa caixa--ok toast" id="toast" role="status" hidden></p>
+<script src="assets/regras.js"></script>
+<script src="assets/proto.js"></script>
+</body>
+</html>
