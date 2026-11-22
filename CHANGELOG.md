@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.7] - 2026-11-22
+
+> **Em resumo:** novo painel de administração (fase 1): menu por tarefa que funciona sem JavaScript, edição de conteúdo em abas com interruptores para o que é opcional, barra de ações fixa, telas com vocabulário de usuário e campos de conteúdo com lista com busca. Também corrige a geração do pacote de prévia em contêiner Alpine.
+
 - Painel: campos que apontam para outro conteúdo agora têm lista com busca (sem JavaScript, a lista nativa; sem conteúdo do tipo, o número de antes).
 - Prévia: o gerador do pacote (`previa/gerar-pacote.php`) instala as dependências de produção quando o clone não traz `vendor/`; `?menu=aberto` mantém o menu aberto no celular (capturas).
 - Prévia: o pacote de demonstração aceita o host `pv-…` e tem entrada de prévia para as contas fictícias; só existe com o marcador `dados/previa.flag` do gerador.
