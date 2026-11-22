@@ -1,9 +1,0 @@
-{
-  "name": "pbl4-prototipo-ux",
-  "private": true,
-  "description": "Protótipo clicável do novo painel (estático, sem dependências).",
-  "scripts": {
-    "gerar": "node gerar/gerar.mjs",
-    "test": "node --test tests/*.test.mjs"
-  }
-}
