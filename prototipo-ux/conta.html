@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Nova conta · Painel PBL4 (protótipo)</title>
+<script src="assets/tema.js"></script>
+<link rel="stylesheet" href="assets/proto.css">
+</head>
+<body data-tela="Mais › Contas › Nova conta">
+<a class="pular" href="#principal">Pular para o conteúdo</a>
+<div class="app">
+  <header class="topo">
+    <button type="button" class="btn btn--secundario btn--pequeno btn-menu" aria-controls="lateral" aria-expanded="true">Menu</button>
+    <a class="btn confuso" href="index.html#anotacoes" data-confuso>Isto ficou confuso</a>
+    <nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><a href="mais.html">Mais</a></li><li><a href="contas.html">Contas</a></li><li><span aria-current="page">Nova conta</span></li></ol></nav>
+  </header>
+  <aside class="lateral" id="lateral" aria-label="Menu do painel">
+    <a class="marca" href="inicio.html">Site Exemplo <small>protótipo</small></a>
+    <form class="busca" role="search" action="buscar.html" method="get">
+      <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <label class="so-leitor" for="busca-global">Buscar conteúdo</label>
+      <input type="search" id="busca-global" name="q" placeholder="Buscar conteúdo" autocomplete="off" data-ignorar>
+      <kbd aria-hidden="true">/</kbd>
+    </form>
+    <nav class="menu-principal" id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="revisar.html">Revisar<span class="contagem" data-contagem-revisar>2</span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html" aria-current="page">Mais</a></li></ul></nav>
+    <div class="pessoa">
+      <div><strong>Ana</strong><span class="pequeno suave">Administradora</span></div>
+      <div class="acoes-pessoa"><button type="button" class="btn btn--discreto btn--pequeno" data-tema-alternar>Tema escuro</button> <a class="btn btn--discreto btn--pequeno" href="index.html">Sair</a></div>
+    </div>
+  </aside>
+  <main id="principal" class="principal com-barra" tabindex="-1">
+    <div class="tela tela--form">
+<header class="cabecalho"><div><h1>Nova conta</h1><p>A pessoa recebe um convite por e-mail.</p></div></header>
+<form class="formulario" data-edicao="geral" action="#" novalidate><div class="caixa caixa--erro" id="resumo-erros" role="alert" tabindex="-1" hidden></div>
+<section class="secao" aria-labelledby="quem-e-t">
+  <div class="secao-cab"><h2 id="quem-e-t">Quem é</h2></div>
+  <div class="secao-corpo"><div class="campo">
+  <div class="campo-cab"><label for="nome-conta">Nome</label><span class="contador" data-contador-de="nome-conta" data-max="80">até 80 caracteres</span></div>
+  <input id="nome-conta" name="nome-conta" aria-describedby="nome-conta-erro" aria-required="true" data-obrigatorio="" data-max="80" autocomplete="off" type="text" value="">
+  
+  <p class="erro" id="nome-conta-erro"></p>
+</div><div class="campo">
+  <div class="campo-cab"><label for="email-conta">E-mail</label></div>
+  <input id="email-conta" name="email-conta" aria-describedby="email-conta-ajuda email-conta-erro" aria-required="true" data-obrigatorio="" data-tipo="email" type="email" value="">
+  <p class="ajuda" id="email-conta-ajuda">O convite vai para este endereço.</p>
+  <p class="erro" id="email-conta-erro"></p>
+</div></div>
+</section>
+<section class="secao" aria-labelledby="o-que-pode-fazer-t">
+  <div class="secao-cab"><h2 id="o-que-pode-fazer-t">O que pode fazer</h2><p>Dá para mudar depois.</p></div>
+  <div class="secao-corpo"><div class="campo">
+  <div class="campo-cab"><label for="papel">Papel</label></div>
+  <select id="papel" name="papel" aria-describedby="papel-ajuda papel-erro"><option value="editor">Editor: cria e publica</option><option value="autor" selected>Autora: cria e envia para revisão</option><option value="admin">Administradora: tudo</option></select>
+  <p class="ajuda" id="papel-ajuda">Autoras só publicam depois que alguém aprova.</p>
+  <p class="erro" id="papel-erro"></p>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="so-secao"><span class="opcao-titulo">Limitar a uma seção do site</span><span class="opcao-ajuda" id="so-secao-aj">A pessoa só vê e edita o que está dentro da seção escolhida.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="so-secao" name="so-secao" aria-describedby="so-secao-aj" aria-controls="so-secao-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="so-secao-campos"><div class="campo">
+  <div class="campo-cab"><label for="secao-conta">Seção</label></div>
+  <div class="combo" data-combo data-opcoes="[{&quot;id&quot;:&quot;100&quot;,&quot;titulo&quot;:&quot;Suíte Master&quot;,&quot;caminho&quot;:&quot;Quartos › Suíte Master&quot;},{&quot;id&quot;:&quot;101&quot;,&quot;titulo&quot;:&quot;Suíte Família&quot;,&quot;caminho&quot;:&quot;Quartos › Suíte Família&quot;},{&quot;id&quot;:&quot;102&quot;,&quot;titulo&quot;:&quot;Quarto Solteiro&quot;,&quot;caminho&quot;:&quot;Quartos › Quarto Solteiro&quot;},{&quot;id&quot;:&quot;103&quot;,&quot;titulo&quot;:&quot;Noite de jazz&quot;,&quot;caminho&quot;:&quot;Eventos › Noite de jazz&quot;},{&quot;id&quot;:&quot;104&quot;,&quot;titulo&quot;:&quot;Feira de inverno&quot;,&quot;caminho&quot;:&quot;Eventos › Feira de inverno&quot;},{&quot;id&quot;:&quot;105&quot;,&quot;titulo&quot;:&quot;Festa de Natal do ano passado&quot;,&quot;caminho&quot;:&quot;Eventos › Festa de Natal do ano passado&quot;},{&quot;id&quot;:&quot;106&quot;,&quot;titulo&quot;:&quot;Reforma do restaurante&quot;,&quot;caminho&quot;:&quot;Novidades › Reforma do restaurante&quot;},{&quot;id&quot;:&quot;107&quot;,&quot;titulo&quot;:&quot;Nova vista da varanda&quot;,&quot;caminho&quot;:&quot;Novidades › Nova vista da varanda&quot;},{&quot;id&quot;:&quot;108&quot;,&quot;titulo&quot;:&quot;Promoção de inverno&quot;,&quot;caminho&quot;:&quot;Novidades › Promoção de inverno&quot;}]">
+    <input type="text" id="secao-conta" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="secao-conta-lista" aria-describedby="secao-conta-ajuda" autocomplete="off" placeholder="Comece a digitar o nome">
+    <input type="hidden" name="secao-conta-id">
+    <ul role="listbox" id="secao-conta-lista" aria-label="Seção" hidden></ul>
+  </div>
+  <p class="ajuda" id="secao-conta-ajuda">Digite duas letras ou mais para buscar.</p>
+</div></div>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="senha-agora"><span class="opcao-titulo">Definir a senha agora</span><span class="opcao-ajuda" id="senha-agora-aj">Sem isto, a pessoa escolhe a senha pelo convite.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="senha-agora" name="senha-agora" aria-describedby="senha-agora-aj" aria-controls="senha-agora-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="senha-agora-campos"><div class="campo">
+  <div class="campo-cab"><label for="senha-conta">Senha provisória</label><span class="contador" data-contador-de="senha-conta" data-max="64">até 64 caracteres</span></div>
+  <input id="senha-conta" name="senha-conta" aria-describedby="senha-conta-ajuda senha-conta-erro" data-max="64" autocomplete="new-password" type="password" value="">
+  <p class="ajuda" id="senha-conta-ajuda">Simulação: não use uma senha real. Dá para colar.</p>
+  <p class="erro" id="senha-conta-erro"></p>
+</div></div>
+</div></div>
+</section>
+<div class="barra-acoes"><div class="barra-acoes-miolo"><p class="estado-salvo" role="status" data-estado="alterado">Ainda não criada</p><div class="barra-botoes"><a class="btn btn--discreto" href="contas.html">Voltar</a><button type="button" class="btn btn--principal" data-acao="salvar">Criar conta</button></div></div></div></form>
+    </div>
+  </main>
+</div>
+<dialog id="dlg-confuso" aria-labelledby="dlg-confuso-t">
+  <form method="dialog">
+    <h2 id="dlg-confuso-t">O que ficou confuso?</h2>
+    <p class="suave">Tela: <strong data-tela-nome></strong></p>
+    <div class="campo">
+      <div class="campo-cab"><label for="confuso-texto">Conte em poucas palavras</label><span class="contador" data-contador-confuso>0 de 300</span></div>
+      <textarea id="confuso-texto" rows="4" aria-describedby="confuso-texto-ajuda confuso-texto-erro"></textarea>
+      <p class="ajuda" id="confuso-texto-ajuda">Fica só neste aparelho. Não escreva nomes, e-mails ou senhas reais.</p>
+      <p class="erro" id="confuso-texto-erro"></p>
+    </div>
+    <div class="barra-botoes"><button type="button" class="btn btn--discreto" data-cancelar>Cancelar</button><button type="button" class="btn btn--principal" data-anotar>Anotar</button></div>
+  </form>
+</dialog>
+<p class="caixa caixa--ok toast" id="toast" role="status" hidden></p>
+<script src="assets/regras.js"></script>
+<script src="assets/proto.js"></script>
+</body>
+</html>

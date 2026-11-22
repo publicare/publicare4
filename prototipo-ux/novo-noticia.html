@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Nova notícia · Painel PBL4 (protótipo)</title>
+<script src="assets/tema.js"></script>
+<link rel="stylesheet" href="assets/proto.css">
+</head>
+<body data-tela="Nova notícia">
+<a class="pular" href="#principal">Pular para o conteúdo</a>
+<div class="app">
+  <header class="topo">
+    <button type="button" class="btn btn--secundario btn--pequeno btn-menu" aria-controls="lateral" aria-expanded="true">Menu</button>
+    <a class="btn confuso" href="index.html#anotacoes" data-confuso>Isto ficou confuso</a>
+    <nav class="migalhas" aria-label="Você está em"><ol><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html">Conteúdo</a></li><li><a href="conteudo-novidades.html">Novidades</a></li><li><span aria-current="page">Nova notícia</span></li></ol></nav>
+  </header>
+  <aside class="lateral" id="lateral" aria-label="Menu do painel">
+    <a class="marca" href="inicio.html">Site Exemplo <small>protótipo</small></a>
+    <form class="busca" role="search" action="buscar.html" method="get">
+      <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <label class="so-leitor" for="busca-global">Buscar conteúdo</label>
+      <input type="search" id="busca-global" name="q" placeholder="Buscar conteúdo" autocomplete="off" data-ignorar>
+      <kbd aria-hidden="true">/</kbd>
+    </form>
+    <nav class="menu-principal" id="menu-principal" aria-label="Principal"><ul><li><a href="inicio.html">Início</a></li><li><a href="conteudo.html" aria-current="page">Conteúdo</a></li><li><a href="revisar.html">Revisar<span class="contagem" data-contagem-revisar>2</span></a></li><li><a href="configuracoes.html">Site</a></li><li><a href="mais.html">Mais</a></li></ul></nav>
+    <div class="pessoa">
+      <div><strong>Ana</strong><span class="pequeno suave">Administradora</span></div>
+      <div class="acoes-pessoa"><button type="button" class="btn btn--discreto btn--pequeno" data-tema-alternar>Tema escuro</button> <a class="btn btn--discreto btn--pequeno" href="index.html">Sair</a></div>
+    </div>
+  </aside>
+  <main id="principal" class="principal com-barra" tabindex="-1">
+    <div class="tela tela--form">
+<header class="cabecalho"><div><h1>Nova notícia<span data-selo-estado class="selo">Privado</span></h1><p>Preencha o essencial. O resto fica nas outras abas.</p></div></header>
+<form class="formulario" data-edicao="geral" data-versao="0" data-estado-conteudo="privado" action="#" novalidate>
+<div class="caixa caixa--erro" id="resumo-erros" role="alert" tabindex="-1" hidden></div>
+<nav class="abas" data-abas aria-label="Seções desta tela"><a href="#painel-conteudo" aria-current="page">Conteúdo</a><a href="#painel-publicacao">Publicação</a><a href="#painel-avancado">Avançado</a></nav>
+<section class="painel" id="painel-conteudo" aria-label="Conteúdo"><section class="secao" aria-labelledby="o-essencial-t">
+  <div class="secao-cab"><h2 id="o-essencial-t">O essencial</h2><p>O que quem visita vai ler.</p></div>
+  <div class="secao-corpo"><div class="campo">
+  <div class="campo-cab"><label for="titulo">Título</label><span class="contador" data-contador-de="titulo" data-max="80">até 80 caracteres</span></div>
+  <input id="titulo" name="titulo" aria-describedby="titulo-ajuda titulo-erro" aria-required="true" data-obrigatorio="" data-max="80" type="text" value="">
+  <p class="ajuda" id="titulo-ajuda">Diga o que aconteceu, em poucas palavras.</p>
+  <p class="erro" id="titulo-erro"></p>
+</div><div class="campo">
+  <div class="campo-cab"><label for="texto">Texto da notícia</label></div>
+  <textarea id="texto" name="texto" aria-describedby="texto-ajuda texto-erro" rows="4" class="alto"></textarea>
+  <p class="ajuda" id="texto-ajuda">Negrito, listas e links funcionam como no editor de sempre.</p>
+  <p class="erro" id="texto-erro"></p>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="resumo-ligado"><span class="opcao-titulo">Escrever um resumo</span><span class="opcao-ajuda" id="resumo-ligado-aj">Uma frase curta para as listas e para quando alguém compartilha. Sem ele, usamos o começo do texto.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="resumo-ligado" name="resumo-ligado" aria-describedby="resumo-ligado-aj" aria-controls="resumo-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="resumo-ligado-campos"><div class="campo">
+  <div class="campo-cab"><label for="resumo">Resumo</label><span class="contador" data-contador-de="resumo" data-max="200">até 200 caracteres</span></div>
+  <textarea id="resumo" name="resumo" aria-describedby="resumo-erro" data-max="200" rows="3"></textarea>
+  
+  <p class="erro" id="resumo-erro"></p>
+</div></div>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="imagem-ligado"><span class="opcao-titulo">Usar imagem</span><span class="opcao-ajuda" id="imagem-ligado-aj">Aparece no topo da notícia e na lista de novidades.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="imagem-ligado" name="imagem-ligado" aria-describedby="imagem-ligado-aj" aria-controls="imagem-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="imagem-ligado-campos"><div class="campo">
+  <div class="campo-cab"><label for="imagem">Imagem</label></div>
+  <div class="arquivo" data-arquivo>
+    <div class="miniatura">Sem imagem</div>
+    <div class="arquivo-info">
+      <strong data-nome data-vazio="Nenhuma imagem escolhida">Nenhuma imagem escolhida</strong>
+      <span class="ajuda">PNG, JPG ou WebP, até 2 MB. Arraste para cá ou escolha.</span>
+      <div class="arquivo-botoes"><button type="button" class="btn btn--secundario btn--pequeno" data-escolher>Escolher imagem</button><button type="button" class="btn btn--discreto btn--pequeno" data-tirar>Tirar imagem</button></div>
+    </div>
+    <input type="file" id="imagem" name="imagem" accept="image/png,image/jpeg,image/webp" aria-describedby="imagem-erro">
+  </div>
+  
+  <p class="erro" id="imagem-erro"></p>
+</div></div>
+</div></div>
+</section><section class="secao" aria-labelledby="endereco-e-organizacao-t">
+  <div class="secao-cab"><h2 id="endereco-e-organizacao-t">Endereço e organização</h2><p>Como este conteúdo é encontrado.</p></div>
+  <div class="secao-corpo"><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="endereco-ligado"><span class="opcao-titulo">Personalizar o endereço na internet</span><span class="opcao-ajuda" id="endereco-ligado-aj">Por padrão o endereço sai do título. Ligue para escolher um você mesmo.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="endereco-ligado" name="endereco-ligado" aria-describedby="endereco-ligado-aj" aria-controls="endereco-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="endereco-ligado-campos"><div class="campo">
+  <div class="campo-cab"><label for="endereco">Endereço na internet</label><span class="contador" data-contador-de="endereco" data-max="60">até 60 caracteres</span></div>
+  <div class="com-prefixo"><span aria-hidden="true">/</span><input id="endereco" name="endereco" aria-describedby="endereco-ajuda endereco-erro" aria-required="true" data-obrigatorio="" data-max="60" data-tipo="slug" type="text" value=""></div>
+  <p class="ajuda" id="endereco-ajuda">Só letras minúsculas, números e hífen. Preenchido pelo título.</p>
+  <p class="erro" id="endereco-erro"></p>
+</div></div>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="tags-ligado"><span class="opcao-titulo">Organizar com tags</span><span class="opcao-ajuda" id="tags-ligado-aj">Palavras que ajudam a achar o conteúdo e agrupam o que é parecido.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="tags-ligado" name="tags-ligado" aria-describedby="tags-ligado-aj" aria-controls="tags-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="tags-ligado-campos"><div class="campo">
+  <div class="campo-cab"><label for="tags">Tags</label></div>
+  <div class="etiquetas" data-tags><input type="text" id="tags" value="" aria-describedby="tags-ajuda tags-erro" placeholder="Escreva e aperte Enter"><input type="hidden" name="tags-lista"></div>
+  <div class="sugestoes"><span>Já usadas:</span><button type="button" data-sugestao="hotel">hotel</button><button type="button" data-sugestao="suíte">suíte</button><button type="button" data-sugestao="inverno">inverno</button><button type="button" data-sugestao="gastronomia">gastronomia</button></div>
+  <p class="ajuda" id="tags-ajuda">Até 10; separe com Enter ou vírgula.</p>
+  <p class="erro" id="tags-erro"></p>
+</div></div>
+</div></div>
+</section><section class="secao" aria-labelledby="buscadores-e-redes-sociais-t">
+  <div class="secao-cab"><h2 id="buscadores-e-redes-sociais-t">Buscadores e redes sociais</h2><p>Por padrão usamos o título e o resumo acima.</p></div>
+  <div class="secao-corpo"><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="seo"><span class="opcao-titulo">Personalizar para buscadores (SEO)</span><span class="opcao-ajuda" id="seo-aj">Escreva um título e uma descrição só para o Google e para quando alguém compartilhar o link.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="seo" name="seo" aria-describedby="seo-aj" aria-controls="seo-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="seo-campos"><div class="campo">
+  <div class="campo-cab"><label for="seo-titulo">Título para buscadores</label><span class="contador" data-contador-de="seo-titulo" data-max="60">até 60 caracteres</span></div>
+  <input id="seo-titulo" name="seo-titulo" aria-describedby="seo-titulo-ajuda seo-titulo-erro" data-max="60" type="text" value="">
+  <p class="ajuda" id="seo-titulo-ajuda">Até 60 caracteres aparecem inteiros.</p>
+  <p class="erro" id="seo-titulo-erro"></p>
+</div><div class="campo">
+  <div class="campo-cab"><label for="seo-desc">Descrição para buscadores</label><span class="contador" data-contador-de="seo-desc" data-max="160">até 160 caracteres</span></div>
+  <textarea id="seo-desc" name="seo-desc" aria-describedby="seo-desc-ajuda seo-desc-erro" data-max="160" rows="3"></textarea>
+  <p class="ajuda" id="seo-desc-ajuda">Uma ou duas frases. Até 160 caracteres.</p>
+  <p class="erro" id="seo-desc-erro"></p>
+</div><div class="campo">
+  <div class="campo-cab"><label for="seo-imagem">Imagem ao compartilhar<span class="opcional"> (opcional)</span></label></div>
+  <div class="arquivo" data-arquivo>
+    <div class="miniatura">Sem imagem</div>
+    <div class="arquivo-info">
+      <strong data-nome data-vazio="Nenhuma imagem escolhida">Nenhuma imagem escolhida</strong>
+      <span class="ajuda">PNG, JPG ou WebP, até 2 MB. Arraste para cá ou escolha.</span>
+      <div class="arquivo-botoes"><button type="button" class="btn btn--secundario btn--pequeno" data-escolher>Escolher imagem</button><button type="button" class="btn btn--discreto btn--pequeno" data-tirar>Tirar imagem</button></div>
+    </div>
+    <input type="file" id="seo-imagem" name="seo-imagem" accept="image/png,image/jpeg,image/webp" aria-describedby="seo-imagem-ajuda seo-imagem-erro">
+  </div>
+  <p class="ajuda" id="seo-imagem-ajuda">Se ficar vazio, usamos a imagem do conteúdo.</p>
+  <p class="erro" id="seo-imagem-erro"></p>
+</div><div class="previa" data-previa data-fontes-titulo="seo-titulo titulo" data-fontes-desc="seo-desc resumo" data-fontes-endereco="endereco" data-url-prefixo="exemplo.com.br/novidades/">
+  <span class="previa-rotulo">Como pode aparecer no Google</span>
+  <span class="previa-url"></span><span class="previa-titulo"></span><span class="previa-texto"></span>
+  <span class="previa-corte" hidden>Pode ser cortado nos resultados.</span>
+</div></div>
+</div><fieldset class="campo"><legend class="rotulo">Buscadores</legend><div class="opcoes"><label for="indexar"><input type="checkbox" name="indexar" id="indexar" checked><span>Deixar os buscadores encontrarem este conteúdo<small>Desmarque para esconder do Google. Quem tem o link ainda abre.</small></span></label></div></fieldset></div>
+</section></section>
+<section class="painel" id="painel-publicacao" aria-label="Publicação"><section class="secao" aria-labelledby="estado-t">
+  <div class="secao-cab"><h2 id="estado-t">Estado</h2><p>Salvar guarda o rascunho. Só Publicar põe no ar.</p></div>
+  <div class="secao-corpo"><div><p><span data-selo-estado class="selo">Privado</span> <span data-estado-texto>Só quem tem conta vê.</span></p>
+  <p class="ajuda" data-so-privado>Quando estiver pronto, use “Publicar” na barra de baixo.</p>
+  <p data-so-publicado hidden><button type="button" class="btn btn--aviso" data-acao="tirar">Tirar do ar</button></p></div></div>
+</section><section class="secao" aria-labelledby="quando-aparece-no-site-t">
+  <div class="secao-cab"><h2 id="quando-aparece-no-site-t">Quando aparece no site</h2><p>Sem nada ligado, vale a partir do momento em que você publicar.</p></div>
+  <div class="secao-corpo"><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="agendar"><span class="opcao-titulo">Agendar publicação</span><span class="opcao-ajuda" id="agendar-aj">Escolha o dia e a hora em que o conteúdo passa a aparecer. Até lá, ele fica privado.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="agendar" name="agendar" aria-describedby="agendar-aj" aria-controls="agendar-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="agendar-campos"><div class="campo campo-curto">
+  <div class="campo-cab"><label for="publicar-em">Publicar a partir de</label></div>
+  <input id="publicar-em" name="publicar-em" aria-describedby="publicar-em-ajuda publicar-em-erro" type="datetime-local" value="">
+  <p class="ajuda" id="publicar-em-ajuda">Horário de Brasília.</p>
+  <p class="erro" id="publicar-em-erro"></p>
+</div></div>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="validade"><span class="opcao-titulo">Ter data de validade</span><span class="opcao-ajuda" id="validade-aj">O conteúdo sai do ar sozinho na data escolhida. Bom para eventos e promoções.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="validade" name="validade" aria-describedby="validade-aj" aria-controls="validade-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="validade-campos"><div class="campo campo-curto">
+  <div class="campo-cab"><label for="tirar-do-ar">Tirar do ar a partir de</label></div>
+  <input id="tirar-do-ar" name="tirar-do-ar" aria-describedby="tirar-do-ar-ajuda tirar-do-ar-erro" type="datetime-local" value="">
+  <p class="ajuda" id="tirar-do-ar-ajuda">Horário de Brasília. Precisa ser depois da publicação.</p>
+  <p class="erro" id="tirar-do-ar-erro"></p>
+</div></div>
+</div></div>
+</section><section class="secao" aria-labelledby="menu-e-ordem-t">
+  <div class="secao-cab"><h2 id="menu-e-ordem-t">Menu e ordem</h2><p>Onde este conteúdo aparece nos menus e listas do site.</p></div>
+  <div class="secao-corpo"><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="menu"><span class="opcao-titulo">Mostrar no menu do site</span><span class="opcao-ajuda" id="menu-aj">Cria um link para este conteúdo no menu principal do site.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="menu" name="menu" aria-describedby="menu-aj" aria-controls="menu-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="menu-campos"><div class="campo campo-medio">
+  <div class="campo-cab"><label for="menu-nome">Nome no menu</label><span class="contador" data-contador-de="menu-nome" data-max="30">até 30 caracteres</span></div>
+  <input id="menu-nome" name="menu-nome" aria-describedby="menu-nome-ajuda menu-nome-erro" data-max="30" type="text" value="">
+  <p class="ajuda" id="menu-nome-ajuda">Curto, de preferência uma palavra.</p>
+  <p class="erro" id="menu-nome-erro"></p>
+</div></div>
+</div><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="peso-ligado"><span class="opcao-titulo">Escolher a posição nas listas</span><span class="opcao-ajuda" id="peso-ligado-aj">Sem isto, os mais novos aparecem primeiro.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="peso-ligado" name="peso-ligado" aria-describedby="peso-ligado-aj" aria-controls="peso-ligado-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="peso-ligado-campos"><div class="campo campo-curto">
+  <div class="campo-cab"><label for="peso">Posição nas listas</label></div>
+  <input id="peso" name="peso" aria-describedby="peso-ajuda peso-erro" data-tipo="inteiro" data-min="0" data-max-valor="99" type="number" value="10">
+  <p class="ajuda" id="peso-ajuda">Número menor aparece primeiro. De 0 a 99.</p>
+  <p class="erro" id="peso-erro"></p>
+</div></div>
+</div></div>
+</section></section>
+<section class="painel" id="painel-avancado" aria-label="Avançado"><section class="secao" aria-labelledby="aparencia-t">
+  <div class="secao-cab"><h2 id="aparencia-t">Aparência</h2><p>O visual herdado do site é o certo para quase tudo.</p></div>
+  <div class="secao-corpo"><div class="opcao">
+  <div class="opcao-cab">
+    <label class="opcao-texto" for="visual"><span class="opcao-titulo">Usar outro visual só nesta página</span><span class="opcao-ajuda" id="visual-aj">Troque a pele e o molde apenas aqui. O resto do site não muda.</span></label>
+    <span class="interruptor"><input type="checkbox" role="switch" id="visual" name="visual" aria-describedby="visual-aj" aria-controls="visual-campos"><span class="trilho" aria-hidden="true"></span></span>
+  </div>
+  <div class="opcao-campos" id="visual-campos"><div class="campo campo-medio">
+  <div class="campo-cab"><label for="pele">Pele</label></div>
+  <select id="pele" name="pele" aria-describedby="pele-erro"><option value="herdar" selected>Herdar do site (Clássica)</option><option value="verao">Verão</option><option value="escura">Escura</option></select>
+  
+  <p class="erro" id="pele-erro"></p>
+</div><div class="campo campo-medio">
+  <div class="campo-cab"><label for="molde">Molde</label></div>
+  <select id="molde" name="molde" aria-describedby="molde-ajuda molde-erro"><option value="auto" selected>Automático, pelo tipo</option><option value="simples">Página simples</option><option value="larga">Largura total</option></select>
+  <p class="ajuda" id="molde-ajuda">Vale para este conteúdo e para o que estiver dentro dele.</p>
+  <p class="erro" id="molde-erro"></p>
+</div></div>
+</div></div>
+</section><section class="secao" aria-labelledby="remover-t">
+  <div class="secao-cab"><h2 id="remover-t">Remover</h2><p>Nada some de vez: a lixeira guarda por 30 dias.</p></div>
+  <div class="secao-corpo"><div><button type="button" class="btn btn--perigo" data-revela="lixeira-confirma" aria-expanded="false" aria-controls="lixeira-confirma">Mandar para a lixeira</button>
+  <div class="confirmacao" id="lixeira-confirma" hidden><p>Este conteúdo sai do site e vai para a lixeira. Dá para recuperar em Conteúdo, filtrando por “Na lixeira”.</p><p><a class="btn btn--perigo" href="conteudo-quartos.html?estado=lixeira">Sim, mandar para a lixeira</a> <button type="button" class="btn btn--discreto" data-fecha="lixeira-confirma">Cancelar</button></p></div></div></div>
+</section></section>
+<div class="barra-acoes"><div class="barra-acoes-miolo"><p class="estado-salvo" role="status" data-estado="alterado">Ainda não salvo</p><div class="barra-botoes"><a class="btn btn--discreto" href="conteudo-novidades.html">Voltar</a>
+    <button type="button" class="btn btn--secundario" data-acao="salvar">Salvar rascunho</button>
+    <button type="button" class="btn btn--principal" data-acao="publicar" data-so-privado>Publicar</button></div></div></div>
+</form>
+    </div>
+  </main>
+</div>
+<dialog id="dlg-confuso" aria-labelledby="dlg-confuso-t">
+  <form method="dialog">
+    <h2 id="dlg-confuso-t">O que ficou confuso?</h2>
+    <p class="suave">Tela: <strong data-tela-nome></strong></p>
+    <div class="campo">
+      <div class="campo-cab"><label for="confuso-texto">Conte em poucas palavras</label><span class="contador" data-contador-confuso>0 de 300</span></div>
+      <textarea id="confuso-texto" rows="4" aria-describedby="confuso-texto-ajuda confuso-texto-erro"></textarea>
+      <p class="ajuda" id="confuso-texto-ajuda">Fica só neste aparelho. Não escreva nomes, e-mails ou senhas reais.</p>
+      <p class="erro" id="confuso-texto-erro"></p>
+    </div>
+    <div class="barra-botoes"><button type="button" class="btn btn--discreto" data-cancelar>Cancelar</button><button type="button" class="btn btn--principal" data-anotar>Anotar</button></div>
+  </form>
+</dialog>
+<p class="caixa caixa--ok toast" id="toast" role="status" hidden></p>
+<script src="assets/regras.js"></script>
+<script src="assets/proto.js"></script>
+</body>
+</html>

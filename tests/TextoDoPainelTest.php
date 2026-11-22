@@ -23,12 +23,6 @@ final class TextoDoPainelTest extends TestCase
     private const PROIBIDOS = [
         'aqui você pode', 'esta tela', 'é importante', 'lembre-se', '\\bbasta\\b', 'simplesmente', 'por favor', 'gostaríamos', 'a fim de', 'vale ressaltar',
     ];
-    /**
-     * Telas da onda 2 (aguardam a aprovação do dono da prévia): os padrões proibidos já valem, os limites de tamanho ainda não.
-     * Esvaziar esta lista ao concluir a onda 2.
-     */
-    private const ONDA_2 = [];
-
     /** @return array<string, string> nome => caminho GET (admin) */
     private function telas(): array
     {
@@ -84,9 +78,6 @@ final class TextoDoPainelTest extends TestCase
                 }
             }
             $auditoria[$nome] = Medidor::contar($html);
-            if (in_array($nome, self::ONDA_2, true)) {
-                continue;
-            }
             foreach (Medidor::ajudas($html) as ['id' => $id, 'texto' => $texto]) {
                 if (mb_strlen($texto) > self::LIMITE_AJUDA && !isset($excecoes[$id])) {
                     $erros[] = "$nome: ajuda '$id' com " . mb_strlen($texto) . ' caracteres (limite ' . self::LIMITE_AJUDA . ')';
