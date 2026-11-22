@@ -1039,4 +1039,19 @@ final class AdminObjetosTest extends TestCase
         self::assertSame(303, $r->getStatusCode(), $this->html($r));
         self::assertSame('<p style="text-align: center">Aviso</p>', $this->obj($this->idCriado($r))->dados['corpo']);
     }
+    public function testCampoDeReferenciaViraListaComBuscaEsoMostraOQueAPessoaPodeVer(): void
+    {
+        $e = $this->evento('Com ref', null, ['pagina_relacionada' => $this->sobre->id]);
+
+        $admin = $this->html($this->req('GET', '/_pbl/objeto/' . $e->id . '/editar', $this->token('admin')));
+        self::assertMatchesRegularExpression('#<select[^>]*name="dados\[pagina_relacionada\]"[^>]*data-pbl-seletor#', $admin, 'lista com busca no lugar do número');
+        self::assertStringContainsString('#' . $this->inicio->id . ' · ' . $this->inicio->titulo, $admin);
+        self::assertMatchesRegularExpression('#<option value="' . $this->sobre->id . '" selected>#', $admin, 'valor atual marcado');
+        self::assertStringNotContainsString('type="number" min="1"', $admin);
+
+        // Quem só vê "sobre" não recebe o título do resto do site (sem vazar conteúdo alheio na lista).
+        $editor = $this->html($this->req('GET', '/_pbl/objeto/' . $e->id . '/editar', $this->token('editor')));
+        self::assertStringContainsString('#' . $this->sobre->id . ' · ' . $this->sobre->titulo, $editor);
+        self::assertStringNotContainsString('#' . $this->inicio->id . ' · ' . $this->inicio->titulo, $editor);
+    }
 }

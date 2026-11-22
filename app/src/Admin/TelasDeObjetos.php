@@ -74,11 +74,19 @@ final class TelasDeObjetos
         'rejeitado' => 'Devolvido ao autor (fora do ar)', 'publicado' => 'Publicado',
     ];
     private const LIXEIRA = 'apagado';
+    /** Teto de conteúdos na lista do seletor de referência; acima disso o campo volta a pedir o número. */
+    private const MAX_REFERENCIAS = 400;
     /** Campos de SEO por conteúdo (`ClassesPadrao::camposDeSeo`): ficam atrás do interruptor de buscadores e redes sociais. */
     private const SEO = ['seo_titulo', 'seo_descricao', 'seo_imagem', 'seo_nao_indexar'];
 
     /** @var array<int, string> nomes de classe já lidos nesta requisição */
     private array $classes = [];
+
+    /** Site do formulário de conteúdo em montagem (seletor de referência). */
+    private ?int $siteDoFormulario = null;
+
+    /** Sessão do formulário em montagem: o seletor de referência só lista o que a pessoa pode ver. */
+    private ?SessaoAtiva $sessaoDoFormulario = null;
 
     private readonly TiposAceitos $tiposAceitos;
 
@@ -739,6 +747,8 @@ final class TelasDeObjetos
      */
     private function telaDeEdicao(SessaoAtiva $sessao, Objeto $o, Classe $classe, array $digitado, int $versao, array $erros = [], int $status = Response::HTTP_OK, bool $mostrarAtual = false, string $aba = ''): Response
     {
+        $this->siteDoFormulario = $o->siteId;
+        $this->sessaoDoFormulario = $sessao;
         $podePublicar = $this->pode($sessao, Acao::Publicar, $o);
         $pele = $digitado['pele'] ?? ($o->pele ?? '');
         $molde = $digitado['molde'] ?? ($o->molde ?? '');
@@ -881,6 +891,8 @@ final class TelasDeObjetos
      */
     private function telaDeCriacao(SessaoAtiva $sessao, Objeto $pai, Classe $classe, array $digitado, array $erros = [], int $status = Response::HTTP_OK): Response
     {
+        $this->siteDoFormulario = $pai->siteId;
+        $this->sessaoDoFormulario = $sessao;
         $corpo = $this->migalhas($sessao, $pai) . $this->resumoDeErros($erros)
             . '<p>Novo conteúdo do tipo <strong>' . Pagina::h($classe->nome) . '</strong> dentro de <strong>' . Pagina::h($pai->titulo) . '</strong>. Ele começa fora do ar (privado).</p>'
             . '<form method="post" action="' . $this->link($pai->id) . '/novo" enctype="multipart/form-data" class="pbl-form" ' . Pagina::MARCA_FORMULARIO . ' novalidate>'
@@ -1363,12 +1375,56 @@ final class TelasDeObjetos
             'numero' => ['<input class="form-control' . $classe . '"' . $comum . ' inputmode="decimal" value="' . Pagina::h($valor) . '">', 'Número (use vírgula ou ponto para decimais).'],
             'data' => ['<input class="form-control' . $classe . '"' . $comum . ' maxlength="25" value="' . Pagina::h($valor) . '">', 'Data no formato aaaa-mm-dd, com hora opcional (2026-12-31 18:30).'],
             'booleano' => ['<select class="form-select' . $classe . '"' . $comum . '>' . $this->opcao('', '(sem valor)', $valor === '') . $this->opcao('1', 'Sim', $valor === '1') . $this->opcao('0', 'Não', $valor === '0') . '</select>', 'Sim ou não.'],
-            'ref' => ['<input class="form-control' . $classe . '"' . $comum . ' type="number" min="1" step="1" value="' . Pagina::h($valor) . '">', 'Número de outro conteúdo deste site' . (isset($p['classe']) ? ' (do tipo ' . Pagina::h($p['classe']) . ')' : '') . '.' . ' ' . 'O número aparece na página de cada conteúdo.'],
+            'ref' => [$this->controleDeReferencia($p, $classe, $comum, $valor), 'Escolha o conteúdo na lista (digite para filtrar)' . (isset($p['classe']) ? '; só aparecem os do tipo ' . Pagina::h($p['classe']) : '') . '. Sem JavaScript, a lista aparece inteira.'],
             'html' => ['<textarea class="form-control font-monospace' . $classe . '"' . $comum . ' rows="10" maxlength="' . self::MAX_HTML . '" ' . Pagina::MARCA_EDITOR . 'html" data-pbl-editor-base="' . Pagina::h(Pagina::TINYMCE) . '">' . Pagina::h($valor) . '</textarea>', 'Use os botões acima para formatar. Até ' . self::MAX_HTML . ' caracteres.' . ' ' . 'Dá para colar do Word, do Google Docs ou de uma página. Títulos, negrito, listas, links, tabelas e imagens por endereço funcionam; o botão de código-fonte mostra o HTML. Ao salvar, o HTML é limpo: ficam só marcações comuns; scripts, formulários, eventos e estilos além de alinhamento e tamanho do texto são removidos. Sem JavaScript, o campo aceita HTML direto.'],
             default => ['<textarea class="form-control' . $classe . '"' . $comum . ' rows="3" maxlength="' . self::MAX_TEXTO . '" data-pbl-contador' . ($p['nome'] === 'seo_titulo' ? ' data-pbl-limite-bom="60"' : ($p['nome'] === 'seo_descricao' ? ' data-pbl-limite-bom="160"' : '')) . '>' . Pagina::h($valor) . '</textarea>', 'Texto, até ' . self::MAX_TEXTO . ' caracteres.'],
         };
 
         return '<div class="pbl-campo-tipo">' . $this->campo($chave, Classe::rotuloDe($p) . (($p['obrigatorio'] ?? false) ? ' (obrigatório)' : ''), $controle, $erros, $ajuda, $id) . '</div>';
+    }
+
+    /**
+     * Controle de uma propriedade `ref` (Q2): lista de conteúdos do próprio site (id => título), filtrável por JavaScript
+     * (`data-pbl-seletor`, o mesmo seletor com busca dos demais). Sem JavaScript é um `<select>` nativo; se o site tiver mais
+     * conteúdos que o teto da lista, ou nenhum, volta ao campo numérico de antes. O valor atual sempre aparece, mesmo fora do teto.
+     *
+     * @param array{nome: string, tipo: string, indexavel: bool, classe?: string} $p
+     */
+    private function controleDeReferencia(array $p, string $classe, string $comum, string $valor): string
+    {
+        $numerico = '<input class="form-control' . $classe . '"' . $comum . ' type="number" min="1" step="1" value="' . Pagina::h($valor) . '">';
+        $siteId = $this->siteDoFormulario;
+        $sessao = $this->sessaoDoFormulario;
+        if ($siteId === null || $sessao === null) {
+            return $numerico;
+        }
+        $tipo = isset($p['classe']) ? $this->servicos->classes->porNome($p['classe']) : null;
+        $itens = [];
+        $depois = 0;
+        while (count($itens) <= self::MAX_REFERENCIAS) {
+            $lote = $this->servicos->objetos->loteOrdenadoPorId($siteId, $depois, 200);
+            if ($lote === []) {
+                break;
+            }
+            foreach ($lote as $o) {
+                $depois = $o->id;
+                if ($o->status !== self::LIXEIRA && ($tipo === null || $o->classeId === $tipo->id || (string) $o->id === $valor) && $this->pode($sessao, Acao::Ver, $o)) {
+                    $itens[$o->id] = $o->titulo;
+                }
+            }
+        }
+        if ($itens === [] || count($itens) > self::MAX_REFERENCIAS) {
+            return $numerico;
+        }
+        $opcoes = $this->opcao('', '(nenhum)', $valor === '');
+        foreach ($itens as $id => $titulo) {
+            $opcoes .= $this->opcao((string) $id, '#' . $id . ' · ' . $titulo, (string) $id === $valor);
+        }
+        if ($valor !== '' && !isset($itens[(int) $valor])) {
+            $opcoes .= $this->opcao($valor, '#' . $valor . ' (atual)', true);
+        }
+
+        return '<select class="form-select' . $classe . '"' . $comum . ' data-pbl-seletor>' . $opcoes . '</select>';
     }
 
     /**

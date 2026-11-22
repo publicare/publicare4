@@ -10,6 +10,11 @@
   } catch (e) {
     guardado = null;
   }
+  // Prévia descartável: a entrada de prévia pode fixar o tema por cookie (para capturas); sem o cookie, vale a preferência de sempre.
+  var daPrevia = /(?:^|; )pbl-tema-previa=(claro|escuro)(?:;|$)/.exec(document.cookie || '');
+  if (daPrevia) {
+    guardado = daPrevia[1];
+  }
   var tema = guardado === 'claro' || guardado === 'escuro' ? guardado : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro');
   raiz.setAttribute('data-bs-theme', tema === 'escuro' ? 'dark' : 'light');
 })();

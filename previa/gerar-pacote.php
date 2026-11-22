@@ -74,6 +74,10 @@ if ($codigo !== 0) {
     exit(1);
 }
 
+// Marcador do modo prévia (ver Pbl\Previa\ModoPrevia): o host `pv-…` da prévia passa a atender o site e `/_pbl/previa-entrar` abre a
+// sessão das contas fictícias. Só existe neste pacote descartável; nunca em instalação real.
+file_put_contents($stage . '/dados/' . Pbl\Previa\ModoPrevia::MARCADOR, "previa descartavel\n");
+
 // O servidor da prévia pode responder por um nome que não é "localhost": os nomes locais mais comuns servem o mesmo site
 // (modo "servir", sem redirecionar), senão o painel responderia "Domínio não configurado".
 $banco = new PDO('sqlite:' . $stage . '/dados/pbl4.sqlite');
