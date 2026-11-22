@@ -140,11 +140,6 @@ final class TelasDeClasses
         return new RedirectResponse($this->link($classe->id) . '/editar?ok=icone', Response::HTTP_SEE_OTHER);
     }
 
-    private function formularioVazioDeIcone(SessaoAtiva $sessao, Classe $classe): string
-    {
-        return '<form method="post" action="' . $this->link($classe->id) . '/icone" id="form-icone">' . $this->campoCsrf($sessao) . '</form>';
-    }
-
     /** O ícone tem formulário próprio (`#form-icone`, vazio, no fim da página); os controles ficam na aba Aparência ligados por `form=`. */
     private function iconeNaAba(Classe $classe): string
     {
@@ -693,7 +688,6 @@ final class TelasDeClasses
         $total = $this->servicos->classes->contarObjetos($classe->id);
         $corpo = $aviso . $this->erro($erro)
             . ($classe->fixa ? $this->alerta('info', 'Este é um tipo <strong>fixo</strong> (essencial ao sistema): não pode ser apagado nem renomeado, e os campos de base dele não podem ser removidos nem arquivados. Acrescentar campos é permitido.', '', true) : '')
-            . $this->formularioVazioDeIcone($sessao, $classe)
             . '<form method="post" action="' . $this->link($classe->id) . '/editar"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>'
             . $this->campoCsrf($sessao) . '<input type="hidden" name="versao" value="' . $classe->versao . '">'
             . '';
@@ -764,7 +758,7 @@ final class TelasDeClasses
         $corpo .= Pagina::abasDeFormulario([
             'campos' => ['Campos', $campos],
             'onde' => ['Onde pode ficar', $ondeFica],
-            'aparencia' => ['Aparência', $this->formularioDeIcone($classe)],
+            'aparencia' => ['Aparência', $this->iconeNaAba($classe)],
         ], $erro !== null ? 'campos' : (($aviso !== '' && str_contains($aviso, 'cone')) ? 'aparencia' : 'campos'), 'Partes do tipo de conteúdo')
             . $this->acoes('Salvar alterações', [['Voltar aos tipos', $this->linkLista()]], $classe->fixa ? null : ['Apagar este tipo de conteúdo', $this->link($classe->id) . '/apagar'])
             . '</form>' . $this->formularioDeIcone($sessao, $classe);

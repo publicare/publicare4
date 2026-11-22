@@ -19,6 +19,7 @@ test('pedido de prévia: PHP v2, pacote gerado por script versionado, docroot de
   assert.ok(p.docroot.startsWith(extrair.para + '/'), 'docroot dentro da pasta extraída');
   assert.ok(p.gravaveis.includes(extrair.para + '/dados'));
   assert.ok(p.paginas.length * p.viewports.length <= 16);
+  assert.ok(p.paginas.length <= 8);
   assert.equal(new Set(p.paginas.map((t) => t.nome)).size, p.paginas.length, 'nomes únicos');
   for (const t of p.paginas) {
     assert.match(t.nome, /^[a-z0-9-]{1,40}$/);
@@ -27,11 +28,9 @@ test('pedido de prévia: PHP v2, pacote gerado por script versionado, docroot de
   }
   const temas = new Set(p.paginas.map((t) => /tema=(claro|escuro)/.exec(t.caminho)?.[1]));
   assert.deepEqual([...temas].sort(), ['claro', 'escuro']);
-  assert.ok(p.viewports.some((v) => v.largura === 390), 'viewport de celular (390 px)');
-  assert.ok(p.viewports.some((v) => v.largura >= 1024), 'viewport de desktop');
-  assert.ok(p.paginas.some((t) => t.caminho.includes('menu=aberto')), 'captura do menu aberto (o JS recolhe o menu no celular)');
-  for (const tela of ['/_pbl/&', '/_pbl/conteudo/', '/_pbl/objeto/1/editar?aba=publicacao', '/_pbl/mais']) {
-    assert.ok(p.paginas.some((t) => t.caminho.includes('ir=' + tela)), 'tela crítica ' + tela);
+  assert.deepEqual([...p.viewports].sort(), ['celular', 'desktop'], 'viewports do esquema v2: desktop e celular');
+  for (const tela of ['/_pbl/atualizacao', '/_pbl/copias', '/_pbl/tarefas', '/_pbl/contas', '/_pbl/classes', '/_pbl/site/1/dominios', '/_pbl/pendencias']) {
+    assert.ok(p.paginas.some((t) => t.caminho.includes('ir=' + tela + '&')), 'tela da fase 2 ' + tela);
   }
 });
 
