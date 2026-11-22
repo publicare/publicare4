@@ -438,7 +438,8 @@ final class AdminNavegacaoTest extends TestCase
         self::assertStringNotContainsString(' 0 filhos', $h);
         preg_match('/<li class="pbl-lc[^"]*">(?:(?!<\/li><li class="pbl-lc).)*Linha nova.*?<\/li><\/ul><\/div>|<li class="pbl-lc[^"]*">(?:(?!<li class="pbl-lc).)*?Linha nova.*?<\/ul><\/details><\/div><\/li>/s', $h, $m);
         self::assertNotEmpty($m, 'linha encontrada');
-        $linha = $m[0];
+        self::assertArrayHasKey(0, $m);
+        $linha = $m[0] ?? '';
         [$aVista, $menu] = explode('<details class="pbl-mais">', $linha, 2);
         self::assertSame(3, substr_count($aVista, 'class="pbl-lc-acao '), 'editar, estado e abrir no site');
         self::assertStringContainsString('/editar', $aVista);

@@ -53,8 +53,6 @@ final class TelasDeNavegacao
 
     /** @var array<int, string> */
     private array $nomesDeClasse = [];
-    /** @var array<int, string> */
-    private array $nomesDeUsuario = [];
 
     public function __construct(
         private readonly Servicos $servicos,
@@ -741,11 +739,6 @@ final class TelasDeNavegacao
         }
 
         return false;
-    }
-
-    private function nomeDe(int $usuarioId): string
-    {
-        return $this->nomesDeUsuario[$usuarioId] ??= $this->servicos->usuarios->porId($usuarioId)->nome ?? 'conta removida';
     }
 
     /** @var array<int, string> */
