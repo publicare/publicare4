@@ -101,10 +101,12 @@ foreach (['127.0.0.1', '0.0.0.0', 'previa', 'web', 'app', 'php', 'site', 'nginx'
 unset($alias, $banco);
 
 @mkdir(dirname($saida), 0775, true);
-$tar = new PharData($area . '/pbl4.tar');
-$tar->buildFromDirectory($stage);
-$tar->compress(Phar::GZ);
-unset($tar);
+// Sem PharData: a imagem da prévia (PHP alpine) não traz a extensão phar; tar e gzip existem.
+$cmd = 'tar -C ' . escapeshellarg($stage) . ' -czf ' . escapeshellarg($area . '/pbl4.tar.gz') . ' . 2>&1';
+exec($cmd, $saidaTar, $codigoTar);
+if ($codigoTar !== 0) {
+    fwrite(STDERR, "tar falhou ({$codigoTar}): " . implode("\n", $saidaTar) . "\n");
+    exit(1);
+}
 rename($area . '/pbl4.tar.gz', $saida);
-@unlink($area . '/pbl4.tar');
 echo "pacote: {$saida} (" . round(filesize($saida) / 1048576, 1) . " MB)\n";
