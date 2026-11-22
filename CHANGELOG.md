@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.6] - 2026-11-22
+
+> **Em resumo:** agentes e scripts passam a editar o conteúdo do site pelo terminal (`bin/pbl conteudo`), com conta de serviço própria, e a barra de edição das páginas ganha as ações "listar" e "criar" com ícones novos, discretos e temáveis. A atualização rc.5 → rc.6 é a primeira feita pela tela depois do teste de ontem.
+
 ### Adicionado
 - **CLI de conteúdo (`bin/pbl conteudo`)** para agentes e scripts: `listar`, `ver`, `historico`, `editar` (`--versao` obrigatória, `--publicar`, `--enviar-revisao`, `--json=-` para o texto vir do stdin), `criar`, `publicar`, `despublicar`, `enviar`, `retirar`, `mover`, `lixeira` (nunca apaga de vez), `restaurar-versao`, `imagem`, `arquivo` e `republicar`. Passa pelas mesmas regras do painel (permissões da conta de `--como`, limpeza de HTML, versões, endereços e 301, revisão, cache), saída `--json` estável (`api=1`) e códigos de saída 0–6. Operações destrutivas pedem `--confirmar`. Ver [docs/tecnica/cli-conteudo.md](docs/tecnica/cli-conteudo.md), [docs/usuario/agentes-e-scripts.md](docs/usuario/agentes-e-scripts.md) e ADR 0030.
 - **Conta de serviço:** `bin/pbl usuario criar <login> --servico` cria conta sem senha, que não entra pelo painel, nunca é administradora e pode ser desativada a qualquer momento. A auditoria identifica o agente e a origem ("via linha de comando") sem mudar o formato do autor; o registro de atividade do conteúdo mostra isso.
