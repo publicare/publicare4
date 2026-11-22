@@ -226,8 +226,8 @@ final class TelasDeNavegacao
 
     private function ajudaDaTela(): string
     {
-        return 'Marque linhas para agir em lote. <strong>Publicar</strong> exige papel de editor; autor usa <strong>Enviar para revisão</strong>. '
-            . '<strong>Copiar para a pilha</strong> separa itens para <strong>Colar aqui</strong> em outra pasta.';
+        return 'Marque linhas para agir em lote. <strong>Publicar</strong> exige editor; autor usa <strong>Enviar para revisão</strong>. '
+            . '<strong>Copiar para a pilha</strong> separa itens para colar.';
     }
 
     /** @return list<array{0: string, 1: string|null}> */
