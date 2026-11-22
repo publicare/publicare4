@@ -22,6 +22,8 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
   - Componentes e tokens próprios (`pbl-formulario.css`, tema claro e escuro) e `pbl-formulario.js` (validação ao vivo, contador, prévias de busca e de rede social, miniatura de imagem, busca em listas), sem inline e com a CSP intacta; a única exceção é `blob:` em `img-src` nas telas com seletor de imagem.
   - O botão de criar dentro de um conteúdo passa a se chamar "Criar conteúdo aqui dentro" (era "Criar filho").
 - `acao=salvar_publicar` no envio do formulário exige a permissão de publicar (403 e registro sem ela); `acao=publicar` continua valendo.
+### Corrigido
+- **Geração de pacote de prévia em contêiner Alpine:** `bin/pbl demo-popular` e o nome de arquivo no download usavam `iconv(…//TRANSLIT)`, que não existe em musl e gerava aviso ("Wrong encoding"), derrubando a prévia da fábrica. Passa a usar `Pbl\Conteudo\Ascii` (intl quando há; tabela do português caso contrário), sem aviso.
 
 ## [0.1.0-rc.6] - 2026-11-22
 

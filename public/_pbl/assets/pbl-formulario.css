@@ -248,7 +248,7 @@ details.pbl-ajuda > .pbl-ajuda-texto { margin-top: var(--pbl-e2); padding: var(-
 .pbl-estado[data-estado="saindo"]::before { background: var(--pbl-erro); }
 .pbl-barra-botoes { display: flex; flex-wrap: wrap; gap: var(--pbl-e2); align-items: center; }
 .pbl-barra-botoes .btn { min-height: var(--pbl-toque); }
-@media (max-width: 479.98px) { .pbl-barra-botoes { width: 100%; flex-wrap: nowrap; } .pbl-barra-botoes .btn { flex: 1 1 auto; padding-left: var(--pbl-e2); padding-right: var(--pbl-e2); } .pbl-barra-botoes .pbl-voltar { flex: none; } }
+@media (max-width: 479.98px) { .pbl-barra-botoes { width: 100%; flex-wrap: wrap; } .pbl-barra-botoes .btn { flex: 1 1 auto; white-space: nowrap; padding-left: var(--pbl-e2); padding-right: var(--pbl-e2); } .pbl-barra-botoes .pbl-voltar { flex: none; } }
 @media (min-width: 1024px) { .pbl-barra-form { margin-left: calc(var(--pbl-e8) * -1); margin-right: calc(var(--pbl-e8) * -1); padding-left: var(--pbl-e8); padding-right: var(--pbl-e8); } }
 /* a barra antiga (.pbl-acoes-fixas) deixa de ser o padrão nas telas migradas; sem sombra nas outras */
 .pbl-acoes.pbl-acoes-fixas { box-shadow: none; background: var(--pbl-superficie); border-top-color: var(--pbl-linha); }
