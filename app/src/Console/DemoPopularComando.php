@@ -268,7 +268,7 @@ final class DemoPopularComando extends Command
 
     private function slug(string $texto): string
     {
-        $ascii = (string) iconv('UTF-8', 'ASCII//TRANSLIT', $texto);
+        $ascii = \Pbl\Conteudo\Ascii::de($texto);
 
         return trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($ascii)), '-');
     }
