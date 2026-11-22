@@ -86,6 +86,31 @@ if ($codigo !== 0) {
     exit(1);
 }
 
+// Conteúdo extra para a prévia da listagem (ADR 0032): títulos longos, vários tipos e estados (publicado, privado, agendado).
+$servicos = Pbl\Servicos::doBancoInstalado($caminhos);
+$siteExemplo = $servicos->sites->porHost('localhost');
+if ($siteExemplo !== null && $siteExemplo->objetoRaizId !== null) {
+    $raizId = (int) $siteExemplo->objetoRaizId;
+    $exemplos = [
+        ['pasta', 'Acomodações e quartos da pousada, com todas as fotos e descrições', 'publicado', [], []],
+        ['pagina', 'Varanda com cadeiras junto à parede laranja, vista para o jardim e para a serra ao entardecer', 'publicado', [], []],
+        ['link', 'Reservas pelo site parceiro', 'publicado', [], ['destino_externo' => 'https://exemplo.org/reservas']],
+        ['formulario', 'Fale conosco', 'privado', [], ['destino' => $raizId]],
+        ['pagina', 'Promoção de verão (agendada)', 'publicado', ['data_publicacao' => gmdate('c', time() + 86400 * 20)], []],
+    ];
+    foreach ($exemplos as $i => [$tipo, $titulo, $status, $meta, $dados]) {
+        $classe = $servicos->classes->porNome($tipo);
+        if ($classe !== null) {
+            try {
+                $servicos->objetos->criar($siteExemplo->id, $classe, $raizId, $titulo, 'previa-lista-' . $i, $dados, $status, $meta);
+            } catch (Throwable) {
+                // exemplo opcional: a prévia segue sem ele
+            }
+        }
+    }
+}
+unset($servicos);
+
 // Marcador do modo prévia (ver Pbl\Previa\ModoPrevia): o host `pv-…` da prévia passa a atender o site e `/_pbl/previa-entrar` abre a
 // sessão das contas fictícias. Só existe neste pacote descartável; nunca em instalação real.
 file_put_contents($stage . '/dados/' . Pbl\Previa\ModoPrevia::MARCADOR, "previa descartavel\n");

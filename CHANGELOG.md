@@ -8,6 +8,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ### Alterado
 - **`AGENTS.md`:** instruções para agentes (não rodar a suíte completa de ~40 min, só testes filtrados e o phpstan; não apagar `prototipo-ux/`; escopo do PR).
+- **Nova listagem de conteúdo** (Conteúdo, Pendências, Meus envios, Vencidos e Lixeira): cada linha mostra a caixa de seleção, o **ícone do tipo**, o título em destaque (até 2 linhas) e, logo abaixo, uma linha pequena com «nome do tipo · estado · data curta · N filhos» (só o que existe). À vista ficam 3 ações iguais (Editar, Publicar/Tirar do ar, Abrir no site ↗); Abrir pasta, Histórico, Copiar, Recortar, Mover e Apagar (em vermelho, por último, com a confirmação de sempre) ficam no menu «⋯ Mais», que funciona sem JavaScript. Celular em retrato: cartão; paisagem e tablet: linha única; computador: lista densa. Tipos sem ícone ganham o padrão do tipo fixo ou um ícone genérico. Ver ADR 0032.
 
 ### Corrigido
 - **Linha de ações das listas no celular:** os botões de ícone (editar, abrir, publicar/despublicar, agendar, copiar, recortar, mover, apagar) ficavam de tamanhos diferentes (o amarelo, que é um formulário, saía menor) e quebravam em duas linhas desencontradas, alinhadas à direita. No celular agora formam uma grade de 5 botões iguais por linha, com a mesma altura de toque (44 px).
