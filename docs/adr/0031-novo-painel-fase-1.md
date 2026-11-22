@@ -14,4 +14,8 @@ O menu tinha até 12 itens, exigia JavaScript abaixo de 1200 px (D1), marcava o 
 - Menu e painéis funcionam sem JS; navegação por teclado é nativa.
 - Dois CSS convivem (`pbl.css` legado e `pbl-formulario.css`, que o vence) até as fases seguintes migrarem as outras telas.
 - Sem JS a edição fica longa (abas empilhadas), mas completa.
-- Fora desta fase: busca global, configurações do site, "Mais › Avançado", peles e tipos, lembrar aberto/fechado (F11). Campos `ref` continuam numéricos (seletor de conteúdo com busca exigiria endpoint novo).
+- Fora desta fase: busca global, configurações do site, "Mais › Avançado", peles e tipos, lembrar aberto/fechado (F11). 
+
+## Rodada 2 (prévia e seletor de conteúdo)
+- **Seletor de conteúdo (campos `ref`)**: sem endpoint novo. O servidor renderiza um `<select data-pbl-seletor>` com os conteúdos do próprio site (do tipo pedido, até 400, fora da lixeira; o valor atual sempre aparece), e o `pbl-formulario.js` põe o campo de busca que já filtra os outros seletores. Sem JS é o `<select>` nativo; sem conteúdo do tipo ou acima do teto, volta ao campo numérico.
+- **Modo prévia** (`Pbl\Previa\ModoPrevia`): só existe onde o gerador (`previa/gerar-pacote.php`) gravou `dados/previa.flag`, isto é, no pacote descartável. Com o marcador, (1) um host `pv-…` atende o primeiro site (o servidor da prévia usa host próprio, e `localhost` não pode ser o único aceito) e (2) `GET /_pbl/previa-entrar?conta=admin|editor|autor&ir=/_pbl/…&tema=claro|escuro` abre a sessão de uma conta fictícia, porque a captura só faz GET. O destino é restrito a `/_pbl/…`. Sem o marcador (instalação real) o host exato continua obrigatório e a rota responde 404. Risco aceito e mitigado: o marcador está em `dados/` (fora do Git e do pacote de release).

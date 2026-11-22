@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+- Painel: campos que apontam para outro conteúdo agora têm lista com busca (sem JavaScript, a lista nativa; sem conteúdo do tipo, o número de antes).
+- Prévia: o pacote de demonstração aceita o host `pv-…` e tem entrada de prévia para as contas fictícias; só existe com o marcador `dados/previa.flag` do gerador.
+
 ### Alterado
 - **Novo painel, fase 1** (ADR 0031), com a organização e a aparência do protótipo aprovado:
   - **Menu por tarefa**, no máximo cinco itens: Início, Conteúdo, Revisar (com contador), Site e Mais. Funciona sem JavaScript em qualquer largura; o item ativo vale também em `/objeto/…` e `/classe…`; as migalhas ficam sempre visíveis.

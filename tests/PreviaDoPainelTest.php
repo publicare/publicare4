@@ -98,10 +98,11 @@ final class PreviaDoPainelTest extends TestCase
         $e = $this->s->objetos->criar($this->siteId, $classe, $this->inicioId, 'Evento', 'evento-1', ['relacionada' => $alvo->id], 'publicado', []);
         $h = $this->html($this->req('GET', '/_pbl/objeto/' . $e->id . '/editar', $this->token('admin')));
         self::assertSame(1, preg_match('#<select[^>]*name="dados\[relacionada\]"[^>]*>(.*?)</select>#s', $h, $m), 'select no lugar do número');
+        $opcoes = $m[1] ?? '';
         self::assertStringContainsString('data-pbl-seletor', $h);
-        self::assertStringContainsString('<option value="' . $alvo->id . '" selected>#' . $alvo->id . ' · Página &lt;b&gt;alvo&lt;/b&gt;</option>', $m[1]);
+        self::assertStringContainsString('<option value="' . $alvo->id . '" selected>#' . $alvo->id . ' · Página &lt;b&gt;alvo&lt;/b&gt;</option>', $opcoes);
         self::assertStringNotContainsString('<b>alvo', $h, 'título escapado');
-        self::assertStringNotContainsString('value="' . $e->id . '">#' . $e->id . ' · Evento', $m[1], 'só conteúdos do tipo pedido');
+        self::assertStringNotContainsString('value="' . $e->id . '">#' . $e->id . ' · Evento', $opcoes, 'só conteúdos do tipo pedido');
         self::assertStringNotContainsString('name="dados[relacionada]" type="number"', $h);
     }
 
