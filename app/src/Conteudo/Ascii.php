@@ -27,7 +27,7 @@ final class Ascii
             $t = \Transliterator::create('Any-Latin; Latin-ASCII');
             $r = $t?->transliterate($texto);
             if (is_string($r)) {
-                return $r;
+                return (string) preg_replace('/[^\x00-\x7F]/', '', $r); // o que o intl não converte (emoji etc.) some
             }
         }
 
