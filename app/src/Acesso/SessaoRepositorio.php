@@ -27,6 +27,9 @@ final class SessaoRepositorio
     /** Abre uma sessão **nova** (token novo a cada login) e devolve o token em texto, para ir no cookie. */
     public function criar(int $usuarioId): string
     {
+        if ($this->usuarios->porId($usuarioId)?->ehServico() === true) {
+            throw new \InvalidArgumentException('Conta de serviço não abre sessão no painel');
+        }
         $agora = $this->agora();
         $token = bin2hex(random_bytes(32));
         $this->conexao->executeStatement('DELETE FROM sessao WHERE expira_em < ?', [$agora]);
@@ -55,7 +58,7 @@ final class SessaoRepositorio
             return null;
         }
         $usuario = $this->usuarios->porId((int) $s['usuario_id']);
-        if ($usuario === null || !$usuario->ativo) {
+        if ($usuario === null || !$usuario->ativo || $usuario->ehServico()) {
             $this->conexao->delete('sessao', ['id_hash' => $hash]);
 
             return null;

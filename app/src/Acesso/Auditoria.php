@@ -9,7 +9,8 @@ use Doctrine\DBAL\Connection;
 /** Registro de ações sensíveis. Só acrescenta: a aplicação não tem como editar nem apagar uma linha. */
 final class Auditoria
 {
-    public function __construct(private readonly Connection $conexao)
+    /** @param string|null $canal origem da ação (ex.: `cli`); vira `via` no detalhe (ADR 0032). O formato do ator não muda. */
+    public function __construct(private readonly Connection $conexao, private readonly ?string $canal = null)
     {
     }
 
@@ -19,6 +20,9 @@ final class Auditoria
      */
     public function registrar(string $acao, string $ator, ?int $usuarioId = null, ?int $objetoId = null, array $detalhe = [], ?string $ipHash = null): void
     {
+        if ($this->canal !== null) {
+            $detalhe['via'] = $this->canal;
+        }
         $this->conexao->insert('auditoria', [
             'quando' => gmdate('c'),
             'usuario_id' => $usuarioId,

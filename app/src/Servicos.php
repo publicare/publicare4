@@ -26,6 +26,9 @@ use Pbl\Conteudo\ConfigDoSiteRepositorio;
 use Pbl\Conteudo\DominioRepositorio;
 use Pbl\Conteudo\FluxoDeRevisao;
 use Pbl\Conteudo\ObjetoRepositorio;
+use Pbl\Conteudo\Servico\ServicoDeConteudo;
+use Pbl\Conteudo\Servico\SincronizadorDePaginas;
+use Pbl\Conteudo\Servico\ValidadorDeCampos;
 use Pbl\Conteudo\Pilha;
 use Pbl\Conteudo\RedirecionamentoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
@@ -73,12 +76,18 @@ final class Servicos
     /** A pilha de copiar/recortar/colar de cada conta (fase 5r). */
     public readonly Pilha $pilha;
 
+    /** Edição de conteúdo sem HTTP, compartilhada por painel e CLI (ADR 0030). */
+    public readonly ServicoDeConteudo $conteudo;
+    public readonly SincronizadorDePaginas $paginas;
+    public readonly ValidadorDeCampos $validador;
+
     private ?string $segredo = null;
 
-    public function __construct(public readonly Caminhos $caminhos, private readonly Connection $conexao)
+    /** @param string|null $canal origem das ações na auditoria (`cli`); null = painel (ADR 0032) */
+    public function __construct(public readonly Caminhos $caminhos, private readonly Connection $conexao, ?string $canal = null)
     {
         $this->classes = new ClasseRepositorio($conexao);
-        $this->auditoria = new Auditoria($conexao);
+        $this->auditoria = new Auditoria($conexao, $canal);
         $this->objetos = new ObjetoRepositorio($conexao, $this->auditoria);
         $this->tags = new TagRepositorio($conexao);
         $this->arquivos = new ArquivoRepositorio($conexao);
@@ -99,6 +108,9 @@ final class Servicos
         $this->publicador = new Publicador($caminhos, $this->objetos, $renderizador, $this->menu, $feeds);
         $this->republicacao = new FilaDeRepublicacao($caminhos, $this->publicador, $this->objetos);
         $this->peles = new GerenciadorDePeles($caminhos, $conexao);
+        $this->paginas = new SincronizadorDePaginas($this->objetos, $this->sites, $this->publicador, $this->tags);
+        $this->validador = new ValidadorDeCampos($this->objetos, $this->classes, $this->permissoes);
+        $this->conteudo = new ServicoDeConteudo($this->objetos, $this->classes, $this->tags, $this->permissoes, $this->revisao, $this->motor, $this->auditoria, $this->paginas, $this->validador, $this->republicacao, fn (): ServicoDeUpload => $this->uploads());
     }
 
     /** Segredo do site (criado na primeira vez se ainda não existir). Lido só quando preciso, para a área pública não depender dele. */
@@ -154,13 +166,13 @@ final class Servicos
         return new ServicoDeMiniaturas($this->caminhos, new ArmazenamentoDeArquivos($this->caminhos));
     }
 
-    public static function doBancoInstalado(Caminhos $caminhos): self
+    public static function doBancoInstalado(Caminhos $caminhos, ?string $canal = null): self
     {
         $config = (new CarregadorDeConfigBanco($caminhos))->carregar();
         if ($config->ehSqlite() && !is_file($config->nome)) {
             throw new \RuntimeException('PBL4 não está instalado. Rode: bin/pbl instalar');
         }
 
-        return new self($caminhos, Conexao::abrir($config));
+        return new self($caminhos, Conexao::abrir($config), $canal);
     }
 }

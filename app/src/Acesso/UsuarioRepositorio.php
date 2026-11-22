@@ -64,6 +64,34 @@ final class UsuarioRepositorio implements Autenticador
         return new Usuario($id, $login, $email, trim($nome), $administrador, true);
     }
 
+    /**
+     * Conta de serviço (agente/script): sem senha que confira, sem e-mail real, nunca administradora, sem login pelo navegador
+     * (ADR 0031). Os papéis por seção vêm de `conceder`; `definirAtivo(false)` a desliga a qualquer momento.
+     */
+    public function criarContaDeServico(string $login, string $nome, string $ator = 'sistema'): Usuario
+    {
+        $login = mb_strtolower(trim($login));
+        if (preg_match('/^[a-z0-9][a-z0-9._-]{1,62}[a-z0-9]$/D', $login) !== 1) {
+            throw new \InvalidArgumentException('Login inválido (3 a 64 letras minúsculas, números, ponto, hífen ou sublinhado)');
+        }
+        $nome = trim($nome) === '' ? $login : trim($nome);
+        if (mb_strlen($nome) > 200) {
+            throw new \InvalidArgumentException('Nome inválido');
+        }
+        if ($this->conexao->fetchOne('SELECT 1 FROM usuario WHERE login = ?', [$login]) !== false) {
+            throw new \InvalidArgumentException("O login {$login} já existe");
+        }
+        $email = $login . '@servico.invalid';
+        $this->conexao->insert('usuario', [
+            'login' => $login, 'email' => $email, 'nome' => $nome, 'senha_hash' => Usuario::SENHA_DE_SERVICO,
+            'administrador' => 0, 'ativo' => 1, 'criado_em' => gmdate('c'), 'tipo' => Usuario::SERVICO,
+        ]);
+        $id = (int) $this->conexao->lastInsertId();
+        $this->auditoria?->registrar('usuario.criar', $ator, null, null, ['usuario' => $login, 'administrador' => false, 'tipo' => Usuario::SERVICO]);
+
+        return new Usuario($id, $login, $email, $nome, false, true, Usuario::SERVICO);
+    }
+
     public function porLogin(string $login): ?Usuario
     {
         $l = $this->conexao->fetchAssociative('SELECT * FROM usuario WHERE login = ?', [mb_strtolower(trim($login))]);
@@ -119,7 +147,7 @@ final class UsuarioRepositorio implements Autenticador
         // Login inexistente também paga o custo de uma verificação de hash: o tempo não revela se a conta existe.
         $hash = $l === false ? $this->hashFicticio() : (string) $l['senha_hash'];
         [$confere, $bruto] = $this->conferir($senha, $hash);
-        if ($l === false || !$confere || (int) $l['ativo'] !== 1) {
+        if ($l === false || !$confere || (int) $l['ativo'] !== 1 || ($l['tipo'] ?? Usuario::PESSOA) === Usuario::SERVICO) {
             return null;
         }
         if ($bruto || password_needs_rehash($hash, $this->algoritmo, $this->opcoes())) {
@@ -154,6 +182,9 @@ final class UsuarioRepositorio implements Autenticador
     public function definirAdministrador(int $id, bool $administrador, string $ator = 'sistema'): void
     {
         $u = $this->porId($id) ?? throw new \InvalidArgumentException("Usuário {$id} não existe");
+        if ($administrador && $u->ehServico()) {
+            throw new \InvalidArgumentException('Conta de serviço não pode ser administradora (privilégio mínimo)');
+        }
         if ($u->administrador === $administrador) {
             return;
         }
@@ -178,6 +209,9 @@ final class UsuarioRepositorio implements Autenticador
     public function definirSenha(int $id, string $senha, string $ator = 'sistema'): void
     {
         $u = $this->porId($id) ?? throw new \InvalidArgumentException("Usuário {$id} não existe");
+        if ($u->ehServico()) {
+            throw new \InvalidArgumentException('Conta de serviço não tem senha');
+        }
         $problema = SenhaPolitica::problema($senha, $u->login, $u->email);
         if ($problema !== null) {
             throw new \InvalidArgumentException($problema);
@@ -285,6 +319,6 @@ final class UsuarioRepositorio implements Autenticador
     /** @param array<string, mixed> $l */
     private function hidratar(array $l): Usuario
     {
-        return new Usuario((int) $l['id'], (string) $l['login'], (string) $l['email'], (string) $l['nome'], (int) $l['administrador'] === 1, (int) $l['ativo'] === 1);
+        return new Usuario((int) $l['id'], (string) $l['login'], (string) $l['email'], (string) $l['nome'], (int) $l['administrador'] === 1, (int) $l['ativo'] === 1, (string) ($l['tipo'] ?? Usuario::PESSOA));
     }
 }

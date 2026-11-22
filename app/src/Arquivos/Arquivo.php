@@ -25,6 +25,8 @@ final class Arquivo
         public readonly bool $sanitizada,
         public readonly string $criadoEm,
         public readonly ?int $criadoPor,
+        /** Texto alternativo (imagens), por uso; null se nunca informado. */
+        public readonly ?string $alt = null,
     ) {
     }
 
