@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Alterado
+- **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.9`.
+
 ## [0.1.0-rc.9] - 2026-11-23
 
 > **Em resumo:** novo painel, fase 2: Atualização, Cópias de segurança, Tarefas agendadas, Contas, Tipos, Modelos, Domínios e Revisão ganham cabeçalho de estado, abas e seções, aprovação em lote na Revisão, e a listagem nova de conteúdo foi preservada.
