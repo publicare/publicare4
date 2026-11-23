@@ -97,6 +97,23 @@ final class FluxoDeRevisaoTest extends TestCase
         self::assertNotEmpty($this->auditoria('revisao.enviou'));
     }
 
+    public function testAprovacaoEmLoteAprovaOsMarcadosEPassaPelasMesmasRegras(): void
+    {
+        $a = $this->submetido('Lote A', $this->saude);
+        $b = $this->submetido('Lote B', $this->saude);
+        $fila = $this->html($this->req('GET', '/_pbl/revisar?aba=pendencias', $this->token('editor_saude')));
+        self::assertStringContainsString('Aprovar os marcados', $fila);
+        self::assertStringContainsString('name="ids[]"', $fila);
+        $r = $this->post($this->token('editor_saude'), '/_pbl/revisao/aprovar-lote', ['ids' => [(string) $a->id, (string) $b->id], 'versao' => [$a->id => (string) $a->versao, $b->id => (string) $b->versao]]);
+        self::assertSame(303, $r->getStatusCode());
+        self::assertSame('publicado', $this->estado($a));
+        self::assertSame('publicado', $this->estado($b));
+        // quem não revisa não aprova nada pelo lote
+        $c = $this->submetido('Lote C', $this->saude);
+        $this->post($this->token('autor_saude'), '/_pbl/revisao/aprovar-lote', ['ids' => [(string) $c->id], 'versao' => [$c->id => (string) $c->versao]]);
+        self::assertSame('submetido', $this->estado($c));
+    }
+
     public function testRevisorEhEditorDaAreaDeCimaOuAdminENuncaDeOutraSecretaria(): void
     {
         $o = $this->submetido('Alerta de vigilância', $this->vigilancia);

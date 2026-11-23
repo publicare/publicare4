@@ -126,8 +126,7 @@ final class TelasDeContas
         $pagina = min($pagina, $totalPaginas);
 
         $corpo = $this->avisoDe($requisicao)
-            . '<p>Contas da equipe desta instalação. Cada conta pode ser administradora (vê e faz tudo) ou receber um papel — leitor, autor ou editor — em cada seção.</p>'
-            . '<p><a class="btn btn-primary" href="' . Painel::PREFIXO . '/contas/nova">Nova conta</a></p>'
+            . Pagina::cabecalho($r['total'] . ' ' . ($r['total'] === 1 ? 'conta' : 'contas') . ($busca === '' && $situacao === '' ? '' : ' na busca') . '. Cada conta é administradora (vê e faz tudo) ou recebe um papel — leitor, autor ou editor — em cada seção.', '<a class="btn btn-primary" href="' . Painel::PREFIXO . '/contas/nova">Nova conta</a>')
             . $this->formularioDeBusca($busca, $situacao)
             . '<div class="list-group mb-3" role="list" aria-label="Contas">';
         foreach ($r['itens'] as $c) {
@@ -139,11 +138,11 @@ final class TelasDeContas
                 . '<span class="d-block small text-body-secondary text-break">' . Pagina::h($c->nome) . ' · ' . Pagina::h($c->email) . '</span></a>';
         }
         if ($r['itens'] === []) {
-            $corpo .= '<div class="list-group-item text-body-secondary">Nenhuma conta encontrada.</div>';
+            $corpo .= '<div class="list-group-item text-body-secondary">Nenhuma conta encontrada.' . ($busca !== '' || $situacao !== '' ? ' <a href="' . $this->linkLista() . '">Limpar a busca</a> ou ' : ' ') . '<a href="' . Painel::PREFIXO . '/contas/nova">criar uma conta nova</a>.</div>';
         }
         $corpo .= '</div>' . $this->paginacao($pagina, $totalPaginas, $busca, $situacao);
 
-        return Pagina::resposta('Contas', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Contas', null]]);
+        return Pagina::resposta('Contas', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Contas', null]]);
     }
 
     /** Busca e filtro (GET, sem CSRF: não altera nada) em cima da lista de contas. */
@@ -251,23 +250,23 @@ final class TelasDeContas
             . $this->campoSenha($sessao, 'campo-senha-editar')
             . '<div class="pbl-acoes"><button type="submit" class="btn btn-primary">Salvar dados</button></div></form>';
         $senha = $c->ehServico()
-            ? '<p>Conta de serviço: sem senha, não entra pelo painel. Desative na aba Situação.</p>'
+            ? '<p>Conta de serviço: sem senha, não entra pelo painel. Desative na aba Segurança.</p>'
             : '<div class="pbl-rotulo"><h3 class="h6 mb-1">Trocar senha</h3>' . Pagina::ajuda('ajuda-trocar-senha', 'Trocar senha', $eu ? 'Você sai e entra de novo.' : 'A conta sai das sessões abertas.') . '</div>'
             . '<form method="post" action="' . $base . '/senha">' . $csrf . $this->camposDeSenha('nova senha')
             . $this->campoSenha($sessao, 'campo-senha-atual-redefinir', 'senha_atual')
             . '<div class="pbl-acoes"><button type="submit" class="btn btn-warning">Trocar senha</button></div></form>';
         $abas = [
             'dados' => ['Dados', $dados],
-            'senha' => ['Senha', $senha],
-            'situacao' => ['Situação', $this->blocoDeSituacao($sessao, $csrf, $c, $eu, $base)],
-            'papeis' => ['Papéis por seção', $this->blocoDeAcessos($sessao, $csrf, $c, $base)],
+            'papeis' => ['Papéis e acessos', $this->blocoDeAcessos($sessao, $csrf, $c, $base)],
+            'seguranca' => ['Segurança', $senha . '<hr class="my-4">' . $this->blocoDeSituacao($sessao, $csrf, $c, $eu, $base)],
         ];
+        $aba = in_array($aba, ['senha', 'situacao'], true) ? 'seguranca' : $aba;
         $aba = array_key_exists($aba, $abas) ? $aba : 'dados';
         $corpo = '<p>Login: <code>' . Pagina::h($c->login) . '</code> · ' . ($c->ativo ? 'conta ativa' : '<span class="badge text-bg-secondary">desativada</span>') . ($eu ? ' · <strong>esta é a sua conta</strong>' : '') . '</p>'
             . Pagina::abas($abas, $aba, $avisos, 'Seções da conta')
             . '<p><a href="' . $this->linkLista() . '">Voltar às contas</a></p>';
 
-        return Pagina::resposta('Conta: ' . $c->login, $corpo, $status, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Contas', $this->linkLista()], [$c->login, null]]);
+        return Pagina::resposta('Conta: ' . $c->login, $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Contas', $this->linkLista()], [$c->login, null]]);
     }
 
     private function blocoDeSituacao(SessaoAtiva $sessao, string $csrf, Usuario $c, bool $eu, string $base): string

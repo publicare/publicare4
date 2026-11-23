@@ -84,6 +84,10 @@ final class Pagina
         'ativar' => 'M22 11.08V12a10 10 0 1 1-5.93-9.14 M22 4 12 14.01l-3-3',
         'executar' => 'M5 3l14 9-14 9z',
         'principal' => 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z',
+        'estado-ok' => 'M22 11.08V12a10 10 0 1 1-5.93-9.14 M22 4 12 14.01l-3-3',
+        'estado-atencao' => 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01',
+        'estado-erro' => 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M15 9l-6 6 M9 9l6 6',
+        'estado-andamento' => 'M21 12a9 9 0 1 1-6.22-8.56',
         'alternar' => 'M17 1l4 4-4 4 M3 11V9a4 4 0 0 1 4-4h14 M7 23l-4-4 4-4 M21 13v2a4 4 0 0 1-4 4H3',
     ];
 
@@ -314,6 +318,59 @@ final class Pagina
             . '<button type="button" class="btn btn-sm btn-outline-secondary pbl-tema" data-pbl-tema>Tema</button>'
             . '<form method="post" action="/_pbl/sair"><input type="hidden" name="_csrf" value="' . self::h($tokenCsrf) . '">'
             . '<button type="submit" class="btn btn-sm btn-outline-secondary">Sair</button></form></div></nav></details>';
+    }
+
+    /**
+     * Cabeçalho de tela (ADR 0032): a linha de estado (uma frase) e UMA ação principal, mais atalhos secundários em texto. O `<h1>`
+     * vem de `resposta()`, então aqui não há título. `$linhaHtml`, `$acaoPrincipal` (um `<a class="btn btn-primary">` ou `<form>`) e
+     * os `$secundarios` (links ou formulários) chegam como HTML já escapado; só a ação principal usa o estilo cheio.
+     *
+     * @param list<string> $secundarios
+     */
+    public static function cabecalho(string $linhaHtml, string $acaoPrincipal = '', array $secundarios = []): string
+    {
+        $sec = $secundarios === [] ? '' : '<ul class="pbl-secundarias pbl-cabecalho-sec">' . implode('', array_map(static fn (string $i): string => '<li>' . $i . '</li>', $secundarios)) . '</ul>';
+
+        return '<div class="pbl-cabecalho">' . ($linhaHtml === '' ? '' : '<p class="pbl-cabecalho-linha">' . $linhaHtml . '</p>')
+            . ($acaoPrincipal === '' ? '' : '<div class="pbl-cabecalho-acao">' . $acaoPrincipal . '</div>') . $sec . '</div>';
+    }
+
+    /**
+     * Cartão de estado (ADR 0032): tom `ok`, `atencao`, `erro` ou `andamento`, com ícone e título em texto (nunca só cor). `erro` e
+     * `atencao` anunciam como `role="alert"`; o resto como `role="status"`. `$textoHtml` e `$acaoHtml` já escapados; `$titulo` é texto puro.
+     * `$atributos` (já escapados) vai na raiz, para quem precisa de gancho (ex.: `data-pbl-progresso`).
+     */
+    public static function cartaoDeEstado(string $tom, string $titulo, string $textoHtml = '', string $acaoHtml = '', string $atributos = ''): string
+    {
+        $tom = in_array($tom, ['ok', 'atencao', 'erro', 'andamento'], true) ? $tom : 'andamento';
+        $papel = in_array($tom, ['erro', 'atencao'], true) ? 'alert' : 'status';
+
+        return '<section class="pbl-estado pbl-estado-' . $tom . '" role="' . $papel . '"' . ($atributos === '' ? '' : ' ' . $atributos) . '>'
+            . '<div class="pbl-estado-titulo">' . self::icone('estado-' . $tom) . '<strong>' . self::h($titulo) . '</strong></div>'
+            . ($textoHtml === '' ? '' : '<div class="pbl-estado-texto">' . $textoHtml . '</div>')
+            . ($acaoHtml === '' ? '' : '<div class="pbl-estado-acao">' . $acaoHtml . '</div>') . '</section>';
+    }
+
+    /**
+     * Abas de leitura/ação em forma de link (`?aba=chave`, ADR 0032): o servidor entrega só a aba pedida, funciona sem JavaScript e a
+     * URL é marcável. A aba atual leva `aria-current="page"`. `$href` = caminho da tela sem query; `$extra` = query adicional já escapada.
+     *
+     * @param array<string, string> $abas chave => rótulo (texto puro)
+     */
+    public static function abasEmLink(array $abas, string $atual, string $href, string $rotuloDaBarra, string $extra = ''): string
+    {
+        $itens = '';
+        foreach ($abas as $chave => $rotulo) {
+            $itens .= '<li><a href="' . self::h($href) . '?aba=' . self::h((string) $chave) . $extra . '"' . ((string) $chave === $atual ? ' aria-current="page"' : '') . '>' . self::h($rotulo) . '</a></li>';
+        }
+
+        return '<nav aria-label="' . self::h($rotuloDaBarra) . '"><ul class="pbl-abas-links">' . $itens . '</ul></nav>';
+    }
+
+    /** Estado vazio útil (ADR 0032): o que falta, por que, e a próxima ação (`$acaoHtml` já escapado). */
+    public static function vazio(string $titulo, string $textoHtml, string $acaoHtml = ''): string
+    {
+        return '<div class="pbl-vazio"><p class="mb-1"><strong>' . self::h($titulo) . '</strong></p><p class="mb-0">' . $textoHtml . '</p>' . $acaoHtml . '</div>';
     }
 
     /**

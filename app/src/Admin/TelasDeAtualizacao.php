@@ -54,6 +54,9 @@ final class TelasDeAtualizacao
     /** @var list<string> */
     private readonly array $chaves;
 
+    /** @var array<string, string> abas em link (`?aba=`), a primeira é a padrão */
+    private const ABAS = ['atualizar' => 'Atualizar', 'historico' => 'Histórico e voltar atrás', 'configuracao' => 'Configuração'];
+
     /**
      * Os parâmetros opcionais existem para os testes (baixador local, chave de teste, versão e processo falsos); em produção valem
      * os padrões: HTTPS, as chaves embutidas em `Chaves::PUBLICAS`, a versão do produto e o processo real.
@@ -61,6 +64,7 @@ final class TelasDeAtualizacao
      * @param list<string>|null $chaves
      * @param (\Closure(): int)|null $relogio
      */
+
     public function __construct(
         private readonly Servicos $servicos,
         private readonly Rede $rede,
@@ -147,7 +151,7 @@ final class TelasDeAtualizacao
         }
 
         return match ($tela) {
-            'ver' => $this->pagina($sessao, $this->aviso($requisicao), null, Response::HTTP_OK, false),
+            'ver' => $this->pagina($sessao, $this->aviso($requisicao), null, Response::HTTP_OK, false, Pagina::abaDe($requisicao, 'atualizar', array_keys(self::ABAS))),
             'verificar' => $this->verificarAgora($sessao),
             'reverter' => $this->reverter($sessao, $requisicao),
             'cancelar' => $this->cancelar($sessao),
@@ -254,7 +258,7 @@ final class TelasDeAtualizacao
         }
         $c = Configuracao::ler($this->servicos->caminhos);
         if ($c->url === '' || !$c->verificar || Chaves::semConfianca($this->chaves, $c->canal)) {
-            return $this->pagina($sessao, '', 'Atualizar pelo painel não está disponível: veja o que falta na parte de cima da página.', Response::HTTP_CONFLICT, false);
+            return $this->pagina($sessao, '', 'Atualizar pelo painel não está disponível: veja o Diagnóstico na aba Configuração.', Response::HTTP_CONFLICT, false);
         }
         $ocupada = $this->ocupada();
         if ($ocupada !== null) {
@@ -396,15 +400,15 @@ final class TelasDeAtualizacao
         }
         $u = $sessao->usuario;
         if ($this->texto($requisicao, 'confirmar') !== '1') {
-            return $this->pagina($sessao, '', 'Marque a confirmação para voltar atrás.', Response::HTTP_UNPROCESSABLE_ENTITY, true);
+            return $this->pagina($sessao, '', 'Marque a confirmação para voltar atrás.', Response::HTTP_UNPROCESSABLE_ENTITY, true, 'historico');
         }
         $ocupada = $this->ocupada();
         if ($ocupada !== null) {
-            return $this->pagina($sessao, '', $ocupada, Response::HTTP_CONFLICT, false);
+            return $this->pagina($sessao, '', $ocupada, Response::HTTP_CONFLICT, false, 'historico');
         }
         $a = $this->reversor()->avaliar();
         if (!$a->possivel) {
-            return $this->pagina($sessao, '', $a->motivo, Response::HTTP_CONFLICT, false);
+            return $this->pagina($sessao, '', $a->motivo, Response::HTTP_CONFLICT, false, 'historico');
         }
 
         // Reautenticação (ADR 0011, "modo elevado", fase 5h): o mesmo componente comum de "aplicar", sempre exigindo
@@ -412,7 +416,7 @@ final class TelasDeAtualizacao
         $ip = $this->rede->ip($requisicao);
         $falha = $this->servicos->modoElevado()->confirmar($sessao, $senha, $ip, 'atualizacao', true);
         if ($falha !== null) {
-            $r = $this->pagina($sessao, '', $falha['mensagem'], $falha['status'], true);
+            $r = $this->pagina($sessao, '', $falha['mensagem'], $falha['status'], true, 'historico');
             if ($falha['retryAfter'] !== null) {
                 $r->headers->set('Retry-After', (string) $falha['retryAfter']);
             }
@@ -421,7 +425,7 @@ final class TelasDeAtualizacao
         }
 
         if (!is_writable($this->servicos->caminhos->raiz)) {
-            return $this->pagina($sessao, '', 'Este servidor não deixa o PHP trocar o código da instalação (falta permissão de escrita na pasta do PBL4). Reverta pelo terminal: php bin/pbl reverter --confirmar.', Response::HTTP_CONFLICT, false);
+            return $this->pagina($sessao, '', 'Este servidor não deixa o PHP trocar o código da instalação (falta permissão de escrita na pasta do PBL4). Reverta pelo terminal: php bin/pbl reverter --confirmar.', Response::HTTP_CONFLICT, false, 'historico');
         }
         $agendar = Configuracao::ler($this->servicos->caminhos)->agendar && $this->texto($requisicao, 'modo') === 'agendar';
         $automatico = false;
@@ -430,13 +434,13 @@ final class TelasDeAtualizacao
                 $iniciou = $this->estado->iniciar($a->para, $a->de, $this->lancador, 'reverter');
             } catch (ErroDeAtualizacao $e) {
                 if (!Configuracao::ler($this->servicos->caminhos)->agendar) {
-                    return $this->pagina($sessao, '', $e->getMessage(), Response::HTTP_SERVICE_UNAVAILABLE, false);
+                    return $this->pagina($sessao, '', $e->getMessage(), Response::HTTP_SERVICE_UNAVAILABLE, false, 'historico');
                 }
                 $agendar = $automatico = true;
                 $iniciou = false;
             }
             if (!$agendar && !$iniciou) {
-                return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false);
+                return $this->pagina($sessao, '', 'Já existe uma atualização em andamento. Espere terminar.', Response::HTTP_CONFLICT, false, 'historico');
             }
         }
         if ($agendar) {
@@ -464,7 +468,7 @@ final class TelasDeAtualizacao
         return $texto === null ? '' : '<div class="alert alert-success" role="status">' . Pagina::h($texto) . '</div>';
     }
 
-    private function pagina(SessaoAtiva $sessao, string $aviso, ?string $erro, int $status, bool $lembrarConfirmacao): Response
+    private function pagina(SessaoAtiva $sessao, string $aviso, ?string $erro, int $status, bool $lembrarConfirmacao, string $aba = 'atualizar'): Response
     {
         $andamento = $this->situacaoAuditada($sessao);
         $sit = $this->situacao->ler();
@@ -473,20 +477,85 @@ final class TelasDeAtualizacao
         $k = $this->consultar(false, $andamento['estado'] !== 'andamento');
         $csrf = $this->campoCsrf($sessao);
         $base = Painel::PREFIXO . '/atualizacao';
+        $podeAplicar = $k['situacao'] === 'ok' && $k['disponivel'] && $k['manifesto'] !== null && !$ocupado;
 
         $corpo = $aviso . $this->erro($erro)
-            . '<dl class="row"><dt class="col-sm-3">Versão instalada</dt><dd class="col-sm-9"><code>' . Pagina::h($this->versaoInstalada) . '</code></dd>'
-            . '<dt class="col-sm-3">Canal</dt><dd class="col-sm-9">' . Pagina::h($c->canal) . '</dd>'
-            . '<dt class="col-sm-3">Endereço de consulta</dt><dd class="col-sm-9">' . ($c->url === '' ? '<span class="text-body-secondary">não configurado</span>' : '<code>' . Pagina::h($c->url) . '</code>') . '</dd></dl>'
-            . $this->andamento($sit, $base, $csrf, $aviso !== '')
-            . $this->execucao($andamento)
-            . $this->consulta($k, $c, $base, $csrf);
-        if ($k['situacao'] === 'ok' && $k['disponivel'] && $k['manifesto'] !== null && !$ocupado) {
-            $corpo .= $this->formularioDeAplicar($k['manifesto'], $base, $csrf, $lembrarConfirmacao, $c->agendar);
-        }
-        $corpo .= $this->voltarAtras($ocupado, $base, $csrf, $lembrarConfirmacao, $c->agendar) . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
+            . $this->cabecalhoDeEstado($k, $c, $base, $csrf, $ocupado)
+            . $this->andamento($sit, $base, $csrf, $aviso !== '' || $ocupado)
+            . Pagina::abasEmLink(self::ABAS, $aba, $base, 'Seções da atualização');
+        $corpo .= match ($aba) {
+            'historico' => $this->execucao($andamento) . $this->voltarAtras($ocupado, $base, $csrf, $lembrarConfirmacao, $c->agendar),
+            'configuracao' => $this->configuracao($c),
+            default => $this->consulta($k) . ($podeAplicar ? $this->formularioDeAplicar($k['manifesto'], $base, $csrf, $lembrarConfirmacao, $c->agendar) : ''),
+        };
 
-        return Pagina::resposta('Atualização', $corpo, $status, false, $this->barra($sessao), [['Atualização', null]]);
+        return Pagina::resposta('Atualização', $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Atualização', null]], 'Mantenha o PBL4 em dia e desfaça uma atualização, se precisar.');
+    }
+
+    /**
+     * Estado e UMA ação principal (ADR 0033): ocupado → "Ver andamento"; versão nova → "Atualizar para X"; em dia ou com erro →
+     * "Verificar agora"; sem endereço/chave → "Configurar". "Verificar agora" é sempre o único formulário de consulta da tela.
+     *
+     * @param array{situacao: string, texto: string, quando: int, disponivel: bool, motivo: string, manifesto: array{versao: string, data: string, resumo: string, notas: string, seguranca: bool, migracoes: bool, php_minimo: string}|null} $k
+     */
+    private function cabecalhoDeEstado(array $k, Configuracao $c, string $base, string $csrf, bool $ocupado): string
+    {
+        $versao = 'Versão instalada: <code>' . Pagina::h($this->versaoInstalada) . '</code> · canal ' . Pagina::h($c->canal) . '.';
+        $verificar = static fn (string $classe): string => '<form method="post" action="' . $base . '/verificar" class="d-inline">' . $csrf . '<button type="submit" class="btn ' . $classe . '">Verificar agora</button></form>';
+        $m = $k['manifesto'];
+        if ($ocupado) {
+            return Pagina::cabecalho($versao . ' Em andamento: acompanhe o andamento abaixo.', '<a class="btn btn-primary" href="#titulo-andamento">Ver andamento</a>');
+        }
+        if ($k['situacao'] === 'ok' && $k['disponivel'] && $m !== null) {
+            $estado = Pagina::cartaoDeEstado($m['seguranca'] ? 'atencao' : 'andamento', 'Há uma versão nova: ' . $m['versao'], $m['seguranca'] ? 'Inclui correção de segurança.' : '');
+
+            return Pagina::cabecalho($versao, '<a class="btn btn-primary" href="' . $base . '?aba=atualizar#atualizar-agora">Atualizar para ' . Pagina::h($m['versao']) . '</a>', [$verificar('btn-link')]) . $estado;
+        }
+        if ($k['situacao'] === 'ok') {
+            return Pagina::cabecalho($versao, $verificar('btn-primary'), []) . Pagina::cartaoDeEstado('ok', 'Você está na versão mais recente');
+        }
+        if ($k['situacao'] === 'erro') {
+            return Pagina::cabecalho($versao, $verificar('btn-primary')) . Pagina::cartaoDeEstado('erro', 'Não deu para consultar as atualizações', 'O motivo está na aba Atualizar.');
+        }
+
+        return Pagina::cabecalho($versao, '<a class="btn btn-primary" href="' . $base . '?aba=configuracao">Configurar</a>')
+            . Pagina::cartaoDeEstado('atencao', $k['situacao'] === 'desligada' ? 'A verificação está desligada' : 'As atualizações não estão prontas', 'Veja o que falta na aba Configuração.');
+    }
+
+    /** Aba Configuração: canal, endereço, agendamento (somente leitura: o arquivo é do servidor) e o Diagnóstico recolhido. */
+    private function configuracao(Configuracao $c): string
+    {
+        $linha = static fn (string $rotulo, string $valor): string => '<dt class="col-sm-3">' . $rotulo . '</dt><dd class="col-sm-9">' . $valor . '</dd>';
+        $dl = '<dl class="row">' . $linha('Canal', Pagina::h($c->canal))
+            . $linha('Endereço de consulta', $c->url === '' ? '<span class="text-body-secondary">não configurado</span>' : '<code>' . Pagina::h($c->url) . '</code>')
+            . $linha('Verificação', $c->verificar ? 'ligada (no máximo uma vez por dia)' : 'desligada')
+            . $linha('Agendar para o cron', $c->agendar ? 'permitido' : 'desligado') . '</dl>'
+            . '<p class="small text-body-secondary">Estes valores ficam em <code>dados/config/atualizacao.json</code>, no servidor. O cron e o pseudo-cron estão em <a href="' . Painel::PREFIXO . '/tarefas">Tarefas agendadas</a>.</p>';
+
+        $itens = $this->requisitos();
+        $falta = array_filter($itens, static fn (array $i): bool => !$i[1]);
+        $lista = '';
+        foreach ($itens as [$nome, $ok, $detalhe]) {
+            $lista .= '<li>' . ($ok ? '<span class="badge text-bg-success">OK</span> ' : '<span class="badge text-bg-danger">Falta</span> ') . Pagina::h($nome) . ' <span class="text-body-secondary">— ' . Pagina::h($detalhe) . '</span></li>';
+        }
+
+        return Pagina::secao('Configuração', 'Como as atualizações são consultadas.', $dl)
+            . Pagina::recolhivel('diagnostico', 'Diagnóstico' . ($falta === [] ? '' : ' (' . count($falta) . ' ' . (count($falta) === 1 ? 'item pede' : 'itens pedem') . ' atenção)'), '<ul class="list-unstyled mb-0">' . $lista . '</ul>', $falta !== []);
+    }
+
+    /** @return list<array{0: string, 1: bool, 2: string}> nome, está bem, detalhe */
+    private function requisitos(): array
+    {
+        $raiz = $this->servicos->caminhos->raiz;
+        $php = LancadorDeProcesso::descobrirPhp(Configuracao::ler($this->servicos->caminhos)->php);
+
+        return [
+            ['Versão do PHP', version_compare($this->phpAtual, '8.2.0', '>='), $this->phpAtual],
+            ['Iniciar processos (proc_open)', LancadorDeProcesso::disponivel(), LancadorDeProcesso::disponivel() ? 'o botão inicia na hora' : 'só dá para agendar para o cron'],
+            ['PHP de linha de comando', $php !== null, $php ?? 'não achado; indique "php" em atualizacao.json'],
+            ['Extensão zip', extension_loaded('zip'), extension_loaded('zip') ? 'carregada' : 'não carregada'],
+            ['Escrita na pasta do PBL4', is_writable($raiz), is_writable($raiz) ? 'permitida' : 'sem permissão; atualize pelo terminal'],
+        ];
     }
 
     /**
@@ -515,7 +584,7 @@ final class TelasDeAtualizacao
     private function execucao(array $s): string
     {
         if ($s['estado'] === 'ociosa') {
-            return '';
+            return Pagina::vazio('Nada foi feito pelo painel ainda', 'Quando você atualizar ou voltar atrás por aqui, o resultado fica registrado nesta aba.');
         }
         $reverter = $s['tipo'] === 'reverter';
         $titulo = $reverter ? 'Última volta atrás iniciada pelo painel' : 'Última atualização iniciada pelo painel';
@@ -537,17 +606,16 @@ final class TelasDeAtualizacao
     /**
      * @param array{situacao: string, texto: string, quando: int, disponivel: bool, motivo: string, manifesto: array{versao: string, data: string, resumo: string, notas: string, seguranca: bool, migracoes: bool, php_minimo: string}|null} $k
      */
-    private function consulta(array $k, Configuracao $c, string $base, string $csrf): string
+    private function consulta(array $k): string
     {
         $aviso = static fn (string $classe, string $texto): string => '<div class="alert alert-' . $classe . '" role="status">' . $texto . '</div>';
-        $botao = '<form method="post" action="' . $base . '/verificar" class="mb-3">' . $csrf . '<button type="submit" class="btn btn-outline-primary">Verificar agora</button></form>';
         $r = '<section class="mb-4" aria-labelledby="titulo-consulta"><h2 class="h5" id="titulo-consulta">Versão disponível</h2>';
         $r .= match ($k['situacao']) {
             'sem_url' => $aviso('warning', 'Nenhum endereço de atualizações configurado. Para ligar a consulta, crie o arquivo <code>dados/config/atualizacao.json</code> no servidor com o endereço do <code>latest.json</code> do canal que você usa, por exemplo <code>{"url": "https://…/latest.json", "canal": "estavel"}</code>. O PBL4 não traz endereço pronto.'),
             'desligada' => $aviso('secondary', 'A verificação de atualizações está desligada (<code>"verificar": false</code> em <code>dados/config/atualizacao.json</code>). Nada é consultado.'),
             'sem_chave' => $aviso('warning', '<strong>Nenhuma chave de assinatura instalada; atualizações recusadas.</strong> Este PBL4 só aceita pacotes assinados e este build não traz chave pública de assinatura, então não consulta nem aplica atualizações. Instale uma versão oficial do PBL4, que já traz as chaves.'),
-            'erro' => $botao . $aviso('danger', 'Não foi possível consultar o canal: ' . Pagina::h($k['texto']) . ($k['quando'] > 0 ? ' (' . gmdate('d/m/Y H:i', $k['quando']) . ' UTC)' : '')),
-            default => $botao . $this->resultado($k),
+            'erro' => $aviso('danger', 'Não foi possível consultar o canal: ' . Pagina::h($k['texto']) . ($k['quando'] > 0 ? ' (' . gmdate('d/m/Y H:i', $k['quando']) . ' UTC)' : '')),
+            default => $this->resultado($k),
         };
 
         return $r . '</section>';
@@ -574,7 +642,7 @@ final class TelasDeAtualizacao
     /** @param array{versao: string, data: string, resumo: string, notas: string, seguranca: bool, migracoes: bool, php_minimo: string} $m */
     private function formularioDeAplicar(array $m, string $base, string $csrf, bool $lembrar, bool $podeAgendar): string
     {
-        return '<section class="mb-4" aria-labelledby="titulo-aplicar"><h2 class="h5" id="titulo-aplicar">Atualizar agora</h2>'
+        return '<section class="mb-4" id="atualizar-agora" aria-labelledby="titulo-aplicar"><h2 class="h5" id="titulo-aplicar">Atualizar agora</h2>'
             . '<p>Guarda uma cópia do banco, troca o código e volta ao anterior se algo falhar. <code>dados/</code> não muda.</p>'
             . '<form method="post" action="' . $base . '/aplicar" class="row g-3">' . $csrf
             . '<input type="hidden" name="versao" value="' . Pagina::h($m['versao']) . '">'
@@ -631,7 +699,7 @@ final class TelasDeAtualizacao
         $semCron = '<strong>O cron parece não estar rodando.</strong> A atualização agendada espera há mais de 5 minutos. Confira se há uma tarefa agendada a cada minuto com <code>php …/bin/pbl cron</code> no painel da hospedagem e se a tela <a href="' . Painel::PREFIXO . '/cron">Tarefas agendadas</a> mostra um ciclo recente (veja o passo a passo em <code>docs/usuario/atualizar.md</code>).';
         $pct = $s['percentual'];
 
-        return '<section class="mb-4" aria-labelledby="titulo-andamento" data-pbl-progresso data-url="' . $base . '/progresso" data-estado="' . Pagina::h($s['estado']) . '">'
+        return '<section class="pbl-estado pbl-estado-andamento" aria-labelledby="titulo-andamento" data-pbl-progresso data-url="' . $base . '/progresso" data-estado="' . Pagina::h($s['estado']) . '">'
             . '<h2 class="h5" id="titulo-andamento">Andamento</h2>'
             . '<p class="mb-1"><span class="text-body-secondary">Etapa:</span> <strong aria-live="polite" aria-atomic="true" data-pbl-etapa>' . Pagina::h($s['etapa_nome']) . '</strong></p>'
             . '<div class="progress mb-2" role="progressbar" aria-labelledby="titulo-andamento" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' . $pct . '" aria-valuetext="' . Pagina::h($pct . '% — ' . $s['mensagem']) . '" data-pbl-trilho><div class="progress-bar" data-pbl-barra></div></div>'
@@ -668,23 +736,23 @@ final class TelasDeAtualizacao
      */
     private function voltarAtras(bool $ocupado, string $base, string $csrf, bool $lembrar, bool $podeAgendar): string
     {
-        $corpo = '<section class="mb-4" aria-labelledby="titulo-voltar"><h2 class="h5" id="titulo-voltar">Se algo der errado</h2>'
-            . '<ul><li>Se falhar, o PBL4 devolve o estado anterior sozinho.</li>';
+        $cab = '<section class="pbl-perigo" aria-labelledby="titulo-voltar"><h2 class="h5" id="titulo-voltar">Voltar atrás</h2>'
+            . '<p class="small">Se uma atualização falha, o PBL4 devolve o estado anterior sozinho.</p>';
         if ($ocupado) {
-            return $corpo . '</ul></section>';
+            return $cab . '<p class="mb-0">Disponível quando a operação em andamento terminar.</p></section>';
         }
         $a = $this->reversor()->avaliar();
         if (!$a->possivel) {
-            return $corpo . '<li>Voltar atrás de uma atualização já concluída: ' . Pagina::h($a->motivo) . '</li></ul></section>';
+            return $cab . '<p class="mb-0">Voltar atrás de uma atualização já concluída: ' . Pagina::h($a->motivo) . '</p></section>';
         }
         $quando = gmdate('d/m/Y H:i', $a->em) . ' UTC';
         $perda = $a->restauraBanco
             ? 'o banco volta ao de antes. Tudo o que foi criado depois de ' . $quando . ' se perde.'
             : 'só o código volta; não havia banco para copiar.';
 
-        return $corpo . '<li>Dá para voltar para a versão <code>' . Pagina::h($a->de) . '</code> (atualizada em ' . $quando . ').</li></ul>'
+        return $cab . '<p>Dá para voltar para a versão <code>' . Pagina::h($a->de) . '</code> (estava instalada antes de ' . Pagina::h($a->para) . ', atualizada em ' . $quando . ').</p>'
             . '<form method="post" action="' . $base . '/reverter" class="row g-3">' . $csrf
-            . '<p class="col-12">Troca o código e restaura o banco: ' . $perda . '</p>'
+            . '<p class="col-12 mb-0"><strong>Atenção:</strong> troca o código e restaura o banco: ' . $perda . '</p>'
             . '<div class="col-12 col-md-6"><label for="campo-senha-reverter" class="form-label">Sua senha, para confirmar</label><input id="campo-senha-reverter" class="form-control" name="senha" type="password" autocomplete="current-password" maxlength="1024" required></div>'
             . '<div class="col-12"><div class="form-check"><input id="campo-confirmar-reverter" class="form-check-input" type="checkbox" name="confirmar" value="1" required' . ($lembrar ? ' checked' : '') . '>'
             . '<label for="campo-confirmar-reverter" class="form-check-label">Entendo que isso perde o que foi criado depois de ' . $quando . ' e quero voltar para a versão ' . Pagina::h($a->de) . '.</label></div></div>'

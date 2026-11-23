@@ -55,9 +55,9 @@ final class AdminBackupTest extends TestCase
     public function testTelaVaziaMostraEstadoInicialEMenu(): void
     {
         $h = $this->html($this->req('GET', self::TELA, $this->token('admin')));
-        self::assertStringContainsString('Nenhuma cópia', $h);
+        self::assertStringContainsString('Nenhuma cópia ainda', $h);
         self::assertStringContainsString('desligada', $h);
-        self::assertStringContainsString('livre:', $h);
+        self::assertStringContainsString('livre: ', $h);
         // O menu por tarefa tem 5 itens; Cópias é alcançada por "Mais".
         self::assertStringContainsString('href="/_pbl/copias"', $this->html($this->req('GET', '/_pbl/mais', $this->token('admin'))));
         self::assertStringContainsString('/_pbl/assets/pbl-backup.js?v=', $h);

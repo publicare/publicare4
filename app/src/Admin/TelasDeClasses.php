@@ -140,19 +140,23 @@ final class TelasDeClasses
         return new RedirectResponse($this->link($classe->id) . '/editar?ok=icone', Response::HTTP_SEE_OTHER);
     }
 
-    private function formularioDeIcone(SessaoAtiva $sessao, Classe $classe): string
+    /** O ícone tem formulário próprio (`#form-icone`, vazio, no fim da página); os controles ficam na aba Aparência ligados por `form=`. */
+    private function iconeNaAba(Classe $classe): string
     {
         $opcoes = '<option value=""' . ($classe->icone === '' ? ' selected' : '') . '>Sem ícone</option>';
         foreach (IconesDeClasse::opcoes() as $chave => $rotulo) {
             $opcoes .= '<option value="' . Pagina::h($chave) . '"' . ($classe->icone === $chave ? ' selected' : '') . '>' . Pagina::h($rotulo) . '</option>';
         }
 
-        return '<form method="post" action="' . $this->link($classe->id) . '/icone" class="mb-4">' . $this->campoCsrf($sessao)
-            . $this->card('Ícone', '<div class="d-flex align-items-end gap-2"><div><label class="form-label" for="icone">Ícone na listagem do painel</label>'
-                . '<select class="form-select" id="icone" name="icone">' . $opcoes . '</select></div>'
-                . '<span class="fs-4" aria-hidden="true">' . IconesDeClasse::svg($classe->icone, 24) . '</span>'
-                . '<button type="submit" class="btn btn-outline-primary">Salvar ícone</button></div>')
-            . '</form>';
+        return $this->card('Ícone', '<div class="d-flex align-items-end gap-2"><div><label class="form-label" for="icone">Ícone na listagem do painel</label>'
+            . '<select class="form-select" id="icone" name="icone" form="form-icone">' . $opcoes . '</select></div>'
+            . '<span class="fs-4" aria-hidden="true">' . IconesDeClasse::svg($classe->icone, 24) . '</span>'
+            . '<button type="submit" form="form-icone" class="btn btn-outline-primary">Salvar ícone</button></div>');
+    }
+
+    private function formularioDeIcone(SessaoAtiva $sessao, Classe $classe): string
+    {
+        return '<form id="form-icone" method="post" action="' . $this->link($classe->id) . '/icone">' . $this->campoCsrf($sessao) . '</form>';
     }
 
     private function lista(SessaoAtiva $sessao, Request $requisicao): Response
@@ -162,13 +166,12 @@ final class TelasDeClasses
         $usos = $modela ? $this->servicos->classes->objetosPorClasse() : [];
         $corpo = ($requisicao->query->all()['ok'] ?? null) === 'apagada' ? '<div class="alert alert-success" role="status">Tipo de conteúdo apagado.</div>' : '';
         if ($modela) {
-            $corpo .= '<p><a class="btn btn-primary" href="' . Painel::PREFIXO . '/classes/nova">Novo tipo de conteúdo</a> '
-                . '<a class="btn btn-outline-secondary" href="' . Painel::PREFIXO . '/modelos">Modelos</a></p>';
+            $corpo .= Pagina::cabecalho(count($classes) . ' ' . (count($classes) === 1 ? 'tipo' : 'tipos') . ' de conteúdo. Cada um define os campos e onde pode ficar.', '<a class="btn btn-primary" href="' . Painel::PREFIXO . '/classes/nova">Novo tipo de conteúdo</a>', ['<a href="' . Painel::PREFIXO . '/modelos">Pacotes prontos (modelos)</a>']);
         } else {
-            $corpo .= '<p class="text-body-secondary">Só administradores criam e alteram tipos de conteúdo.</p>';
+            $corpo .= Pagina::cabecalho('Só administradores criam e alteram tipos de conteúdo.');
         }
         if ($classes === []) {
-            return Pagina::resposta('Tipos de conteúdo', $corpo . '<p>Nenhum tipo de conteúdo ainda.</p>', Response::HTTP_OK, false, $this->barra($sessao), [], self::DESCRICAO_LISTA);
+            return Pagina::resposta('Tipos de conteúdo', $corpo . Pagina::vazio('Nenhum tipo de conteúdo ainda', 'Crie o primeiro com "Novo tipo de conteúdo".'), Response::HTTP_OK, false, $this->barra($sessao), [], self::DESCRICAO_LISTA);
         }
         $corpo .= '<div class="table-responsive"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Tipos de conteúdo</caption><thead><tr>'
             . '<th scope="col">Nome</th><th scope="col">Descrição</th><th scope="col">Campos</th>'
@@ -189,7 +192,7 @@ final class TelasDeClasses
         }
         $corpo .= '</tbody></table></div>';
 
-        return Pagina::resposta('Tipos de conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], self::DESCRICAO_LISTA);
+        return Pagina::resposta('Tipos de conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Tipos de conteúdo', null]], self::DESCRICAO_LISTA);
     }
 
     // ---------------------------------------------------------------- criar
@@ -203,7 +206,7 @@ final class TelasDeClasses
             . $this->card('Identificação', $this->campo('campo-nome', 'nome', 'Nome técnico', $nome, [
                 'maxlength' => ClasseRepositorio::MAX_NOME, 'obrigatorio' => true,
                 'ajuda' => 'Minúsculas, números e <code>_</code>, como <code>noticia</code>. Não muda depois.',
-            ]) . $this->camposDaClasse($descricao, $aceita, $filhas, $this->servicos->classes->todas(), null))
+            ]) . $this->campoDeDescricao($descricao) . $this->camposDaClasse($aceita, $filhas, $this->servicos->classes->todas(), null))
             . $this->acoes('Criar tipo de conteúdo', [['Cancelar', $this->linkLista()]]) . '</form>';
 
         return Pagina::resposta('Novo tipo de conteúdo', $corpo, $status, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], ['Novo', null]], 'Os campos entram na tela seguinte.');
@@ -685,14 +688,14 @@ final class TelasDeClasses
         $total = $this->servicos->classes->contarObjetos($classe->id);
         $corpo = $aviso . $this->erro($erro)
             . ($classe->fixa ? $this->alerta('info', 'Este é um tipo <strong>fixo</strong> (essencial ao sistema): não pode ser apagado nem renomeado, e os campos de base dele não podem ser removidos nem arquivados. Acrescentar campos é permitido.', '', true) : '')
-            . $this->formularioDeIcone($sessao, $classe)
             . '<form method="post" action="' . $this->link($classe->id) . '/editar"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>'
             . $this->campoCsrf($sessao) . '<input type="hidden" name="versao" value="' . $classe->versao . '">'
-            . $this->card('Sobre o tipo', $this->camposDaClasse($r['descricao'], $r['aceita_filhos'], $r['filhas'], $todas, $classe->nome))
-            . '<div class="pbl-rotulo mt-4"><h2 class="h5">Campos deste tipo</h2>' . Pagina::ajuda('ajuda-campos', 'Campos deste tipo', 'Menor número vem primeiro. Campo com dados não troca de tipo nem se remove: só se arquiva.') . '</div>';
+            . '';
+        $ondeFica = $this->camposDaClasse($r['aceita_filhos'], $r['filhas'], $todas, $classe->nome);
+        $campos = $this->campoDeDescricao($r['descricao']) . '<div class="pbl-rotulo mt-2"><h3 class="h6">Campos deste tipo</h3>' . Pagina::ajuda('ajuda-campos', 'Campos deste tipo', 'Menor número vem primeiro. Campo com dados não troca de tipo nem se remove: só se arquiva.') . '</div>';
 
         if ($r['campos'] === []) {
-            $corpo .= '<p class="text-body-secondary">Este tipo ainda não tem campos.</p>';
+            $campos .= '<p class="text-body-secondary">Este tipo ainda não tem campos.</p>';
         } else {
             $paineis = '';
             foreach ($r['campos'] as $i => $c) {
@@ -738,7 +741,7 @@ final class TelasDeClasses
                     . ' <span class="pbl-resumo-meta ms-2">' . Pagina::h($this->descreverTipo($c['tipo'], $c['classe'])) . ' · ordem ' . Pagina::h($c['ordem']) . '</span>' . $selos;
                 $paineis .= Pagina::recolhivel($id, $resumo, $interno, $erro !== null);
             }
-            $corpo .= '<div class="pbl-recolhiveis">' . $paineis . '</div>';
+            $campos .= '<div class="pbl-recolhiveis">' . $paineis . '</div>';
         }
 
         $n = $r['novo'];
@@ -751,9 +754,14 @@ final class TelasDeClasses
             . $this->checkbox('novo-indexavel', 'novo[indexavel]', 'Indexável', $n['indexavel'], 'Permite filtrar e ordenar por este campo nos modelos de página. Não muda depois que houver valores. Referências são sempre indexáveis.') . '</div>'
             . '<div class="pbl-largo">' . $this->camposDeArquivo('novo', 'novo', $n['tipos'], $n['tamanho_max_mb'], in_array($n['tipo'], ['arquivo', 'imagem'], true), true) . '</div>'
             . '</div>';
-        $corpo .= '<div class="pbl-recolhiveis">' . Pagina::recolhivel('novo-campo', '<strong>Adicionar um campo</strong> <span class="pbl-resumo-meta ms-2">(opcional)</span>', $novo, $this->novoPreenchido($n)) . '</div>'
+        $campos .= '<div class="pbl-recolhiveis">' . Pagina::recolhivel('novo-campo', '<strong>Adicionar um campo</strong> <span class="pbl-resumo-meta ms-2">(opcional)</span>', $novo, $this->novoPreenchido($n)) . '</div>';
+        $corpo .= Pagina::abasDeFormulario([
+            'campos' => ['Campos', $campos],
+            'onde' => ['Onde pode ficar', $ondeFica],
+            'aparencia' => ['Aparência', $this->iconeNaAba($classe)],
+        ], $erro !== null ? 'campos' : (($aviso !== '' && str_contains($aviso, 'cone')) ? 'aparencia' : 'campos'), 'Partes do tipo de conteúdo')
             . $this->acoes('Salvar alterações', [['Voltar aos tipos', $this->linkLista()]], $classe->fixa ? null : ['Apagar este tipo de conteúdo', $this->link($classe->id) . '/apagar'])
-            . '</form>';
+            . '</form>' . $this->formularioDeIcone($sessao, $classe);
 
         $descricao = '<code>' . Pagina::h($classe->nome) . '</code> · ' . $total . ' conteúdo' . ($total === 1 ? ' usa' : 's usam') . ' este tipo · versão ' . $classe->versao;
 
@@ -821,15 +829,20 @@ final class TelasDeClasses
         return $tipo === 'ref' && $alvo !== '' ? $nome . ' (' . $alvo . ')' : $nome;
     }
 
+    /** Descrição: comum a criar e editar. */
+    private function campoDeDescricao(string $descricao): string
+    {
+        return $this->campo('campo-descricao', 'descricao', 'Descrição', $descricao, ['tipo' => 'textarea', 'linhas' => 3, 'maxlength' => ClasseRepositorio::MAX_DESCRICAO, 'ajuda' => 'Opcional. Para que serve este tipo.']);
+    }
+
     /**
-     * Descrição e filhos aceitos: comuns a criar e editar.
+     * Filhos aceitos: comuns a criar e editar.
      *
      * @param list<string> $filhas
      * @param list<Classe> $todas
      */
-    private function camposDaClasse(string $descricao, bool $aceita, array $filhas, array $todas, ?string $propria): string
+    private function camposDaClasse(bool $aceita, array $filhas, array $todas, ?string $propria): string
     {
-        $html = $this->campo('campo-descricao', 'descricao', 'Descrição', $descricao, ['tipo' => 'textarea', 'linhas' => 3, 'maxlength' => ClasseRepositorio::MAX_DESCRICAO, 'ajuda' => 'Opcional. Para que serve este tipo.']);
         $dentro = $this->checkbox('campo-aceita', 'aceita_filhos', 'Pode ter conteúdo dentro (filhos)', $aceita);
         $opcoes = '';
         $nomes = array_map(static fn (Classe $c): string => $c->nome, $todas);
@@ -844,7 +857,7 @@ final class TelasDeClasses
         }
         $dentro .= '<div class="pbl-rotulo"><span class="form-label">Sobre esta regra</span>' . Pagina::ajuda('ajuda-regra-filhos', 'Regra de filhos', 'Vale ao criar ou mover conteúdo.') . '</div>';
 
-        return $html . '<div class="pbl-recolhiveis">' . Pagina::recolhivel('filhos', '<strong>Que tipos podem ficar dentro</strong> <span class="pbl-resumo-meta ms-2">(conteúdo dentro deste tipo)</span>', $dentro, $filhas !== []) . '</div>';
+        return '<div class="pbl-recolhiveis">' . Pagina::recolhivel('filhos', '<strong>Que tipos podem ficar dentro</strong> <span class="pbl-resumo-meta ms-2">(conteúdo dentro deste tipo)</span>', $dentro, $filhas !== []) . '</div>';
     }
 
     // ---------------------------------------------------------------- apagar

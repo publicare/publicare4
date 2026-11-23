@@ -688,4 +688,16 @@ final class AdminClassesTest extends TestCase
         self::assertSame(303, $r3->getStatusCode());
         self::assertNull($this->s->classes->porId($id));
     }
+
+    public function testEditorDoTipoTemAbasCamposOndePodeFicarEAparenciaComOIconeNaUltima(): void
+    {
+        $t = $this->token('admin');
+        $id = $this->pagina->id;
+        $html = (string) $this->req('GET', "/_pbl/classe/{$id}/editar", $t)->getContent();
+        foreach (['Campos', 'Onde pode ficar', 'Aparência'] as $aba) {
+            self::assertStringContainsString($aba, $html);
+        }
+        self::assertSame(1, substr_count($html, 'id="form-icone"'), 'um só formulário do ícone');
+        self::assertStringContainsString('form="form-icone"', $html);
+    }
 }

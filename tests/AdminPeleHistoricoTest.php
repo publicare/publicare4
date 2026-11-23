@@ -135,6 +135,19 @@ final class AdminPeleHistoricoTest extends TestCase
         self::assertStringContainsString('diferenca', $html);
     }
 
+    public function testMoldeTemAbasCodigoHistoricoEPrevisualizarComAbaAtualMarcada(): void
+    {
+        $t = $this->token('admin');
+        $b = $this->base();
+        $editor = $this->html($this->req('GET', "{$b}/molde?nome=padrao", $t));
+        self::assertStringContainsString('aria-label="Partes do modelo de página"', $editor);
+        self::assertMatchesRegularExpression('#<a href="[^"]*/molde\?nome=padrao" aria-current="page">Código</a>#', $editor);
+        $historico = $this->html($this->req('GET', "{$b}/molde/historico?nome=padrao", $t));
+        self::assertMatchesRegularExpression('#<a href="[^"]*/molde/historico\?nome=padrao" aria-current="page">Histórico</a>#', $historico);
+        self::assertStringContainsString('Pré-visualizar</a>', $historico);
+        self::assertStringContainsString('padrao.pbl', $historico, 'migalhas até o modelo');
+    }
+
     public function testDiferencaEntreVersoesEscapaHtmlMalicioso(): void
     {
         $t = $this->token('admin');

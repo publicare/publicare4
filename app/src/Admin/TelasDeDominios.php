@@ -159,33 +159,43 @@ final class TelasDeDominios
         $csrf = $this->campoCsrf($sessao);
         $base = $this->link($site->id);
         $dominios = $this->servicos->dominios->doSite($site->id);
-        $corpo = $aviso . $this->erro($erro)
-            . '<p>Site <strong>' . Pagina::h($site->nome) . '</strong>.</p>';
-        if ($dominios === []) {
-            $corpo .= '<p>Nenhum domínio ainda.</p>';
-        } else {
-            $corpo .= '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Domínios do site</caption><thead><tr><th scope="col">Domínio</th><th scope="col">Tipo</th><th scope="col">Ações</th></tr></thead><tbody>';
-            foreach ($dominios as $d) {
-                $corpo .= '<tr><th scope="row"><code>' . Pagina::h($d->host) . '</code></th><td>' . match ($d->modo) {
-                    Dominio::PRINCIPAL => '<span class="badge text-bg-primary">Principal</span>',
-                    Dominio::SERVIR => 'Alias',
-                    default => 'Redirecionador',
-                } . '</td><td>' . ($d->modo === Dominio::PRINCIPAL ? '<span class="text-body-secondary">—</span>' : $this->acoesDe($sessao, $csrf, $base, $d)) . '</td></tr>';
+        $principal = null;
+        $outros = ['servir' => [], 'redirecionar' => []];
+        foreach ($dominios as $d) {
+            if ($d->modo === Dominio::PRINCIPAL) {
+                $principal ??= $d;
+            } else {
+                $outros[$d->modo === Dominio::SERVIR ? 'servir' : 'redirecionar'][] = $d;
             }
-            $corpo .= '</tbody></table></div>';
         }
+        $tabela = function (array $lista, string $legenda) use ($sessao, $csrf, $base): string {
+            $linhas = '';
+            foreach ($lista as $d) {
+                $linhas .= '<tr><th scope="row"><code>' . Pagina::h($d->host) . '</code></th><td>' . ($d->modo === Dominio::SERVIR ? 'Alias' : 'Redirecionador') . '</td><td>' . $this->acoesDe($sessao, $csrf, $base, $d) . '</td></tr>';
+            }
+
+            return '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">' . Pagina::h($legenda) . '</caption><thead><tr><th scope="col">Domínio</th><th scope="col">Tipo</th><th scope="col">Ações</th></tr></thead><tbody>' . $linhas . '</tbody></table></div>';
+        };
+        $corpo = $aviso . $this->erro($erro)
+            . Pagina::cabecalho('Site <strong>' . Pagina::h($site->nome) . '</strong> · ' . count($dominios) . ' ' . (count($dominios) === 1 ? 'domínio' : 'domínios') . '.', '<a class="btn btn-primary" href="#adicionar-dominio">Adicionar domínio</a>',
+                ['<a href="' . Painel::PREFIXO . '/site/' . $site->id . '/configuracoes">Configurações do site</a>'])
+            . ($principal === null
+                ? Pagina::cartaoDeEstado('atencao', 'Nenhum domínio principal ainda', 'Adicione um domínio abaixo e torne-o o principal.')
+                : Pagina::cartaoDeEstado('ok', 'Endereço principal', '<code>' . Pagina::h($principal->host) . '</code> <span class="pbl-selo">Principal</span> — o endereço canônico do site.'))
+            . '<h2 class="h5" id="titulo-dominios">Domínios</h2>'
+            . ($outros['servir'] === [] ? Pagina::vazio('Nenhum alias', 'Um alias abre o mesmo site por outro nome. Adicione um abaixo, se precisar.') : $tabela($outros['servir'], 'Aliases do site'))
+            . ($outros['redirecionar'] === [] ? '' : '<div class="pbl-recolhiveis">' . Pagina::recolhivel('redirecionamentos', 'Redirecionamentos (' . count($outros['redirecionar']) . ')', $tabela($outros['redirecionar'], 'Redirecionamentos do site')) . '</div>');
         $modos = '';
         foreach (self::MODOS as $valor => $rotulo) {
             $modos .= '<option value="' . $valor . '">' . Pagina::h($rotulo) . '</option>';
         }
-        $corpo .= '<section class="mt-4"><h2 class="h5">Adicionar domínio</h2><form method="post" action="' . $base . '/adicionar" class="row g-2 align-items-end">' . $csrf
+        $corpo .= '<section class="mt-4" id="adicionar-dominio"><h2 class="h5">Adicionar domínio</h2><form method="post" action="' . $base . '/adicionar" class="row g-2 align-items-end">' . $csrf
             . '<div class="col-sm-5">' . Pagina::rotulo('campo-host', 'Domínio', Pagina::ajuda('ajuda-host', 'Domínio', 'Só o nome, sem <code>https://</code>. DNS e certificado apontam para esta hospedagem.')) . '<input id="campo-host" class="form-control" name="host" maxlength="253" required placeholder="www.exemplo.org" aria-describedby="ajuda-host"></div>'
             . '<div class="col-sm-5"><label for="campo-modo" class="form-label">Tipo</label><select id="campo-modo" class="form-select" name="modo">' . $modos . '</select></div>'
             . '<div class="col-sm-2">' . $this->campoSenha($sessao, 'campo-senha-adicionar') . '<button type="submit" class="btn btn-primary">Adicionar</button></div>'
-            . '</form></section>'
-            . '<p class="mt-4"><a href="' . Painel::PREFIXO . '/">Voltar ao painel</a></p>';
+            . '</form></section>';
 
-        return Pagina::resposta('Domínios: ' . $site->nome, $corpo, $status, false, $this->barra($sessao), [[$site->nome, Painel::PREFIXO . '/'], ['Domínios', null]], '', '<em>Principal</em>: endereço oficial. <em>Alias</em>: mesmo conteúdo. <em>Redirecionador</em>: leva ao principal (301).');
+        return Pagina::resposta('Domínios: ' . $site->nome, $corpo, $status, false, $this->barra($sessao), [['Site', Painel::PREFIXO . '/site/' . $site->id . '/configuracoes'], ['Domínios', null]], '', '<em>Principal</em>: endereço oficial. <em>Alias</em>: mesmo conteúdo. <em>Redirecionador</em>: leva ao principal (301).');
     }
 
     private function acoesDe(SessaoAtiva $sessao, string $csrf, string $base, Dominio $d): string

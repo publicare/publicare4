@@ -658,6 +658,28 @@ final class TelasDeSite
         return $usam === [] ? null : 'Este modelo de página é citado por: ' . implode(', ', $usam) . '. Tire a referência antes de apagar.';
     }
 
+    /** Abas do molde (Código · Histórico · Pré-visualizar): cada uma é uma tela, ligada por link, e funciona sem JavaScript. */
+    private function abasDoMolde(Site $site, string $pele, string $nome, string $atual): string
+    {
+        $base = $this->linkPeles($site) . '/' . $pele;
+        $q = '?nome=' . rawurlencode($nome);
+        $abas = ['codigo' => ['Código', $base . '/molde' . $q], 'historico' => ['Histórico', $base . '/molde/historico' . $q], 'previa' => ['Pré-visualizar', $base . '/molde/previsualizar' . $q]];
+        $itens = '';
+        foreach ($abas as $chave => [$rotulo, $href]) {
+            $itens .= '<li><a href="' . Pagina::h($href) . '"' . ($chave === $atual ? ' aria-current="page"' : '') . '>' . Pagina::h($rotulo) . '</a></li>';
+        }
+
+        return '<nav aria-label="Partes do modelo de página"><ul class="pbl-abas-links">' . $itens . '</ul></nav>';
+    }
+
+    /** @return list<array{0: string, 1: string|null}> */
+    private function migalhasDoMolde(Site $site, string $pele, string $nome, string $ultima): array
+    {
+        $base = $this->linkPeles($site) . '/' . $pele;
+
+        return [[$site->nome, Painel::PREFIXO . '/'], ['Peles', $this->linkPeles($site)], [$pele, $base], [$nome . '.pbl', $base . '/molde?nome=' . rawurlencode($nome)], [$ultima, null]];
+    }
+
     /**
      * @param array{mensagem: string, linha: int|null}|null $erro
      */
@@ -678,7 +700,7 @@ final class TelasDeSite
             }
             $aviso .= '</div>';
         }
-        $corpo = $aviso . '<p>Pele <code>' . Pagina::h($pele) . '</code>.</p>'
+        $corpo = ($novo ? '' : $this->abasDoMolde($site, $pele, $nome, 'codigo')) . $aviso . '<p>Pele <code>' . Pagina::h($pele) . '</code>.</p>'
             . '<form method="post" action="' . $url . ($novo ? '/novo' : '/molde') . '">' . $this->campoCsrf($sessao)
             . ($novo
                 ? '<div class="mb-3"><label for="m-nome" class="form-label">Nome do modelo de página (sem <code>.pbl</code>; <code>/</code> só para pastas)</label><input id="m-nome" class="form-control" name="nome" maxlength="100" required value="' . Pagina::h($nome) . '"></div>'
@@ -689,11 +711,10 @@ final class TelasDeSite
             . '<button type="submit" class="btn btn-primary">Validar e salvar</button> '
             . ($novo ? '' : '<button type="submit" formaction="' . $url . '/molde/rascunho" formnovalidate class="btn btn-outline-primary">Salvar rascunho</button> ')
             . '<a class="btn btn-link" href="' . $url . '">Cancelar</a>'
-            . ($novo ? '' : ' <a class="btn btn-link" href="' . $url . '/molde/historico?nome=' . rawurlencode($nome) . '&ver=atual">Ver com realce</a>'
-                . ' <a class="btn btn-link" href="' . $url . '/molde/historico?nome=' . rawurlencode($nome) . '">Histórico</a>')
+            . ($novo ? '' : ' <a class="btn btn-link" href="' . $url . '/molde/historico?nome=' . rawurlencode($nome) . '&ver=atual">Ver com realce</a>')
             . '</form>';
 
-        return Pagina::resposta($novo ? 'Novo modelo de página' : 'Editar modelo de página', $corpo, $status, false, $this->barra($sessao), [], '', 'O molde é validado antes de salvar. Nada roda como PHP.');
+        return Pagina::resposta($novo ? 'Novo modelo de página' : 'Editar modelo de página', $corpo, $status, false, $this->barra($sessao), $novo ? [[$site->nome, Painel::PREFIXO . '/'], ['Peles', $this->linkPeles($site)], [$pele, $url], ['Novo modelo', null]] : $this->migalhasDoMolde($site, $pele, $nome, 'Código'), '', 'O molde é validado antes de salvar. Nada roda como PHP.');
     }
 
     /**
@@ -798,7 +819,7 @@ final class TelasDeSite
         }
         $corpo .= '</tbody></table></div><p><a href="' . $base . '">Voltar aos arquivos da pele</a></p>';
 
-        return Pagina::resposta('Histórico: ' . $nome, $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', $ajudaHistorico);
+        return Pagina::resposta('Histórico: ' . $nome, $this->abasDoMolde($site, $pele, $nome, 'historico') . $corpo, Response::HTTP_OK, false, $this->barra($sessao), $this->migalhasDoMolde($site, $pele, $nome, 'Histórico'), '', $ajudaHistorico);
     }
 
     /** @param list<array{versao: int, hash: string, acao: string, usuario_id: int|null, criado_em: string}> $historico */
@@ -1098,7 +1119,7 @@ final class TelasDeSite
                 . '<button type="submit" class="btn btn-primary">Pré-visualizar</button></form>';
         }
 
-        return Pagina::resposta('Pré-visualizar rascunho', $corpo . '<p class="mt-3"><a href="' . $editor . '">Voltar ao editor</a></p>', Response::HTTP_OK, false, $this->barra($sessao), [], '', 'Mostra a página com o rascunho. Não publica nada.');
+        return Pagina::resposta('Pré-visualizar rascunho', $this->abasDoMolde($site, $pele, $nome, 'previa') . $corpo . '<p class="mt-3"><a href="' . $editor . '">Voltar ao editor</a></p>', Response::HTTP_OK, false, $this->barra($sessao), $this->migalhasDoMolde($site, $pele, $nome, 'Pré-visualizar'), '', 'Mostra a página com o rascunho. Não publica nada.');
     }
 
     /**

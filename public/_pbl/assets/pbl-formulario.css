@@ -303,5 +303,27 @@ details.pbl-ajuda > .pbl-ajuda-texto { margin-top: var(--pbl-e2); padding: var(-
 .pbl-seletor-busca { margin-bottom: var(--pbl-e2); }
 .pbl-seletor-busca[hidden] { display: none; }
 
+/* ---------------------------------------------------------------- fase 2: cabeçalho de tela e cartão de estado */
+.pbl-cabecalho { display: flex; flex-direction: column; gap: var(--pbl-e3); margin-bottom: var(--pbl-e6); }
+.pbl-cabecalho-linha { margin: 0; color: var(--pbl-texto-2); max-width: 70ch; }
+.pbl-cabecalho-acao .btn { min-height: var(--pbl-toque); display: inline-flex; align-items: center; }
+.pbl-cabecalho-sec { margin: 0; }
+.pbl-estado { border: 1px solid var(--pbl-linha); border-left-width: 4px; border-radius: var(--pbl-raio); padding: var(--pbl-e4); margin-bottom: var(--pbl-e6); background: var(--pbl-superficie); color: var(--pbl-texto); }
+.pbl-estado-titulo { display: flex; align-items: center; gap: var(--pbl-e2); }
+.pbl-estado-texto { margin-top: var(--pbl-e2); color: var(--pbl-texto-2); }
+.pbl-estado-acao { margin-top: var(--pbl-e3); }
+.pbl-estado-acao .btn { min-height: var(--pbl-toque); display: inline-flex; align-items: center; }
+.pbl-estado-ok { border-left-color: var(--pbl-ok); background: var(--pbl-ok-fundo); }
+.pbl-estado-atencao { border-left-color: var(--pbl-aviso); background: var(--pbl-aviso-fundo); }
+.pbl-estado-erro { border-left-color: var(--pbl-erro); background: var(--pbl-erro-fundo); }
+.pbl-estado-andamento { border-left-color: var(--pbl-azul); }
+.pbl-estado-ok .pbl-estado-titulo svg { color: var(--pbl-ok); }
+.pbl-estado-atencao .pbl-estado-titulo svg { color: var(--pbl-aviso); }
+.pbl-estado-erro .pbl-estado-titulo svg { color: var(--pbl-erro); }
+.pbl-estado-andamento .pbl-estado-titulo svg { color: var(--pbl-azul); }
+.pbl-perigo { border: 1px solid var(--pbl-erro); border-radius: var(--pbl-raio); padding: var(--pbl-e4); margin-bottom: var(--pbl-e6); }
+.pbl-perigo > h2 { color: var(--pbl-erro); }
+.pbl-selo { display: inline-block; padding: 0 var(--pbl-e2); border-radius: var(--pbl-raio-selo); background: var(--pbl-acao-suave); color: var(--pbl-texto); border: 1px solid var(--pbl-acao); font-size: .875rem; font-weight: 600; }
+
 /* sem movimento quando a pessoa pede */
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
