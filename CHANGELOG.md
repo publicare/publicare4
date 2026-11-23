@@ -6,8 +6,12 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.9] - 2026-11-23
+
+> **Em resumo:** novo painel, fase 2: Atualização, Cópias de segurança, Tarefas agendadas, Contas, Tipos, Modelos, Domínios e Revisão ganham cabeçalho de estado, abas e seções, aprovação em lote na Revisão, e a listagem nova de conteúdo foi preservada.
+
+
 ### Alterado
-- **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.8`.
 - **Novo painel, fase 2** (adendo ao ADR 0031, `docs/adr/0032-novo-painel-fase-2.md`): as telas que seguiam com a cara antiga ganham cabeçalho de estado com uma ação principal, abas ou seções recolhíveis, migalhas e estado vazio útil.
   - **Atualização:** Atualizar · Histórico e voltar atrás · Configuração; andamento em destaque só quando há atualização em curso; "Voltar atrás" separado, com aviso e confirmação; diagnóstico técnico recolhido.
   - **Cópias de segurança, Tarefas agendadas, Contas** (Dados · Papéis e acessos · Segurança) **e Domínios** reorganizados no mesmo padrão.
