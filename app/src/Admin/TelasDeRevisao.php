@@ -255,7 +255,7 @@ final class TelasDeRevisao
             $corpo .= '<form id="lote" method="post" action="' . Painel::PREFIXO . '/revisao/aprovar-lote" class="d-flex flex-wrap gap-2 align-items-center mb-3">' . $this->campoCsrf($sessao)
                 . ($areaId === null ? '' : '<input type="hidden" name="area" value="' . $areaId . '">')
                 . '<span class="text-body-secondary me-auto">' . $total . ' envio(s) aguardando' . ($total > count($lista) ? '; mostrando os ' . count($lista) . ' mais antigos' : '') . '.</span>'
-                . '<button type="submit" class="btn btn-success bg-gradient">Aprovar os marcados</button></form><ul class="list-group mb-4 pbl-pendencias" aria-label="Envios aguardando revisão">';
+                . '<button type="submit" class="btn btn-success bg-gradient">Aprovar os marcados</button></form><ul class="pbl-lista-conteudo pbl-pendencias mb-4" aria-label="Envios aguardando revisão">';
             foreach ($lista as $o) {
                 $corpo .= $this->itemDePendencia($sessao, $o, $enviados[$o->id] ?? null, $areaId);
             }
@@ -269,26 +269,33 @@ final class TelasDeRevisao
     private function itemDePendencia(SessaoAtiva $sessao, Objeto $o, ?array $envio, ?int $areaId): string
     {
         $pai = $o->paiId === null ? null : $this->servicos->objetos->porId($o->paiId);
-        $dentro = $pai !== null && $this->servicos->permissoes->pode($sessao->usuario, Acao::Ver, $pai) ? ' · dentro de ' . Pagina::h($pai->titulo) : '';
-        $quem = $envio === null ? 'Enviado' : ($envio['acao'] === 'reenviou' ? 'Reenviado' : 'Enviado') . ' por ' . Pagina::h($envio['quem']) . ' em ' . $this->quando($envio['quando']);
-        $campos = $this->campoCsrf($sessao) . '<input type="hidden" name="versao" value="' . $o->versao . '"><input type="hidden" name="voltar" value="pendencias">'
+        $extras = [];
+        if ($pai !== null && $this->servicos->permissoes->pode($sessao->usuario, Acao::Ver, $pai)) {
+            $extras[] = 'dentro de ' . $pai->titulo;
+        }
+        $extras[] = $envio === null ? 'Enviado' : ($envio['acao'] === 'reenviou' ? 'Reenviado' : 'Enviado') . ' por ' . $envio['quem'] . ' em ' . $this->quando($envio['quando']);
+        $csrf = $this->campoCsrf($sessao);
+        $campos = [['versao', (string) $o->versao], ['voltar', 'pendencias']];
+        if ($areaId !== null) {
+            $campos[] = ['area', (string) $areaId];
+        }
+        $camposHtml = $csrf . '<input type="hidden" name="versao" value="' . $o->versao . '"><input type="hidden" name="voltar" value="pendencias">'
             . ($areaId === null ? '' : '<input type="hidden" name="area" value="' . $areaId . '">');
         $base = Painel::PREFIXO . '/revisao/' . $o->id;
         $idMotivo = 'motivo-' . $o->id;
-
-        return '<li class="list-group-item pbl-pendencia"><div class="mb-2">'
-            . '<input type="checkbox" form="lote" class="form-check-input me-2" name="ids[]" value="' . $o->id . '" id="sel-' . $o->id . '" aria-label="Marcar: ' . Pagina::h($o->titulo) . '">'
-            . '<input type="hidden" form="lote" name="versao[' . $o->id . ']" value="' . $o->versao . '">'
-            . '<a class="fw-semibold" href="' . Painel::PREFIXO . '/objeto/' . $o->id . '">' . Pagina::h($o->titulo) . '</a>'
-            . '<div class="small text-body-secondary"><span class="badge text-bg-light border">' . Pagina::h($this->classe($o)) . '</span>' . $dentro . '</div>'
-            . '<div class="small text-body-secondary">' . $quem . '</div></div>'
-            . '<div class="d-flex flex-wrap gap-2 align-items-start">'
-            . '<a class="btn btn-sm btn-primary bg-gradient" href="' . Painel::PREFIXO . '/objeto/' . $o->id . '">Abrir para revisar</a>'
-            . '<form method="post" action="' . $base . '/aprovar">' . $campos . Pagina::botaoIcone('aprovar', 'Aprovar e publicar', 'btn-success bg-gradient', ['item' => $o->titulo, 'tamanho' => '']) . '</form>'
-            . '<details class="pbl-devolver"><summary class="btn btn-sm btn-warning bg-gradient pbl-btn-icone" title="Devolver" aria-label="Devolver: ' . Pagina::h($o->titulo) . '">' . Pagina::icone('devolver') . '<span>Devolver…</span></summary>'
-            . '<form method="post" action="' . $base . '/devolver" class="mt-2">' . $campos
+        $acoes = [
+            AcaoDeLinha::link('Abrir para revisar', 'detalhes', AcaoDeLinha::PRIMARIA, Painel::PREFIXO . '/objeto/' . $o->id),
+            AcaoDeLinha::post('Aprovar e publicar', 'aprovar', AcaoDeLinha::ESTADO, $base . '/aprovar', $csrf, $campos),
+        ];
+        $devolver = '<details class="pbl-devolver pbl-lc-extra-bloco"><summary class="btn btn-sm btn-warning bg-gradient pbl-btn-icone" title="Devolver" aria-label="Devolver: ' . Pagina::h($o->titulo) . '">' . Pagina::icone('devolver') . '<span>Devolver…</span></summary>'
+            . '<form method="post" action="' . $base . '/devolver" class="mt-2">' . $camposHtml
             . Pagina::campo($idMotivo, 'motivo', 'Motivo da devolução', '', ['tipo' => 'textarea', 'linhas' => 3, 'obrigatorio' => true, 'maxlength' => FluxoDeRevisao::MOTIVO_MAX, 'ajuda' => 'A pessoa que enviou lê este texto. Obrigatório.'])
-            . '<button type="submit" class="btn btn-warning bg-gradient">Devolver ao autor</button></form></details></div></li>';
+            . '<button type="submit" class="btn btn-warning bg-gradient">Devolver ao autor</button></form></details>';
+
+        return LinhaDeConteudo::renderizar(new DadosDaLinha(
+            $o->id, $o->titulo, Painel::PREFIXO . '/objeto/' . $o->id, $this->servicos->classes->porId($o->classeId), $this->classe($o),
+            extras: $extras, aposAcoes: $devolver, selecionavelVersao: $o->versao,
+        ), $acoes);
     }
 
     /** @param list<Objeto> $areas */
@@ -329,7 +336,7 @@ final class TelasDeRevisao
         if ($lista === []) {
             $corpo .= Pagina::alerta('info', 'Nenhum envio por aqui.');
         } else {
-            $corpo .= '<ul class="list-group mb-4 pbl-envios" aria-label="Meus envios">';
+            $corpo .= '<ul class="pbl-lista-conteudo pbl-envios mb-4" aria-label="Meus envios">';
             foreach ($lista as $o) {
                 $corpo .= $this->itemDeEnvio($sessao, $o, $devolucoes[$o->id] ?? null, $enviados[$o->id] ?? null);
             }
@@ -365,35 +372,37 @@ final class TelasDeRevisao
         };
         $link = Painel::PREFIXO . '/objeto/' . $o->id;
         $base = Painel::PREFIXO . '/revisao/' . $o->id;
-        $campos = $this->campoCsrf($sessao) . '<input type="hidden" name="versao" value="' . $o->versao . '"><input type="hidden" name="voltar" value="meus-envios">';
-        $botoes = '';
+        $csrf = $this->campoCsrf($sessao);
+        $campos = [['versao', (string) $o->versao], ['voltar', 'meus-envios']];
+        $acoes = [];
         $podeEditar = $this->servicos->permissoes->pode($u, Acao::Editar, $o) && ($o->status !== 'submetido' || $this->servicos->permissoes->pode($u, Acao::Publicar, $o));
         if ($podeEditar) {
-            $botoes .= Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $link . '/editar', 'item' => $o->titulo]);
+            $acoes[] = AcaoDeLinha::link('Editar', 'editar', AcaoDeLinha::PRIMARIA, $link . '/editar');
         }
         $podeEditarSimples = $this->servicos->permissoes->pode($u, Acao::Editar, $o);
         if ($o->status === 'rejeitado' && $podeEditarSimples) {
-            $botoes .= '<form method="post" action="' . $base . '/reenviar">' . $campos . Pagina::botaoIcone('enviar', 'Reenviar para revisão', 'btn-success bg-gradient', ['item' => $o->titulo]) . '</form>';
+            $acoes[] = AcaoDeLinha::post('Reenviar para revisão', 'enviar', AcaoDeLinha::ESTADO, $base . '/reenviar', $csrf, $campos);
         }
         if ($o->status === 'privado' && $podeEditarSimples) {
-            $botoes .= '<form method="post" action="' . $base . '/enviar">' . $campos . Pagina::botaoIcone('enviar', 'Enviar para revisão', 'btn-success bg-gradient', ['item' => $o->titulo]) . '</form>';
+            $acoes[] = AcaoDeLinha::post('Enviar para revisão', 'enviar', AcaoDeLinha::ESTADO, $base . '/enviar', $csrf, $campos);
         }
         if ($this->servicos->revisao->podeRetirar($u, $o)) {
-            $botoes .= '<form method="post" action="' . $base . '/retirar">' . $campos . Pagina::botaoIcone('retirar', 'Retirar envio', 'btn-outline-secondary', ['item' => $o->titulo]) . '</form>';
+            $acoes[] = AcaoDeLinha::post('Retirar envio', 'retirar', AcaoDeLinha::MENU, $base . '/retirar', $csrf, $campos);
         }
+        $acoes[] = AcaoDeLinha::link('Abrir', 'detalhes', AcaoDeLinha::MENU, $link);
         $detalhe = '';
         if ($o->status === 'rejeitado') {
-            $detalhe = '<div class="alert alert-warning py-2 my-2" role="alert"><strong>Devolvido'
+            $detalhe = '<div class="alert alert-warning py-2 my-2 pbl-lc-extra-bloco" role="alert"><strong>Devolvido'
                 . ($devolucao === null ? '' : ' por ' . Pagina::h($devolucao['quem']) . ' em ' . $this->quando($devolucao['quando'])) . '.</strong> '
                 . ($devolucao === null || $devolucao['motivo'] === null ? 'Sem motivo registrado.' : '<span class="pbl-motivo">' . nl2br(Pagina::h($devolucao['motivo'])) . '</span>') . '</div>';
         } elseif ($o->status === 'submetido' && $envio !== null) {
-            $detalhe = '<div class="small text-body-secondary">Enviado em ' . $this->quando($envio['quando']) . '.</div>';
+            $detalhe = '<div class="small text-body-secondary pbl-lc-extra-bloco">Enviado em ' . $this->quando($envio['quando']) . '.</div>';
         }
 
-        return '<li class="list-group-item pbl-envio"><div class="mb-1"><a class="fw-semibold" href="' . $link . '">' . Pagina::h($o->titulo) . '</a> '
-            . '<span class="badge ' . $cor . '">' . $rotulo . '</span></div>'
-            . '<div class="small text-body-secondary"><span class="badge text-bg-light border">' . Pagina::h($this->classe($o)) . '</span></div>' . $detalhe
-            . ($botoes === '' ? '' : '<div class="d-flex flex-wrap gap-2 mt-2">' . $botoes . '</div>') . '</li>';
+        return LinhaDeConteudo::renderizar(new DadosDaLinha(
+            $o->id, $o->titulo, $link, $this->servicos->classes->porId($o->classeId), $this->classe($o),
+            '<span class="badge ' . $cor . '">' . $rotulo . '</span>', aposAcoes: $detalhe,
+        ), $acoes);
     }
 
     // ---------------------------------------------------------------- bloco na página do conteúdo
