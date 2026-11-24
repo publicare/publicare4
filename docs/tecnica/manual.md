@@ -45,3 +45,7 @@ O operador cria a conta de serviço e guarda a credencial como segredo do workfl
 ## Link Ajuda no painel
 
 O painel mostra "Ajuda (manual)" apontando para a configuração `manual_url` do site (aba Comportamento; padrão `https://manual.publicare.org/`; só https, ou http em localhost).
+
+## Prévia do manual (pele e conteúdo)
+
+`manual/previa-pacote.php` monta o pacote de prévia do manual: roda `previa/gerar-pacote.php`, ativa a pele `manual` no site de demonstração e carrega o manual com `bin/pbl manual-gerar --edicao=estavel --sem-capturas`. Os capítulos ficam em `/comecar/`, `/conteudo/` etc. (a raiz continua sendo a página de demonstração); as capturas do painel aparecem como quadros de texto. Só para prévia descartável.
