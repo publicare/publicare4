@@ -29,7 +29,7 @@ final class BancoEConteudoTest extends TestCase
         self::assertSame([], $m->migrar());
         // a última migração vem do diretório: um número fixo aqui quebrava a cada migração nova (27 → 28 na entrega de login e contas)
         $versoes = array_map(static fn (string $f): int => (int) substr(basename($f), 1, 3), glob(dirname(__DIR__) . '/app/src/Banco/Migracoes/M[0-9][0-9][0-9]*.php') ?: []);
-        self::assertSame(max($versoes), $m->versaoAtual());
+        self::assertSame(max([0, ...$versoes]), $m->versaoAtual());
     }
 
     public function testCaminhoMaterializadoEEscopoDeSubarvore(): void
