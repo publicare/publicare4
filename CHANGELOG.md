@@ -9,6 +9,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 ### Alterado
 - **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.10`.
 
+### Adicionado
+- **E-mail do site pelo servidor local sem TLS** ([ADR 0039](docs/adr/0039-smtp-sem-tls-no-loopback.md); [guia](docs/usuario/recuperar-acesso.md)): nova segurança `nenhuma`, aceita **somente** para `localhost`, `127.0.0.1` e `::1` (recusada na validação e no transporte); usuário e senha opcionais (sem AUTH quando vazios); teste de envio informa a categoria da falha (rede, TLS, login, recusa) sem revelar segredo; a verificação do certificado para TLS/STARTTLS continua ligada. Guia de SPF, DKIM e DMARC com remetente de domínio próprio.
+
 ## [0.1.0-rc.10] - 2026-11-24
 
 > **Em resumo:** recuperação de acesso por e-mail (esqueci a senha, esqueci o usuário), convite de usuário por link, perfil com troca de senha e e-mail e lista de sessões, mais controles de contas para o administrador; e a correção do cache de moldes compilados, que mostrava a base velha depois de instalar uma pele nova.
