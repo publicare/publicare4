@@ -9,6 +9,8 @@ final class ConfigDeEmail
 {
     public const SEGURANCA_TLS = 'tls';
     public const SEGURANCA_STARTTLS = 'starttls';
+    /** Sem TLS: só vale para o servidor de e-mail da própria máquina (loopback). */
+    public const SEGURANCA_NENHUMA = 'nenhuma';
 
     public function __construct(
         public readonly string $driver = Transporte::DESLIGADO,
@@ -38,18 +40,27 @@ final class ConfigDeEmail
             return 'Informe o remetente (ex.: Site <nao-responda@exemplo.org>)';
         }
         if ($this->driver === Transporte::SMTP) {
-            if (preg_match('/^[A-Za-z0-9.-]{1,253}$/D', $this->host) !== 1) {
+            if (preg_match('/^(?:[A-Za-z0-9.-]{1,253}|\\[?::1\\]?)$/D', $this->host) !== 1) {
                 return 'Servidor SMTP inválido';
             }
             if ($this->porta < 1 || $this->porta > 65535) {
                 return 'Porta inválida';
             }
-            if (!in_array($this->seguranca, [self::SEGURANCA_TLS, self::SEGURANCA_STARTTLS], true)) {
-                return 'Segurança inválida (use TLS ou STARTTLS)';
+            if (!in_array($this->seguranca, [self::SEGURANCA_TLS, self::SEGURANCA_STARTTLS, self::SEGURANCA_NENHUMA], true)) {
+                return 'Segurança inválida (use TLS, STARTTLS ou nenhuma)';
+            }
+            if ($this->seguranca === self::SEGURANCA_NENHUMA && !self::hostEhLoopback($this->host)) {
+                return 'Sem TLS só é permitido no servidor da própria máquina (localhost, 127.0.0.1 ou ::1)';
             }
         }
 
         return null;
+    }
+
+    /** `localhost`, `127.0.0.1` ou `::1` (aceita colchetes), sem diferenciar maiúsculas. */
+    public static function hostEhLoopback(string $host): bool
+    {
+        return in_array(strtolower(trim($host, '[]')), ['localhost', '127.0.0.1', '::1'], true);
     }
 
     /** @return array{driver: string, host: string, porta: int, seguranca: string, usuario: string, senha: string, remetente: string} senha mascarada */

@@ -131,9 +131,10 @@ $tentar(static function () use ($servicos, $senhaDemo): void {
 $tentar(static function () use ($servicos): void {
     $servicos->usuarios->criarContaDeServico('agente.publicador', 'Agente de publicação (conta de serviço)');
 });
-// E-mail em modo "arquivo" (grava na caixa local, não envia nada): faz a tela de convidar mostrar o formulário em vez do aviso.
+// E-mail por SMTP no servidor da própria máquina, sem TLS e sem login (ADR 0039): a tela 'E-mail do site' mostra a opção "Nenhuma"
+// e o botão de teste, e a tela de convidar mostra o formulário. Nada é enviado na prévia (não há servidor SMTP no contêiner).
 $tentar(static function () use ($servicos): void {
-    $servicos->configDeEmail()->salvar(new Pbl\Email\ConfigDeEmail(Pbl\Email\Transporte::ARQUIVO, remetente: Pbl\Demo\ConteudoPublicare::REMETENTE));
+    $servicos->configDeEmail()->salvar(new Pbl\Email\ConfigDeEmail(Pbl\Email\Transporte::SMTP, '127.0.0.1', 25, Pbl\Email\ConfigDeEmail::SEGURANCA_NENHUMA, remetente: Pbl\Demo\ConteudoPublicare::REMETENTE));
 });
 $tentar(static function () use ($servicos): void {
     $servicos->convites()->convidar('diego.convidado', 'Diego Almeida (convite pendente)', 'diego@exemplo.invalid', false, 'admin', false);

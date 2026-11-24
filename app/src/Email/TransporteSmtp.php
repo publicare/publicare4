@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Pbl\Email;
 
 /**
- * Cliente SMTP mínimo (ADR 0034): só com TLS (implícito ou STARTTLS, nunca texto claro), AUTH PLAIN/LOGIN, um destinatário por
+ * Cliente SMTP mínimo (ADR 0034): com TLS (implícito ou STARTTLS) e, só no loopback, sem TLS (ADR 0039); usuário/senha opcionais, AUTH PLAIN/LOGIN, um destinatário por
  * mensagem. Mensagens de erro não repetem usuário, senha nem a resposta do servidor.
  */
 final class TransporteSmtp implements Transporte
 {
+    private const ERRO_AUTH = 'Autenticação recusada pelo servidor de e-mail';
+
     /** @param \Closure(): CanalSmtp $abrir */
     public function __construct(
         private readonly \Closure $abrir,
@@ -18,11 +20,16 @@ final class TransporteSmtp implements Transporte
         private readonly string $senha,
         private readonly string $remetente,
         private readonly string $nomeLocal = 'pbl4.invalid',
+        private readonly bool $semTls = false,
+        private readonly string $host = '',
     ) {
     }
 
     public function enviar(Mensagem $mensagem): void
     {
+        if ($this->semTls && (!ConfigDeEmail::hostEhLoopback($this->host) || $this->starttls)) {
+            throw new FalhaDeEmail('Conexão sem TLS só é permitida para o servidor da própria máquina', FalhaDeEmail::CONFIGURACAO);
+        }
         $de = $this->enderecoDe($this->remetente);
         $canal = ($this->abrir)();
         try {
@@ -31,7 +38,7 @@ final class TransporteSmtp implements Transporte
             if ($this->starttls) {
                 $this->comando($canal, 'STARTTLS', 220);
                 if (!$canal->ligarTls()) {
-                    throw new \RuntimeException('Falha ao negociar TLS com o servidor de e-mail');
+                    throw new FalhaDeEmail('Falha ao negociar TLS com o servidor de e-mail', FalhaDeEmail::TLS);
                 }
                 $this->comando($canal, 'EHLO ' . $this->nomeLocal, 250);
             }
@@ -66,7 +73,7 @@ final class TransporteSmtp implements Transporte
             return;
         }
         // Servidores que só aceitam LOGIN.
-        $erro = 'Autenticação recusada pelo servidor de e-mail';
+        $erro = self::ERRO_AUTH;
         $this->comando($canal, 'AUTH LOGIN', 334, $erro);
         $this->comando($canal, base64_encode($this->usuario), 334, $erro);
         $this->comando($canal, base64_encode($this->senha), 235, $erro);
@@ -76,7 +83,7 @@ final class TransporteSmtp implements Transporte
     private function esperar(array $resposta, int $esperado, string $erro = 'O servidor de e-mail recusou o envio'): void
     {
         if ($resposta[0] !== $esperado) {
-            throw new \RuntimeException($erro);
+            throw new FalhaDeEmail($erro, $erro === self::ERRO_AUTH ? FalhaDeEmail::AUTENTICACAO : FalhaDeEmail::RECUSADO);
         }
     }
 
