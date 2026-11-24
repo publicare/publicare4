@@ -129,6 +129,10 @@ $tentar(static function () use ($servicos, $senhaDemo): void {
 $tentar(static function () use ($servicos): void {
     $servicos->usuarios->criarContaDeServico('agente.publicador', 'Agente de publicação (conta de serviço)');
 });
+// E-mail em modo "arquivo" (grava na caixa local, não envia nada): faz a tela de convidar mostrar o formulário em vez do aviso.
+$tentar(static function () use ($servicos): void {
+    $servicos->configDeEmail()->salvar(new Pbl\Email\ConfigDeEmail(Pbl\Email\Transporte::ARQUIVO, remetente: 'Instituto Exemplo <nao-responda@exemplo.invalid>'));
+});
 $tentar(static function () use ($servicos): void {
     $servicos->convites()->convidar('diego.convidado', 'Diego Almeida (convite pendente)', 'diego@exemplo.invalid', false, 'admin', false);
 });
