@@ -142,7 +142,11 @@ final class Painel
             Pagina::definirRevisao(0, false, false);
         }
         try {
-            Pagina::definirMenu($sessao->usuario->administrador, $this->siteQueAdministra($sessao));
+            $siteDoMenu = $this->siteQueAdministra($sessao);
+            Pagina::definirMenu($sessao->usuario->administrador, $siteDoMenu);
+            if ($siteDoMenu !== null) {
+                Pagina::definirManual((string) $this->servicos->configs->valor($siteDoMenu, 'manual_url'));
+            }
         } catch (\Throwable) {
             Pagina::definirMenu($sessao->usuario->administrador, null);
         }

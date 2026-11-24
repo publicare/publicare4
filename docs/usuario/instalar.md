@@ -1,16 +1,23 @@
+---
+titulo: Como instalar o Publicare
+resumo: Instalar o Publicare numa hospedagem comum, pelo navegador ou pelo terminal, e o que fazer se algo falhar.
+capitulo: comecar
+ordem: 20
+---
+
 # Como instalar o Publicare
 
 O jeito mais simples: **baixe o `instalar.php`, envie para a pasta do seu site e abra no navegador.** Ele confere o servidor, baixa o Publicare, confere a assinatura de segurança e leva você a um assistente com poucas perguntas.
 
-> **Estado:** a primeira versão estável (`0.1.0`) ainda não foi publicada; até lá o `instalar.php` oficial pode não estar no ar. Veja o [estado do projeto](estado-do-projeto.md).
+> Os requisitos exatos e o que mudou em cada versão não ficam neste texto, para ele não envelhecer: a **lista de requisitos** do próprio instalador mostra o que o seu servidor precisa, e as novidades ficam no registro de mudanças (CHANGELOG) do projeto.
 
 ## O que você precisa
 
-- Uma hospedagem com **PHP 8.2 ou mais novo** (procure a opção "versão do PHP" no painel).
+- Uma hospedagem com uma **versão recente do PHP** (a lista de requisitos do instalador diz qual; procure a opção "versão do PHP" no painel da hospedagem).
 - Poder **enviar arquivos** (FTP ou gerenciador de arquivos do painel) para a pasta do site.
 - Um **endereço** (domínio) já apontando para a hospedagem. Para testar, serve `localhost`.
 
-Você não precisa criar banco de dados: o Publicare usa um arquivo (SQLite). Na `0.1.0` o banco é sempre o SQLite; MySQL e PostgreSQL chegam na 0.2.
+Você não precisa criar banco de dados: o Publicare usa um arquivo (SQLite). O banco é sempre o SQLite; MySQL e PostgreSQL ainda não são suportados (estão previstos para o futuro).
 
 ## Passo a passo
 
@@ -50,7 +57,7 @@ Nesses painéis o PHP só enxerga a pasta do seu domínio. O jeito mais seguro:
 
 1. Use a pasta **`private/`** do domínio (`private/pbl4/`), e o `instalar.php` dentro dela.
 2. A pasta pública do domínio (`public_html`) deve ser um **atalho (link simbólico)** para `private/pbl4/public`. Por SSH: `mv public_html public_html.orig` e depois `ln -s private/pbl4/public public_html`. Sem SSH, peça ao suporte.
-3. Peça (ou instale) o pacote **`php8.3-sqlite3`** (o número acompanha a versão do PHP do domínio) e reinicie o PHP.
+3. Peça (ou instale) o pacote do SQLite para o PHP (`php<versão>-sqlite3`, com o mesmo número do PHP do domínio) e reinicie o PHP.
 
 Se o `instalar.php` detectar um `public_html` com `private/` ao lado, ele lembra disso na tela final.
 
@@ -67,7 +74,6 @@ Se o `instalar.php` detectar um `public_html` com `private/` ao lado, ele lembra
 
 ### O que a instalação já deixa pronto
 
-- **O instalador funciona em qualquer navegador** (a rc.2 recusava o formulário com "Pedido recusado").
 - A tela **Atualização** já vem configurada com o canal que você usou: **estável** por padrão, **beta** se instalou pelo beta. O arquivo é `dados/config/atualizacao.json` e pode ser editado.
 - A pasta `dados/` fica com permissão **711** (o servidor consegue ler o `.htaccess` dela, mas ninguém lista o conteúdo; o banco fica só para você). Se aparecer o aviso sobre `dados/.htaccess` na tela final, ou o erro `AH00529` no log do Apache, rode `chmod 711 dados` e `chmod 644 dados/.htaccess`, ou entregue `dados/` ao grupo do servidor web. O mais seguro continua sendo a raiz do site em `public/`.
 
@@ -75,8 +81,8 @@ Se o `instalar.php` detectar um `public_html` com `private/` ao lado, ele lembra
 
 | O que aparece | O que fazer |
 |---|---|
-| "PHP 8.2 ou mais novo" com ✘ | No painel, "versão do PHP": escolha 8.2 ou mais novo. |
-| Falta uma extensão (`pdo_sqlite`, `sodium`…) | No painel, "extensões do PHP", ative; ou peça à hospedagem (`pdo_sqlite` = pacote `php8.x-sqlite3`). |
+| "Versão do PHP" com ✘ | No painel da hospedagem, "versão do PHP": escolha a versão pedida pela lista de requisitos. |
+| Falta uma extensão (`pdo_sqlite`, `sodium`…) | No painel, "extensões do PHP", ative; ou peça à hospedagem (`pdo_sqlite` = pacote do SQLite para o PHP). |
 | "Escrita na pasta do site" com ✘ | Dê permissão 755 (ou 775) à pasta onde está o `instalar.php`. |
 | "Conexão HTTPS para baixar o pacote" com ✘ | Ative `curl` (ou `allow_url_fopen` + `openssl`). Sem isso use o caminho manual do [guia técnico](../tecnica/instalacao.md). |
 | "A assinatura do manifesto NÃO confere" | **Não instale.** Pode ser um download adulterado; avise a equipe do Publicare. |

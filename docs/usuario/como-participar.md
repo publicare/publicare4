@@ -1,3 +1,11 @@
+---
+titulo: Como participar
+resumo: Como testar, relatar problemas e ajudar o projeto (texto para quem contribui).
+capitulo: comecar
+ordem: 90
+publico: contribuicao
+---
+
 # Como participar
 
 Você não precisa programar para ajudar.

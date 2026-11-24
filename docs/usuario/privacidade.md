@@ -1,3 +1,10 @@
+---
+titulo: Privacidade e dados pessoais
+resumo: O que o site guarda sobre pessoas e como pedir cópia ou exclusão dos dados.
+capitulo: pessoas
+ordem: 30
+---
+
 # Privacidade e dados pessoais
 
 O Publicare guarda **pouco** sobre pessoas, e não coleta nada além do necessário para funcionar.
@@ -15,6 +22,16 @@ Se você tem conta na equipe, pode pedir ao administrador do site:
 
 - uma **cópia dos seus dados** (ele gera um arquivo com seu cadastro, seus papéis e o seu histórico);
 - a **exclusão** do seu cadastro: seu nome, e-mail e login são apagados e a conta fica desativada. O histórico do que foi feito continua, mas já não identifica você.
+
+### Como o administrador atende o pedido
+Com acesso ao terminal do servidor, na pasta do Publicare:
+
+```sh
+bin/pbl conta-exportar <login>                 # imprime os dados da conta em JSON, sem a senha
+bin/pbl conta-anonimizar <login> --confirmar   # apaga login, e-mail e nome e desativa a conta; não tem volta
+```
+
+Sem `--confirmar`, a anonimização não faz nada. Faça uma [cópia de segurança](copias-de-seguranca.md) antes.
 
 Se você preencheu um formulário do site, peça ao administrador do site que apague o seu envio.
 

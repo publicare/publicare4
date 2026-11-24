@@ -1,3 +1,10 @@
+---
+titulo: Modelos opcionais e site de demonstração
+resumo: Modelos opcionais (agenda, perguntas frequentes, destaques) e o site de demonstração.
+capitulo: site
+ordem: 30
+---
+
 # Modelos opcionais e site de demonstração
 
 Alguns tipos de conteúdo são comuns a quase todo site, mas nem todo site precisa deles. Por isso eles vêm como **modelos opcionais**, que você liga quando quiser.
@@ -35,7 +42,7 @@ make pbl ARGS="demo-popular"                 # ativa os 4 modelos, cria o conte�
 make pbl ARGS="demo-popular --site=2"        # outro site
 ```
 
-Ele cria página inicial com texto formatado, 3 destaques, a seção Institucional (com subpáginas), 8 notícias (uma agendada para o futuro e um rascunho), agenda, perguntas frequentes, documentos, galeria de fotos e links úteis. Também cria as contas `autor` e `editor` (senha de demonstração `demo-2026-pbl4`, **só para demo**: nunca use em site de verdade), cada uma com a seção Institucional, e dois envios de exemplo: um **em revisão** e um **devolvido com motivo**, para testar o fluxo de revisão. Pode ser repetido sem duplicar nada. **Só para desenvolvimento e demonstração**: se o site já tiver mais de 30 conteúdos, o comando recusa; `--forcar` ignora a trava, e `--sem-publicar` só cria o conteúdo.
+Ele cria página inicial com texto formatado, 3 destaques, a seção Institucional (com subpáginas), 8 notícias (uma agendada para o futuro e um rascunho), agenda, perguntas frequentes, documentos, galeria de fotos e links úteis. Também cria as contas `autor` e `editor` (com uma senha de demonstração conhecida, **só para demo**: nunca use em site de verdade), cada uma com a seção Institucional, e dois envios de exemplo: um **em revisão** e um **devolvido com motivo**, para testar o fluxo de revisão. Pode ser repetido sem duplicar nada. **Só para desenvolvimento e demonstração**: se o site já tiver mais de 30 conteúdos, o comando recusa; `--forcar` ignora a trava, e `--sem-publicar` só cria o conteúdo.
 
 ## Peles por conteúdo e as duas versões do demo
 
@@ -44,3 +51,8 @@ Na edição de um conteúdo (cartão **Publicação**, só para quem pode public
 Na página inicial da pele básica, os **links publicados direto sob a página inicial** viram cartões grandes logo abaixo da apresentação (o bloco só aparece se houver algum); os demais links ficam em "Links rápidos". No demo, eles são **Ver versão Onepage** e **Ver versão Portal**. As cores e medidas da pele básica ficam em variáveis no começo de `assets/pele.css` (da pele, em `dados/peles/basica/`).
 
 O `demo-popular` cria duas versões do mesmo site, no ar ao mesmo tempo: **/onepage** (pele `onepage`: uma página com seções vindas dos filhos) e **/portal** (pele `portal`: várias páginas, carrossel e notícias). O endereço de cada conteúdo é único no site, por isso os do demo levam prefixo (`op-`, `pt-`). Todas as peles usam só JavaScript do próprio site (o do Bootstrap, hospedado aqui, mais um arquivo pequeno de cada pele), como melhoria: sem JavaScript as páginas continuam legíveis e navegáveis.
+
+## Comandos da demonstração
+- `bin/pbl demo-popular`: cria o conteúdo de demonstração (veja acima).
+- `bin/pbl demo-resetar`: só em instalação de demonstração; recria conteúdo, contas e arquivos de exemplo, depois de guardar uma cópia.
+- `bin/pbl demo-senha`: só em instalação de demonstração e só no terminal; mostra a senha atual do administrador da demo.

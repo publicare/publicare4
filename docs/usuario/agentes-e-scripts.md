@@ -1,3 +1,10 @@
+---
+titulo: Agentes e scripts editam o site
+resumo: Como um assistente automático ou um script edita o site, com as mesmas regras do painel.
+capitulo: consulta
+ordem: 20
+---
+
 # Agentes e scripts editam o site
 
 Além do painel, o Publicare tem uma forma de **editar conteúdo por linha de comando**, pensada para assistentes automáticos (por exemplo, um assistente que recebe pedidos da administradora do Site Exemplo por mensagem) e para scripts. Ela segue as mesmas regras do painel: ninguém faz por aqui o que não poderia fazer lá.

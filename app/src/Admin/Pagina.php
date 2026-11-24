@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pbl\Admin;
 
+use Pbl\Conteudo\ConfigDoSite;
 use Pbl\Versao;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -173,6 +174,23 @@ final class Pagina
     {
         self::$administradorDoMenu = $administrador;
         self::$siteDoMenu = $siteId;
+        if ($siteId === null) {
+            self::$manualUrl = ConfigDoSite::MANUAL_URL_PADRAO;
+        }
+    }
+
+    /** Endereço do manual (config `manual_url` do site em contexto); sem site, o padrão. Definido por `Painel`. */
+    private static string $manualUrl = ConfigDoSite::MANUAL_URL_PADRAO;
+
+    public static function definirManual(string $url): void
+    {
+        self::$manualUrl = ConfigDoSite::normalizar('manual_url', $url) ?? ConfigDoSite::MANUAL_URL_PADRAO;
+    }
+
+    /** O link "Ajuda (manual)": nova aba, sem referência; o nome acessível avisa. Nenhuma chamada de rede. */
+    public static function linkDoManual(): string
+    {
+        return '<a class="pbl-ajuda" href="' . self::h(self::$manualUrl) . '" target="_blank" rel="noopener noreferrer">Ajuda (manual)<span class="visually-hidden"> (abre em nova aba)</span></a>';
     }
 
     /**
@@ -314,7 +332,7 @@ final class Pagina
         return '<div class="pbl-topo"><a class="pbl-marca" href="/_pbl/">PBL4</a></div>'
             . '<details class="pbl-menu" open data-pbl-menu><summary>Menu</summary>'
             . '<nav class="pbl-menu-nav" aria-label="Principal"><ul class="pbl-itens">' . $links . '</ul>'
-            . '<div class="pbl-pessoa"><span class="pbl-nome">' . self::h($nome) . '</span>'
+            . '<div class="pbl-pessoa"><span class="pbl-nome">' . self::h($nome) . '</span>' . self::linkDoManual()
             . '<button type="button" class="btn btn-sm btn-outline-secondary pbl-tema" data-pbl-tema>Tema</button>'
             . '<form method="post" action="/_pbl/sair"><input type="hidden" name="_csrf" value="' . self::h($tokenCsrf) . '">'
             . '<button type="submit" class="btn btn-sm btn-outline-secondary">Sair</button></form></div></nav></details>';

@@ -1,3 +1,10 @@
+---
+titulo: Perguntas frequentes
+resumo: Respostas curtas para as dúvidas mais comuns: custo, requisitos, formulários, busca e mais.
+capitulo: consulta
+ordem: 30
+---
+
 # Perguntas frequentes
 
 ## É grátis?
@@ -6,15 +13,15 @@ Sim. O Publicare é software livre, com licença Apache-2.0 (o Publicare 3 é MI
 
 ## Preciso saber programar?
 
-O objetivo do projeto é que **não**: criar páginas, tipos de conteúdo, menus e formulários será por tela, sem código. **Hoje**, porém, ainda não há essa tela, então o uso exige conhecimento técnico. Veja o [estado do projeto](estado-do-projeto.md).
+O objetivo do projeto é que **não**: criar páginas, tipos de conteúdo, menus e formulários será por tela, sem código. As telas do painel cobrem o dia a dia (veja os [primeiros passos](primeiros-passos.md)); mexer na aparência (as peles) ainda pede um pouco de conhecimento técnico, e um desenvolvedor ajuda nessa parte.
 
 ## Como instalo?
 
-Pelo navegador, com um assistente: veja [Como instalar](instalar.md). Hoje ainda é preciso enviar o código você mesmo (o pacote pronto chega na primeira versão, a `0.1.0`).
+Pelo navegador, com um assistente: veja [Como instalar](instalar.md). O instalador baixa e confere o pacote por você.
 
 ## Onde posso hospedar?
 
-Funciona em servidores **Apache** (a maioria das hospedagens compartilhadas) e **nginx**, ambos testados. A meta é uma hospedagem comum, daquelas que oferecem PHP e permitem enviar arquivos, sem terminal. Os requisitos são **PHP 8.2 ou mais novo** e um banco de dados (o padrão é SQLite, que não precisa de servidor; no 0.1.0 o banco é sempre o SQLite; MySQL e PostgreSQL ficam para a 0.2). Painéis como Hestia/VestaCP, que restringem o PHP à pasta do domínio (`open_basedir`), também funcionam: veja a seção correspondente em [Como instalar](instalar.md).
+Funciona em servidores **Apache** (a maioria das hospedagens compartilhadas) e **nginx**, ambos testados. A meta é uma hospedagem comum, daquelas que oferecem PHP e permitem enviar arquivos, sem terminal. Os requisitos são uma versão recente do PHP (a lista de requisitos do instalador mostra qual) e um banco de dados: o SQLite, que não precisa de servidor. MySQL e PostgreSQL ainda não são suportados (estão previstos para o futuro). Painéis como Hestia/VestaCP, que restringem o PHP à pasta do domínio (`open_basedir`), também funcionam: veja a seção correspondente em [Como instalar](instalar.md).
 
 ## E o meu site feito no Publicare antigo?
 
@@ -91,11 +98,11 @@ Sim. Procurar por `presidencia` acha `Presidência`, e `ORGAO` acha `órgão`.
 
 ## Como funciona a busca por várias palavras?
 
-Todas as palavras digitadas precisam aparecer (em qualquer ordem) no título, na descrição ou no texto da página. Basta o começo da palavra (`presid` acha `Presidência`) e o plural vale pelo singular (`ações` acha `ação`, `casas` acha `casa`). Os resultados vêm com os melhores primeiro: título pesa mais que descrição, que pesa mais que o texto, e a palavra inteira pesa mais que só o começo. Palavras como "de", "da" e "para" são ignoradas, e a busca olha no máximo as 8 primeiras palavras. Ainda não corrige erros de digitação (`Fernandha` não acha `Fernanda`): isso está no plano, por configuração; veja o [estado do projeto](estado-do-projeto.md).
+Todas as palavras digitadas precisam aparecer (em qualquer ordem) no título, na descrição ou no texto da página. Basta o começo da palavra (`presid` acha `Presidência`) e o plural vale pelo singular (`ações` acha `ação`, `casas` acha `casa`). Os resultados vêm com os melhores primeiro: título pesa mais que descrição, que pesa mais que o texto, e a palavra inteira pesa mais que só o começo. Palavras como "de", "da" e "para" são ignoradas, e a busca olha no máximo as 8 primeiras palavras. Ainda não corrige erros de digitação (`Fernandha` não acha `Fernanda`): isso está planejado.
 
 ## Como recebo inscrições ou mensagens de visitantes?
 
-Com um **formulário público**. Crie (ou use) o tipo de conteúdo do envio (por exemplo `inscricao`, com os campos e os "obrigatórios" que quiser), uma seção para guardar os envios e, dentro do site, um conteúdo do tipo `formulario` dizendo qual é a seção, qual é o tipo e quais campos mostrar. Na pele, o comando `<@formulario@>` desenha o formulário. Cada envio chega **privado**; você vê a lista em "Envios recebidos" na tela do formulário e aprova publicando (ou apaga o que for lixo). Ele não precisa de JavaScript e se protege de robôs, de envios em massa e de conteúdo perigoso. Ainda **não** há aviso por e-mail, etapas de aprovação, anexos nem cadastro de participante; veja o [estado do projeto](estado-do-projeto.md) e o [ADR 0013](../adr/0013-formularios-publicos.md).
+Com um **formulário público**. Crie (ou use) o tipo de conteúdo do envio (por exemplo `inscricao`, com os campos e os "obrigatórios" que quiser), uma seção para guardar os envios e, dentro do site, um conteúdo do tipo `formulario` dizendo qual é a seção, qual é o tipo e quais campos mostrar. Na pele, o comando `<@formulario@>` desenha o formulário. Cada envio chega **privado**; você vê a lista em "Envios recebidos" na tela do formulário e aprova publicando (ou apaga o que for lixo). Ele não precisa de JavaScript e se protege de robôs, de envios em massa e de conteúdo perigoso. Ainda **não** há aviso por e-mail, etapas de aprovação, anexos nem cadastro de participante; as decisões estão no [ADR 0013](../adr/0013-formularios-publicos.md).
 
 ## Como fico sabendo das novidades?
 
@@ -103,4 +110,4 @@ Pelo [CHANGELOG](../../CHANGELOG.md) e pelas *releases* em <https://github.com/p
 
 ## Posso ajudar?
 
-Pode e é bem-vindo, mesmo sem programar: testar, relatar problemas, escrever e revisar documentação, sugerir ideias. Veja [Como participar](como-participar.md).
+Pode e é bem-vindo, mesmo sem programar: testar, relatar problemas, escrever e revisar documentação, sugerir ideias. O projeto é aberto e o código público fica em <https://github.com/publicare/publicare4>.

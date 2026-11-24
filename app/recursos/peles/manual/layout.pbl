@@ -1,0 +1,19 @@
+<@-- Layout do manual: pular para o conteúdo, cabeçalho, menu lateral por capítulo (o HTML do menu vem gravado em cada página, por edição) e o miolo. Os moldes filhos só preenchem os blocos. --@>
+<!doctype html>
+<html lang="<@eco %SITE.config.idioma@>">
+<head>
+<@incluir arquivo="cabeca"@>
+</head>
+<body data-pbl-objeto="<@eco #id@>">
+<@incluir arquivo="topo"@>
+<div class="estrutura">
+<nav class="lateral" id="lateral" aria-label="Capítulos">
+<@bloco lateral@><p>Escolha um capítulo na página inicial.</p><@/bloco@>
+</nav>
+<main id="conteudo" tabindex="-1">
+<@bloco miolo@><@/bloco@>
+</main>
+</div>
+<footer class="rodape"><p>Manual de uso do Publicare 4. O texto é mantido junto do código do projeto e gerado a cada release.</p></footer>
+</body>
+</html>

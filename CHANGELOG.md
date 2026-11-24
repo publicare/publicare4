@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Adicionado
+- **Manual de uso** ([ADR 0039](docs/adr/0039-fonte-unica-do-manual.md) a [0044](docs/adr/0044-link-ajuda-manual-no-painel.md); [como é gerado](docs/tecnica/manual.md)): `docs/usuario` vira a fonte única, com front matter e 12 capítulos novos (primeiros passos, escrever e publicar, revisão e histórico, tipos, peles e moldes, domínios, usuários e permissões, e-mail do site, tarefas agendadas, busca, arquivos e imagens, acessibilidade, solução de problemas) e um inventário de telas e comandos. `bin/pbl manual-gerar` compila o manual (links, órfãs, front matter e imagens validados) e o carrega de forma idempotente (`--simular`, `--confirmar`, cópia prévia, preserva edições) como segundo site, com edições estável, `/beta/` e `/<versão>/`. Pele `manual` (menu por capítulo, busca, impressão, tema claro/escuro, sem CDN). Capturas de tela geradas pela esteira da prévia (`manual/capturas.php`), sem PNG no repositório; `manual/release.sh` é o passo que o workflow de release chamaria (o workflow é do operador). Link **Ajuda (manual)** no painel, com o endereço em Configurações do site (`manual_url`, padrão `https://manual.publicare.org/`). A busca aceita `ed=` para recortar por edição.
+
 ### Alterado
 - **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.10`.
 

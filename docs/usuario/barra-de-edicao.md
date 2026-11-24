@@ -1,3 +1,10 @@
+---
+titulo: Barra de edição nas páginas do site
+resumo: Os ícones de edição que aparecem nas páginas do site para quem está logado.
+capitulo: conteudo
+ordem: 60
+---
+
 # Barra de edição nas páginas do site
 
 Quando você está logado, ao lado do título de cada página (e de cada item de uma lista) aparecem ícones pequenos e discretos. Só aparecem as ações que a sua conta pode fazer naquele conteúdo.

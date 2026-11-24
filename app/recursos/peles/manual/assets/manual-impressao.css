@@ -1,0 +1,15 @@
+/* Versão para impressão: só o texto. Esconde menu, busca e botões; mostra o endereço dos links; um capítulo por página. */
+@media print {
+  :root { --fundo: #fff; --texto: #000; --suave: #333; --borda: #999; --link: #000; --link-visitado: #000; --codigo: #f2f2f2; --fundo-2: #fff; }
+  body { font-size: 11pt; line-height: 1.5; background: #fff; color: #000; }
+  .topo, .lateral, .pular, .anterior-proximo, .rodape, .toc, .ferramentas { display: none !important; }
+  .estrutura { display: block; padding: 0; max-width: none; }
+  main { max-width: none; }
+  a { text-decoration: underline; color: #000; }
+  .corpo a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; word-break: break-all; }
+  h1 { break-before: page; }
+  h1, h2, h3 { break-after: avoid; }
+  pre, table, figure, blockquote { break-inside: avoid; }
+  pre { white-space: pre-wrap; border: 1px solid #999; }
+  figure img { max-width: 100%; }
+}

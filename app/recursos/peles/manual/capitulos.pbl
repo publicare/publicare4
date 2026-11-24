@@ -1,0 +1,4 @@
+<@-- Lista de capítulos (filhos do objeto corrente) com o resumo de cada um. --@>
+<ul class="capitulos">
+<@filhos classes="manual_capitulo" ordem="peso, titulo"@><li><a href="<@eco #url@>/"><strong><@eco #titulo@></strong></a><span><@eco #resumo@></span></li>
+<@/filhos@></ul>

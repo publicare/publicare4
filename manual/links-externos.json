@@ -1,0 +1,7 @@
+{
+  "prefixos": {
+    "../tecnica/": "https://github.com/publicare/publicare4/blob/main/docs/tecnica/",
+    "../../": "https://github.com/publicare/publicare4/blob/main/",
+    "../adr/": "https://github.com/publicare/publicare4/blob/main/docs/adr/"
+  }
+}

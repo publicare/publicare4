@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="<@eco %SITE.config.idioma@>">
+<head>
+<@incluir arquivo="cabeca"@>
+<meta name="robots" content="noindex">
+</head>
+<body>
+<@incluir arquivo="topo"@>
+<div class="estrutura sem-lateral">
+<main id="conteudo" tabindex="-1">
+<h1>Busca</h1>
+<@var $edicao_busca = $ed@>
+<@se $edicao_busca == ""@><@var $edicao_busca = "estavel"@><@/se@>
+<@se $q == ""@><p>Digite o que procura no campo acima.</p><@senao@>
+<p>Resultados para <strong><@eco $q@></strong> nesta edição do manual.</p>
+<@var $tem_mais = 0@>
+<@var $por_pagina = %SITE.config.itens_por_pagina@>
+<@var $inicio_da_pagina = ($pagina - 1) * $por_pagina@>
+<@var $limite_busca = $por_pagina + 1@>
+<ul class="capitulos">
+<@localizar classes="manual_pagina" campo="edicao" valor=$edicao_busca busca=$q inicio=$inicio_da_pagina limite=$limite_busca@><@se %INDICE <= $por_pagina@><li><a href="<@eco #url@>/"><strong><@eco #titulo@></strong></a><span><@eco #resumo@></span></li>
+<@senao@><@var $tem_mais = 1@><@/se@><@/localizar@></ul>
+<@naolocalizado@><p>Nada encontrado para <strong><@eco $q@></strong>. Tente outra palavra ou veja os <a href="/">capítulos</a>.</p><@/naolocalizado@>
+<@se $pagina > 1@><p><a href="/busca?q=<@eco $q_url@>&amp;ed=<@eco $edicao_busca@>&amp;pagina=<@eco $pagina - 1@>">Resultados anteriores</a></p><@/se@>
+<@se $tem_mais == 1@><p><a href="/busca?q=<@eco $q_url@>&amp;ed=<@eco $edicao_busca@>&amp;pagina=<@eco $pagina + 1@>">Mais resultados</a></p><@/se@>
+<@/se@>
+</main>
+</div>
+</body>
+</html>

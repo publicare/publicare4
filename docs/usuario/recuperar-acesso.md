@@ -1,3 +1,10 @@
+---
+titulo: Recuperar o acesso
+resumo: Esqueci a senha ou o usuário: como recuperar o acesso com e sem e-mail configurado.
+capitulo: pessoas
+ordem: 20
+---
+
 # Recuperar o acesso
 
 ## Com e-mail configurado

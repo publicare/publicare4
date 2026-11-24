@@ -21,6 +21,10 @@ final class ConfigDoSite
     public const BOOLEANO = 'booleano';
     public const ARQUIVO = 'arquivo';
     public const LISTA_URL = 'lista_url';
+    public const URL_HTTPS = 'url_https';
+
+    /** Endereço do manual de uso (ADR 0044); o link "Ajuda" do painel aponta para ele. */
+    public const MANUAL_URL_PADRAO = 'https://manual.publicare.org/';
 
     public const MAX_REDES = 10;
     public const MAX_HTML = 5000;
@@ -52,6 +56,7 @@ final class ConfigDoSite
             'menu_profundidade' => ['tipo' => self::INTEIRO, 'padrao' => 0, 'rotulo' => 'Profundidade do menu', 'ajuda' => 'De 1 a 5. Com 0, vale o teto global (PBL_MENU_PROFUNDIDADE).', 'min' => 0, 'max' => 5],
             'rss_ligado' => ['tipo' => self::BOOLEANO, 'padrao' => true, 'rotulo' => 'Feeds RSS ligados', 'ajuda' => 'Gera um feed.xml (RSS 2.0) para a página inicial e para cada seção com conteúdo publicado; exige domínio principal. Desligado, os feeds saem do ar.'],
             'rss_itens' => ['tipo' => self::INTEIRO, 'padrao' => 20, 'rotulo' => 'Itens por feed RSS', 'ajuda' => 'Quantos itens mais recentes cada feed traz; de 1 a 100.', 'min' => 1, 'max' => 100],
+            'manual_url' => ['tipo' => self::URL_HTTPS, 'padrao' => self::MANUAL_URL_PADRAO, 'rotulo' => 'Endereço do manual', 'ajuda' => 'Para onde o link Ajuda do painel leva. Vazio: ' . self::MANUAL_URL_PADRAO, 'max' => 200],
             'robots_indexar' => ['tipo' => self::BOOLEANO, 'padrao' => true, 'rotulo' => 'Permitir indexação por buscadores', 'ajuda' => 'Desmarcado, as páginas saem com "noindex".'],
         ];
     }
@@ -133,6 +138,7 @@ final class ConfigDoSite
             self::IDENTIFICADOR => preg_match('/^[A-Za-z0-9_-]{3,40}$/D', $bruto) === 1
                 ? $bruto
                 : throw new \InvalidArgumentException("{$r}: use só o identificador (letras, números, hífen e sublinhado, 3 a 40 caracteres), nunca um script."),
+            self::URL_HTTPS => self::urlHttps($r, $bruto),
             self::HTML => self::html($r, $bruto),
             self::INTEIRO => self::inteiro($r, $bruto, $def['min'] ?? 0, $def['max'] ?? 1000),
             self::ARQUIVO => preg_match('/^[1-9][0-9]{0,9}$/D', $bruto) === 1
@@ -151,6 +157,26 @@ final class ConfigDoSite
             is_array($valor) => implode("\n", array_map('strval', $valor)),
             default => is_scalar($valor) ? (string) $valor : '',
         };
+    }
+
+    /** https obrigatório (http só em localhost), sem credenciais, sem espaços, até 200 caracteres e terminada em `/`. */
+    private static function urlHttps(string $r, string $bruto): string
+    {
+        $erro = new \InvalidArgumentException("{$r}: use um endereço https completo, terminado em /, como " . self::MANUAL_URL_PADRAO);
+        if (strlen($bruto) > 200 || preg_match('/\s/u', $bruto) === 1 || !str_ends_with($bruto, '/') || str_contains($bruto, '\\')) {
+            throw $erro;
+        }
+        $p = parse_url($bruto);
+        $host = is_array($p) ? strtolower((string) ($p['host'] ?? '')) : '';
+        $esquema = is_array($p) ? strtolower((string) ($p['scheme'] ?? '')) : '';
+        if ($host === '' || isset($p['user']) || isset($p['pass']) || !in_array($esquema, ['https', 'http'], true)) {
+            throw $erro;
+        }
+        if ($esquema === 'http' && !in_array($host, ['localhost', '127.0.0.1', '[::1]'], true)) {
+            throw $erro;
+        }
+
+        return $bruto;
     }
 
     private static function inteiro(string $r, string $bruto, int $min, int $max): int

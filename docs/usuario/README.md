@@ -1,39 +1,30 @@
 # Publicare para quem usa
 
-Esta parte é para quem **quer criar e cuidar de um site** (ou de um pequeno sistema na internet) e não precisa saber programar. Se você é desenvolvedor, vá para a [documentação técnica](../tecnica/README.md).
+Este é o **manual de uso** do Publicare 4: para quem quer criar e cuidar de um site (ou de um pequeno sistema na internet) sem precisar programar. Quem desenvolve vai para a [documentação técnica](../tecnica/README.md).
 
-> **Estado do projeto:** o Publicare 4 está em construção. Hoje ainda **não existe** a tela de administração completa (só o login) nem o instalador para quem não é técnico. Esta documentação diz o que é o projeto, para onde ele vai e o que já funciona, e ganha os passos de uso conforme cada parte fica pronta. Veja [Estado do projeto](estado-do-projeto.md).
+**Fonte única:** estes arquivos são a única fonte do manual. A cada release, o comando `bin/pbl manual-gerar` converte esta pasta no manual publicado (veja [como o manual é gerado](../tecnica/manual.md)). Para mudar o manual, edite o arquivo daqui; quem muda uma tela do painel muda também o guia dela. O inventário do que existe no produto contra o que o manual cobre está em [INVENTARIO.md](INVENTARIO.md).
 
-## Comece por aqui
+## Por capítulo
 
-| Quero entender… | Leia |
+| Capítulo | Guias |
 |---|---|
-| O que é o Publicare e para que serve | [O que é o Publicare](o-que-e.md) |
-| O que já funciona e o que ainda não | [Estado do projeto](estado-do-projeto.md) |
-| O significado das palavras que o projeto usa | [Glossário](glossario.md) |
-| Onde fica cada coisa no painel e como editar um conteúdo | [Usar o painel](painel.md) |
-| Como instalar numa hospedagem | [Como instalar](instalar.md) |
-| Modelos opcionais (agenda, perguntas, destaques) e o site de demonstração | [Modelos e demo](modelos-e-demo.md) |
-| Esqueci a senha, convite e como recuperar o acesso | [Recuperar o acesso](recuperar-acesso.md) |
-| O que o site guarda de pessoas e como pedir cópia ou exclusão | [Privacidade](privacidade.md) |
-| Como um assistente automático ou um script edita o site | [Agentes e scripts editam o site](agentes-e-scripts.md) |
-| Dúvidas comuns (é grátis? preciso programar?) | [Perguntas frequentes](perguntas-frequentes.md) |
-| Como acompanhar e ajudar | [Como participar](como-participar.md) |
+| **Começar** | [O que é o Publicare](o-que-e.md) · [Como instalar](instalar.md) · [Primeiros passos](primeiros-passos.md) · [Usar o painel](painel.md) |
+| **Escrever e publicar** | [Escrever e publicar](escrever-e-publicar.md) · [Revisão e histórico](revisao-e-historico.md) · [Tipos de conteúdo](tipos-de-conteudo.md) · [Arquivos e imagens](arquivos-e-imagens.md) · [Busca](busca.md) · [Barra de edição](barra-de-edicao.md) |
+| **O seu site** | [Peles e moldes](peles-e-moldes.md) · [Domínios e vários sites](dominios-e-varios-sites.md) · [Modelos e demo](modelos-e-demo.md) · [E-mail do site](email-do-site.md) |
+| **Pessoas e acesso** | [Usuários e permissões](usuarios-e-permissoes.md) · [Recuperar o acesso](recuperar-acesso.md) · [Privacidade](privacidade.md) |
+| **Manter o site** | [Cópias de segurança](copias-de-seguranca.md) · [Atualizar e voltar atrás](atualizar.md) · [Tarefas agendadas](tarefas-agendadas.md) · [Solução de problemas](solucao-de-problemas.md) |
+| **Consulta** | [Acessibilidade](acessibilidade.md) · [Agentes e scripts](agentes-e-scripts.md) · [Perguntas frequentes](perguntas-frequentes.md) · [Glossário](glossario.md) |
 
-## O que vai entrar aqui
+Fora do manual (texto para quem contribui): [Como participar](como-participar.md) e [Estado do projeto](estado-do-projeto.md).
 
-Quando cada recurso ficar pronto, ele ganha um guia curto, com passos e imagens:
+## Como escrever um guia
 
-1. Instalar o Publicare em uma hospedagem comum
-2. Criar a primeira página e o menu
-3. Escolher e trocar a aparência (pele)
-4. Criar tipos de conteúdo próprios (notícias, eventos, biblioteca…)
-5. Publicar, despublicar e agendar
-6. Receber formulários, inscrições e consultas públicas
-7. Atualizar o site e fazer backup (já funciona por comando e pelo painel: [como atualizar](atualizar.md); falta a primeira versão assinada para baixar)
-8. Migrar um site feito em uma versão anterior do Publicare
-
-Quer ajudar a escrever ou testar algum? Veja [Como participar](como-participar.md).
+- Todo guia começa com **front matter** (`titulo`, `resumo`, `capitulo`, `ordem`) e o capítulo precisa existir em [capitulos.md](capitulos.md).
+- Escreva **por tarefa**, em linguagem simples, com os rótulos exatos da tela.
+- **Nada que envelheça:** sem datas, sem números de versão e sem requisitos exatos; para isso, aponte para o instalador e para o CHANGELOG.
+- **Imagens só por captura automática:** `![descrição](captura:id)`, com o `id` declarado em [capturas.json](capturas.json). Nunca arquivo de imagem fixo.
+- Links entre guias são relativos (`recuperar-acesso.md#ancora`).
+- Detalhes do formato e dos testes: [manual.md](../tecnica/manual.md).
 
 ## Usar o painel no celular
 
