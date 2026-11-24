@@ -128,7 +128,7 @@ final class ConteudoPublicare
             . '<h2>Aparência</h2>'
             . '<ul><li>Peles e moldes escritos na linguagem de moldes do PBL4, arquivos com a extensão .pbl.</li>'
             . '<li>Editor de moldes no navegador, só para administradores, com conferência da sintaxe antes de salvar, histórico de cada molde, rascunho e pré-visualização.</li>'
-            . '<li>Peles prontas: básica, publicare (a deste site), onepage e portal. É possível escolher uma pele e um molde só para um conteúdo e tudo abaixo dele.</li></ul>'
+            . '<li>Peles prontas, entre elas a publicare (a deste site) e a básica. É possível escolher uma pele e um molde só para um conteúdo e tudo abaixo dele.</li></ul>'
             . '<h2>Sites, domínios e endereços</h2>'
             . '<ul><li>Vários sites e vários domínios no mesmo programa: um domínio principal e outros que mostram o mesmo conteúdo ou levam ao principal.</li>'
             . '<li>Mudar o endereço de uma página sem quebrar o antigo: o endereço antigo passa a levar ao novo.</li>'
@@ -326,7 +326,7 @@ final class ConteudoPublicare
             ['texto' => 'Histórico de versões de cada conteúdo', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['contem' => ['docs/usuario/estado-do-projeto.md', 'Histórico de versões de cada conteúdo, com restaurar e proteção contra edição simultânea']]],
             ['texto' => 'linguagem de moldes do PBL4', 'fonte' => 'docs/linguagem-pbl4.md', 'verificacao' => ['arquivo' => 'docs/linguagem-pbl4.md']],
             ['texto' => 'Editor de moldes no navegador', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['contem' => ['docs/usuario/estado-do-projeto.md', 'editar o texto dos moldes de uma pele, com conferência da sintaxe antes de salvar']]],
-            ['texto' => 'Peles prontas: básica, publicare', 'fonte' => 'app/recursos/peles', 'verificacao' => ['arquivo' => 'app/recursos/peles/publicare/padrao.pbl']],
+            ['texto' => 'Peles prontas, entre elas a publicare', 'fonte' => 'app/recursos/peles', 'verificacao' => ['arquivo' => 'app/recursos/peles/publicare/padrao.pbl']],
             ['texto' => 'Vários sites e vários domínios no mesmo programa', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['classe' => 'Pbl\\Conteudo\\DominioRepositorio']],
             ['texto' => 'Mudar o endereço de uma página sem quebrar o antigo', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['classe' => 'Pbl\\Conteudo\\RedirecionamentoRepositorio']],
             ['texto' => 'Busca que ignora maiúsculas e acentos', 'fonte' => 'docs/linguagem-pbl4.md', 'verificacao' => ['classe' => 'Pbl\\Busca\\BuscaSql']],
