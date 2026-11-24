@@ -217,10 +217,10 @@ final class ModelosTest extends TestCase
         foreach (ConteudoPublicare::pilares() as $pilar) {
             self::assertMatchesRegularExpression('#<a class="cartao-atalho" href="/' . preg_quote($pilar['destino'], '#') . '"[^>]*><span class="titulo">' . preg_quote($pilar['titulo'], '#') . '</span>#u', $html);
         }
-        // Os links seguintes (as versões onepage e portal) ficam em "Links rápidos", que não repete os cartões.
+        // Os links seguintes (as peles onepage e portal) ficam em "Links rápidos", que não repete os cartões.
         $rapidos = substr($html, (int) strpos($html, 'class="links-rapidos"'));
-        self::assertMatchesRegularExpression('#<a href="/onepage[^"]*">Ver versão Onepage</a>#u', $rapidos);
-        self::assertMatchesRegularExpression('#<a href="/portal[^"]*">Ver versão Portal</a>#u', $rapidos);
+        self::assertMatchesRegularExpression('#<a href="/onepage[^"]*">Pele onepage</a>#u', $rapidos);
+        self::assertMatchesRegularExpression('#<a href="/portal[^"]*">Pele portal</a>#u', $rapidos);
         self::assertStringNotContainsString('Conteúdo em árvore', $rapidos);
         // Folha de estilos própria; nada de estilo nem script embutido (CSP rígida).
         self::assertMatchesRegularExpression('#<link rel="stylesheet" href="/_pbl/peles/basica/assets/pele\.css\?v=[0-9a-f]{8}">#', $html);
@@ -303,10 +303,10 @@ final class ModelosTest extends TestCase
     {
         $t = new CommandTester(new DemoPopularComando($this->caminhos));
         self::assertSame(0, $t->execute(['--site' => (string) $this->siteId, '--sem-publicar' => true]), $t->getDisplay());
-        $linha = $this->s->conexao()->fetchAssociative("SELECT largura, altura FROM arquivo WHERE nome = 'versao-0-1-0-rc-10.png'");
+        $linha = $this->s->conexao()->fetchAssociative("SELECT largura, altura FROM arquivo WHERE nome = 'destaque-conhecer.png'");
         self::assertIsArray($linha);
         $info = [(int) $linha['largura'], (int) $linha['altura']];
-        self::assertSame([1200, 630], $info);
+        self::assertSame([1200, 500], $info);
     }
 
     public function testHomeGenericaSemLinksNaoTemBlocoDeAtalhos(): void

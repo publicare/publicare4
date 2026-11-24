@@ -1,4 +1,4 @@
-<@-- Modelo "home": página inicial. Ordem: hero (título, resumo e botões da pasta "chamadas"), pilares (os 4 primeiros links sob a página inicial), corpo, destaques, vitrine (demais links), últimas notícias e chamada final. Cada bloco só aparece se houver conteúdo; sem os modelos opcionais a página continua inteira. --@>
+<@-- Modelo "home": página inicial. Ordem: hero (título, resumo e botões da pasta "chamadas"), pilares (os 4 primeiros links sob a página inicial), corpo, destaques, vitrine (demais links), últimas notícias (só as da pasta "noticias") e chamada final. Cada bloco só aparece se houver conteúdo; sem os modelos opcionais a página continua inteira. --@>
 <@estende "base"@>
 <@bloco corpo@>
 <@var $home = #id@>
@@ -30,11 +30,11 @@
 <@var $vitrine = 1@><@/se@><li data-pbl-objeto="<@eco #id@>"><a class="cartao-atalho" href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>><span class="icone" aria-hidden="true"></span><span class="titulo"><@eco #titulo@></span><@se #descricao != ""@><span class="texto"><@eco #descricao@></span><@/se@><span class="seta" aria-hidden="true">Abrir &rarr;</span></a><span class="pbl-acoes" hidden></span></li>
 <@/se@><@/se@><@/localizar@>
 <@se $vitrine == 1@></ul></div></section>
-<@/se@><@localizar classes="noticia" ordem="-data_publicacao, titulo" limite=3@>
+<@/se@><@usarobjeto url="noticias"@><@filhos classes="noticia" ordem="-data_publicacao, titulo" limite=3@>
 <@se %INDICE == 1@><section class="faixa ultimas" aria-labelledby="ultimas-titulo"><div class="contem"><h2 id="ultimas-titulo">Últimas notícias</h2><div class="lista-itens">
 <@/se@><@incluir arquivo="item"@>
 <@se %INDICE == %QUANTIDADE@></div></div></section>
-<@/se@><@/localizar@>
+<@/se@><@/filhos@><@/usarobjeto@>
 <@usarobjeto url="chamadas"@><section class="faixa chamada" aria-labelledby="chamada-titulo"><div class="contem">
 <h2 id="chamada-titulo"><@eco #titulo@></h2>
 <@se #descricao != ""@><p><@eco #descricao@></p><@/se@>

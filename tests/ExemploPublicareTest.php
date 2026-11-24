@@ -251,9 +251,17 @@ final class ExemploPublicareTest extends TestCase
         }
         self::assertSame(1, substr_count($html, '<h1'));
         self::assertStringContainsString(ConteudoPublicare::PROMESSA, $html);
-        self::assertSame(4, substr_count($html, 'class="cartao-atalho"') - substr_count($html, '<span class="titulo">Ver versão'), 'quatro pilares, fora os dois cartões de versão');
-        self::assertMatchesRegularExpression('#<a class="cartao-atalho" href="/onepage[^"]*"[^>]*><span class="icone" aria-hidden="true"></span><span class="titulo">Ver versão Onepage</span>#u', $html);
-        self::assertMatchesRegularExpression('#<a class="cartao-atalho" href="/portal[^"]*"[^>]*><span class="icone" aria-hidden="true"></span><span class="titulo">Ver versão Portal</span>#u', $html);
+        // Quatro pilares e, em "Veja também", seis cartões úteis (nada herdado do exemplo antigo, nada repetido).
+        self::assertSame(10, substr_count($html, 'class="cartao-atalho"'));
+        $vitrine = substr($html, (int) strpos($html, 'class="faixa suave vitrine"'), (int) strpos($html, 'class="faixa ultimas"') - (int) strpos($html, 'class="faixa suave vitrine"'));
+        self::assertSame(6, substr_count($vitrine, 'class="cartao-atalho"'));
+        foreach (['Como atualizar', 'Documentação do usuário', 'Linguagem de moldes', 'Pele onepage', 'Pele portal', 'Segurança'] as $titulo) {
+            self::assertStringContainsString('<span class="titulo">' . $titulo . '</span>', $vitrine, $titulo);
+        }
+        self::assertStringNotContainsString('Ver versão', $html);
+        self::assertStringNotContainsString('Versões publicadas no GitHub', $html);
+        self::assertMatchesRegularExpression('#<a class="cartao-atalho" href="/onepage[^"]*"[^>]*><span class="icone" aria-hidden="true"></span><span class="titulo">Pele onepage</span>#u', $html);
+        self::assertMatchesRegularExpression('#<a class="cartao-atalho" href="/portal[^"]*"[^>]*><span class="icone" aria-hidden="true"></span><span class="titulo">Pele portal</span>#u', $html);
         // Os botões do hero e a chamada final vêm da pasta "chamadas".
         self::assertGreaterThanOrEqual(2, substr_count($html, 'class="botao'));
         self::assertStringContainsString('Como instalar', $html);
@@ -264,6 +272,12 @@ final class ExemploPublicareTest extends TestCase
         self::assertSame(3, substr_count($html, 'class="destaque"'));
         self::assertStringContainsString('Veja o que ele faz', $html);
         self::assertSame(3, substr_count($html, '<article class="item">'));
+        self::assertSame(1, substr_count($html, 'Versão 0.1.0-rc.10: recuperação'), 'a notícia da rc.10 aparece uma vez só (as do portal ficam fora da home)');
+        // Sem imagem vazia: destaques e notícias da home ou trazem imagem real ou não têm espaço para ela.
+        self::assertSame(3, substr_count($html, 'class="destaque"'));
+        self::assertSame(0, substr_count($html, 'class="item-imagem"'));
+        self::assertSame(1, preg_match_all('#<h3 data-pbl-objeto="\d+">Veja o que ele faz#', $html), 'um destaque por assunto, sem títulos repetidos');
+        self::assertSame(0, substr_count($html, 'Conheça.'));
         self::assertMatchesRegularExpression('#<span class="data">\d{2}/\d{2}/\d{4}</span>#', $html);
         self::assertStringContainsString('Versão 0.1.0-rc.10', $html);
         // Busca ligada e menu com os itens do exemplo.

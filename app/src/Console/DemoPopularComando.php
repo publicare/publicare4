@@ -171,7 +171,7 @@ final class DemoPopularComando extends Command
                 $this->imagem('imagem', $t, $cor, 'destaque-' . $u . '.png', 1200, 500, $u));
         }
 
-        // --- Novidades: as versões do CHANGELOG (a pasta "Notícias" vem da instalação) --------------------------------------
+        // --- Novidades: as versões do CHANGELOG, sem imagem (um ícone abstrato não informa nada; a galeria mostra o envio de imagens com texto alternativo) (a pasta "Notícias" vem da instalação) --------------------------------------
         $noticias = $objetos->porUrl($this->site->id, 'noticias');
         if ($noticias === null) {
             $noticias = $criar('pasta', $this->raiz, 'Novidades', 'noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Versões e novidades do projeto']);
@@ -182,11 +182,9 @@ final class DemoPopularComando extends Command
         if ($noticias->paiId === $this->raiz) {
             $objetos->mover($noticias->id, $estado->id, 'Demo');
         }
-        $cores = [[10, 90, 108], [20, 110, 130], [150, 100, 20]];
         foreach (ConteudoPublicare::novidades() as $i => $n) {
             $criar('noticia', $noticias->id, $n['titulo'], $n['url'], ['resumo' => $n['resumo'], 'corpo' => $n['corpo']], 'publicado',
-                ['peso' => 0, 'data_publicacao' => $n['data'], 'tags' => $i === 0 ? 'Acesso, Contas' : ($i === 1 ? 'Painel' : 'Painel, Edição')],
-                $this->imagem('imagem_destaque', $n['titulo'], $cores[$i % 3], $n['url'] . '.png', 1200, 630, (string) $i));
+                ['peso' => 0, 'data_publicacao' => $n['data'], 'tags' => $i === 0 ? 'Acesso, Contas' : ($i === 1 ? 'Painel' : 'Painel, Edição')]);
         }
         $bemVindo = $objetos->porUrl($this->site->id, 'bem-vindo-ao-novo-site');
         if ($bemVindo !== null && str_contains((string) ($bemVindo->dados['corpo'] ?? ''), 'notícia de exemplo')) {
@@ -200,9 +198,8 @@ final class DemoPopularComando extends Command
 
         // --- Marcos do projeto (agenda, modelo "evento") ----------------------------------------------------------------
         $agenda = $criar('agenda', $estado->id, 'Marcos do projeto', 'agenda', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'As pré-releases do CHANGELOG, com as datas reais']);
-        foreach (ConteudoPublicare::marcos() as $i => $e) {
-            $criar('evento', $agenda->id, $e['titulo'], $e['url'], ['resumo' => $e['resumo'], 'corpo' => $e['corpo'], 'inicio' => $e['inicio'], 'local' => 'GitHub'], 'publicado', [],
-                $this->imagem('imagem', $e['titulo'], $cores[$i % 3], $e['url'] . '.png', 1200, 630, $e['url']));
+        foreach (ConteudoPublicare::marcos() as $e) {
+            $criar('evento', $agenda->id, $e['titulo'], $e['url'], ['resumo' => $e['resumo'], 'corpo' => $e['corpo'], 'inicio' => $e['inicio'], 'local' => 'GitHub'], 'publicado', []);
         }
 
         // --- Perguntas frequentes (modelo "faq") ---------------------------------------------------------------------------
@@ -288,11 +285,21 @@ final class DemoPopularComando extends Command
         }
         $criar('pagina', $pt->id, 'Contato do portal', 'pt-contato', $pagina('Fale com o projeto.', '<p>Veja o <a href="/contato">formulário de contato</a>.</p>'), 'publicado', ['peso' => 50, 'no_menu' => true]);
 
-        // Cartões na página inicial (molde home): links publicados direto sob a página inicial, depois dos quatro pilares.
-        foreach ([['link-onepage', 'Ver versão Onepage', $op, 50, 'O Publicare 4 numa página só, com seções (pele onepage).'], ['link-portal', 'Ver versão Portal', $pt, 60, 'Notícias, serviços e institucional num portal (pele portal).']] as [$url, $titulo, $alvo, $peso, $texto]) {
+        // "Veja também" na página inicial (molde home): links publicados direto sob a página inicial, depois dos quatro pilares.
+        // Documentação e as duas peles-vitrine; a ordem dos ícones na pele publicare acompanha esta ordem (pele.css).
+        $docs = ConteudoPublicare::REPOSITORIO . '/blob/main/';
+        $uteis = [
+            ['link-atualizar', 'Como atualizar', 'Atualização assinada, com cópia do banco e volta atrás: o passo a passo.', ['destino_externo' => $docs . 'docs/usuario/atualizar.md', 'nova_aba' => true], 50],
+            ['link-documentacao', 'Documentação do usuário', 'Guias para quem edita e para quem administra o site.', ['destino_externo' => ConteudoPublicare::REPOSITORIO . '/tree/main/docs/usuario', 'nova_aba' => true], 60],
+            ['link-linguagem', 'Linguagem de moldes', 'Como escrever peles e moldes .pbl, em português.', ['destino_externo' => $docs . 'docs/linguagem-pbl4.md', 'nova_aba' => true], 70],
+            ['link-onepage', 'Pele onepage', 'O mesmo conteúdo numa página só, com menu de âncoras.', ['destino_interno' => $op->id], 80],
+            ['link-portal', 'Pele portal', 'Notícias, serviços e institucional num portal.', ['destino_interno' => $pt->id], 90],
+            ['link-seguranca', 'Segurança', 'Como relatar uma falha de segurança, em privado.', ['destino_externo' => $docs . 'SECURITY.md', 'nova_aba' => true], 100],
+        ];
+        foreach ($uteis as [$url, $titulo, $texto, $dados, $peso]) {
             $existente = $this->servicos->objetos->porUrl($this->site->id, $url);
             if ($existente === null) {
-                $criar('link', $this->raiz, $titulo, $url, ['destino_interno' => $alvo->id], 'publicado', ['peso' => $peso, 'descricao' => $texto]);
+                $criar('link', $this->raiz, $titulo, $url, $dados, 'publicado', ['peso' => $peso, 'descricao' => $texto]);
             } elseif ($existente->paiId !== $this->raiz) {
                 $this->servicos->objetos->atualizar($existente->id, ['titulo' => $titulo, 'descricao' => $texto, 'peso' => $peso], 'Demo');
                 $this->servicos->objetos->mover($existente->id, $this->raiz, 'Demo');

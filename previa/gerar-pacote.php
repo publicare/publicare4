@@ -90,6 +90,8 @@ $servicos = Pbl\Servicos::doBancoInstalado($caminhos);
 $siteExemplo = $servicos->sites->porHost('previa');
 if ($siteExemplo !== null && $siteExemplo->objetoRaizId !== null) {
     $raizId = (int) $siteExemplo->objetoRaizId;
+    // Fora da home: estes itens só servem para a listagem do painel e não podem aparecer como cartões da página inicial.
+    $paiDosExemplos = $servicos->objetos->porUrl($siteExemplo->id, 'documentos')?->id;
     $exemplos = [
         ['pasta', 'Guia de instalação em hospedagem compartilhada com painel Hestia ou VestaCP, com todos os requisitos e avisos', 'publicado', [], []],
         ['pagina', 'Como o fluxo de revisão funciona quando o autor envia um texto e o editor devolve com o motivo, passo a passo', 'publicado', [], []],
@@ -99,9 +101,9 @@ if ($siteExemplo !== null && $siteExemplo->objetoRaizId !== null) {
     ];
     foreach ($exemplos as $i => [$tipo, $titulo, $status, $meta, $dados]) {
         $classe = $servicos->classes->porNome($tipo);
-        if ($classe !== null) {
+        if ($classe !== null && $paiDosExemplos !== null) {
             try {
-                $servicos->objetos->criar($siteExemplo->id, $classe, $raizId, $titulo, 'previa-lista-' . $i, $dados, $status, $meta);
+                $servicos->objetos->criar($siteExemplo->id, $classe, $paiDosExemplos, $titulo, 'previa-lista-' . $i, $dados, $status, $meta);
             } catch (Throwable) {
                 // exemplo opcional: a prévia segue sem ele
             }
