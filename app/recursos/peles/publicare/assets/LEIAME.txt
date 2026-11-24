@@ -1,3 +1,3 @@
 Pele "publicare" (padrao das instalacoes novas). CSS proprio (pele.css), sem JavaScript, sem fontes externas (pilha de fontes do sistema), sem CDN.
-Icones: SVG locais (icone-*.svg, usados como mascara no CSS, entao seguem a cor do tema) e marca.svg (logotipo simples, usado se o site nao tiver logo).
+Icones: SVG locais (icone-*.svg, usados como mascara no CSS, entao seguem a cor do tema) e marca.svg (logotipo: P em forma de peca de quebra-cabeca, laranja; usado se o site nao tiver logo) e og-publicare.png (imagem de compartilhamento 1200x630, original, desenhada a partir da marca com a fonte DejaVu Sans, de licenca livre).
 Paleta: so as variaveis no topo de pele.css (tema claro e escuro). Marca e icones foram desenhados para este projeto (Apache-2.0).

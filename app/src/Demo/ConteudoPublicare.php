@@ -297,24 +297,6 @@ final class ConteudoPublicare
     }
 
     /**
-     * Textos da versão onepage (`/onepage`) e da versão portal (`/portal`): as mesmas ideias, em outras peles.
-     *
-     * @return array{sobre: string, servicos: array<string, string>, contato: string}
-     */
-    public static function vitrine(): array
-    {
-        return [
-            'sobre' => 'O Publicare 4 reúne conteúdo em árvore, peles e moldes, edição com revisão e histórico, vários sites e atualização assinada.',
-            'servicos' => [
-                'Para quem edita' => 'Editor de texto rico, histórico de versões e fluxo de revisão.',
-                'Para quem administra' => 'Instalação pelo navegador, cópias de segurança e atualização assinada.',
-                'Para quem desenvolve moldes' => 'Linguagem de moldes própria, segura e em português.',
-            ],
-            'contato' => 'Código, propostas e problemas em ' . self::REPOSITORIO . '. Ou use o formulário de contato.',
-        ];
-    }
-
-    /**
      * As afirmações do texto sobre o produto, cada uma com a fonte e a forma de conferir que o recurso existe.
      * `texto` aparece literalmente no conteúdo; a verificação é uma entre:
      * `comando` (subcomando de bin/pbl), `classe` (nome completo), `arquivo` (caminho no repositório) ou

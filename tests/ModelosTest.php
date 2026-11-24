@@ -216,18 +216,19 @@ final class ModelosTest extends TestCase
         foreach (ConteudoPublicare::pilares() as $pilar) {
             self::assertMatchesRegularExpression('#<a class="cartao-atalho" href="/' . preg_quote($pilar['destino'], '#') . '"[^>]*><span class="titulo">' . preg_quote($pilar['titulo'], '#') . '</span>#u', $html);
         }
-        // Os links seguintes (as peles onepage e portal) ficam em "Links rápidos", que não repete os cartões.
+        // Os links seguintes (documentação) ficam em "Links rápidos", que não repete os cartões; um site, uma árvore: sem versões paralelas.
         $rapidos = substr($html, (int) strpos($html, 'class="links-rapidos"'));
-        self::assertMatchesRegularExpression('#<a href="/onepage[^"]*">Pele onepage</a>#u', $rapidos);
-        self::assertMatchesRegularExpression('#<a href="/portal[^"]*">Pele portal</a>#u', $rapidos);
+        self::assertMatchesRegularExpression('#<a href="[^"]*atualizar\.md"[^>]*>Como atualizar</a>#u', $rapidos);
+        self::assertStringNotContainsString('Pele onepage', $html);
+        self::assertStringNotContainsString('Pele portal', $html);
         self::assertStringNotContainsString('Conteúdo em árvore', $rapidos);
         // Folha de estilos própria; nada de estilo nem script embutido (CSP rígida).
         self::assertMatchesRegularExpression('#<link rel="stylesheet" href="/_pbl/peles/basica/assets/pele\.css\?v=[0-9a-f]{8}">#', $html);
         self::assertStringNotContainsString('<style', $html);
         self::assertStringNotContainsString(' style=', $html);
         self::assertDoesNotMatchRegularExpression('#<script(?![^>]*\ssrc=)#', $html);
-        // Lista de itens: miniatura de 400 px (nítida) dentro de moldura de proporção fixa. O exemplo não tem data que envelheça.
-        self::assertMatchesRegularExpression('#class="item-imagem"[^>]*><img src="/_pbl/arquivo/\d+/miniatura/400"#', $html);
+        // Lista de itens: os guias do exemplo não têm imagem, então não sobra moldura vazia. O exemplo não tem data que envelheça.
+        self::assertStringNotContainsString('class="item-imagem"', $html);
         self::assertStringNotContainsString('class="data"', $html);
         self::assertFileExists($this->caminhos->peles() . '/basica/assets/pele.css');
         $css = (string) file_get_contents($this->caminhos->peles() . '/basica/assets/pele.css');
@@ -283,15 +284,15 @@ final class ModelosTest extends TestCase
         self::assertStringContainsString('prefers-reduced-motion', $pele);
         self::assertStringNotContainsString('innerHTML', $pele);
         // Ações por título (barra de edição): cada item listado leva o id e um espaço vazio e oculto para os botões; o do <body> não conta.
-        foreach (['index', 'onepage', 'portal', 'noticias', 'perguntas-frequentes'] as $url) {
+        foreach (['index', 'noticias', 'perguntas-frequentes'] as $url) {
             $p = (string) file_get_contents($dir . '/' . $url . '.html');
             $marcas = preg_match_all('#\sdata-pbl-objeto="[1-9][0-9]*"#', $p);
             $espacos = substr_count($p, '<span class="pbl-acoes" hidden></span>');
             self::assertGreaterThan(1, $marcas, $url);
             self::assertSame($marcas - 1, $espacos, "{$url}: um espaço de ações por item listado");
         }
-        // Em onepage e portal, o hero usa um tamanho de miniatura que existe (antes o src saía vazio).
-        foreach (['onepage', 'portal'] as $url) {
+        // Nenhuma página sai com imagem vazia nem estilo embutido.
+        foreach (['index', 'noticias'] as $url) {
             $p = (string) file_get_contents($dir . '/' . $url . '.html');
             self::assertStringNotContainsString('src=""', $p, $url);
             self::assertStringNotContainsString(' style=', $p, $url);

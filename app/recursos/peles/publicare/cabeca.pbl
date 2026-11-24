@@ -24,7 +24,24 @@
 <meta property="og:url" content="<@eco #base_url@><@eco #url@>">
 <@se #feed_site_url != ""@><link rel="alternate" type="application/rss+xml" title="<@eco #site_nome@>" href="<@eco #feed_site_url@>">
 <@/se@><@se #feed_url != ""@><@se #feed_url != #feed_site_url@><link rel="alternate" type="application/rss+xml" title="<@eco #feed_titulo@> - <@eco #site_nome@>" href="<@eco #feed_url@>">
-<@/se@><@/se@><@se $imagem_seo != ""@><meta property="og:image" content="<@eco #base_url@><@arquivo valor=$imagem_seo info="url"@>">
-<@/se@><@se $icone_site != ""@><link rel="icon" href="<@arquivo valor=$icone_site info="url"@>">
+<@/se@><@/se@><meta property="og:site_name" content="<@eco #site_nome@>">
+<meta property="og:locale" content="<@eco %SITE.config.idioma@>">
+<@se $imagem_seo != ""@><meta property="og:image" content="<@eco #base_url@><@arquivo valor=$imagem_seo info="url"@>">
+<meta property="og:image:alt" content="<@eco $titulo_seo@>">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="<@eco #base_url@><@arquivo valor=$imagem_seo info="url"@>">
+<meta name="twitter:image:alt" content="<@eco $titulo_seo@>">
+<@senao@><meta property="og:image" content="<@eco #base_url@><@eco #pele_url@>/assets/og-publicare.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Logotipo do <@eco #site_nome@>: um P em forma de peça de quebra-cabeça, em laranja.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="<@eco #base_url@><@eco #pele_url@>/assets/og-publicare.png">
+<meta name="twitter:image:alt" content="Logotipo do <@eco #site_nome@>: um P em forma de peça de quebra-cabeça, em laranja.">
+<@/se@><meta name="twitter:title" content="<@eco $titulo_seo@>">
+<@se $descricao_seo != ""@><meta name="twitter:description" content="<@eco $descricao_seo@>">
+<@/se@><@-- Dados estruturados (JSON-LD): bloco de dados, não executa (a CSP não o bloqueia nem precisa de exceção). --@>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"<@se #classe == "noticia"@>Article<@senao@>WebPage<@/se@>","name":"<@eco $titulo_seo@>","url":"<@eco #base_url@><@eco #url@>","inLanguage":"<@eco %SITE.config.idioma@>","isPartOf":{"@type":"WebSite","name":"<@eco #site_nome@>","url":"<@eco #base_url@>/"}}</script>
+<@se $icone_site != ""@><link rel="icon" href="<@arquivo valor=$icone_site info="url"@>">
 <@senao@><link rel="icon" type="image/svg+xml" href="<@eco #pele_url@>/assets/marca.svg">
 <@/se@><script src="/_pbl/assets/pbl-barra.js?v=<@eco #barra_v@>" defer></script>

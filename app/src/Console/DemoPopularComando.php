@@ -226,65 +226,25 @@ final class DemoPopularComando extends Command
         $criar('bloco', $blocos->id, 'Aviso', 'bloco-aviso', ['corpo' => '<p>Site de exemplo do Publicare 4: o conteúdo mostra o produto, e as contas e os e-mails de demonstração são fictícios.</p>']);
         $criar('bloco', $blocos->id, 'Rodapé', 'bloco-rodape', ['corpo' => '<p>O Publicare 4 é software livre, sob a licença Apache-2.0. <a href="' . ConteudoPublicare::REPOSITORIO . '">Código-fonte no GitHub</a> · <a href="/comunidade">Comunidade</a> · <a href="/contato">Contato</a> · <a href="/sobre">Sobre este exemplo</a></p>']);
 
-        $this->versoesDoSite($criar, $pagina);
+        $this->atalhosUteis($criar);
         $this->fluxoDeRevisao($comunidade);
     }
 
     /**
-     * As duas versões de site em paralelo (ADR 0022): `/onepage` (pele onepage) e `/portal` (pele portal). Cada uma é um objeto-raiz de
-     * pele; todo o conteúdo abaixo dele herda a pele. Os endereços levam prefixo (`op-`, `pt-`) porque são únicos por site.
+     * "Veja também" na página inicial.
+     *
+     * Um site, uma árvore de objetos: trocar a pele não cria objetos (a pele onepage virá depois, renderizando esta mesma árvore).
      *
      * @param \Closure(string, ?int, string, string, array<string, string|int|float|bool>, string, array<string, mixed>, ?\Closure=): Objeto $criar
-     * @param \Closure(string, string): array{resumo: string, corpo: string} $pagina
      */
-    private function versoesDoSite(\Closure $criar, \Closure $pagina): void
+    private function atalhosUteis(\Closure $criar): void
     {
-        $vitrine = ConteudoPublicare::vitrine();
-        $cor = [[10, 90, 108], [20, 110, 130], [150, 100, 20]];
-
-        // --- Onepage: uma página só, com seções vindas dos filhos --------------------------------------------------------------------
-        $op = $criar('pagina', $this->raiz, 'Publicare 4 (uma página)', 'onepage', $pagina('O Publicare 4 numa página só, com seções.', '<p>Versão <strong>onepage</strong>: tudo na mesma tela, com menu de âncoras.</p>'), 'publicado', ['peso' => 80, 'no_menu' => false, 'rotulo_menu' => 'Versão onepage', 'pele' => 'onepage']);
-        $criar('pagina', $op->id, 'Sobre', 'op-sobre', $pagina('Sites e pequenos sistemas, sem programar.', '<p>' . $vitrine['sobre'] . '</p>'), 'publicado', ['peso' => 10]);
-        $servicos = $criar('pasta', $op->id, 'Para quem', 'op-servicos', [], 'publicado', ['peso' => 20, 'descricao' => 'Como facilita']);
-        foreach ($vitrine['servicos'] as $t => $r) {
-            $criar('pagina', $servicos->id, $t, 'op-servico-' . $this->slug($t), $pagina($r, '<p>' . $r . ' Veja mais em <a href="/como-facilita">Como facilita</a>.</p>'), 'publicado', ['peso' => 10]);
-        }
-        $destaques = $criar('pasta', $op->id, 'Destaques', 'op-destaques', [], 'publicado', ['peso' => 30, 'descricao' => 'Em evidência']);
-        foreach ([['conhecer', 'O que ele faz'], ['instalar', 'Como instalar'], ['participar', 'Como participar']] as $i => [$u, $t]) {
-            $criar('destaque', $destaques->id, $t, 'op-destaque-' . $u, ['texto' => 'Saiba mais.', 'nova_aba' => false], 'publicado', ['peso' => ($i + 1) * 10],
-                $this->imagem('imagem', $t, $cor[$i], 'op-destaque-' . $u . '.png', 1200, 500, $u));
-        }
-        $criar('pagina', $op->id, 'Contato', 'op-contato', $pagina('Fale com o projeto.', '<p>' . $vitrine['contato'] . ' <a href="/contato">Formulário de contato</a>.</p>'), 'publicado', ['peso' => 40]);
-
-        // --- Portal: várias páginas, com notícias --------------------------------------------------------------------------------------
-        $pt = $criar('pagina', $this->raiz, 'Publicare 4 (portal)', 'portal', $pagina('Notícias, serviços e institucional num portal.', '<p>Versão <strong>portal</strong>: várias páginas, hero com carrossel, listagem de notícias e rodapé.</p>'), 'publicado', ['peso' => 90, 'no_menu' => false, 'rotulo_menu' => 'Versão portal', 'pele' => 'portal']);
-        $criar('pagina', $pt->id, 'Sobre o portal', 'pt-sobre', $pagina('O que é.', '<p>' . $vitrine['sobre'] . '</p>'), 'publicado', ['peso' => 10, 'no_menu' => true]);
-        $guiasDoPortal = $criar('pasta', $pt->id, 'Guias do portal', 'pt-noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Conceitos do Publicare 4']);
-        foreach (ConteudoPublicare::guias() as $i => $g) {
-            $criar('noticia', $guiasDoPortal->id, $g['titulo'], 'pt-' . $g['url'], ['resumo' => $g['resumo'], 'corpo' => $g['corpo']], 'publicado',
-                ['peso' => ($i + 1) * 10, 'tags' => $g['tags']], $this->imagem('imagem_destaque', $g['titulo'], $cor[$i % 3], 'pt-' . $g['url'] . '.png', 1200, 630, $g['url']));
-        }
-        $pts = $criar('pasta', $pt->id, 'Para quem', 'pt-servicos', [], 'publicado', ['peso' => 30, 'no_menu' => true, 'descricao' => 'Como facilita']);
-        $j = 0;
-        foreach ($vitrine['servicos'] as $t => $r) {
-            $criar('pagina', $pts->id, $t, 'pt-servico-' . $this->slug($t), $pagina($r, '<p>' . $r . '</p>'), 'publicado', ['peso' => (++$j) * 10, 'no_menu' => true]);
-        }
-        $ptd = $criar('pasta', $pt->id, 'Destaques do portal', 'pt-destaques', [], 'publicado', ['peso' => 40, 'descricao' => 'Em evidência']);
-        foreach ([['conhecer', 'O que ele faz'], ['instalar', 'Como instalar']] as $i => [$u, $t]) {
-            $criar('destaque', $ptd->id, $t, 'pt-destaque-' . $u, ['texto' => 'Conheça.', 'nova_aba' => false], 'publicado', ['peso' => ($i + 1) * 10],
-                $this->imagem('imagem', $t, $cor[$i], 'pt-destaque-' . $u . '.png', 1200, 500, $u));
-        }
-        $criar('pagina', $pt->id, 'Contato do portal', 'pt-contato', $pagina('Fale com o projeto.', '<p>Veja o <a href="/contato">formulário de contato</a>.</p>'), 'publicado', ['peso' => 50, 'no_menu' => true]);
-
-        // "Veja também" na página inicial (molde home): links publicados direto sob a página inicial, depois dos quatro pilares.
-        // Documentação e as duas peles-vitrine; a ordem dos ícones na pele publicare acompanha esta ordem (pele.css).
+        // Links publicados direto sob a página inicial (molde home), depois dos quatro pilares; a ordem dos ícones acompanha pele.css.
         $docs = ConteudoPublicare::REPOSITORIO . '/blob/main/';
         $uteis = [
             ['link-atualizar', 'Como atualizar', 'Atualização assinada, com cópia do banco e volta atrás: o passo a passo.', ['destino_externo' => $docs . 'docs/usuario/atualizar.md', 'nova_aba' => true], 50],
             ['link-documentacao', 'Documentação do usuário', 'Guias para quem edita e para quem administra o site.', ['destino_externo' => ConteudoPublicare::REPOSITORIO . '/tree/main/docs/usuario', 'nova_aba' => true], 60],
             ['link-linguagem', 'Linguagem de moldes', 'Como escrever peles e moldes .pbl, em português.', ['destino_externo' => $docs . 'docs/linguagem-pbl4.md', 'nova_aba' => true], 70],
-            ['link-onepage', 'Pele onepage', 'O mesmo conteúdo numa página só, com menu de âncoras.', ['destino_interno' => $op->id], 80],
-            ['link-portal', 'Pele portal', 'Notícias, serviços e institucional num portal.', ['destino_interno' => $pt->id], 90],
             ['link-seguranca', 'Segurança', 'Como relatar uma falha de segurança, em privado.', ['destino_externo' => $docs . 'SECURITY.md', 'nova_aba' => true], 100],
         ];
         foreach ($uteis as [$url, $titulo, $texto, $dados, $peso]) {
@@ -296,13 +256,6 @@ final class DemoPopularComando extends Command
                 $this->servicos->objetos->mover($existente->id, $this->raiz, 'Demo');
             }
         }
-    }
-
-    private function slug(string $texto): string
-    {
-        $ascii = \Pbl\Conteudo\Ascii::de($texto);
-
-        return trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($ascii)), '-');
     }
 
     /**

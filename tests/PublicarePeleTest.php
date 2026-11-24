@@ -49,7 +49,7 @@ final class PublicarePeleTest extends TestCase
             self::assertDoesNotMatchRegularExpression('#<style#i', $t, $nome);
             self::assertDoesNotMatchRegularExpression('#\sstyle\s*=#i', $t, $nome);
             self::assertDoesNotMatchRegularExpression('#\son[a-z]+\s*=#i', $t, $nome);
-            self::assertDoesNotMatchRegularExpression('#<script(?![^>]*\ssrc=)#i', $t, $nome);
+            self::assertDoesNotMatchRegularExpression('#<script(?![^>]*\ssrc=)(?![^>]*type="application/ld\+json")#i', $t, $nome);
             self::assertDoesNotMatchRegularExpression('#(?:src|href)\s*=\s*"https?://#i', $t, $nome);
             self::assertDoesNotMatchRegularExpression('#@import|url\(\s*[\'"]?(?:https?:)?//#i', $t, $nome);
             self::assertStringNotContainsString('javascript:', $t, $nome);

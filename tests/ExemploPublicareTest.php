@@ -125,7 +125,7 @@ final class ExemploPublicareTest extends TestCase
         foreach (array_keys(ConteudoPublicare::paginas()) as $url) {
             self::assertContains($url, $paginas, $url);
         }
-        foreach (['index', 'perguntas-frequentes', 'noticias', 'contato', 'sobre', 'onepage', 'portal', 'documentos', 'links-uteis'] as $url) {
+        foreach (['index', 'perguntas-frequentes', 'noticias', 'contato', 'sobre', 'documentos', 'links-uteis'] as $url) {
             self::assertContains($url, $paginas, $url);
         }
         foreach ($paginas as $nome) {
@@ -226,7 +226,7 @@ final class ExemploPublicareTest extends TestCase
             }
             self::assertStringNotContainsString('<style', $html, $nome);
             self::assertStringNotContainsString(' style=', $html, $nome);
-            self::assertDoesNotMatchRegularExpression('#<script(?![^>]*\ssrc=)#', $html, $nome);
+            self::assertDoesNotMatchRegularExpression('#<script(?![^>]*\ssrc=)(?![^>]*type="application/ld\+json")#', $html, $nome);
             self::assertDoesNotMatchRegularExpression('#\son[a-z]+=#i', $html, $nome);
             self::assertStringNotContainsString('javascript:', $html, $nome);
             self::assertDoesNotMatchRegularExpression('#<(?:script|img)\b[^>]*\ssrc="https?://|<link\b[^>]*rel="(?:stylesheet|icon|preload)"[^>]*href="https?://#', $html, $nome . ': recurso de terceiros');
@@ -250,17 +250,15 @@ final class ExemploPublicareTest extends TestCase
         }
         self::assertSame(1, substr_count($html, '<h1'));
         self::assertStringContainsString(ConteudoPublicare::PROMESSA, $html);
-        // Quatro pilares e, em "Veja também", seis cartões úteis (nada herdado do exemplo antigo, nada repetido).
-        self::assertSame(10, substr_count($html, 'class="cartao-atalho"'));
+        // Quatro pilares e, em "Veja também", quatro cartões úteis (nada herdado do exemplo antigo, nada repetido).
+        self::assertSame(8, substr_count($html, 'class="cartao-atalho"'));
         $vitrine = substr($html, (int) strpos($html, 'class="faixa suave vitrine"'), (int) strpos($html, 'class="faixa ultimas"') - (int) strpos($html, 'class="faixa suave vitrine"'));
-        self::assertSame(6, substr_count($vitrine, 'class="cartao-atalho"'));
-        foreach (['Como atualizar', 'Documentação do usuário', 'Linguagem de moldes', 'Pele onepage', 'Pele portal', 'Segurança'] as $titulo) {
+        self::assertSame(4, substr_count($vitrine, 'class="cartao-atalho"'));
+        foreach (['Como atualizar', 'Documentação do usuário', 'Linguagem de moldes', 'Segurança'] as $titulo) {
             self::assertStringContainsString('<span class="titulo">' . $titulo . '</span>', $vitrine, $titulo);
         }
         self::assertStringNotContainsString('Ver versão', $html);
         self::assertStringNotContainsString('Versões publicadas no GitHub', $html);
-        self::assertMatchesRegularExpression('#<a class="cartao-atalho" href="/onepage[^"]*"[^>]*><span class="icone" aria-hidden="true"></span><span class="titulo">Pele onepage</span>#u', $html);
-        self::assertMatchesRegularExpression('#<a class="cartao-atalho" href="/portal[^"]*"[^>]*><span class="icone" aria-hidden="true"></span><span class="titulo">Pele portal</span>#u', $html);
         // Os botões do hero e a chamada final vêm da pasta "chamadas".
         self::assertGreaterThanOrEqual(2, substr_count($html, 'class="botao'));
         self::assertStringContainsString('Como instalar', $html);
@@ -273,7 +271,7 @@ final class ExemploPublicareTest extends TestCase
         self::assertSame(3, substr_count($html, '<article class="item">'));
         self::assertStringContainsString('Conceitos e guias', $html);
         self::assertStringNotContainsString('Últimas notícias', $html);
-        self::assertSame(1, substr_count($html, 'Como funciona a revisão'), 'cada guia aparece uma vez só (os do portal ficam fora da home)');
+        self::assertSame(1, substr_count($html, 'Como funciona a revisão'), 'cada guia aparece uma vez só');
         // Sem imagem vazia: destaques e notícias da home ou trazem imagem real ou não têm espaço para ela.
         self::assertSame(3, substr_count($html, 'class="destaque"'));
         self::assertSame(0, substr_count($html, 'class="item-imagem"'));
@@ -330,6 +328,101 @@ final class ExemploPublicareTest extends TestCase
         self::assertStringContainsString('lang="pt-BR"', $html);
         self::assertStringContainsString('noindex', $html);
         self::assertStringNotContainsString('<style', $html);
+    }
+
+    /** @return array<string, list<string>> tipo de página => nome do arquivo publicado (sem extensão) */
+    private static function paginasPorTipo(): array
+    {
+        return [
+            'home' => ['index'],
+            'pagina' => ['sobre', 'o-que-ele-faz'],
+            'guia (noticia)' => [ConteudoPublicare::guias()[0]['url']],
+            'faq' => ['perguntas-frequentes'],
+        ];
+    }
+
+    public function testSeoECompartilhamentoPreenchidosEmCadaTipoDePagina(): void
+    {
+        foreach (self::paginasPorTipo() as $tipo => $nomes) {
+            foreach ($nomes as $nome) {
+                $html = self::arquivoPublicado(self::$demo, self::$siteDemo, $nome);
+                $onde = "{$tipo} ({$nome})";
+                $url = $nome === 'index' ? '/' : '/' . $nome;
+                self::assertMatchesRegularExpression('#<title>[^<]{3,}</title>#u', $html, $onde);
+                self::assertMatchesRegularExpression('#<meta name="description" content="[^"]{10,}">#u', $html, $onde);
+                self::assertStringContainsString('<link rel="canonical" href="https://' . self::HOST . ($url === '/' ? '/' : $url) . '">', $html, $onde);
+                foreach (['og:title', 'og:description', 'og:type', 'og:url', 'og:site_name', 'og:locale', 'og:image'] as $p) {
+                    self::assertMatchesRegularExpression('#<meta property="' . $p . '" content="[^"]+">#u', $html, "{$onde} {$p}");
+                }
+                self::assertMatchesRegularExpression('#<meta property="og:image" content="https://' . preg_quote(self::HOST, '#') . '/[^"]+">#', $html, $onde);
+                self::assertStringContainsString('<meta property="og:image:alt" content="', $html, $onde);
+                foreach (['twitter:card', 'twitter:title', 'twitter:description', 'twitter:image', 'twitter:image:alt'] as $p) {
+                    self::assertMatchesRegularExpression('#<meta name="' . $p . '" content="[^"]+">#u', $html, "{$onde} {$p}");
+                }
+                self::assertStringContainsString('<meta name="twitter:card" content="summary_large_image">', $html, $onde);
+                self::assertStringNotContainsString('name="robots" content="noindex"', $html, $onde);
+                self::assertStringContainsString('<link rel="icon" type="image/svg+xml" href="/_pbl/peles/publicare/assets/marca.svg">', $html, $onde);
+                // JSON-LD: bloco de dados válido, com o endereço da página.
+                self::assertSame(1, preg_match('#<script type="application/ld\+json">(.*?)</script>#s', $html, $m), $onde);
+                $ld = json_decode($m[1] ?? '', true);
+                self::assertIsArray($ld, $onde);
+                self::assertSame('https://schema.org', $ld['@context']);
+                self::assertSame('https://' . self::HOST . $url, $ld['url'], $onde);
+                self::assertSame(ConteudoPublicare::NOME_DO_SITE, $ld['isPartOf']['name']);
+            }
+        }
+        self::assertStringContainsString('"@type":"Article"', self::arquivoPublicado(self::$demo, self::$siteDemo, ConteudoPublicare::guias()[0]['url']));
+    }
+
+    public function testSeoDaInstalacaoLimpaJaFunciona(): void
+    {
+        $home = self::arquivoPublicado(self::$leve, self::$siteLeve, 'index');
+        foreach (['<title>', 'name="description"', 'rel="canonical"', 'property="og:image"', 'name="twitter:card"', 'application/ld+json', 'rel="icon"'] as $trecho) {
+            self::assertStringContainsString($trecho, $home, $trecho);
+        }
+    }
+
+    public function testCamposSeoSobrepoemOsPadroesDaPele(): void
+    {
+        $home = self::arquivoPublicado(self::$demo, self::$siteDemo, 'index');
+        $seo = ConteudoPublicare::inicio();
+        self::assertStringContainsString('<title>' . $seo['seo_titulo'], $home);
+        self::assertStringContainsString('<meta name="description" content="' . $seo['seo_descricao'] . '">', $home);
+        self::assertStringContainsString('<meta property="og:title" content="' . $seo['seo_titulo'] . '">', $home);
+    }
+
+    public function testImagemDeCompartilhamentoOriginalERobotsESitemapFuncionam(): void
+    {
+        $png = self::$demo->peles() . '/publicare/assets/og-publicare.png';
+        self::assertFileExists($png);
+        $tam = getimagesize($png);
+        self::assertIsArray($tam);
+        self::assertSame([1200, 630], [$tam[0], $tam[1]]);
+        self::assertSame(IMAGETYPE_PNG, $tam[2]);
+        self::assertFileExists(self::$demo->peles() . '/publicare/assets/marca.svg');
+        $robots = self::pegar(self::$demo, '/robots.txt');
+        self::assertSame(200, $robots->getStatusCode());
+        self::assertStringContainsString('Sitemap:', (string) $robots->getContent());
+        $mapa = self::pegar(self::$demo, '/sitemap.xml');
+        self::assertSame(200, $mapa->getStatusCode());
+        self::assertStringContainsString('<urlset', (string) $mapa->getContent());
+        self::assertSame(200, self::pegar(self::$demo, '/_pbl/peles/publicare/assets/og-publicare.png')->getStatusCode());
+    }
+
+    public function testUmSiteUmaArvoreETrocarAPeleNaoCriaObjetos(): void
+    {
+        $paginas = self::paginasPublicadas();
+        foreach (['onepage', 'portal'] as $url) {
+            self::assertNotContains($url, $paginas, "não existe a árvore {$url}");
+        }
+        $s = Servicos::doBancoInstalado(self::$demo);
+        $antes = (int) $s->conexao()->fetchOne('SELECT COUNT(*) FROM objeto');
+        foreach (['basica', 'onepage', 'portal', PelesDistribuidas::PADRAO] as $pele) {
+            $s->sites->definirPele(self::$siteDemo, $pele);
+            $s->publicador->publicarSite($s->sites->porId(self::$siteDemo) ?? self::fail('site'));
+            self::assertSame($antes, (int) $s->conexao()->fetchOne('SELECT COUNT(*) FROM objeto'), "trocar para {$pele} não cria nem apaga objetos");
+        }
+        self::assertSame(0, (int) $s->conexao()->fetchOne("SELECT COUNT(*) FROM objeto WHERE url_amigavel IN ('onepage','portal') OR url_amigavel LIKE 'op-%' OR url_amigavel LIKE 'pt-%'"));
     }
 
     public function testBuscaEOutrasPaginasEspeciaisNaPeleNova(): void

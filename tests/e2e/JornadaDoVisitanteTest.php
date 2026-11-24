@@ -101,7 +101,7 @@ final class JornadaDoVisitanteTest extends TestCase
         foreach (self::$paginas as $caminho => $html) {
             self::assertSame([], Navegador::recursosExternos($html), "recurso externo em {$caminho}");
             self::assertDoesNotMatchRegularExpression('#<style\b#i', $html, "style embutido em {$caminho}");
-            self::assertDoesNotMatchRegularExpression('#<script\b(?![^>]*\ssrc=)#i', $html, "script embutido em {$caminho}");
+            self::assertDoesNotMatchRegularExpression('#<script\b(?![^>]*\ssrc=)(?![^>]*type="application/ld\+json")#i', $html, "script embutido em {$caminho}");
             self::assertDoesNotMatchRegularExpression('#\s(?:style|on[a-z]+)="#i', $html, "atributo inline em {$caminho}");
         }
     }
