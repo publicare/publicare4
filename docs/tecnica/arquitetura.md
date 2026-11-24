@@ -33,7 +33,7 @@ flowchart LR
     PU --> RE[Renderizador]
     RE --> M[molde da pele: dados/peles/pele/classe.pbl]
     M --> CO[Compilador: Lexer → Parser → Gerador]
-    CO --> PHP[(dados/cache/pbl/hash.php)]
+    CO --> PHP[(dados/cache/pbl/hash.php: chave = fonte + layouts + pele + formato)]
     RE --> RT[Runtime + FonteRepositorio]
     RT --> OR
     RE --> HTML[HTML] --> F[(cache de páginas)]

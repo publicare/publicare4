@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pbl\Testes;
 
+use Pbl\Linguagem\ComImpressao;
 use Pbl\Linguagem\Compilador;
 use Pbl\Linguagem\ErroSintaxe;
 use Pbl\Linguagem\FonteDeDados;
@@ -604,7 +605,83 @@ final class LinguagemTest extends TestCase
         (new Compilador($this->cache, formato: 1))->carregar('<@eco #a@>');
         self::assertCount(1, glob($this->cache . '/*.php') ?: []);
 
-        (new Compilador($this->cache, formato: 2))->carregar('<@eco #a@>');
+        (new Compilador($this->cache, formato: 3))->carregar('<@eco #a@>');
         self::assertCount(2, glob($this->cache . '/*.php') ?: [], 'novo formato do compilador não reaproveita o PHP antigo');
+    }
+
+    public function testEstendeComComentarioInicialRecompilaQuandoSoABaseMuda(): void
+    {
+        $home = "<@-- home --@>\n<@estende \"base\"@><@bloco corpo@>oi<@/bloco@>";
+        self::assertSame('[v1:oi]', $this->render($home, [], ['base' => '[v1:<@bloco corpo@><@/bloco@>]']));
+        self::assertSame('[v2:oi]', $this->render($home, [], ['base' => '[v2:<@bloco corpo@><@/bloco@>]']), 'só a base mudou');
+    }
+
+    public function testEstendeEmCadeiaRecompilaQuandoSoARaizMuda(): void
+    {
+        $moldes = fn (string $raiz): array => ['meio' => "<@estende 'raiz'@><@bloco a@>M<@bloco b@><@/bloco@><@/bloco@>", 'raiz' => $raiz];
+        $filho = "\n  <@estende 'meio'@><@bloco b@>F<@/bloco@>";
+        self::assertSame('1MF', $this->render($filho, [], $moldes('1<@bloco a@><@/bloco@>')));
+        self::assertSame('2MF', $this->render($filho, [], $moldes('2<@bloco a@><@/bloco@>')));
+    }
+
+    public function testIncluirAlteradoMostraAMudanca(): void
+    {
+        $base = 'a<@incluir arquivo="og"@>b';
+        self::assertSame('a1b', $this->render($base, [], ['og' => '1']));
+        self::assertSame('a2b', $this->render($base, [], ['og' => '2']));
+    }
+
+    public function testCasoRealBaseGanhaIncluirEHomePassaAEmitir(): void
+    {
+        $home = "<@-- home --@>\n<@estende \"base\"@><@bloco corpo@>Home<@/bloco@>";
+        $antes = ['base' => '<head></head><@bloco corpo@><@/bloco@>', 'og' => '<meta og>'];
+        $depois = ['base' => '<head><@incluir arquivo="og"@></head><@bloco corpo@><@/bloco@>', 'og' => '<meta og>'];
+        self::assertSame('<head></head>Home', $this->render($home, [], $antes));
+        self::assertSame('<head><meta og></head>Home', $this->render($home, [], $depois));
+    }
+
+    public function testCicloDeIncluirNaoTravaNaChave(): void
+    {
+        $this->expectException(\Throwable::class);
+        $this->render('<@incluir arquivo="a"@>', [], ['a' => 'x<@incluir arquivo="a"@>']);
+    }
+
+    public function testCicloDeEstendeNaoTravaNaChave(): void
+    {
+        $this->expectException(ErroSintaxe::class);
+        $this->render('<@estende "a"@>', [], ['a' => '<@estende "a"@>']);
+    }
+
+    public function testImpressaoDaPeleEntraNaChave(): void
+    {
+        $com = static fn (string $imp): Resolvedor => new class ($imp) implements Resolvedor, ComImpressao {
+            public function __construct(private readonly string $imp)
+            {
+            }
+
+            public function fonte(string $nome): string
+            {
+                return '';
+            }
+
+            public function impressao(): string
+            {
+                return $this->imp;
+            }
+        };
+        $c = new Compilador($this->cache);
+        $c->carregar('x', $com('pele-x'));
+        $c->carregar('x', $com('pele-x'));
+        self::assertCount(1, glob($this->cache . '/*.php') ?: []);
+        $c->carregar('x', $com('pele-y'));
+        self::assertCount(2, glob($this->cache . '/*.php') ?: [], 'outra pele, outra chave');
+    }
+
+    public function testLimparRemoveOsCompilados(): void
+    {
+        $c = new Compilador($this->cache);
+        $c->carregar('x');
+        $c->limpar();
+        self::assertSame([], glob($this->cache . '/*.php') ?: []);
     }
 }
