@@ -12,7 +12,7 @@ Status: aceito (implementado no domínio e no cron).
 **Regras**: e-mail com várias contas recebe um link por conta; "esqueci usuário" lista todos os logins do e-mail e não emite token. Redefinir confere a política **antes** de consumir (senha fraca não queima o link), encerra as sessões, invalida os outros tokens e avisa por e-mail. Auditoria: `recuperacao.enviada`, `.limitada`, `.concluida`, `.falha`, `.emitida`, sem token, identificador nem IP em claro.
 
 ## Rotas e cabeçalhos (a implementar na fatia de telas)
-`GET/POST /_pbl/redefinir-senha/<token>`, `/_pbl/convite/<token>` e `/_pbl/esqueci`, `/_pbl/esqueci-usuario`. Todo POST com CSRF pré-sessão (finalidade própria) e Origin; páginas com token enviam `Cache-Control: no-store` e `Referrer-Policy: no-referrer`; CSP sem script inline ([ADR 0022](0022-csp-sem-script-inline.md) se existir; senão a regra do painel).
+`GET/POST /_pbl/redefinir-senha/<token>`, `/_pbl/convite/<token>` e `/_pbl/esqueci`, `/_pbl/esqueci-usuario`. Todo POST com CSRF pré-sessão (finalidade própria) e Origin; páginas com token enviam `Cache-Control: no-store` e `Referrer-Policy: no-referrer`; CSP sem script nem `style` inline (regra do painel, `Pagina::protegida`); o CSRF pré-sessão reaproveita `Csrf::paraEntrar`.
 
 ## Consequências
 - Vazamento do banco não permite usar tokens; scanner de e-mail não queima o link.

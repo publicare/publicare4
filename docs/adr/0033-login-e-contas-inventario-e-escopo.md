@@ -26,8 +26,9 @@ Fase 1 entra: e-mail plugável; esqueci senha e usuário; convite; perfil (senha
 | Convite (criar, reenviar, cancelar, aceitar) | **feito** (domínio, testes) |
 | CLI `conta-recuperar` e `conta-convidar` | **feito** |
 | LGPD cobre `token_conta`; cron limpa tokens e processa a fila | **feito** |
-| Telas HTTP: "Esqueci a senha/usuário" no login, redefinir, aceitar convite, Configurações › E-mail, convite no painel | **pendente** (ADR 0034 a 0036 já definem rotas e regras) |
-| Perfil próprio, sessões listáveis (M029), forçar troca, falhas por conta, `conta-sessoes` | **pendente** ([ADR 0037](0037-perfil-sessoes-e-operacoes-de-admin.md)) |
+| Telas HTTP: "Esqueci a senha/usuário" no login, redefinir, aceitar convite, Mais › E-mail do site, convite no painel (`TelasPublicasDeConta`, `TelasDeConvite`, `TelasDeEmail`) | **feito** (testes em `TelasDeContaTest`) |
+| Perfil próprio: nome e troca de senha (pede a atual, mantém a sessão atual) (`TelasDePerfil`) | **feito** |
+| Sessões listáveis (M029), troca de e-mail com dupla confirmação, forçar troca, falhas por conta, destravar no painel, `conta-sessoes` | **pendente** ([ADR 0037](0037-perfil-sessoes-e-operacoes-de-admin.md)) |
 
 ## Consequências
 - Sem e-mail configurado, nada do fluxo por e-mail fica disponível; login, CLI e redefinição por administrador seguem valendo.

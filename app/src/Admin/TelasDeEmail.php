@@ -135,7 +135,7 @@ final class TelasDeEmail
             'seguranca' => $atual->seguranca !== $nova->seguranca, 'usuario' => $atual->usuario !== $nova->usuario,
             'senha' => $campos['senha_smtp'] !== '', 'remetente' => $atual->remetente !== $nova->remetente,
         ]));
-        $this->servicos->auditoria->registrar('email.configurar', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['campos' => $mudou]);
+        $this->servicos->auditoria->registrar('email.configurar', 'usuario:' . $sessao->usuario->id, $sessao->usuario->id, null, ['campos' => implode(',', $mudou)]);
 
         return new RedirectResponse(Painel::PREFIXO . '/email?ok=salvo', Response::HTTP_SEE_OTHER);
     }
@@ -153,7 +153,7 @@ final class TelasDeEmail
         }
         try {
             $emails->enviar($sessao->usuario->email, 'Teste de e-mail', "Se você leu esta mensagem, o envio de e-mail do site está funcionando.\n");
-        } catch (\InvalidArgumentException | \RuntimeException) {
+        } catch (\RuntimeException) {
             return $this->pagina($sessao, $atual->paraTela(), 'Não foi possível enviar. Confira servidor, porta, segurança, usuário e senha.', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
