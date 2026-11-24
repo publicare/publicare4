@@ -8,6 +8,7 @@ use Pbl\Acesso\Csrf;
 use Pbl\Acesso\Rede;
 use Pbl\Acesso\SessaoAtiva;
 use Pbl\Email\ConfigDeEmail;
+use Pbl\Email\FalhaDeEmail;
 use Pbl\Email\Transporte;
 use Pbl\Servicos;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -79,7 +80,7 @@ final class TelasDeEmail
     {
         $h = Pagina::h(...);
         $drivers = [Transporte::DESLIGADO => 'Desligado (recuperação por e-mail desativada)', Transporte::ARQUIVO => 'Arquivo (grava a mensagem em dados/email/caixa/)', Transporte::SMTP => 'SMTP'];
-        $seguranca = [ConfigDeEmail::SEGURANCA_STARTTLS => 'STARTTLS (porta 587)', ConfigDeEmail::SEGURANCA_TLS => 'TLS direto (porta 465)'];
+        $seguranca = [ConfigDeEmail::SEGURANCA_STARTTLS => 'STARTTLS (porta 587)', ConfigDeEmail::SEGURANCA_TLS => 'TLS direto (porta 465)', ConfigDeEmail::SEGURANCA_NENHUMA => 'Nenhuma (só no servidor da própria máquina)'];
         $corpo = $aviso . $this->erro($erro)
             . ($c['driver'] === Transporte::ARQUIVO ? Pagina::alerta('warning', 'No driver "arquivo" os links de recuperação ficam gravados em disco, legíveis por quem acessa o servidor. Use só em desenvolvimento ou quando não há SMTP; sem SMTP, prefira bin/pbl conta-recuperar.') : '')
             . '<form method="post" action="' . Painel::PREFIXO . '/email"' . ($erro === null ? '' : ' aria-describedby="erro-formulario"') . '>' . $this->campoCsrf($sessao)
@@ -87,8 +88,8 @@ final class TelasDeEmail
             . Pagina::campo('campo-remetente', 'remetente', 'Remetente', $c['remetente'], ['maxlength' => 255, 'ajuda' => 'Ex.: Meu Site <nao-responda@exemplo.org>', 'autocomplete' => 'off'])
             . Pagina::campo('campo-host', 'host', 'Servidor SMTP', $c['host'], ['maxlength' => 253, 'autocomplete' => 'off'])
             . Pagina::campo('campo-porta', 'porta', 'Porta', (string) $c['porta'], ['tipo' => 'number', 'min' => 1, 'max' => 65535, 'inputmode' => 'numeric'])
-            . Pagina::campo('campo-seguranca', 'seguranca', 'Segurança da conexão', $c['seguranca'], ['tipo' => 'select', 'opcoes' => $seguranca])
-            . Pagina::campo('campo-usuario', 'usuario', 'Usuário do SMTP', $c['usuario'], ['maxlength' => 255, 'autocomplete' => 'off'])
+            . Pagina::campo('campo-seguranca', 'seguranca', 'Segurança da conexão', $c['seguranca'], ['tipo' => 'select', 'opcoes' => $seguranca, 'ajuda' => 'Sem TLS ("Nenhuma") só vale quando o servidor é o e-mail da própria máquina: localhost, 127.0.0.1 ou ::1. Para qualquer outro servidor use TLS ou STARTTLS, com certificado válido.'])
+            . Pagina::campo('campo-usuario', 'usuario', 'Usuário do SMTP', $c['usuario'], ['maxlength' => 255, 'autocomplete' => 'off', 'ajuda' => 'Opcional: deixe usuário e senha em branco se o servidor local aceita envio sem login.'])
             . '<div class="mb-3"><label for="campo-senha-smtp" class="form-label">Senha do SMTP</label>'
             . '<input id="campo-senha-smtp" class="form-control" name="senha_smtp" type="password" autocomplete="new-password" maxlength="1024" value="" aria-describedby="ajuda-senha-smtp" placeholder="' . $h($c['senha']) . '">'
             . '<div id="ajuda-senha-smtp" class="form-text">' . ($c['senha'] === '' ? 'Nenhuma senha guardada.' : 'Há uma senha guardada (cifrada). Deixe em branco para mantê-la.') . '</div></div>'
@@ -153,10 +154,24 @@ final class TelasDeEmail
         }
         try {
             $emails->enviar($sessao->usuario->email, 'Teste de e-mail', "Se você leu esta mensagem, o envio de e-mail do site está funcionando.\n");
+        } catch (FalhaDeEmail $e) {
+            return $this->pagina($sessao, $atual->paraTela(), self::mensagemDeFalha($e->categoria), Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\RuntimeException) {
-            return $this->pagina($sessao, $atual->paraTela(), 'Não foi possível enviar. Confira servidor, porta, segurança, usuário e senha.', Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->pagina($sessao, $atual->paraTela(), self::mensagemDeFalha(FalhaDeEmail::RECUSADO), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         return new RedirectResponse(Painel::PREFIXO . '/email?ok=teste', Response::HTTP_SEE_OTHER);
+    }
+
+    /** Texto por categoria; nunca repete resposta do servidor, usuário ou senha. */
+    private static function mensagemDeFalha(string $categoria): string
+    {
+        return match ($categoria) {
+            FalhaDeEmail::REDE => 'Sem conexão com o servidor de e-mail. Confira servidor e porta.',
+            FalhaDeEmail::TLS => 'Falha de TLS: o certificado do servidor não foi aceito ou a conexão segura não abriu. Confira a segurança escolhida e o certificado.',
+            FalhaDeEmail::AUTENTICACAO => 'O servidor recusou o usuário ou a senha.',
+            FalhaDeEmail::CONFIGURACAO => 'Configuração recusada: sem TLS só vale para o servidor da própria máquina (localhost, 127.0.0.1 ou ::1).',
+            default => 'O servidor recebeu a conexão, mas recusou a mensagem. Confira o remetente e se o servidor aceita envio deste endereço.',
+        };
     }
 }

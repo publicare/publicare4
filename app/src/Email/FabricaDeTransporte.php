@@ -16,8 +16,8 @@ final class FabricaDeTransporte
         return match ($c->driver) {
             Transporte::ARQUIVO => new TransporteArquivo($pastaDaCaixa, $c->remetente),
             Transporte::SMTP => new TransporteSmtp(
-                $abrirCanal ?? static fn (): CanalSmtp => new CanalSmtpSocket($c->host, $c->porta, $c->seguranca === ConfigDeEmail::SEGURANCA_TLS),
-                $c->seguranca === ConfigDeEmail::SEGURANCA_STARTTLS, $c->usuario, $c->senha, $c->remetente,
+                $abrirCanal ?? static fn (): CanalSmtp => new CanalSmtpSocket($c->host, $c->porta, $c->seguranca === ConfigDeEmail::SEGURANCA_TLS, 10, $c->seguranca === ConfigDeEmail::SEGURANCA_NENHUMA),
+                $c->seguranca === ConfigDeEmail::SEGURANCA_STARTTLS, $c->usuario, $c->senha, $c->remetente, 'pbl4.invalid', $c->seguranca === ConfigDeEmail::SEGURANCA_NENHUMA, $c->host,
             ),
             default => new TransporteNulo(),
         };

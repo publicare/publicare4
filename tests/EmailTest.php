@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Pbl\Testes;
 
 use Pbl\Email\CanalSmtp;
+use Pbl\Email\CanalSmtpSocket;
 use Pbl\Email\ConfigDeEmail;
 use Pbl\Email\ConfigDeEmailRepositorio;
 use Pbl\Email\FabricaDeTransporte;
+use Pbl\Email\FalhaDeEmail;
 use Pbl\Email\Mensagem;
 use Pbl\Email\Transporte;
 use Pbl\Email\TransporteArquivo;
@@ -149,6 +151,95 @@ final class EmailTest extends TestCase
         $t = new TransporteSmtp(static fn (): CanalSmtp => $canal, false, 'usr', 'x', 'nao@exemplo.org');
         $this->expectExceptionMessage('Autenticação recusada pelo servidor de e-mail');
         $t->enviar(new Mensagem('a@exemplo.org', 'Oi', 'x'));
+    }
+
+    public function testNenhumaSoValeNoLoopback(): void
+    {
+        foreach (['localhost', '127.0.0.1', '::1', 'LOCALHOST'] as $host) {
+            self::assertNull((new ConfigDeEmail(Transporte::SMTP, $host, 25, ConfigDeEmail::SEGURANCA_NENHUMA, '', '', 'Site <nao@exemplo.org>'))->valida(), $host);
+        }
+        foreach (['smtp.exemplo.org', '10.0.0.5', '127.0.0.1.exemplo.org', 'localhost.exemplo.org'] as $host) {
+            self::assertNotNull((new ConfigDeEmail(Transporte::SMTP, $host, 25, ConfigDeEmail::SEGURANCA_NENHUMA, '', '', 'Site <nao@exemplo.org>'))->valida(), $host);
+        }
+        self::assertNotNull((new ConfigDeEmail(Transporte::SMTP, 'smtp.exemplo.org', 25, 'qualquer', '', '', 'nao@exemplo.org'))->valida());
+        self::assertNull((new ConfigDeEmail(Transporte::SMTP, 'smtp.exemplo.org', 587, ConfigDeEmail::SEGURANCA_STARTTLS, 'u', '', 'nao@exemplo.org'))->valida());
+    }
+
+    public function testTransporteRecusaSemTlsEmHostExterno(): void
+    {
+        $canal = new CanalFalso(["220 oi\r\n"]);
+        $t = new TransporteSmtp(static fn (): CanalSmtp => $canal, false, '', '', 'nao@exemplo.org', 'pbl4.invalid', true, 'smtp.exemplo.org');
+        try {
+            $t->enviar(new Mensagem('a@exemplo.org', 'Oi', 'x'));
+            self::fail('devia recusar');
+        } catch (FalhaDeEmail $e) {
+            self::assertSame(FalhaDeEmail::CONFIGURACAO, $e->categoria);
+        }
+        self::assertSame([], $canal->escrito);
+    }
+
+    public function testCanalSocketRecusaSemTlsEmHostExterno(): void
+    {
+        $this->expectException(FalhaDeEmail::class);
+        new CanalSmtpSocket('smtp.exemplo.org', 25, false, 1, true);
+    }
+
+    public function testSemAuthQuandoUsuarioVazioNoLoopback(): void
+    {
+        $canal = new CanalFalso(["220 oi\r\n", "250 ok\r\n", "250 ok\r\n", "250 ok\r\n", "354 va\r\n", "250 aceito\r\n"]);
+        $t = new TransporteSmtp(static fn (): CanalSmtp => $canal, false, '', '', 'nao@exemplo.org', 'pbl4.invalid', true, '127.0.0.1');
+        $t->enviar(new Mensagem('a@exemplo.org', 'Oi', 'x'));
+        $enviado = implode('', $canal->escrito);
+        self::assertStringNotContainsString('AUTH', $enviado);
+        self::assertStringNotContainsString('STARTTLS', $enviado);
+        self::assertFalse($canal->tls);
+    }
+
+    public function testEnvioRealParaServidorSmtpFalsoEmLoopbackSemTls(): void
+    {
+        $codigo = '$s = stream_socket_server("tcp://127.0.0.1:0", $e, $m); echo stream_socket_get_name($s, false), "\n"; fflush(STDOUT);'
+            . '$c = stream_socket_accept($s, 10); fwrite($c, "220 falso\r\n"); $d = false;'
+            . 'while (($l = fgets($c)) !== false) { $out = $l; if ($d) { if ($l === ".\r\n") { $d = false; fwrite($c, "250 ok\r\n"); } continue; }'
+            . 'fwrite(STDERR, $l); if (str_starts_with($l, "EHLO")) fwrite($c, "250 ok\r\n"); elseif (str_starts_with($l, "DATA")) { $d = true; fwrite($c, "354 va\r\n"); }'
+            . 'elseif (str_starts_with($l, "QUIT")) { fwrite($c, "221 tchau\r\n"); break; } else fwrite($c, "250 ok\r\n"); }';
+        $p = proc_open([PHP_BINARY, '-r', $codigo], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        self::assertIsResource($p);
+        try {
+            $porta = (int) substr((string) strrchr(trim((string) fgets($pipes[1])), ':'), 1);
+            self::assertGreaterThan(0, $porta);
+            $c = new ConfigDeEmail(Transporte::SMTP, '127.0.0.1', $porta, ConfigDeEmail::SEGURANCA_NENHUMA, '', '', 'Site <nao-responda@site.exemplo.org>');
+            FabricaDeTransporte::criar($c, $this->pasta . '/caixa')->enviar(new Mensagem('adm@exemplo.org', 'Teste', 'corpo'));
+            $log = (string) stream_get_contents($pipes[2]);
+            self::assertStringContainsString('MAIL FROM:<nao-responda@site.exemplo.org>', $log);
+            self::assertStringContainsString('RCPT TO:<adm@exemplo.org>', $log);
+            self::assertStringNotContainsString('AUTH', $log);
+        } finally {
+            proc_terminate($p);
+            proc_close($p);
+        }
+    }
+
+    public function testConexaoRecusadaEClassificadaComoRede(): void
+    {
+        $s = stream_socket_server('tcp://127.0.0.1:0');
+        self::assertIsResource($s);
+        $porta = (int) substr((string) strrchr((string) stream_socket_get_name($s, false), ':'), 1);
+        fclose($s);
+        $c = new ConfigDeEmail(Transporte::SMTP, '127.0.0.1', $porta, ConfigDeEmail::SEGURANCA_NENHUMA, '', '', 'nao@exemplo.org');
+        try {
+            FabricaDeTransporte::criar($c, $this->pasta . '/caixa')->enviar(new Mensagem('a@exemplo.org', 'Oi', 'x'));
+            self::fail('devia falhar');
+        } catch (FalhaDeEmail $e) {
+            self::assertSame(FalhaDeEmail::REDE, $e->categoria);
+        }
+    }
+
+    public function testVerificacaoDeCertificadoSegueLigada(): void
+    {
+        $fonte = (string) file_get_contents(__DIR__ . '/../app/src/Email/CanalSmtpSocket.php');
+        self::assertStringContainsString("'verify_peer' => true, 'verify_peer_name' => true", $fonte);
+        self::assertStringNotContainsString("'verify_peer' => false", $fonte);
+        self::assertStringNotContainsString('allow_self_signed', $fonte);
     }
 }
 
