@@ -8,6 +8,7 @@ declare(strict_types=1);
  * Contas fictícias (admin, editor, autor) usam a senha de demonstração do próprio PBL4. Nada daqui vai para produção.
  */
 
+// Host do site de demonstração: a fábrica (VSF) envia sempre `Host: previa:8080` à prévia; o PBL4 vê `previa`.
 $raiz = dirname(__DIR__);
 $area = getcwd();
 $stage = $area . '/stage-pbl4';
@@ -74,7 +75,7 @@ if (!is_file($raiz . '/vendor/autoload.php')) {
 require $stage . '/vendor/autoload.php';
 
 $caminhos = new Pbl\Caminhos($stage);
-(new Pbl\Instalacao\Instalador($caminhos))->instalar('Instituto Exemplo', 'localhost', [
+(new Pbl\Instalacao\Instalador($caminhos))->instalar('Instituto Exemplo', 'previa', [
     'login' => 'admin', 'email' => 'admin@exemplo.invalid', 'nome' => 'Ana Admin (demonstração)', 'senha' => Pbl\Console\DemoPopularComando::SENHA_DEMO,
 ], Pbl\Conteudo\Modelos::NOMES);
 
@@ -86,7 +87,7 @@ if ($codigo !== 0) {
 
 // Conteúdo extra para a prévia da listagem (ADR 0032): títulos longos, vários tipos e estados (publicado, privado, agendado).
 $servicos = Pbl\Servicos::doBancoInstalado($caminhos);
-$siteExemplo = $servicos->sites->porHost('localhost');
+$siteExemplo = $servicos->sites->porHost('previa');
 if ($siteExemplo !== null && $siteExemplo->objetoRaizId !== null) {
     $raizId = (int) $siteExemplo->objetoRaizId;
     $exemplos = [
