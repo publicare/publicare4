@@ -24,13 +24,13 @@ test('pedido de prévia: PHP v2, pacote gerado por script versionado, docroot de
   for (const t of p.paginas) {
     assert.match(t.nome, /^[a-z0-9-]{1,40}$/);
     assert.ok(t.caminho.length <= 120, t.nome);
-    assert.match(t.caminho, /^\/_pbl\/previa-entrar\?conta=(admin|editor|autor)&/, 'entra pela rota de prévia (a captura só faz GET)');
+    assert.match(t.caminho, /^\/_pbl\/(entrar|esqueci|previa-entrar\?conta=(admin|editor|autor)&)/, 'telas públicas direto; as demais entram pela rota de prévia (a captura só faz GET)');
   }
-  const temas = new Set(p.paginas.map((t) => /tema=(claro|escuro)/.exec(t.caminho)?.[1]));
+  const temas = new Set(p.paginas.map((t) => /tema=(claro|escuro)/.exec(t.caminho)?.[1]).filter(Boolean));
   assert.deepEqual([...temas].sort(), ['claro', 'escuro']);
   assert.deepEqual([...p.viewports].sort(), ['celular', 'desktop'], 'viewports do esquema v2: desktop e celular');
-  for (const tela of ['/_pbl/atualizacao', '/_pbl/copias', '/_pbl/tarefas', '/_pbl/contas', '/_pbl/classes', '/_pbl/site/1/dominios', '/_pbl/pendencias']) {
-    assert.ok(p.paginas.some((t) => t.caminho.includes('ir=' + tela + '&')), 'tela da fase 2 ' + tela);
+  for (const tela of ['/_pbl/perfil', '/_pbl/contas', '/_pbl/contas/convidar']) {
+    assert.ok(p.paginas.some((t) => t.caminho.endsWith('ir=' + tela)), 'tela da entrega ' + tela);
   }
 });
 
