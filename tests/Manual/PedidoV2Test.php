@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 /** Contrato do pedido de captura que NÓS geramos (o executor é da esteira da prévia). */
 final class PedidoV2Test extends TestCase
 {
-    /** @return list<array<string, string>> */
+    /** @return list<array{id: string, pagina_do_painel: string, papel: string}> */
     private function capturas(int $n): array
     {
         return array_map(static fn (int $i): array => ['id' => 'tela-' . $i, 'pagina_do_painel' => '/_pbl/conteudo', 'papel' => $i % 2 === 0 ? 'admin' : 'editor'], range(1, $n));
@@ -47,7 +47,7 @@ final class PedidoV2Test extends TestCase
                 PedidoV2::montar([$troca + ['id' => 'ok', 'pagina_do_painel' => '/_pbl/', 'papel' => 'admin']]);
                 self::fail('devia recusar');
             } catch (\InvalidArgumentException) {
-                self::assertTrue(true);
+                $this->addToAssertionCount(1);
             }
         }
     }

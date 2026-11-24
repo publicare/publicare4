@@ -41,7 +41,10 @@ final class ManualGerarComandoTest extends TestCase
         Ajuda::apagar($this->raiz);
     }
 
-    /** @param array<string, mixed> $args @return array{0: int, 1: string} */
+    /**
+     * @param array<string, mixed> $args
+     * @return array{0: int, 1: string}
+     */
     private function rodar(array $args): array
     {
         $t = new CommandTester(new ManualGerarComando(new Caminhos($this->raiz)));

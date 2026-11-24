@@ -1,6 +1,6 @@
 # Manual de uso: como é gerado e publicado
 
-O manual de uso é a pasta `docs/usuario/` (fonte única, [ADR 0039](../adr/0039-fonte-unica-do-manual.md)). A cada release ele vira conteúdo do próprio PBL4, num site à parte, e é publicado em `https://manual.publicare.org/` (endereço a confirmar com o dono antes de publicar; DNS e servidor são do operador).
+O manual de uso é a pasta `docs/usuario/` (fonte única, [ADR 0040](../adr/0040-fonte-unica-do-manual.md)). A cada release ele vira conteúdo do próprio PBL4, num site à parte, e é publicado em `https://manual.publicare.org/` (endereço a confirmar com o dono antes de publicar; DNS e servidor são do operador).
 
 ## Escrever
 

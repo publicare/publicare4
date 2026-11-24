@@ -7,7 +7,7 @@ namespace Pbl\Manual;
 use Pbl\Busca\Texto;
 
 /**
- * Conversor Markdown restrito (ADR 0040): só o subconjunto que o manual usa. Títulos (# no topo é o título da página e é
+ * Conversor Markdown restrito (ADR 0041): só o subconjunto que o manual usa. Títulos (# no topo é o título da página e é
  * descartado; ## a ####), parágrafos, listas (aninhadas por recuo), tabelas, bloco de código, citação, régua, e no texto: `código`,
  * **negrito**, *itálico*, [link](destino) e ![alt](destino). HTML cru e qualquer outra construção são ERRO com a linha; nada passa sem
  * escape. Quem resolve destinos de link e de imagem é quem chama (callbacks), para o conversor não conhecer a árvore do manual.
@@ -58,6 +58,7 @@ final class ConversorMarkdown
         $html = '';
         $paragrafo = [];
         $primeiraNaoVazia = true;
+        /** @var list<string> $paragrafo */
         $descarta = function () use (&$html, &$paragrafo): void {
             if ($paragrafo !== []) {
                 $html .= '<p>' . $this->inline(implode(' ', array_map('trim', $paragrafo)), $this->paragrafoIndice) . '</p>';
@@ -204,10 +205,17 @@ final class ConversorMarkdown
 
     private function lista(int $i, int $ate): string
     {
-        preg_match('/^(\s*)([-*]|\d+\.)\s/', $this->linhas[$i], $m);
+        if (preg_match('/^(\s*)([-*]|\d+\.)\s/', $this->linhas[$i], $m) !== 1) {
+            throw $this->erro($i, 'lista mal formada.');
+        }
         $base = strlen($m[1]);
         $ordenada = $m[2] !== '-' && $m[2] !== '*';
-        $itens = [];
+        /** @var list<list<string>> $textos */
+        $textos = [];
+        /** @var list<list<int>> $subs */
+        $subs = [];
+        /** @var list<int> $linhasDosItens */
+        $linhasDosItens = [];
         $j = $i;
         for (; $j < $ate; $j++) {
             $l = $this->linhas[$j];
@@ -233,20 +241,22 @@ final class ConversorMarkdown
                 if ((($n[1] !== '-' && $n[1] !== '*')) !== $ordenada) {
                     break;
                 }
-                $itens[] = ['texto' => [$n[2]], 'sub' => [], 'linha' => $j];
+                $textos[] = [$n[2]];
+                $subs[] = [];
+                $linhasDosItens[] = $j;
             } elseif (preg_match('/^\s*([-*]|\d+\.)\s+\S/', $l) === 1) {
-                $itens[count($itens) - 1]['sub'][] = $j;
+                $subs[count($subs) - 1][] = $j;
             } else {
-                $itens[count($itens) - 1]['texto'][] = trim($l);
+                $textos[count($textos) - 1][] = trim($l);
             }
         }
         $this->fimDaLista = $j - 1;
         $tag = $ordenada ? 'ol' : 'ul';
         $html = '<' . $tag . '>';
-        foreach ($itens as $item) {
-            $html .= '<li>' . $this->inline(implode(' ', $item['texto']), $item['linha']);
-            if ($item['sub'] !== []) {
-                $html .= $this->lista($item['sub'][0], $item['sub'][array_key_last($item['sub'])] + 1);
+        foreach ($textos as $k => $texto) {
+            $html .= '<li>' . $this->inline(implode(' ', $texto), $linhasDosItens[$k]);
+            if ($subs[$k] !== []) {
+                $html .= $this->lista($subs[$k][0], $subs[$k][array_key_last($subs[$k])] + 1);
             }
             $html .= '</li>';
         }

@@ -9,7 +9,7 @@ use Pbl\Conteudo\ConfigDoSite;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/** ADR 0044: endereço do manual (`manual_url`) e o link "Ajuda (manual)" do painel. */
+/** ADR 0045: endereço do manual (`manual_url`) e o link "Ajuda (manual)" do painel. */
 final class ManualUrlTest extends TestCase
 {
     public function testPadraoEhOEnderecoPublico(): void

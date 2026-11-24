@@ -63,8 +63,8 @@ final class CargaTest extends TestCase
         $pacote = $this->pacote();
         $this->carga()->executar($pacote, Edicao::estavel(), false, false);
         $primeira = $pacote['capitulos'][0]['paginas'][0];
-        $obj = $this->s->conteudo->obterPorEndereco($this->s->usuarios->porLogin('admin') ?? self::fail(), $this->s->sites->porId($this->siteId) ?? self::fail(), $pacote['capitulos'][0]['slug'] . '/' . $primeira['slug']);
         $admin = $this->s->usuarios->porLogin('admin') ?? self::fail();
+        $obj = $this->s->conteudo->obterPorEndereco($admin, $this->s->sites->porId($this->siteId) ?? self::fail(), $pacote['capitulos'][0]['slug'] . '/' . $primeira['slug']);
         $this->s->conteudo->editar($admin, $obj->id, $obj->versao, ['dados' => ['corpo' => '<p>Correção feita à mão.</p>']]);
 
         $r = $this->carga()->executar($pacote, Edicao::estavel(), false, false);

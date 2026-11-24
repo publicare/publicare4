@@ -1,4 +1,4 @@
-# ADR 0040 — `bin/pbl manual-gerar`: compilação e carga idempotente
+# ADR 0041 — `bin/pbl manual-gerar`: compilação e carga idempotente
 
 Status: aceito.
 

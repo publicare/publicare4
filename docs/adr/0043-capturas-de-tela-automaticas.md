@@ -1,4 +1,4 @@
-# ADR 0042 — Capturas de tela automáticas
+# ADR 0043 — Capturas de tela automáticas
 
 Status: aceito.
 

@@ -40,7 +40,7 @@ final class EdicaoTest extends TestCase
                 Edicao::daVersao($v);
                 self::fail("devia recusar '{$v}'");
             } catch (\InvalidArgumentException) {
-                self::assertTrue(true);
+                $this->addToAssertionCount(1);
             }
         }
         self::assertSame('manual:beta:um/dois', Edicao::beta()->origem('um/dois'));

@@ -23,7 +23,7 @@ final class ConfigDoSite
     public const LISTA_URL = 'lista_url';
     public const URL_HTTPS = 'url_https';
 
-    /** Endereço do manual de uso (ADR 0044); o link "Ajuda" do painel aponta para ele. */
+    /** Endereço do manual de uso (ADR 0045); o link "Ajuda" do painel aponta para ele. */
     public const MANUAL_URL_PADRAO = 'https://manual.publicare.org/';
 
     public const MAX_REDES = 10;

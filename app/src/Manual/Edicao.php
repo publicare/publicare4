@@ -6,7 +6,7 @@ namespace Pbl\Manual;
 
 /**
  * Uma edição do manual no site: a estável (raiz do site), a beta (`/beta/`) ou uma versão guardada (`/<versão>/`). A versão é a
- * única marca de versão e vive só no endereço e no rótulo do seletor, nunca no corpo do texto (ADR 0041).
+ * única marca de versão e vive só no endereço e no rótulo do seletor, nunca no corpo do texto (ADR 0042).
  */
 final class Edicao
 {

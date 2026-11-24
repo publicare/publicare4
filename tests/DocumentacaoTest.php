@@ -97,7 +97,7 @@ final class DocumentacaoTest extends TestCase
             $texto = (string) preg_replace('/```.*?```/s', '', $texto);
             preg_match_all('/\]\(([^)\s]+)\)/', $texto, $m);
             foreach ($m[1] as $alvo) {
-                if (preg_match('#^(https?:|mailto:|\#)#', $alvo) === 1) {
+                if (preg_match('#^(https?:|mailto:|captura:|\#)#', $alvo) === 1) {
                     continue;
                 }
                 $caminho = explode('#', $alvo)[0];

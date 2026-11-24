@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Manual;
 
 /**
- * Front matter restrito do manual (ADR 0040): bloco entre duas linhas `---` no início do arquivo, com `chave: valor` simples
+ * Front matter restrito do manual (ADR 0041): bloco entre duas linhas `---` no início do arquivo, com `chave: valor` simples
  * (sem aninhamento, sem listas). Chave desconhecida, repetida ou fora do formato é erro, com arquivo:linha.
  */
 final class FrontMatter

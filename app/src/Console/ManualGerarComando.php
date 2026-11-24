@@ -29,7 +29,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * `bin/pbl manual-gerar` (ADR 0040): converte `docs/usuario` em `manual/gerado/` (etapa A, sem banco) e, sem `--so-compilar`,
+ * `bin/pbl manual-gerar` (ADR 0041): converte `docs/usuario` em `manual/gerado/` (etapa A, sem banco) e, sem `--so-compilar`,
  * carrega o resultado no site do manual (etapa B: idempotente, `--simular`, backup, preserva edições). Códigos de saída iguais aos de
  * `bin/pbl conteudo`: 0 ok, 2 uso, 3 não encontrado, 4 sem permissão, 5 conflito, 6 validação ou falta de `--confirmar`.
  */

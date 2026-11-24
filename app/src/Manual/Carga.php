@@ -14,7 +14,7 @@ use Pbl\Conteudo\Site;
 use Pbl\Servicos;
 
 /**
- * Carga idempotente do manual compilado num site PBL4 (ADR 0040), sempre pelo `ServicoDeConteudo` (permissões, versões, auditoria, cache).
+ * Carga idempotente do manual compilado num site PBL4 (ADR 0041), sempre pelo `ServicoDeConteudo` (permissões, versões, auditoria, cache).
  *
  * Identidade de cada objeto = a propriedade `origem` (`manual:<edição>:<capítulo>/<página>`). O hash do que a carga gerencia
  * (título, resumo, textos, peso) fica em `hash_gerado`: igual ao pacote = nada a fazer; igual ao `hash_gerado` anterior = ninguém
@@ -32,7 +32,11 @@ final class Carga
     {
     }
 
-    /** As classes do manual (só o que falta é criado; nunca toca nas classes fixas). @return list<array{nome: string, propriedades: list<array<string, mixed>>, meta: array<string, mixed>}> */
+    /**
+     * As classes do manual (só o que falta é criado; nunca toca nas classes fixas).
+     *
+     * @return list<array{nome: string, propriedades: list<array{nome: string, tipo: string, indexavel: bool, rotulo: string}>, meta: array{descricao: string, aceita_filhos: bool, filhas: list<string>, fixa: bool}}>
+     */
     public static function definicoes(): array
     {
         $texto = static fn (string $n, string $r, bool $i = false): array => ['nome' => $n, 'tipo' => 'texto', 'indexavel' => $i, 'rotulo' => $r];
@@ -118,7 +122,7 @@ final class Carga
             if ($atual->status !== 'publicado') {
                 continue;
             }
-            $tipo = $this->s->classes->porId($atual->classeId)?->nome ?? '';
+            $tipo = $this->s->classes->porId($atual->classeId)->nome ?? '';
             $mesmo = $this->hashDoAtual($atual, $tipo) === (string) ($atual->dados['hash_gerado'] ?? '');
             if ($mesmo || $forcar) {
                 $plano[] = ['acao' => 'despublicar', 'origem' => $origem, 'titulo' => $atual->titulo];

@@ -11,6 +11,10 @@ Leia antes de mexer neste repositório.
 - **Nunca apague arquivos fora da demanda.** O diretório `prototipo-ux/` (protótipo clicável do painel) é de referência e **não deve ser removido** por atividades de listagem/texto/QA. Antes de concluir, confira `git diff --stat origin/main`: só arquivos da atividade.
 - Não altere `.github/` nem arquivos de infraestrutura sem pedido explícito.
 
+## Manual de uso (`docs/usuario`)
+- Mudou uma tela do painel ou um comando de `bin/pbl`? Atualize o guia dela **e** a linha em `docs/usuario/INVENTARIO.md` no mesmo PR (um teste reprova se faltar).
+- O manual não leva data, número de versão nem requisito exato; imagens só como `![alt](captura:id)` (ids em `docs/usuario/capturas.json`). Veja `docs/tecnica/manual.md`.
+
 ## Convenções
 - Textos de interface: voz enxuta (`docs/ux/voz-e-texto.md`); sem enchimento.
 - Todo PR atualiza o `CHANGELOG.md` (seção `[Unreleased]`).

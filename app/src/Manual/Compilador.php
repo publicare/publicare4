@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Manual;
 
 /**
- * Compila `docs/usuario` num pacote determinístico (ADR 0040), sem banco e sem relógio: valida o front matter e a árvore
+ * Compila `docs/usuario` num pacote determinístico (ADR 0041), sem banco e sem relógio: valida o front matter e a árvore
  * (capítulos de `capitulos.md`), converte o Markdown, resolve links entre guias e capturas, calcula pesos (10, 20, 30…),
  * tabela de conteúdo e anterior/próximo. Falha com TODOS os problemas de uma vez (um por linha) em vez de parar no primeiro.
  *
@@ -31,7 +31,7 @@ final class Compilador
     private array $capturasUsadas = [];
     /** @var array<string, true> */
     private array $capturasFaltando = [];
-    /** @var array<string, array<string, string>> arquivo => (id de âncora => true) */
+    /** @var array<string, array<string, true>> arquivo => (id de âncora => true) */
     private array $idsPorArquivo = [];
 
     public function __construct(
@@ -332,6 +332,7 @@ final class Compilador
     }
 
     /** O JSON do pacote: ordem fixa de chaves e UTF-8, para a geração ser repetível byte a byte. */
+    /** @param array<string, mixed> $pacote */
     public static function emJson(array $pacote): string
     {
         return json_encode($pacote, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . "\n";

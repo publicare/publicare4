@@ -6,7 +6,7 @@ namespace Pbl\Manual;
 
 /**
  * Monta o pedido de captura (formato v2 da esteira da prévia) a partir de `docs/usuario/capturas.json`. O formato está TODO aqui,
- * em `montar`: se o contrato da esteira mudar, só este método muda (ADR 0042). Sem dependências: o `manual/capturas.php` carrega só este arquivo.
+ * em `montar`: se o contrato da esteira mudar, só este método muda (ADR 0043). Sem dependências: o `manual/capturas.php` carrega só este arquivo.
  *
  * Cada captura vira uma página do pedido: `/_pbl/previa-entrar?conta=<papel>&ir=<caminho do painel>` (a entrada de prévia abre a sessão da
  * conta FICTÍCIA e redireciona), então só contas de demonstração aparecem; nunca uma instalação real. O pedido aceita 8 páginas por vez,
@@ -25,9 +25,9 @@ final class PedidoV2
     {
         $paginas = [];
         foreach ($capturas as $c) {
-            $id = (string) ($c['id'] ?? '');
-            $caminho = (string) ($c['pagina_do_painel'] ?? '');
-            $papel = (string) ($c['papel'] ?? '');
+            $id = $c['id'];
+            $caminho = $c['pagina_do_painel'];
+            $papel = $c['papel'];
             if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/D', $id) !== 1 || strlen($id) > 40) {
                 throw new \InvalidArgumentException("Captura com id inválido: {$id}");
             }

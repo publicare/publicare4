@@ -1,4 +1,4 @@
-# ADR 0041 — Manual como segundo site, com edições por prefixo
+# ADR 0042 — Manual como segundo site, com edições por prefixo
 
 Status: aceito.
 

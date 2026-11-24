@@ -19,7 +19,7 @@ final class FrontMatterTest extends TestCase
         self::assertSame(7, $r['linhaDoCorpo']);
     }
 
-    /** @return array<string, array{string, string}> */
+    /** @return array<string, array{string, non-empty-string}> */
     public static function invalidos(): array
     {
         return [
@@ -33,6 +33,7 @@ final class FrontMatterTest extends TestCase
         ];
     }
 
+    /** @param non-empty-string $onde */
     #[DataProvider('invalidos')]
     public function testRejeitaComArquivoELinha(string $texto, string $onde): void
     {
@@ -54,7 +55,7 @@ final class FrontMatterTest extends TestCase
                 FrontMatter::validarPagina($troca + ['titulo' => 'T', 'resumo' => 'R', 'capitulo' => 'c', 'ordem' => 1], 'x.md', 'x');
                 self::fail('devia rejeitar ' . key($troca));
             } catch (ErroDeManual) {
-                self::assertTrue(true);
+                $this->addToAssertionCount(1);
             }
         }
     }

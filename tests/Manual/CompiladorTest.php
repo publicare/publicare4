@@ -34,6 +34,7 @@ final class CompiladorTest extends TestCase
         file_put_contents("{$this->docs}/{$nome}.md", "---\ntitulo: Página {$nome}\nresumo: Resumo {$nome}\ncapitulo: {$capitulo}\nordem: {$ordem}\n{$extra}---\n\n# Página {$nome}\n\n{$corpo}");
     }
 
+    /** @return array<string, mixed> */
     private function compilar(bool $sem = true, ?string $capturas = null): array
     {
         return (new Compilador($this->docs, $this->docs . '/nao-existe.json', $capturas, $sem))->compilar();

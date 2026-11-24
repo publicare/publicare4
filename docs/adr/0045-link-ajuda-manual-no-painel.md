@@ -1,4 +1,4 @@
-# ADR 0044 — Link Ajuda (manual) no painel
+# ADR 0045 — Link Ajuda (manual) no painel
 
 Status: aceito.
 
