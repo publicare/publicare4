@@ -97,7 +97,7 @@ if ($siteExemplo !== null && $siteExemplo->objetoRaizId !== null) {
         ['pagina', 'Como o fluxo de revisão funciona quando o autor envia um texto e o editor devolve com o motivo, passo a passo', 'publicado', [], []],
         ['link', 'Versões publicadas no GitHub', 'publicado', [], ['destino_externo' => 'https://github.com/publicare/publicare4/releases']],
         ['formulario', 'Fale com o projeto', 'privado', [], ['destino' => $raizId]],
-        ['pagina', 'Roteiro do próximo marco (agendado)', 'publicado', ['data_publicacao' => gmdate('c', time() + 86400 * 20)], []],
+        ['pagina', 'Roteiro de publicação (agendado)', 'publicado', ['data_publicacao' => gmdate('c', time() + 86400 * 20)], []],
     ];
     foreach ($exemplos as $i => [$tipo, $titulo, $status, $meta, $dados]) {
         $classe = $servicos->classes->porNome($tipo);

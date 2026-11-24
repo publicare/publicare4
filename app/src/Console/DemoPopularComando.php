@@ -13,7 +13,6 @@ use Pbl\Conteudo\Site;
 use Pbl\Demo\ConteudoPublicare;
 use Pbl\Instalacao\Instalador;
 use Pbl\Instalacao\PelesDistribuidas;
-use Pbl\Instalacao\Requisitos;
 use Pbl\Servicos;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -25,7 +24,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 /**
  * Popula um site com o site de exemplo do próprio Publicare 4 (conteúdo real de `ConteudoPublicare`; só as contas e os e-mails de
  * demonstração são fictícios), para demo, desenvolvimento e testes de aparência (ADR 0021, adendo). Ativa os quatro modelos opcionais,
- * troca a pele do site para a `publicare` (se ainda for a básica), cria páginas, novidades, marcos, perguntas, documentos e imagens, e publica. Idempotente (cada conteúdo é identificado pelo endereço) e recusa sites que já têm conteúdo demais.
+ * troca a pele do site para a `publicare` (se ainda for a básica), cria páginas, guias atemporais, perguntas, documentos e imagens, e publica. Idempotente (cada conteúdo é identificado pelo endereço) e recusa sites que já têm conteúdo demais.
  */
 #[AsCommand(name: 'demo-popular', description: 'Popula um site com o site de exemplo do Publicare 4 (apresentação do produto): só para desenvolvimento e demos')]
 final class DemoPopularComando extends Command
@@ -171,36 +170,28 @@ final class DemoPopularComando extends Command
                 $this->imagem('imagem', $t, $cor, 'destaque-' . $u . '.png', 1200, 500, $u));
         }
 
-        // --- Novidades: as versões do CHANGELOG, sem imagem (um ícone abstrato não informa nada; a galeria mostra o envio de imagens com texto alternativo) (a pasta "Notícias" vem da instalação) --------------------------------------
-        $noticias = $objetos->porUrl($this->site->id, 'noticias');
-        if ($noticias === null) {
-            $noticias = $criar('pasta', $this->raiz, 'Novidades', 'noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Versões e novidades do projeto']);
-        } elseif ($noticias->titulo === 'Notícias') {
-            $noticias = $objetos->atualizar($noticias->id, ['titulo' => 'Novidades', 'descricao' => 'Versões e novidades do projeto', 'peso' => 10], 'Demo');
+        // --- Guias atemporais (tipo "noticia", sem data de publicação: nada que envelheça) (a pasta "Notícias" vem da instalação) ----------
+        $guias = $objetos->porUrl($this->site->id, 'noticias');
+        if ($guias === null) {
+            $guias = $criar('pasta', $this->raiz, 'Conceitos e guias', 'noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Conceitos do Publicare 4, explicados em poucas linhas']);
+        } elseif ($guias->titulo === 'Notícias') {
+            $guias = $objetos->atualizar($guias->id, ['titulo' => 'Conceitos e guias', 'descricao' => 'Conceitos do Publicare 4, explicados em poucas linhas', 'peso' => 10], 'Demo');
         }
-        $estado = $ids['estado-do-projeto'];
-        if ($noticias->paiId === $this->raiz) {
-            $objetos->mover($noticias->id, $estado->id, 'Demo');
+        $acompanhar = $ids['como-acompanhar'];
+        if ($guias->paiId === $this->raiz) {
+            $objetos->mover($guias->id, $acompanhar->id, 'Demo');
         }
-        foreach (ConteudoPublicare::novidades() as $i => $n) {
-            $criar('noticia', $noticias->id, $n['titulo'], $n['url'], ['resumo' => $n['resumo'], 'corpo' => $n['corpo']], 'publicado',
-                ['peso' => 0, 'data_publicacao' => $n['data'], 'tags' => $i === 0 ? 'Acesso, Contas' : ($i === 1 ? 'Painel' : 'Painel, Edição')]);
+        foreach (ConteudoPublicare::guias() as $i => $g) {
+            $criar('noticia', $guias->id, $g['titulo'], $g['url'], ['resumo' => $g['resumo'], 'corpo' => $g['corpo']], 'publicado', ['peso' => ($i + 1) * 10, 'tags' => $g['tags']]);
         }
         $bemVindo = $objetos->porUrl($this->site->id, 'bem-vindo-ao-novo-site');
         if ($bemVindo !== null && str_contains((string) ($bemVindo->dados['corpo'] ?? ''), 'notícia de exemplo')) {
-            $objetos->atualizar($bemVindo->id, ['titulo' => 'Este site é o exemplo do Publicare 4', 'dados' => [
+            $objetos->atualizar($bemVindo->id, ['titulo' => 'Este site é o exemplo do Publicare 4', 'peso' => 900, 'dados' => [
                 'resumo' => 'Foi montado com o próprio programa e se refaz com um comando.',
                 'corpo' => '<p>Este site foi criado pelo comando <code>php bin/pbl demo-popular</code>. Ele serve para ver o Publicare 4 funcionando e para testar a aparência das peles.</p>',
             ]], 'Demo');
         }
-        $criar('noticia', $noticias->id, 'Balanço do semestre (em breve)', 'balanco-do-semestre', ['resumo' => 'Será publicada na data programada.', 'corpo' => '<p>Esta notícia está agendada e só aparece depois da data de publicação: é a publicação agendada em ação.</p>'], 'publicado', ['data_publicacao' => gmdate('Y-m-d', time() + 20 * 86400) . ' 08:00:00']);
-        $criar('noticia', $noticias->id, 'Rascunho: guia de estilo', 'rascunho-guia-de-estilo', ['resumo' => 'Texto ainda em revisão.', 'corpo' => '<p>Rascunho não publicado (estado privado).</p>'], 'privado');
-
-        // --- Marcos do projeto (agenda, modelo "evento") ----------------------------------------------------------------
-        $agenda = $criar('agenda', $estado->id, 'Marcos do projeto', 'agenda', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'As pré-releases do CHANGELOG, com as datas reais']);
-        foreach (ConteudoPublicare::marcos() as $e) {
-            $criar('evento', $agenda->id, $e['titulo'], $e['url'], ['resumo' => $e['resumo'], 'corpo' => $e['corpo'], 'inicio' => $e['inicio'], 'local' => 'GitHub'], 'publicado', []);
-        }
+        $criar('noticia', $guias->id, 'Rascunho: guia de estilo', 'rascunho-guia-de-estilo', ['resumo' => 'Texto ainda em revisão.', 'corpo' => '<p>Rascunho não publicado (estado privado).</p>'], 'privado');
 
         // --- Perguntas frequentes (modelo "faq") ---------------------------------------------------------------------------
         $faq = $criar('perguntas', $this->raiz, 'Perguntas frequentes', 'perguntas-frequentes', [], 'publicado', ['peso' => 50, 'no_menu' => true, 'rotulo_menu' => 'Perguntas', 'descricao' => 'Licença, requisitos, instalação, atualização, backups, migração, acessibilidade e segurança']);
@@ -211,7 +202,7 @@ final class DemoPopularComando extends Command
         // --- Documentos e imagens (arquivos e texto alternativo) -------------------------------------------------------------
         $comunidade = $ids['comunidade'];
         $docs = $criar('pasta', $comunidade->id, 'Documentos', 'documentos', [], 'publicado', ['peso' => 20, 'no_menu' => false, 'descricao' => 'Arquivos para baixar e imagens de exemplo']);
-        $requisitos = "REQUISITOS DO PUBLICARE 4\n\nPHP " . Requisitos::PHP_MINIMO . " ou mais novo.\nExtensoes: pdo_sqlite, mbstring, sodium, json, ctype, dom, fileinfo.\nA pasta dados/ precisa ser gravavel pelo PHP.\n";
+        $requisitos = "REQUISITOS DO PUBLICARE 4\n\nOs requisitos atuais (versao do PHP e extensoes) estao em docs/usuario/instalar.md e sao conferidos pelo assistente de instalacao.\nA pasta dados/ precisa ser gravavel pelo PHP.\n";
         foreach ([
             ['requisitos', 'Requisitos do servidor (texto)', $requisitos, 'txt'],
             ['resumo-em-pdf', 'Resumo do Publicare 4 (PDF)', $this->pdfMinimo('Publicare 4 - plataforma livre para sites'), 'pdf'],
@@ -226,7 +217,7 @@ final class DemoPopularComando extends Command
 
         // --- Links úteis ---------------------------------------------------------------------------------------------------
         $links = $criar('pasta', $comunidade->id, 'Links úteis', 'links-uteis', [], 'publicado', ['peso' => 30, 'no_menu' => false, 'descricao' => 'Atalhos internos e externos']);
-        $criar('link', $links->id, 'Marcos do projeto', 'link-agenda', ['destino_interno' => $agenda->id], 'publicado', ['peso' => 10, 'descricao' => 'Atalho interno']);
+        $criar('link', $links->id, 'Como acompanhar o projeto', 'link-acompanhar', ['destino_interno' => $acompanhar->id], 'publicado', ['peso' => 10, 'descricao' => 'Atalho interno']);
         $criar('link', $links->id, 'Código no GitHub', 'link-github', ['destino_externo' => ConteudoPublicare::REPOSITORIO, 'nova_aba' => true], 'publicado', ['peso' => 20, 'descricao' => 'Atalho externo, abre em nova aba']);
         $criar('link', $links->id, 'CHANGELOG', 'link-changelog', ['destino_externo' => ConteudoPublicare::REPOSITORIO . '/blob/main/CHANGELOG.md'], 'publicado', ['peso' => 30, 'descricao' => 'O que mudou em cada versão']);
 
@@ -268,10 +259,10 @@ final class DemoPopularComando extends Command
         // --- Portal: várias páginas, com notícias --------------------------------------------------------------------------------------
         $pt = $criar('pagina', $this->raiz, 'Publicare 4 (portal)', 'portal', $pagina('Notícias, serviços e institucional num portal.', '<p>Versão <strong>portal</strong>: várias páginas, hero com carrossel, listagem de notícias e rodapé.</p>'), 'publicado', ['peso' => 90, 'no_menu' => false, 'rotulo_menu' => 'Versão portal', 'pele' => 'portal']);
         $criar('pagina', $pt->id, 'Sobre o portal', 'pt-sobre', $pagina('O que é.', '<p>' . $vitrine['sobre'] . '</p>'), 'publicado', ['peso' => 10, 'no_menu' => true]);
-        $noticias = $criar('pasta', $pt->id, 'Novidades do portal', 'pt-noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Versões recentes']);
-        foreach (ConteudoPublicare::novidades() as $i => $n) {
-            $criar('noticia', $noticias->id, $n['titulo'], 'pt-' . $n['url'], ['resumo' => $n['resumo'], 'corpo' => $n['corpo']], 'publicado',
-                ['data_publicacao' => $n['data'], 'tags' => $i % 2 === 0 ? 'Acesso' : 'Painel'], $this->imagem('imagem_destaque', $n['titulo'], $cor[$i % 3], 'pt-' . $n['url'] . '.png', 1200, 630, $n['url']));
+        $guiasDoPortal = $criar('pasta', $pt->id, 'Guias do portal', 'pt-noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Conceitos do Publicare 4']);
+        foreach (ConteudoPublicare::guias() as $i => $g) {
+            $criar('noticia', $guiasDoPortal->id, $g['titulo'], 'pt-' . $g['url'], ['resumo' => $g['resumo'], 'corpo' => $g['corpo']], 'publicado',
+                ['peso' => ($i + 1) * 10, 'tags' => $g['tags']], $this->imagem('imagem_destaque', $g['titulo'], $cor[$i % 3], 'pt-' . $g['url'] . '.png', 1200, 630, $g['url']));
         }
         $pts = $criar('pasta', $pt->id, 'Para quem', 'pt-servicos', [], 'publicado', ['peso' => 30, 'no_menu' => true, 'descricao' => 'Como facilita']);
         $j = 0;

@@ -190,7 +190,6 @@ final class ModelosTest extends TestCase
         $dir = $this->caminhos->dados() . '/cache/paginas/' . $this->siteId;
         self::assertFileExists($dir . '/index.html');
         self::assertFileDoesNotExist($dir . '/rascunho-guia-de-estilo.html', 'rascunho (privado) não é publicado');
-        self::assertFileDoesNotExist($dir . '/balanco-do-semestre.html', 'conteúdo agendado só sai na data');
         self::assertFileExists($dir . '/faq-1.html');
         self::assertStringContainsString(ConteudoPublicare::PROMESSA, (string) file_get_contents($dir . '/index.html'));
         self::assertStringContainsString('class="accordion-item"', (string) file_get_contents($dir . '/perguntas-frequentes.html'));
@@ -227,9 +226,9 @@ final class ModelosTest extends TestCase
         self::assertStringNotContainsString('<style', $html);
         self::assertStringNotContainsString(' style=', $html);
         self::assertDoesNotMatchRegularExpression('#<script(?![^>]*\ssrc=)#', $html);
-        // Lista de notícias: miniatura de 400 px (nítida) dentro de moldura de proporção fixa, com data.
+        // Lista de itens: miniatura de 400 px (nítida) dentro de moldura de proporção fixa. O exemplo não tem data que envelheça.
         self::assertMatchesRegularExpression('#class="item-imagem"[^>]*><img src="/_pbl/arquivo/\d+/miniatura/400"#', $html);
-        self::assertMatchesRegularExpression('#<span class="data">\d{2}/\d{2}/\d{4}</span>#', $html);
+        self::assertStringNotContainsString('class="data"', $html);
         self::assertFileExists($this->caminhos->peles() . '/basica/assets/pele.css');
         $css = (string) file_get_contents($this->caminhos->peles() . '/basica/assets/pele.css');
         self::assertStringContainsString('aspect-ratio', $css);
@@ -237,14 +236,14 @@ final class ModelosTest extends TestCase
         self::assertStringContainsString(':focus-visible', $css);
         self::assertStringContainsString('prefers-color-scheme:dark', $css);
         // Demais páginas da pele básica seguem com a folha e sem inline.
-        foreach (['noticias', 'agenda', 'perguntas-frequentes', 'contato', 'o-que-e'] as $url) {
+        foreach (['noticias', 'documentos', 'perguntas-frequentes', 'contato', 'o-que-e'] as $url) {
             $p = (string) file_get_contents($dir . '/' . $url . '.html');
             self::assertStringContainsString('assets/pele.css', $p, $url);
             self::assertStringNotContainsString('<style', $p, $url);
             self::assertStringNotContainsString(' style=', $p, $url);
         }
         // JavaScript próprio em todas as peles, sempre arquivo local versionado: nunca inline, nunca manipulador no HTML (CSP script-src 'self').
-        foreach (['index', 'noticias', 'perguntas-frequentes', 'agenda'] as $url) {
+        foreach (['index', 'noticias', 'perguntas-frequentes', 'documentos'] as $url) {
             $p = (string) file_get_contents($dir . '/' . $url . '.html');
             self::assertMatchesRegularExpression('#<script src="/_pbl/peles/basica/assets/pbl-js\.js\?v=[0-9a-f]{8}"></script>#', $p, $url);
             self::assertMatchesRegularExpression('#<script src="/_pbl/peles/basica/assets/bootstrap\.bundle\.min\.js\?v=[0-9a-f]{8}" defer></script>#', $p, $url);

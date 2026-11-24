@@ -30,7 +30,7 @@ final class ConteudoPublicareTest extends TestCase
         foreach (ConteudoPublicare::perguntas() as [$p, $r]) {
             $t .= "\n" . $p . "\n" . $r;
         }
-        foreach ([...ConteudoPublicare::novidades(), ...ConteudoPublicare::marcos()] as $n) {
+        foreach (ConteudoPublicare::guias() as $n) {
             $t .= "\n" . $n['corpo'];
         }
 
@@ -119,9 +119,22 @@ final class ConteudoPublicareTest extends TestCase
             self::assertStringNotContainsStringIgnoringCase($proibido, $t, $proibido);
         }
         self::assertStringNotContainsString('rc2', $t);
-        // O estado do projeto é honesto: diz o que ainda não existe.
-        self::assertStringContainsString('Ainda não existe', ConteudoPublicare::paginas()['estado-do-projeto']['corpo']);
-        self::assertStringContainsString('exige apoio técnico', ConteudoPublicare::paginas()['estado-do-projeto']['corpo']);
+    }
+
+    /** Regra do dono: o exemplo não tem dado que envelheça (versão, data, contagem, estado transitório). */
+    public function testNaoTemDadoQueEnvelheca(): void
+    {
+        $t = str_replace('Apache-2.0', 'Apache', strip_tags(self::textoTodo()));
+        self::assertDoesNotMatchRegularExpression('#\b\d+\.\d+(\.\d+)?(-[a-z]+(\.\d+)?)?\b#i', $t, 'número de versão (do PHP, do programa ou de pré-release)');
+        self::assertDoesNotMatchRegularExpression('#\brc\.?[ \d]|\b20\d{2}\b(?! *\))#i', preg_replace('#nasceu no Brasil em 2003#iu', '', $t) ?? $t, 'data ou pré-release');
+        foreach (['por enquanto', 'ainda não existe', 'em construção', 'hoje já', 'está sendo', 'estado do projeto'] as $transitorio) {
+            self::assertStringNotContainsStringIgnoringCase($transitorio, $t, $transitorio);
+        }
+        self::assertArrayNotHasKey('estado-do-projeto', ConteudoPublicare::paginas());
+        self::assertArrayHasKey('como-acompanhar', ConteudoPublicare::paginas());
+        foreach (ConteudoPublicare::guias() as $g) {
+            self::assertArrayNotHasKey('data', $g, 'guia sem data de publicação');
+        }
     }
 
     public function testHtmlSoUsaMarcacoesQueOCampoAceita(): void
@@ -133,7 +146,7 @@ final class ConteudoPublicareTest extends TestCase
         foreach (ConteudoPublicare::perguntas() as [, $r]) {
             $blocos[] = $r;
         }
-        foreach ([...ConteudoPublicare::novidades(), ...ConteudoPublicare::marcos()] as $n) {
+        foreach (ConteudoPublicare::guias() as $n) {
             $blocos[] = $n['corpo'];
         }
         foreach ($blocos as $html) {

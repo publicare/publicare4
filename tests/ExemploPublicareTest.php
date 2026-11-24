@@ -125,7 +125,7 @@ final class ExemploPublicareTest extends TestCase
         foreach (array_keys(ConteudoPublicare::paginas()) as $url) {
             self::assertContains($url, $paginas, $url);
         }
-        foreach (['index', 'perguntas-frequentes', 'noticias', 'agenda', 'contato', 'sobre', 'onepage', 'portal', 'documentos', 'links-uteis'] as $url) {
+        foreach (['index', 'perguntas-frequentes', 'noticias', 'contato', 'sobre', 'onepage', 'portal', 'documentos', 'links-uteis'] as $url) {
             self::assertContains($url, $paginas, $url);
         }
         foreach ($paginas as $nome) {
@@ -134,7 +134,6 @@ final class ExemploPublicareTest extends TestCase
         }
         self::assertContains('faq-1', $paginas);
         self::assertNotContains('rascunho-guia-de-estilo', $paginas, 'rascunho (privado) não é publicado');
-        self::assertNotContains('balanco-do-semestre', $paginas, 'conteúdo agendado só sai na data');
     }
 
     public function testNenhumLinkInternoQuebrado(): void
@@ -268,21 +267,23 @@ final class ExemploPublicareTest extends TestCase
         // Aviso do site e rodapé vêm dos blocos.
         self::assertStringContainsString('class="aviso-do-site"', $html);
         self::assertStringContainsString('licença Apache-2.0', $html);
-        // Três destaques com texto, três últimas notícias reais com data.
+        // Três destaques com texto, três guias atemporais, sem data.
         self::assertSame(3, substr_count($html, 'class="destaque"'));
         self::assertStringContainsString('Veja o que ele faz', $html);
         self::assertSame(3, substr_count($html, '<article class="item">'));
-        self::assertSame(1, substr_count($html, 'Versão 0.1.0-rc.10: recuperação'), 'a notícia da rc.10 aparece uma vez só (as do portal ficam fora da home)');
+        self::assertStringContainsString('Conceitos e guias', $html);
+        self::assertStringNotContainsString('Últimas notícias', $html);
+        self::assertSame(1, substr_count($html, 'Como funciona a revisão'), 'cada guia aparece uma vez só (os do portal ficam fora da home)');
         // Sem imagem vazia: destaques e notícias da home ou trazem imagem real ou não têm espaço para ela.
         self::assertSame(3, substr_count($html, 'class="destaque"'));
         self::assertSame(0, substr_count($html, 'class="item-imagem"'));
         self::assertSame(1, preg_match_all('#<h3 data-pbl-objeto="\d+">Veja o que ele faz#', $html), 'um destaque por assunto, sem títulos repetidos');
         self::assertSame(0, substr_count($html, 'Conheça.'));
-        self::assertMatchesRegularExpression('#<span class="data">\d{2}/\d{2}/\d{4}</span>#', $html);
-        self::assertStringContainsString('Versão 0.1.0-rc.10', $html);
+        self::assertStringNotContainsString('class="data"', $html, 'a home do exemplo não mostra data de publicação');
+        self::assertDoesNotMatchRegularExpression('#rc\.\d|\d{2}/\d{2}/\d{4}#', $html, 'a home não tem versão nem data que envelheçam');
         // Busca ligada e menu com os itens do exemplo.
         self::assertStringContainsString('role="search"', $html);
-        foreach (['O que é', 'O que faz', 'Como facilita', 'O que inova', 'Perguntas', 'Instalação', 'Comunidade', 'Estado'] as $rotulo) {
+        foreach (['O que é', 'O que faz', 'Como facilita', 'O que inova', 'Perguntas', 'Instalação', 'Comunidade', 'Acompanhar'] as $rotulo) {
             self::assertStringContainsString('>' . $rotulo . '</a>', $html, $rotulo);
         }
     }
@@ -300,23 +301,20 @@ final class ExemploPublicareTest extends TestCase
         self::assertStringContainsString('Apache-2.0', $html);
     }
 
-    public function testPaginaDeEventosNoticiasEPaginaInternaNaPeleNova(): void
+    public function testGuiaAtemporalEPaginaInternaNaPeleNova(): void
     {
-        $agenda = self::arquivoPublicado(self::$demo, self::$siteDemo, 'agenda');
-        self::assertStringContainsString('Marcos do projeto', $agenda);
-        self::assertStringContainsString('Eventos passados', $agenda);
-        self::assertStringContainsString('Versão 0.1.0-rc.10', $agenda);
-        $noticia = self::arquivoPublicado(self::$demo, self::$siteDemo, 'versao-0-1-0-rc-10');
-        self::assertStringContainsString('Publicado em 24/11/2026', $noticia);
-        $evento = self::arquivoPublicado(self::$demo, self::$siteDemo, 'marco-rc-10');
-        self::assertStringContainsString('class="evento-quando"', $evento);
+        $guia = self::arquivoPublicado(self::$demo, self::$siteDemo, 'guia-revisao');
+        self::assertStringContainsString('Como funciona a revisão', $guia);
+        self::assertStringNotContainsString('Publicado em', $guia, 'guia atemporal, sem data de publicação');
         $interna = self::arquivoPublicado(self::$demo, self::$siteDemo, 'o-que-ele-faz');
         self::assertStringContainsString('class="pagina-topo"', $interna);
         self::assertStringContainsString('class="pbl-migalhas"', $interna);
         self::assertStringContainsString('<h2>Operação</h2>', $interna);
-        $estado = self::arquivoPublicado(self::$demo, self::$siteDemo, 'estado-do-projeto');
-        self::assertStringContainsString(\Pbl\Versao::ATUAL, $estado, 'a versão vem de Versao::ATUAL, não de texto fixo');
-        self::assertStringContainsString('Ainda não existe', $estado);
+        $acompanhar = self::arquivoPublicado(self::$demo, self::$siteDemo, 'como-acompanhar');
+        self::assertStringContainsString('/releases', $acompanhar);
+        self::assertStringContainsString('CHANGELOG', $acompanhar);
+        self::assertStringNotContainsString(\Pbl\Versao::ATUAL, $acompanhar, 'a página não cita número de versão');
+        self::assertDoesNotMatchRegularExpression('#\d+\.\d+\.\d+|rc\.?\d|20\d{2}#', strip_tags($acompanhar), 'sem versão nem data');
     }
 
     public function testPaginaNaoEncontradaFicaDentroDaPele(): void
@@ -341,7 +339,7 @@ final class ExemploPublicareTest extends TestCase
         $html = (string) $r->getContent();
         self::assertStringContainsString('class="lista-itens"', $html);
         self::assertStringContainsString('pele.css', $html);
-        $tag = self::pegar(self::$demo, '/tag/painel');
+        $tag = self::pegar(self::$demo, '/tag/revisao');
         self::assertSame(200, $tag->getStatusCode());
     }
 
