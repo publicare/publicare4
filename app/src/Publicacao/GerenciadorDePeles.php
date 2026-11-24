@@ -192,6 +192,7 @@ final class GerenciadorDePeles
             @unlink($temporario);
             throw new \RuntimeException('Não foi possível gravar o molde.');
         }
+        $this->compilador->limpar();
         $this->registrarVersao($pele, $nome, $conteudo, $acao, $usuarioId);
     }
 
@@ -202,6 +203,7 @@ final class GerenciadorDePeles
         if (!unlink($arquivo)) {
             throw new \RuntimeException('Não foi possível apagar o molde.');
         }
+        $this->compilador->limpar();
         $this->registrarVersao($pele, $nome, $conteudo, 'apagar', $usuarioId);
     }
 

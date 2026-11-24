@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Console;
 
 use Pbl\Caminhos;
+use Pbl\Linguagem\Compilador;
 use Pbl\Publicacao\FilaDeRepublicacao;
 use Pbl\Servicos;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -30,6 +31,8 @@ final class PublicarComando extends Command
         $falhou = false;
         try {
             $servicos = Servicos::doBancoInstalado($this->caminhos);
+            // Pele nova não pode reaproveitar molde compilado antigo: recompila na republicação.
+            (new Compilador($this->caminhos->cachePbl()))->limpar();
             foreach ($servicos->sites->todos() as $site) {
                 $inicio = $servicos->republicacao->iniciar($site, 'cli');
                 $estado = $inicio['estado'];

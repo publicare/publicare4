@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Corrigido
+- **Cache de moldes compilados com base velha após instalar pele:** a chave do molde compilado agora segue a cadeia de `estende` pelo mesmo Parser que compila (um comentário ou espaço antes do `estende` fazia a chave ignorar a base), inclui a impressão da pele (nome, tamanho e data dos `.pbl`) e a versão do compilador (`FORMATO` 2). Gravar ou apagar molde pelo painel e `bin/pbl publicar` limpam `dados/cache/pbl`; a republicação regrava as páginas.
+
 ### Alterado
 - **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.9`.
 

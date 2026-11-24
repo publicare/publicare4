@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Publicacao;
 
 use Pbl\Caminhos;
+use Pbl\Linguagem\ComImpressao;
 use Pbl\Linguagem\Resolvedor;
 
 /**
@@ -16,8 +17,10 @@ use Pbl\Linguagem\Resolvedor;
  *
  * @phpstan-type Sobrescritas array<string, string>
  */
-final class ResolvedorDePele implements Resolvedor
+final class ResolvedorDePele implements Resolvedor, ComImpressao
 {
+    private ?string $impressao = null;
+
     /** @param Sobrescritas $sobrescritas nome do molde (sem `.pbl`) => conteúdo */
     public function __construct(private readonly Caminhos $caminhos, private readonly string $pele, private readonly array $sobrescritas = [])
     {
@@ -45,6 +48,30 @@ final class ResolvedorDePele implements Resolvedor
         }
 
         return (string) file_get_contents($arquivo);
+    }
+
+    /** Hash do conjunto da pele (nome, tamanho e data de cada `.pbl` + sobrescritas): entra na chave do molde compilado. */
+    public function impressao(): string
+    {
+        if ($this->impressao !== null) {
+            return $this->impressao;
+        }
+        $itens = [];
+        $raiz = $this->caminhos->peles() . "/{$this->pele}";
+        if (is_dir($raiz)) {
+            $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($raiz, \FilesystemIterator::SKIP_DOTS));
+            foreach ($it as $arq) {
+                if ($arq instanceof \SplFileInfo && $arq->isFile() && $arq->getExtension() === 'pbl') {
+                    $itens[] = substr($arq->getPathname(), strlen($raiz)) . ':' . $arq->getSize() . ':' . $arq->getMTime();
+                }
+            }
+        }
+        sort($itens);
+        foreach ($this->sobrescritas as $nome => $conteudo) {
+            $itens[] = "~{$nome}:" . hash('sha256', $conteudo);
+        }
+
+        return $this->impressao = hash('sha256', $this->pele . "\0" . implode("\0", $itens));
     }
 
     private function valido(string $nome): bool
