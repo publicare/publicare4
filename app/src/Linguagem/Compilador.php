@@ -6,13 +6,15 @@ namespace Pbl\Linguagem;
 
 /**
  * Compila um molde (com herança de layout) e guarda o PHP gerado em `dados/cache/pbl/<hash>.php`.
- * O hash cobre o molde e toda a cadeia de layouts: mudou um, recompila (fluxo 2).
+ * A chave cobre o formato do compilador, o molde, toda a cadeia de layouts (`estende`, descoberta pelo mesmo Parser
+ * que compila, então comentários e espaços iniciais não a enganam) e a impressão da pele (`ComImpressao`): mudou
+ * qualquer um, recompila (fluxo 2). `incluir` não é embutido: cada arquivo incluído tem a própria chave.
  */
 final class Compilador
 {
     private const MAX_HERANCA = 5;
     /** Sobe quando o gerador ou o runtime mudam o formato do PHP gerado: invalida todo o cache compilado. */
-    public const FORMATO = 1;
+    public const FORMATO = 2;
 
     public function __construct(
         private readonly string $pastaCache,
@@ -31,7 +33,7 @@ final class Compilador
     /** @return \Closure(array<string, mixed>, Runtime): string */
     public function carregar(string $fonte, ?Resolvedor $resolvedor = null): \Closure
     {
-        $chave = hash('sha256', 'pbl4-formato-' . $this->formato . "\0" . implode("\0", $this->cadeia($fonte, $resolvedor)));
+        $chave = hash('sha256', 'pbl4-formato-' . $this->formato . "\0" . implode("\0", $this->cadeia($fonte, $resolvedor)) . "\0pele:" . ($resolvedor instanceof ComImpressao ? $resolvedor->impressao() : ''));
         $arquivo = $this->pastaCache . '/' . $chave . '.php';
         if (!is_file($arquivo)) {
             $this->gravarAtomico($arquivo, $this->compilar($fonte, $resolvedor));
@@ -45,22 +47,50 @@ final class Compilador
         return $funcao;
     }
 
+    /** Remove todos os moldes compilados (`*.php`); o próximo `carregar` recompila. Tolera arquivo já removido. */
+    public function limpar(): void
+    {
+        foreach (glob($this->pastaCache . '/*.php') ?: [] as $arquivo) {
+            @unlink($arquivo);
+        }
+    }
+
     /**
-     * Fontes do molde e de seus layouts, do filho para a raiz.
+     * Fontes do molde e de seus layouts, do filho para a raiz. Usa o Parser (como `resolver`); molde com erro de
+     * sintaxe ou layout ausente só encerra a cadeia: quem compila reporta o erro.
      *
      * @return list<string>
      */
     private function cadeia(string $fonte, ?Resolvedor $resolvedor): array
     {
         $fontes = [$fonte];
-        while (preg_match('/^\s*<@\s*estende\s+(["\'])([^"\']+)\1\s*@>/', $fontes[count($fontes) - 1], $m) === 1) {
-            if ($resolvedor === null || count($fontes) > self::MAX_HERANCA) {
+        while ($resolvedor !== null && count($fontes) <= self::MAX_HERANCA) {
+            try {
+                $layout = $this->layoutDe($fontes[count($fontes) - 1]);
+                if ($layout === null) {
+                    break;
+                }
+                $fontes[] = $resolvedor->fonte($layout);
+            } catch (ErroSintaxe | \RuntimeException) {
                 break;
             }
-            $fontes[] = $resolvedor->fonte($m[2]);
         }
 
         return $fontes;
+    }
+
+    private function layoutDe(string $fonte): ?string
+    {
+        foreach ($this->parser->analisar($fonte) as $no) {
+            if ($no instanceof NoEstende) {
+                return $no->layout;
+            }
+            if (!$no instanceof NoTexto || trim($no->valor) !== '') {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     /** @return list<No> árvore sem `estende`: blocos do filho já aplicados sobre o layout */

@@ -4,7 +4,7 @@ Referência da linguagem de moldes. O PBL4 mantém o espírito do PBL3 (tags `<@
 
 ## Princípios
 
-- **Três estágios**: Lexer → Parser (árvore) → Gerador (PHP). O PHP gerado vai para `dados/cache/pbl/<hash>.php` e é reaproveitado; o hash cobre o molde e toda a cadeia de layouts.
+- **Três estágios**: Lexer → Parser (árvore) → Gerador (PHP). O PHP gerado vai para `dados/cache/pbl/<hash>.php` e é reaproveitado; a chave cobre a versão do compilador, o molde, a cadeia de `estende` (descoberta pelo Parser, não por regex) e a impressão da pele (hash de nome, tamanho e data dos `.pbl`): mudou qualquer um, recompila. `incluir` não é embutido: é resolvido na execução e cada arquivo tem a própria chave (nome dinâmico não precisa de análise; a impressão da pele cobre o resto). Instalar pele nova invalida todos os compilados dela; recompilar a pele inteira é barato. Gravar/apagar molde no painel e `bin/pbl publicar` limpam `dados/cache/pbl`; o script de instalação de pele deve terminar com `bin/pbl publicar`.
 - **Nada do molde vira código**: o gerador só emite literais (`var_export`) e chamadas ao `Runtime`. PHP cru (`<?`, `?>`) é rejeitado. O molde não alcança superglobais, arquivos nem funções do PHP.
 - **Escape por padrão**: `eco` escapa HTML; `ecocru` é a saída sem escape, escolhida de forma explícita.
 - **Erros são exceções com linha** (e arquivo, quando o erro está num layout ou parte incluída). Nada de `exit`.
