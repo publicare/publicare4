@@ -69,7 +69,15 @@ final class Painel
         $rotaDePilha = TelasDePilha::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeVencidos = TelasDeVencidos::rota(self::PREFIXO, $caminho, $metodo);
         $rotaDeLixeira = TelasDeLixeira::rota(self::PREFIXO, $caminho, $metodo);
+        $rotaPublicaDeConta = TelasPublicasDeConta::rota(self::PREFIXO, $caminho, $metodo);
+        $rotaDeConvite = TelasDeConvite::rota(self::PREFIXO, $caminho, $metodo);
+        $rotaDePerfil = TelasDePerfil::rota(self::PREFIXO, $caminho, $metodo);
+        $rotaDeEmail = TelasDeEmail::rota(self::PREFIXO, $caminho, $metodo);
         $resposta = match (true) {
+            $rotaPublicaDeConta !== null => (new TelasPublicasDeConta($this->servicos, $this->rede, $this->csrf))->tratar($rotaPublicaDeConta, $requisicao),
+            $rotaDeConvite !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeConvite($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeConvite, $requisicao)),
+            $rotaDePerfil !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDePerfil($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDePerfil, $requisicao)),
+            $rotaDeEmail !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeEmail($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeEmail, $requisicao)),
             $caminho === self::PREFIXO . '/mais' && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeMais($this->servicos, $this->csrf))->exibir($s)),
             $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s)),
             ApiDeAcoes::atende($caminho, $metodo) => $this->api($requisicao, $caminho),
@@ -94,7 +102,13 @@ final class Painel
             default => $this->pagina('Não encontrado', '<p>Página não encontrada.</p>', Response::HTTP_NOT_FOUND),
         };
 
-        return $this->protegida($resposta, $requisicao);
+        $resposta = $this->protegida($resposta, $requisicao);
+        if ($rotaPublicaDeConta !== null) {
+            // o link com token na URL não pode vazar por Referer
+            $resposta->headers->set('Referrer-Policy', 'no-referrer');
+        }
+
+        return $resposta;
     }
 
     /**
@@ -177,7 +191,8 @@ final class Painel
             . '<input type="hidden" name="_csrf" value="' . $this->h($this->csrf->paraEntrar()) . '">'
             . Pagina::campo('campo-login', 'login', 'Login', '', ['autocomplete' => 'username', 'maxlength' => 64, 'obrigatorio' => true, 'autofocus' => true])
             . Pagina::campo('campo-senha', 'senha', 'Senha', '', ['tipo' => 'password', 'autocomplete' => 'current-password', 'maxlength' => 1024, 'obrigatorio' => true])
-            . Pagina::acoes('Entrar') . '</form>', $status, false, '', [], 'Entre com o login e a senha da sua conta.');
+            . Pagina::acoes('Entrar') . '</form>'
+            . '<p class="mt-3 small"><a href="' . self::PREFIXO . '/esqueci">Esqueci a senha</a> · <a href="' . self::PREFIXO . '/esqueci-usuario">Esqueci o usuário</a></p>', $status, false, '', [], 'Entre com o login e a senha da sua conta.');
     }
 
     /**

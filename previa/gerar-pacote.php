@@ -108,6 +108,55 @@ if ($siteExemplo !== null && $siteExemplo->objetoRaizId !== null) {
         }
     }
 }
+
+// Dados de exemplo das telas de conta (só neste pacote de prévia): convite pendente, contas ativas/inativas/de serviço,
+// sessões ativas do admin e tentativas de login falhas. Cada passo é opcional: a prévia segue sem ele se falhar.
+$tentar = static function (callable $f): void {
+    try {
+        $f();
+    } catch (Throwable $e) {
+        fwrite(STDERR, 'exemplo de conta ignorado: ' . $e->getMessage() . "\n");
+    }
+};
+$senhaDemo = Pbl\Console\DemoPopularComando::SENHA_DEMO;
+$tentar(static function () use ($servicos, $senhaDemo): void {
+    $servicos->usuarios->criar('bruno.inativo', 'bruno@exemplo.invalid', 'Bruno Souza (conta desativada)', $senhaDemo);
+    $servicos->usuarios->definirAtivo((int) $servicos->usuarios->porLogin('bruno.inativo')?->id, false, 'previa');
+});
+$tentar(static function () use ($servicos, $senhaDemo): void {
+    $servicos->usuarios->criar('carla.revisora', 'carla@exemplo.invalid', 'Carla Mendes', $senhaDemo, true);
+});
+$tentar(static function () use ($servicos): void {
+    $servicos->usuarios->criarContaDeServico('agente.publicador', 'Agente de publicação (conta de serviço)');
+});
+// E-mail em modo "arquivo" (grava na caixa local, não envia nada): faz a tela de convidar mostrar o formulário em vez do aviso.
+$tentar(static function () use ($servicos): void {
+    $servicos->configDeEmail()->salvar(new Pbl\Email\ConfigDeEmail(Pbl\Email\Transporte::ARQUIVO, remetente: 'Instituto Exemplo <nao-responda@exemplo.invalid>'));
+});
+$tentar(static function () use ($servicos): void {
+    $servicos->convites()->convidar('diego.convidado', 'Diego Almeida (convite pendente)', 'diego@exemplo.invalid', false, 'admin', false);
+});
+$tentar(static function () use ($servicos): void {
+    $servicos->convites()->convidar('elisa.convidada', 'Elisa Prado (convite pendente)', 'elisa@exemplo.invalid', false, 'admin', false);
+});
+$tentar(static function () use ($servicos): void {
+    $admin = $servicos->usuarios->porLogin('admin');
+    if ($admin !== null) {
+        $sessoes = $servicos->sessoes();
+        for ($i = 0; $i < 3; $i++) {
+            $sessoes->criar($admin->id); // outros dispositivos do admin, listados no perfil
+        }
+    }
+});
+$tentar(static function () use ($servicos): void {
+    $limite = $servicos->limiteDeTentativas();
+    foreach (['203.0.113.7' => 3, '198.51.100.23' => 2] as $ip => $vezes) {
+        for ($i = 0; $i < $vezes; $i++) {
+            $limite->registrarFalha('admin', $ip);
+        }
+    }
+    $limite->registrarFalha('editor', '203.0.113.7');
+});
 unset($servicos);
 
 // Marcador do modo prévia (ver Pbl\Previa\ModoPrevia): o host `pv-…` da prévia passa a atender o site e `/_pbl/previa-entrar` abre a

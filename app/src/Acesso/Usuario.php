@@ -10,6 +10,8 @@ final class Usuario
     public const SERVICO = 'servico';
     /** Marca em `senha_hash` que nunca confere com nenhuma senha. */
     public const SENHA_DE_SERVICO = '!servico';
+    /** Marca em `senha_hash` da conta convidada que ainda não escolheu a senha; nunca confere. */
+    public const SENHA_DE_CONVITE = '!convite';
 
     public function __construct(
         public readonly int $id,

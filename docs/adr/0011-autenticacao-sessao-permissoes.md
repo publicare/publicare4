@@ -1,6 +1,6 @@
 # ADR 0011 — Autenticação, sessão, permissões e auditoria
 
-Status: implementado (2026-11-01), fases 3a e 3b. Ficam para depois: recuperação de senha por e-mail, autenticação em dois fatores, visitantes cadastrados (ADR 0004) e permissão por campo. Detalha o [fluxo 6](../fluxos/06-autenticacao-permissoes.md); complementa o [ADR 0004](0004-identidade-publica.md) (visitantes cadastrados, que ficam separados da equipe).
+Status: implementado (2026-11-01), fases 3a e 3b. Ficam para depois: autenticação em dois fatores, visitantes cadastrados (ADR 0004) e permissão por campo. A recuperação de senha por e-mail foi tratada no [ADR 0033](0033-login-e-contas-inventario-e-escopo.md) e seguintes. Detalha o [fluxo 6](../fluxos/06-autenticacao-permissoes.md); complementa o [ADR 0004](0004-identidade-publica.md) (visitantes cadastrados, que ficam separados da equipe).
 
 ## Contexto
 

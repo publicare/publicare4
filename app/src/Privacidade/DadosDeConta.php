@@ -40,6 +40,7 @@ final class DadosDeConta
                 'criado_em' => $conta['criado_em'] ?? null, 'ultimo_acesso' => $conta['ultimo_acesso'] ?? null,
             ],
             'acessos' => array_map(static fn (array $a): array => ['objeto_id' => (int) $a['objeto_id'], 'perfil' => (string) $a['perfil']], $acessos),
+            'tokens_de_conta_abertos' => (int) $this->conexao->fetchOne('SELECT COUNT(*) FROM token_conta WHERE usuario_id = ? AND usado_em IS NULL', [$u->id]), // só a contagem; nunca o token
             'sessoes_abertas' => (int) $this->conexao->fetchOne('SELECT COUNT(*) FROM sessao WHERE usuario_id = ?', [$u->id]),
             'objetos_criados' => array_map('intval', $this->conexao->fetchFirstColumn('SELECT id FROM objeto WHERE criado_por = ? ORDER BY id', [$u->id])),
             'versoes_gravadas' => (int) $this->conexao->fetchOne('SELECT COUNT(*) FROM objeto_versao WHERE usuario_id = ?', [$u->id]),
@@ -70,6 +71,7 @@ final class DadosDeConta
             ], ['id' => $u->id]);
             $this->conexao->delete('sessao', ['usuario_id' => $u->id]);
             $this->conexao->delete('acesso', ['usuario_id' => $u->id]);
+            $this->conexao->delete('token_conta', ['usuario_id' => $u->id]); // links de uso único não sobrevivem à anonimização
             $this->conexao->executeStatement('UPDATE auditoria SET ip_hash = NULL WHERE usuario_id = ?', [$u->id]);
             foreach ($linhas as $l) {
                 if (in_array($l['acao'], self::ACOES_COM_LOGIN, true) && $l['_id'] !== null) {

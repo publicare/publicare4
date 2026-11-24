@@ -126,7 +126,7 @@ final class TelasDeContas
         $pagina = min($pagina, $totalPaginas);
 
         $corpo = $this->avisoDe($requisicao)
-            . Pagina::cabecalho($r['total'] . ' ' . ($r['total'] === 1 ? 'conta' : 'contas') . ($busca === '' && $situacao === '' ? '' : ' na busca') . '. Cada conta é administradora (vê e faz tudo) ou recebe um papel — leitor, autor ou editor — em cada seção.', '<a class="btn btn-primary" href="' . Painel::PREFIXO . '/contas/nova">Nova conta</a>')
+            . Pagina::cabecalho($r['total'] . ' ' . ($r['total'] === 1 ? 'conta' : 'contas') . ($busca === '' && $situacao === '' ? '' : ' na busca') . '. Cada conta é administradora (vê e faz tudo) ou recebe um papel — leitor, autor ou editor — em cada seção.', '<a class="btn btn-primary" href="' . Painel::PREFIXO . '/contas/nova">Nova conta</a>', ['<a href="' . Painel::PREFIXO . '/contas/convidar">Convidar por e-mail</a>', '<a href="' . Painel::PREFIXO . '/email">E-mail do site</a>'])
             . $this->formularioDeBusca($busca, $situacao)
             . '<div class="list-group mb-3" role="list" aria-label="Contas">';
         foreach ($r['itens'] as $c) {
@@ -134,6 +134,7 @@ final class TelasDeContas
                 . '<span class="d-flex flex-wrap align-items-center gap-2"><code class="fs-6 fw-semibold">' . Pagina::h($c->login) . '</code>'
                 . ($c->id === $sessao->usuario->id ? '<span class="badge text-bg-info">você</span>' : '')
                 . ($c->ativo ? '' : '<span class="badge text-bg-secondary">Desativada</span>')
+                . ($this->servicos->usuarios->convitePendente($c->id) ? '<span class="badge text-bg-warning">Convite pendente</span>' : '')
                 . '<span class="badge text-bg-light border ms-auto">' . ($c->ehServico() ? 'Conta de serviço' : ($c->administrador ? 'Administrador' : 'Equipe')) . '</span></span>'
                 . '<span class="d-block small text-body-secondary text-break">' . Pagina::h($c->nome) . ' · ' . Pagina::h($c->email) . '</span></a>';
         }
@@ -271,6 +272,11 @@ final class TelasDeContas
 
     private function blocoDeSituacao(SessaoAtiva $sessao, string $csrf, Usuario $c, bool $eu, string $base): string
     {
+        if ($this->servicos->usuarios->convitePendente($c->id)) {
+            return '<p>Convite pendente: a pessoa ainda não definiu a senha e não consegue entrar. Reenviar cancela o link anterior; cancelar apaga a conta.</p>'
+                . '<form method="post" action="' . $base . '/reenviar-convite" class="mb-3">' . $csrf . $this->campoSenha($sessao, 'campo-senha-reenviar') . '<button type="submit" class="btn btn-outline-primary">Reenviar convite</button></form>'
+                . '<form method="post" action="' . $base . '/cancelar-convite">' . $csrf . $this->campoSenha($sessao, 'campo-senha-cancelar') . '<button type="submit" class="btn btn-outline-danger">Cancelar convite</button></form>';
+        }
         if (!$c->ativo) {
             return '<p>Esta conta está desativada: não consegue entrar.</p><form method="post" action="' . $base . '/reativar">' . $csrf
                 . $this->campoSenha($sessao, 'campo-senha-reativar') . '<button type="submit" class="btn btn-outline-success">Reativar conta</button></form>';
@@ -506,6 +512,9 @@ final class TelasDeContas
             'reativada' => 'Conta reativada.',
             'concedido' => 'Papel concedido.',
             'revogado' => 'Papel revogado.',
+            'convidada' => 'Convite enviado por e-mail.',
+            'convite-cancelado' => 'Convite cancelado.',
+            'convite-reenviado' => 'Convite reenviado; o link anterior deixou de valer.',
             default => null,
         };
 

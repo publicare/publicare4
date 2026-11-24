@@ -27,12 +27,15 @@ final class TelasDeMais
     {
         $barra = Pagina::barra($sessao->usuario->nome, $this->csrf->daSessao($sessao->idHash), $sessao->usuario->administrador);
         $tipos = [Painel::PREFIXO . '/classes', 'Tipos de conteúdo', 'Os campos de cada tipo: página, notícia, evento e os que você criar.'];
+        $perfil = [Painel::PREFIXO . '/perfil', 'Meu perfil', 'Seu nome e a troca da sua senha.'];
         if (!$sessao->usuario->administrador) {
-            return $this->resposta([$tipos], $barra);
+            return $this->resposta([$tipos, $perfil], $barra);
         }
         $itens = [
             [Painel::PREFIXO . '/contas', 'Contas', 'Quem entra no painel e o que cada pessoa pode fazer.'],
             $tipos,
+            $perfil,
+            [Painel::PREFIXO . '/email', 'E-mail do site', 'Envio de e-mail para recuperar senha e convidar pessoas.'],
         ];
         foreach ($this->servicos->sites->todos() as $site) {
             $itens[] = [Painel::PREFIXO . '/site/' . $site->id . '/peles', 'Peles e modelos de página' . (count($this->servicos->sites->todos()) > 1 ? ': ' . $site->nome : ''), 'A aparência do site e os modelos de página de cada pele.'];
