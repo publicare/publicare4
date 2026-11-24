@@ -15,6 +15,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - **Pele padrão dos sites novos:** a instalação nova (linha de comando, assistente web e demonstração) passa a usar a pele `publicare`. A `basica` continua instalada e selecionável, e **nenhum site existente muda de pele sozinho**.
 - **Instalação limpa:** a página inicial passa a ter a promessa do Publicare e os pilares, em vez de "Tudo funcionando". Continua leve e sem modelos opcionais. A apresentação completa fica em `bin/pbl demo-popular`.
 - **`demo-popular` e prévia:** o exemplo deixa de ser o "Instituto Exemplo" e passa a ser a apresentação do Publicare 4 (contas fictícias com e-mails `@exemplo.invalid`, mesma senha de demonstração). `/onepage` e `/portal` seguem como vitrine das peles, com texto do Publicare. Veja [modelos-e-demo](docs/usuario/modelos-e-demo.md) e o adendo do [ADR 0021](docs/adr/0021-modelos-opcionais.md).
+- **`demo-popular --pele=`:** escolhe a pele do exemplo (`publicare` por padrão se o site ainda usa a básica; `--pele=basica` mantém a básica, que segue coberta pelos testes).
 - **Modelos opcionais** passam a preparar os moldes também na pele `publicare` (antes só na `basica`).
 - **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.10`.
 

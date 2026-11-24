@@ -11,7 +11,7 @@
 <@filhos classes="faq" ordem="categoria, peso, titulo"@>
 <@se #categoria != ""@><@se #categoria != $categoria_anterior@><h2><@eco #categoria@></h2>
 <@var $categoria_anterior = #categoria@><@/se@><@/se@>
-<details class="faq-item" data-pbl-objeto="<@eco #id@>"><summary><@eco #titulo@></summary><div class="faq-resposta"><@ecocru #resposta@><span class="pbl-acoes" hidden></span></div></details>
+<details class="faq-item" data-pbl-objeto="<@eco #id@>"<@se %INDICE == 1@> open<@/se@>><summary><@eco #titulo@></summary><div class="faq-resposta"><@ecocru #resposta@><span class="pbl-acoes" hidden></span></div></details>
 <@/filhos@>
 <@semfilhos@><p>Nenhuma pergunta cadastrada ainda.</p><@/semfilhos@>
 </div>
