@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.10] - 2026-11-24
+
+> **Em resumo:** recuperação de acesso por e-mail (esqueci a senha, esqueci o usuário), convite de usuário por link, perfil com troca de senha e e-mail e lista de sessões, mais controles de contas para o administrador; e a correção do cache de moldes compilados, que mostrava a base velha depois de instalar uma pele nova.
+
 ### Adicionado
 - **Recuperação de acesso e convite** ([ADR 0033](docs/adr/0033-login-e-contas-inventario-e-escopo.md) a [0038](docs/adr/0038-login-e-contas-fase-2.md); [guia](docs/usuario/recuperar-acesso.md)): envio de e-mail plugável (desligado, arquivo ou SMTP só com TLS; senha cifrada fora do catálogo público); tokens de uso único (256 bits, só o hash no banco, 30 min; convite 72 h); "esqueci a senha" e "esqueci o usuário" com resposta uniforme, fila de envio e limite por conta e IP; convite de usuário (reenviar, cancelar, aceitar); `bin/pbl conta-recuperar` e `conta-convidar`; migração M028; LGPD e cron cobrem os tokens. Telas: `/_pbl/esqueci`, `/_pbl/esqueci-usuario`, `/_pbl/redefinir-senha/<token>`, `/_pbl/convite/<token>`; no painel, **Convidar por e-mail** (reenviar e cancelar), **E-mail do site** (SMTP/arquivo, senha mascarada, envio de teste) e **Meu perfil** (nome e troca de senha pedindo a atual, mantendo a sessão atual). **Ficam para a próxima fatia:** sessões listáveis, troca de e-mail com dupla confirmação, forçar troca de senha e falhas por conta no painel (ver ADR 0033). Fase 2 (2FA etc.) só desenhada. Meu perfil lista e encerra sessões (uma ou todas as outras).
 
@@ -14,7 +18,6 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ### Alterado
 - **Prévia:** `previa/gerar-pacote.php` semeia, só no pacote de prévia, contas em vários status, convites pendentes, sessões do admin, tentativas de login falhas e e-mail em modo arquivo (a tela de convidar mostra o formulário).
-- **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.9`.
 
 ## [0.1.0-rc.9] - 2026-11-23
 
