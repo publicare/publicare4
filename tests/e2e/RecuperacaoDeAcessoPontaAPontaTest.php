@@ -176,4 +176,31 @@ final class RecuperacaoDeAcessoPontaAPontaTest extends TestCase
         self::assertSame('no-referrer', $r->headers->get('Referrer-Policy'));
         self::assertMatchesRegularExpression('#no-store|private#', (string) $r->headers->get('Cache-Control'));
     }
+
+    public function testConviteDefineSenhaPorLinkDeUsoUnico(): void
+    {
+        $this->ligarEmail();
+        $this->s->convites()->convidar('bia', 'Bia', 'bia@exemplo.org', false, 'admin');
+        self::assertNull($this->s->usuarios->autenticar('bia', self::NOVA), 'sem senha antes de aceitar');
+        $email = implode("\n", $this->caixa());
+        $rota = $this->ultimoCaminho('#/_pbl/convite/[0-9a-f]{64}#', $email);
+
+        self::assertSame(200, $this->req('GET', $rota)->getStatusCode());
+        self::assertSame(422, $this->publico($rota, ['senha' => 'curta', 'senha2' => 'curta'])->getStatusCode());
+        self::assertSame(200, $this->req('GET', $rota)->getStatusCode(), 'senha recusada não consome o link');
+        $this->publico($rota, ['senha' => self::NOVA, 'senha2' => self::NOVA]);
+        self::assertNotNull($this->s->usuarios->autenticar('bia', self::NOVA));
+        self::assertSame(400, $this->req('GET', $rota)->getStatusCode(), 'link usado morre');
+        self::assertSame(400, $this->publico($rota, ['senha' => 'mais uma senha longa 2028', 'senha2' => 'mais uma senha longa 2028'])->getStatusCode());
+        self::assertNull($this->s->usuarios->autenticar('bia', 'mais uma senha longa 2028'));
+    }
+
+    private function ultimoCaminho(string $padrao, string $texto): string
+    {
+        preg_match_all($padrao, $texto, $todos);
+        $achou = end($todos[0]);
+        self::assertIsString($achou, 'link no e-mail');
+
+        return $achou;
+    }
 }

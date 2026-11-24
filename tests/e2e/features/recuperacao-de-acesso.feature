@@ -42,3 +42,9 @@ Funcionalidade: Recuperação de acesso — esqueci a senha, esqueci o usuário 
     Quando abro a tela de esqueci, a de esqueci o usuário e a de definir senha
     Então a CSP não permite script em linha e a página não tem script nem estilo em linha
     E a tela do link não envia o Referer e não fica em cache
+
+  Cenário: Um convite define a senha por link de uso único
+    Dado que o e-mail do site usa o driver "arquivo"
+    Quando o administrador convida "bia" com o e-mail "bia@exemplo.org"
+    E ela abre o link, é recusada com senha curta e depois define uma senha válida
+    Então ela entra com a senha nova e o link do convite deixa de valer

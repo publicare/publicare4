@@ -16,3 +16,4 @@ test('Um novo pedido invalida o link anterior', () => roda('testNovoPedidoInvali
 test('Depois de usar o link, entrar com a senha nova funciona e o link morre', () => roda('testEntrarComSenhaNovaEOLinkMorre'));
 test('Pedidos em excesso não geram e-mails demais nem mudam a resposta', () => roda('testPedidosEmExcessoNaoGeramEmailsDemais'));
 test('As telas públicas de recuperação protegem contra script em linha e vazamento do link', () => roda('testTelasPublicasProtegemContraScriptEVazamento'));
+test('Um convite define a senha por link de uso único', () => roda('testConviteDefineSenhaPorLinkDeUsoUnico'));
