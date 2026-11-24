@@ -80,6 +80,51 @@ final class SessaoRepositorio
         $this->conexao->delete('sessao', ['usuario_id' => $usuarioId]);
     }
 
+    /**
+     * Sessões abertas e vigentes da conta, da mais recente para a mais antiga. Devolve só um identificador curto (prefixo do hash)
+     * e datas: nunca o token nem o hash inteiro.
+     *
+     * @return list<array{ref: string, criado_em: int, ultimo_uso: int, atual: bool}>
+     */
+    public function listarDe(int $usuarioId, string $atualHash): array
+    {
+        $agora = $this->agora();
+        $linhas = $this->conexao->fetchAllAssociative(
+            'SELECT id_hash, criado_em, ultimo_uso FROM sessao WHERE usuario_id = ? AND expira_em > ? ORDER BY ultimo_uso DESC',
+            [$usuarioId, $agora],
+        );
+        $saida = [];
+        foreach ($linhas as $l) {
+            if ($agora - (int) $l['ultimo_uso'] > self::INATIVIDADE) {
+                continue;
+            }
+            $hash = (string) $l['id_hash'];
+            $saida[] = ['ref' => substr($hash, 0, 16), 'criado_em' => (int) $l['criado_em'], 'ultimo_uso' => (int) $l['ultimo_uso'], 'atual' => hash_equals($atualHash, $hash)];
+        }
+
+        return $saida;
+    }
+
+    /** Encerra uma sessão da conta pela referência curta, nunca a atual. Devolve se encerrou. */
+    public function encerrarPorRef(int $usuarioId, string $ref, string $atualHash): bool
+    {
+        if (preg_match('/^[0-9a-f]{16}$/D', $ref) !== 1) {
+            return false;
+        }
+        $n = $this->conexao->executeStatement(
+            'DELETE FROM sessao WHERE usuario_id = ? AND id_hash <> ? AND substr(id_hash, 1, 16) = ?',
+            [$usuarioId, $atualHash, $ref],
+        );
+
+        return $n > 0;
+    }
+
+    /** Encerra todas as sessões da conta, menos a atual. */
+    public function encerrarOutrasDe(int $usuarioId, string $atualHash): int
+    {
+        return (int) $this->conexao->executeStatement('DELETE FROM sessao WHERE usuario_id = ? AND id_hash <> ?', [$usuarioId, $atualHash]);
+    }
+
     public static function hash(string $token): string
     {
         return hash('sha256', $token);

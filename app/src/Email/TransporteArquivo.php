@@ -18,7 +18,7 @@ final class TransporteArquivo implements Transporte
 
     public function enviar(Mensagem $mensagem): void
     {
-        GravacaoAtomica::gravar($this->pasta . '/' . gmdate('Ymd-His') . '-' . bin2hex(random_bytes(8)) . '.eml', $mensagem->formatar($this->remetente));
+        GravacaoAtomica::gravar($this->pasta . '/' . gmdate('Ymd-His') . substr(sprintf('%.6F', fmod(microtime(true), 1)), 2) . '-' . bin2hex(random_bytes(8)) . '.eml', $mensagem->formatar($this->remetente));
     }
 
     public function tipo(): string

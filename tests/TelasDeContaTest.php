@@ -234,6 +234,33 @@ final class TelasDeContaTest extends TestCase
         self::assertSame('Admin', $this->s->usuarios->porId($this->ids['admin'])?->nome);
     }
 
+    public function testPerfilListaEEncerraSessoesSemExporOToken(): void
+    {
+        $atual = $this->tokenSemElevar('editor');
+        $outra = $this->tokenSemElevar('editor');
+        $alheia = $this->tokenSemElevar('admin');
+        $html = $this->html($this->req('GET', '/_pbl/perfil', $atual));
+        self::assertStringContainsString('esta sessão', $html);
+        self::assertStringNotContainsString($atual, $html);
+        self::assertStringNotContainsString(hash('sha256', $outra), $html);
+        $ref = substr(hash('sha256', $outra), 0, 16);
+        self::assertStringContainsString($ref, $html);
+
+        // a sessão atual e a de outra conta não podem ser encerradas por referência
+        self::assertSame(422, $this->post($atual, '/_pbl/perfil/sessoes/encerrar', ['ref' => substr(hash('sha256', $atual), 0, 16)])->getStatusCode());
+        self::assertSame(422, $this->post($atual, '/_pbl/perfil/sessoes/encerrar', ['ref' => substr(hash('sha256', $alheia), 0, 16)])->getStatusCode());
+        self::assertSame(403, $this->post($atual, '/_pbl/perfil/sessoes/encerrar', ['ref' => $ref], false)->getStatusCode());
+        self::assertTrue($this->sessaoViva($outra));
+        self::assertSame(303, $this->post($atual, '/_pbl/perfil/sessoes/encerrar', ['ref' => $ref])->getStatusCode());
+        self::assertFalse($this->sessaoViva($outra));
+
+        $terceira = $this->tokenSemElevar('editor');
+        self::assertSame(303, $this->post($atual, '/_pbl/perfil/sessoes/encerrar-outras', [])->getStatusCode());
+        self::assertFalse($this->sessaoViva($terceira));
+        self::assertTrue($this->sessaoViva($atual));
+        self::assertTrue($this->sessaoViva($alheia));
+    }
+
     public function testConfigurarEmailNuncaMostraNemAuditaASenhaDoSmtp(): void
     {
         $segredo = 'sm' . 'tp-' . bin2hex(random_bytes(6));
