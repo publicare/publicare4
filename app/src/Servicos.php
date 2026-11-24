@@ -150,6 +150,40 @@ final class Servicos
         return new ModoElevado($this->conexao, $this->usuarios, $this->limiteDeTentativas($relogio), $this->auditoria, $relogio);
     }
 
+    public function configDeEmail(): \Pbl\Email\ConfigDeEmailRepositorio
+    {
+        return new \Pbl\Email\ConfigDeEmailRepositorio($this->caminhos->config() . '/email.json', $this->segredo());
+    }
+
+    public function transporteDeEmail(): \Pbl\Email\Transporte
+    {
+        return \Pbl\Email\FabricaDeTransporte::criar($this->configDeEmail()->carregar(), $this->caminhos->dados() . '/email/caixa');
+    }
+
+    /** E-mails de conta; os links usam o domínio principal do site 1 (nunca o Host da requisição). */
+    public function emailsDeConta(): \Pbl\Acesso\EmailsDeConta
+    {
+        return new \Pbl\Acesso\EmailsDeConta($this->transporteDeEmail(), $this->enderecos->base(1));
+    }
+
+    public function tokensDeConta(?\Closure $relogio = null): \Pbl\Acesso\TokenDeConta
+    {
+        return new \Pbl\Acesso\TokenDeConta($this->conexao, $relogio);
+    }
+
+    public function recuperacao(?\Closure $relogio = null): \Pbl\Acesso\RecuperacaoDeAcesso
+    {
+        return new \Pbl\Acesso\RecuperacaoDeAcesso(
+            $this->usuarios, $this->tokensDeConta($relogio), new \Pbl\Acesso\LimiteDeRecuperacao($this->conexao, $this->segredo(), $relogio),
+            $this->emailsDeConta(), $this->auditoria, $this->caminhos->dados() . '/email/fila',
+        );
+    }
+
+    public function convites(?\Closure $relogio = null): \Pbl\Acesso\ConviteDeUsuario
+    {
+        return new \Pbl\Acesso\ConviteDeUsuario($this->usuarios, $this->tokensDeConta($relogio), $this->emailsDeConta(), $this->auditoria);
+    }
+
     /** A conexão, para o que ainda não tem repositório próprio (hoje só `bin/pbl limpar-uploads`, que varre `objeto`/`objeto_versao` direto). */
     public function conexao(): Connection
     {

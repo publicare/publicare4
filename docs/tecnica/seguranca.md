@@ -166,7 +166,7 @@ A edição de peles é a única superfície em que a administração **grava arq
 
 ## Senha perdida e login travado (S-05)
 
-Quem tem acesso ao servidor recupera a conta, inclusive a do administrador, só pela linha de comando (não há "esqueci minha senha" por e-mail no 0.1.0):
+Quem tem acesso ao servidor recupera a conta, inclusive a do administrador, pela linha de comando. Com e-mail configurado, a própria pessoa também pode recuperar (seção abaixo):
 
 ```bash
 bin/pbl conta-senha admin --gerar      # gera uma senha, mostrada UMA vez; encerra as sessões e destrava o login
@@ -177,11 +177,21 @@ bin/pbl conta-destravar admin --ip=203.0.113.5   # libera também uma origem
 
 A senha nunca vai em argumento nem na auditoria (`senha.trocar` e `conta.destravar`, ator `cli`, só com o id da conta e, se houver, o hash do IP). O destravar grava uma marca no banco: falhas anteriores a ela deixam de contar, sem precisar saber de que IPs vieram.
 
+## Recuperação por e-mail, convite e tokens de conta ([ADR 0033](../adr/0033-login-e-contas-inventario-e-escopo.md) a [0036](../adr/0036-convite-de-usuario-e-cli.md))
+
+- **E-mail**: `desligado` (padrão), `arquivo` (`dados/email/caixa/*.eml`, 0600) ou `smtp` (só TLS/STARTTLS com certificado validado). A senha SMTP fica em `dados/config/email.json` (0600) **cifrada** (`sodium_crypto_secretbox`, chave derivada do segredo do site); nunca em log, auditoria, export, e-mail ou tela (mascarada). O backup não deve levar `email.json`. O driver `arquivo` guarda links válidos em disco: use só em desenvolvimento ou com `bin/pbl`.
+- **Tokens**: 256 bits, só o hash no banco, uso único por `UPDATE` atômico, 30 min (convite: 72 h), invalidados por novo pedido e por troca de senha; GET não consome. Link montado com o domínio principal, nunca com o Host da requisição.
+- **Resposta uniforme**: pedido de "esqueci" faz o mesmo trabalho para conta existente, inexistente, inativa, de serviço, sem e-mail ou limitada; envio roda depois (cron). Limite de 5 pedidos por conta e 20 por IP em 15 min (`LimiteDeRecuperacao`).
+- **Senha redefinida**: política conferida antes de consumir o link; encerra as sessões; aviso "sua senha foi alterada" por e-mail.
+- **Auditoria**: `recuperacao.*`, `usuario.convidar`, `convite.*`, sem token, senha, identificador digitado nem IP em claro.
+- **Telas**: todo POST com CSRF e Origin, `Cache-Control: no-store` e `Referrer-Policy: no-referrer` nas páginas com token, CSP sem script inline (fatia pendente; ver ADR 0033).
+
 ## O que ainda não existe (e quando entra)
 
 | Item | Previsto |
 |---|---|
-| Recuperação de senha por e-mail, autenticação em dois fatores | depois da fase 4 ([ADR 0011](../adr/0011-autenticacao-sessao-permissoes.md)) |
+| Telas de recuperação, convite e perfil; sessões listáveis | fatias pendentes do [ADR 0033](../adr/0033-login-e-contas-inventario-e-escopo.md) |
+| Autenticação em dois fatores e demais itens da Fase 2 | [ADR 0038](../adr/0038-login-e-contas-fase-2.md) |
 | Permissão por campo | a decidir (o modelo de classes não tem permissão por campo; as telas de objetos tratam todos os campos não arquivados igual) |
 | Captcha plugável, verificação de e-mail e quota global em formulários públicos | próximas fatias da fase 6 ([ADR 0013](../adr/0013-formularios-publicos.md)) |
 | Anexo de arquivo em formulário público | próxima fatia do fluxo 6 ([ADR 0013](../adr/0013-formularios-publicos.md)) |

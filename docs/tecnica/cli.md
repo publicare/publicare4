@@ -49,6 +49,16 @@ make pbl ARGS="conta-destravar admin --ip=203.0.113.5"
 
 `conta-senha` aplica a política de senha, encerra as sessões da conta, destrava o login e audita `senha.trocar` sem a senha. `usuario senha` continua valendo para o dia a dia. Detalhes em [segurança](seguranca.md#senha-perdida-e-login-travado-s-05).
 
+## `conta-recuperar` e `conta-convidar` (links de uso único)
+
+```bash
+make pbl ARGS="conta-recuperar bia"            # imprime UMA vez o link de redefinição (30 min); sem SMTP é o caminho
+make pbl ARGS="conta-recuperar bia --email"    # envia o link ao e-mail da conta
+make pbl ARGS="conta-convidar carlos carlos@exemplo.org --nome='Carlos' --sem-envio"   # cria o convite e imprime o link (72 h)
+```
+
+O link é um segredo de uso único: entregue só à pessoa. Os comandos exigem o domínio principal do site (os links o usam) e nunca imprimem senha. Auditoria com ator `cli`.
+
 ## `conta-exportar` e `conta-anonimizar` (LGPD)
 
 ```bash

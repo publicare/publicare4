@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Adicionado
+- **Recuperação de acesso e convite** ([ADR 0033](docs/adr/0033-login-e-contas-inventario-e-escopo.md) a [0038](docs/adr/0038-login-e-contas-fase-2.md); [guia](docs/usuario/recuperar-acesso.md)): envio de e-mail plugável (desligado, arquivo ou SMTP só com TLS; senha cifrada fora do catálogo público); tokens de uso único (256 bits, só o hash no banco, 30 min; convite 72 h); "esqueci a senha" e "esqueci o usuário" com resposta uniforme, fila de envio e limite por conta e IP; convite de usuário (reenviar, cancelar, aceitar); `bin/pbl conta-recuperar` e `conta-convidar`; migração M028; LGPD e cron cobrem os tokens. **Telas, perfil, sessões listáveis e ações de admin ficam para as próximas fatias** (ver ADR 0033). Fase 2 (2FA etc.) só desenhada.
+
 ### Alterado
 - **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.9`.
 

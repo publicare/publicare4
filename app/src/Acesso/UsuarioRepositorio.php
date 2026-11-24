@@ -106,6 +106,81 @@ final class UsuarioRepositorio implements Autenticador
         return $l === false ? null : $this->hidratar($l);
     }
 
+    /**
+     * Contas de pessoa, ativas e já com acesso (sem convite pendente), cujo e-mail é este (sem diferenciar maiúsculas). Pode haver
+     * mais de uma: o e-mail único só vale para contas novas (ADR 0036).
+     *
+     * @return list<Usuario>
+     */
+    public function porEmail(string $email): array
+    {
+        $linhas = $this->conexao->fetchAllAssociative(
+            "SELECT * FROM usuario WHERE LOWER(email) = ? AND ativo = 1 AND tipo = 'pessoa' AND convite_pendente = 0 ORDER BY login",
+            [mb_strtolower(trim($email))],
+        );
+
+        return array_map($this->hidratar(...), $linhas);
+    }
+
+    /**
+     * Cria a conta de um convite (ADR 0038): sem senha que confira (`SENHA_DE_CONVITE`), `convite_pendente = 1`, não entra até
+     * aceitar. O e-mail precisa ser novo (único, sem diferenciar maiúsculas).
+     */
+    public function criarConvidado(string $login, string $email, string $nome, bool $administrador = false, string $ator = 'sistema'): Usuario
+    {
+        $login = mb_strtolower(trim($login));
+        $email = trim($email);
+        if (preg_match('/^[a-z0-9][a-z0-9._-]{1,62}[a-z0-9]$/D', $login) !== 1) {
+            throw new \InvalidArgumentException('Login inválido (3 a 64 letras minúsculas, números, ponto, hífen ou sublinhado)');
+        }
+        if (strlen($email) > 255 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            throw new \InvalidArgumentException('E-mail inválido');
+        }
+        if (trim($nome) === '' || mb_strlen($nome) > 200) {
+            throw new \InvalidArgumentException('Nome inválido');
+        }
+        if ($this->conexao->fetchOne('SELECT 1 FROM usuario WHERE login = ?', [$login]) !== false) {
+            throw new \InvalidArgumentException("O login {$login} já existe");
+        }
+        if ($this->conexao->fetchOne('SELECT 1 FROM usuario WHERE LOWER(email) = ?', [mb_strtolower($email)]) !== false) {
+            throw new \InvalidArgumentException('Já existe uma conta com esse e-mail');
+        }
+        $this->conexao->insert('usuario', [
+            'login' => $login, 'email' => $email, 'nome' => trim($nome), 'senha_hash' => Usuario::SENHA_DE_CONVITE,
+            'administrador' => $administrador ? 1 : 0, 'ativo' => 1, 'criado_em' => gmdate('c'), 'convite_pendente' => 1,
+        ]);
+        $id = (int) $this->conexao->lastInsertId();
+        $this->auditoria?->registrar('usuario.convidar', $ator, $id, null, ['usuario' => $login, 'administrador' => $administrador]);
+
+        return new Usuario($id, $login, $email, trim($nome), $administrador, true);
+    }
+
+    public function convitePendente(int $id): bool
+    {
+        return (int) $this->conexao->fetchOne('SELECT convite_pendente FROM usuario WHERE id = ?', [$id]) === 1;
+    }
+
+    /** Aceita o convite: grava a senha escolhida (política de senha), limpa a pendência e marca o e-mail como confirmado. */
+    public function aceitarConvite(int $id, string $senha, string $ator = 'sistema'): void
+    {
+        if (!$this->convitePendente($id)) {
+            throw new \InvalidArgumentException('Não há convite pendente para esta conta');
+        }
+        $this->definirSenha($id, $senha, $ator);
+        $this->conexao->update('usuario', ['convite_pendente' => 0, 'email_confirmado_em' => gmdate('c')], ['id' => $id]);
+    }
+
+    /** Apaga a conta de um convite que ainda não foi aceito (nunca entrou). @return bool se apagou */
+    public function apagarConvitePendente(int $id, string $ator = 'sistema'): bool
+    {
+        $n = $this->conexao->executeStatement('DELETE FROM usuario WHERE id = ? AND convite_pendente = 1 AND ultimo_acesso IS NULL', [$id]);
+        if ($n === 1) {
+            $this->auditoria?->registrar('convite.cancelar', $ator, null, null, ['usuario_id' => $id]);
+        }
+
+        return $n === 1;
+    }
+
     /** @return list<Usuario> */
     public function todos(): array
     {
@@ -206,7 +281,8 @@ final class UsuarioRepositorio implements Autenticador
         return (int) $this->conexao->fetchOne('SELECT COUNT(*) FROM usuario WHERE administrador = 1 AND ativo = 1') <= 1;
     }
 
-    public function definirSenha(int $id, string $senha, string $ator = 'sistema'): void
+    /** @param string|null $manterSessao `id_hash` da sessão que continua aberta (troca da própria senha); as demais caem */
+    public function definirSenha(int $id, string $senha, string $ator = 'sistema', ?string $manterSessao = null): void
     {
         $u = $this->porId($id) ?? throw new \InvalidArgumentException("Usuário {$id} não existe");
         if ($u->ehServico()) {
@@ -217,7 +293,7 @@ final class UsuarioRepositorio implements Autenticador
             throw new \InvalidArgumentException($problema);
         }
         $this->conexao->update('usuario', ['senha_hash' => $this->hash($senha)], ['id' => $id]);
-        $this->encerrarSessoes($id); // trocar a senha derruba quem estiver logado com a antiga
+        $this->encerrarSessoes($id, $manterSessao); // trocar a senha derruba quem estiver logado com a antiga
         $this->auditoria?->registrar('senha.trocar', $ator, $id);
     }
 
@@ -269,9 +345,14 @@ final class UsuarioRepositorio implements Autenticador
         return $saida;
     }
 
-    private function encerrarSessoes(int $usuarioId): void
+    private function encerrarSessoes(int $usuarioId, ?string $manter = null): void
     {
-        $this->conexao->delete('sessao', ['usuario_id' => $usuarioId]);
+        if ($manter === null) {
+            $this->conexao->delete('sessao', ['usuario_id' => $usuarioId]);
+
+            return;
+        }
+        $this->conexao->executeStatement('DELETE FROM sessao WHERE usuario_id = ? AND id_hash <> ?', [$usuarioId, $manter]);
     }
 
     /**

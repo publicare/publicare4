@@ -53,7 +53,9 @@ final class LimpezaTarefa implements Tarefa
         $agora = $this->agora();
 
         return (int) $c->fetchOne('SELECT COUNT(*) FROM sessao WHERE expira_em < ?', [$agora]) > 0
-            || (int) $c->fetchOne('SELECT COUNT(*) FROM tentativa_login WHERE quando < ?', [$agora - self::JANELA_DE_TENTATIVAS]) > 0;
+            || (int) $c->fetchOne('SELECT COUNT(*) FROM tentativa_login WHERE quando < ?', [$agora - self::JANELA_DE_TENTATIVAS]) > 0
+            || (int) $c->fetchOne('SELECT COUNT(*) FROM token_conta WHERE expira_em < ?', [$agora - self::JANELA_DE_TENTATIVAS]) > 0
+            || (glob($servicos->caminhos->dados() . '/email/fila/*.json') ?: []) !== [];
     }
 
     public function executar(Servicos $servicos, float $prazo): Resultado
@@ -63,7 +65,11 @@ final class LimpezaTarefa implements Tarefa
         $sessoes = (int) $c->executeStatement('DELETE FROM sessao WHERE expira_em < ?', [$agora]);
         $tentativas = (int) $c->executeStatement('DELETE FROM tentativa_login WHERE quando < ?', [$agora - self::JANELA_DE_TENTATIVAS]);
 
-        return new Resultado("{$sessoes} sessão(ões) expirada(s) e {$tentativas} registro(s) de tentativa apagados");
+        $tokens = $servicos->tokensDeConta($this->relogio)->limparExpirados();
+        // Pedidos de "esqueci a senha" gravados na fila (ADR 0036): busca da conta e envio rodam aqui, fora da resposta.
+        $pedidos = $servicos->recuperacao($this->relogio)->processarFila();
+
+        return new Resultado("{$sessoes} sessão(ões) expirada(s), {$tentativas} registro(s) de tentativa e {$tokens} token(s) de conta apagados; {$pedidos} pedido(s) de recuperação processado(s)");
     }
 
     private function agora(): int
