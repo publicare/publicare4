@@ -1,0 +1,414 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pbl\Demo;
+
+use Pbl\Instalacao\Requisitos;
+use Pbl\Versao;
+
+/**
+ * Conteúdo do site de exemplo do PBL4: a apresentação do próprio Publicare 4 (ADR 0021, adendo). Só dados e texto, sem tocar no
+ * banco: o `DemoPopularComando` e o instalador orquestram. Cada afirmação sobre o produto tem fonte e verificação em
+ * {@see afirmacoes()}; o teste `ConteudoPublicareTest` confere que a frase está no texto, que a fonte existe e que o recurso
+ * citado existe de verdade (comando de `bin/pbl`, classe, trecho de código ou de documento).
+ *
+ * Regras: nada de número de uso, desempenho ou comparação; nada de recurso que o estado do projeto marca como futuro, a não ser
+ * que o texto diga que é futuro. O HTML usa só as marcações que `HtmlSeguro` aceita (sem `class`, `id`, `style`).
+ */
+final class ConteudoPublicare
+{
+    public const NOME_DO_SITE = 'Publicare 4';
+    public const REPOSITORIO = 'https://github.com/publicare/publicare4';
+    public const REMETENTE = 'Publicare 4 <nao-responda@exemplo.invalid>';
+
+    /** Slogan: a promessa em uma frase. */
+    public const PROMESSA = 'Plataforma livre para montar sites e pequenos sistemas na internet sem programar, em hospedagem comum.';
+
+    /** @return array{resumo: string, corpo: string, seo_titulo: string, seo_descricao: string} */
+    public static function inicio(): array
+    {
+        return [
+            'resumo' => self::PROMESSA,
+            'corpo' => '<h2>Um site feito com o próprio Publicare</h2>'
+                . '<p>O Publicare é um programa <strong>livre</strong> para montar sites e pequenos sistemas na internet. Nasceu no Brasil em 2003, para portais e intranets, e está sendo reconstruído como o <strong>Publicare 4</strong> (também chamado PBL4).</p>'
+                . '<p>Este site é o <strong>exemplo</strong> que acompanha o programa: foi montado com ele e apresenta, com conteúdo real, o que ele faz. Contas e e-mails de demonstração são fictícios.</p>'
+                . '<p>Comece por <a href="/o-que-e">o que é o Publicare 4</a>, veja <a href="/o-que-ele-faz">o que ele faz</a> ou vá direto às <a href="/perguntas-frequentes">perguntas frequentes</a>.</p>',
+            'seo_titulo' => 'Publicare 4: sites e pequenos sistemas, sem programar',
+            'seo_descricao' => self::PROMESSA,
+        ];
+    }
+
+    /** Documento do repositório que explica cada pilar (usado na instalação leve, que não traz as páginas do exemplo). */
+    public const DOCUMENTO_DO_PILAR = [
+        'o-que-ele-faz' => 'docs/usuario/estado-do-projeto.md',
+        'como-facilita' => 'docs/linguagem-pbl4.md',
+        'o-que-inova' => 'docs/tecnica/seguranca.md',
+        'instalacao-e-requisitos' => 'docs/usuario/instalar.md',
+    ];
+
+    /**
+     * Página inicial curta da instalação limpa (`bin/pbl instalar`): a promessa e o caminho para a demonstração completa.
+     *
+     * @return array{resumo: string, corpo: string}
+     */
+    public static function inicioDaInstalacao(): array
+    {
+        return [
+            'resumo' => self::PROMESSA,
+            'corpo' => '<p>Este site foi instalado com o Publicare 4 e já está funcionando. Edite este conteúdo pelo painel de administração.</p>'
+                . '<p>Para ver o Publicare 4 apresentando a si mesmo, com páginas, perguntas frequentes e agenda, rode <code>php bin/pbl demo-popular</code>.</p>',
+        ];
+    }
+
+    /**
+     * Os quatro pilares da página inicial (cartões com ícone). `destino` é o endereço de uma página do próprio exemplo.
+     *
+     * @return list<array{url: string, titulo: string, descricao: string, destino: string}>
+     */
+    public static function pilares(): array
+    {
+        return [
+            ['url' => 'pilar-arvore', 'titulo' => 'Conteúdo em árvore', 'descricao' => 'Páginas, notícias e eventos organizados em seções, com tipos de conteúdo definidos por você, sem programar.', 'destino' => 'o-que-ele-faz'],
+            ['url' => 'pilar-moldes', 'titulo' => 'Peles e moldes', 'descricao' => 'Trocar a pele muda o visual sem mexer no conteúdo. Os moldes usam uma linguagem própria e segura.', 'destino' => 'como-facilita'],
+            ['url' => 'pilar-seguro', 'titulo' => 'Seguro por padrão', 'descricao' => 'Moldes sem PHP cru, texto escapado, HTML limpo ao salvar e login protegido contra tentativas em massa.', 'destino' => 'o-que-inova'],
+            ['url' => 'pilar-simples', 'titulo' => 'Simples de instalar e atualizar', 'descricao' => 'Roda em hospedagem comum, com SQLite. A atualização é assinada, guarda cópia do banco e volta atrás se falhar.', 'destino' => 'instalacao-e-requisitos'],
+        ];
+    }
+
+    /**
+     * Páginas de primeiro nível, na ordem do menu.
+     *
+     * @return array<string, array{titulo: string, rotulo: string, peso: int, resumo: string, corpo: string, descricao: string}>
+     */
+    public static function paginas(): array
+    {
+        return [
+            'o-que-e' => ['titulo' => 'O que é o Publicare 4', 'rotulo' => 'O que é', 'peso' => 10, 'descricao' => 'Um programa livre, brasileiro, para sites e pequenos sistemas', 'resumo' => 'Um programa livre, nascido no Brasil, para montar sites e pequenos sistemas sem programar.', 'corpo' => self::oQueE()],
+            'o-que-ele-faz' => ['titulo' => 'O que ele faz', 'rotulo' => 'O que faz', 'peso' => 20, 'descricao' => 'Os recursos que existem hoje', 'resumo' => 'Os recursos que já funcionam hoje, do conteúdo à atualização.', 'corpo' => self::oQueEleFaz()],
+            'como-facilita' => ['titulo' => 'Como facilita', 'rotulo' => 'Como facilita', 'peso' => 30, 'descricao' => 'Para quem edita, administra e desenvolve moldes', 'resumo' => 'O que muda no dia a dia de quem edita, de quem administra e de quem cria moldes.', 'corpo' => self::comoFacilita()],
+            'o-que-inova' => ['titulo' => 'O que inova', 'rotulo' => 'O que inova', 'peso' => 40, 'descricao' => 'As escolhas de projeto que diferenciam o Publicare 4', 'resumo' => 'As escolhas de projeto que diferenciam o Publicare 4, todas verificáveis no código e nas decisões registradas.', 'corpo' => self::oQueInova()],
+            'instalacao-e-requisitos' => ['titulo' => 'Instalação e requisitos', 'rotulo' => 'Instalação', 'peso' => 60, 'descricao' => 'O que o servidor precisa ter e como instalar', 'resumo' => 'O que o servidor precisa ter e os caminhos para instalar.', 'corpo' => self::instalacao()],
+            'comunidade' => ['titulo' => 'Comunidade e contribuição', 'rotulo' => 'Comunidade', 'peso' => 70, 'descricao' => 'Como participar do projeto', 'resumo' => 'Você não precisa programar para ajudar.', 'corpo' => self::comunidade()],
+            'estado-do-projeto' => ['titulo' => 'Estado do projeto', 'rotulo' => 'Estado', 'peso' => 80, 'descricao' => 'O que funciona, o que está em construção e o que ainda não existe', 'resumo' => 'Um retrato honesto: o que funciona, o que está em construção e o que ainda não existe.', 'corpo' => self::estado()],
+        ];
+    }
+
+    private static function oQueE(): string
+    {
+        return '<h2>Em uma frase</h2>'
+            . '<p>O Publicare 4 é uma plataforma livre para sites, dados e fluxos, sucessora do Publicare 3, pensada para quem monta portais e pequenos sistemas sem programar, em hospedagem comum, com moldes de aparência seguros e atualização simples.</p>'
+            . '<h2>Para que serve</h2>'
+            . '<ul><li><strong>Sites institucionais e portais:</strong> páginas, menus, notícias e documentos.</li>'
+            . '<li><strong>Pequenos sistemas do dia a dia, montados por configuração:</strong> hoje já existem a agenda de eventos, as perguntas frequentes, os destaques da página inicial, os blocos reutilizáveis e o formulário público simples. Consulta pública e cadastros com aprovação em etapas são objetivos do projeto, ainda não existem.</li>'
+            . '<li><strong>Vários sites no mesmo programa:</strong> um mesmo Publicare serve mais de um endereço, por exemplo um site em português e outro em inglês.</li></ul>'
+            . '<h2>Como ele pensa</h2>'
+            . '<ol><li>Você define <strong>tipos de conteúdo</strong> (notícia, evento, documento) dizendo quais campos cada um tem.</li>'
+            . '<li>Você cria <strong>conteúdos</strong> desses tipos e os organiza em <strong>árvore</strong>: uma seção com páginas dentro.</li>'
+            . '<li>A <strong>aparência</strong> vem de uma <strong>pele</strong>. Trocar a pele muda o visual sem mexer no conteúdo.</li>'
+            . '<li>Ao <strong>publicar</strong>, o Publicare prepara as páginas prontas e as entrega aos visitantes.</li>'
+            . '<li>Quem edita tem <strong>papéis</strong>: quem lê, quem escreve, quem aprova e quem administra.</li></ol>'
+            . '<h2>Quem mantém</h2>'
+            . '<p>É um projeto aberto, mantido por voluntários, com código público em <a href="' . self::REPOSITORIO . '">github.com/publicare/publicare4</a>. O Publicare 4 usa a licença Apache-2.0. O código do Publicare 3 e o anterior continuam sob a licença MIT, e os créditos históricos estão no arquivo NOTICE.</p>';
+    }
+
+    private static function oQueEleFaz(): string
+    {
+        return '<h2>Conteúdo</h2>'
+            . '<ul><li>Conteúdo em árvore de objetos: cada página, notícia ou evento tem um lugar numa seção.</li>'
+            . '<li>Tipos de conteúdo criados pelo navegador pelo administrador: o administrador cria o tipo, adiciona campos e define onde ele pode ficar. Um campo com dados nunca é apagado nem muda de tipo: pode ser arquivado.</li>'
+            . '<li>Mover, copiar, recortar e colar conteúdo, com lixeira que permite restaurar.</li>'
+            . '<li>Tags nos conteúdos, página de cada tag e ligação de um conteúdo a outro.</li></ul>'
+            . '<h2>Edição</h2>'
+            . '<ul><li>A edição de um conteúdo tem três abas: Conteúdo, Publicação e Avançado.</li>'
+            . '<li>Editor de texto rico nos campos de texto formatado; o HTML é limpo ao salvar.</li>'
+            . '<li>Barra de edição nas páginas do site para quem está logado: editar, publicar, despublicar, mover e excluir.</li></ul>'
+            . '<h2>Estados, revisão e histórico</h2>'
+            . '<ul><li>Todo conteúdo novo começa fora do ar, como rascunho, e passa a publicado quando alguém publica.</li>'
+            . '<li>Publicação agendada, com data para entrar e para sair do ar.</li>'
+            . '<li>Fluxo de revisão: o autor envia o texto, o editor aprova e publica ou devolve com o motivo.</li>'
+            . '<li>Histórico de versões de cada conteúdo, com restaurar e proteção contra edição simultânea.</li></ul>'
+            . '<h2>Aparência</h2>'
+            . '<ul><li>Peles e moldes escritos na linguagem de moldes do PBL4, arquivos com a extensão .pbl.</li>'
+            . '<li>Editor de moldes no navegador, só para administradores, com conferência da sintaxe antes de salvar, histórico de cada molde, rascunho e pré-visualização.</li>'
+            . '<li>Peles prontas: básica, publicare (a deste site), onepage e portal. É possível escolher uma pele e um molde só para um conteúdo e tudo abaixo dele.</li></ul>'
+            . '<h2>Sites, domínios e endereços</h2>'
+            . '<ul><li>Vários sites e vários domínios no mesmo programa: um domínio principal e outros que mostram o mesmo conteúdo ou levam ao principal.</li>'
+            . '<li>Mudar o endereço de uma página sem quebrar o antigo: o endereço antigo passa a levar ao novo.</li>'
+            . '<li>Redirecionamento de endereços antigos de outros sistemas.</li></ul>'
+            . '<h2>Busca, formulários e arquivos</h2>'
+            . '<ul><li>Busca que ignora maiúsculas e acentos, aceita várias palavras e começo de palavra e ordena por relevância.</li>'
+            . '<li>Formulário público simples: cada envio chega como conteúdo privado para a equipe, com proteção contra robôs e limite de envios.</li>'
+            . '<li>Envio de arquivos e imagens pelo navegador, com o tipo conferido pelo conteúdo do arquivo. A imagem tem um campo de texto alternativo para leitores de tela.</li>'
+            . '<li>Feed RSS, sitemap.xml e robots.txt automáticos.</li></ul>'
+            . '<h2>Operação</h2>'
+            . '<ul><li>Cópias de segurança agendadas, com baixar e restaurar, pela tela ou pela linha de comando.</li>'
+            . '<li>Atualização assinada, com cópia do banco antes e volta atrás automática se falhar.</li>'
+            . '<li>Cron central: uma linha de cron por minuto cuida da publicação por data e das limpezas.</li>'
+            . '<li>Linha de comando em português: <code>bin/pbl</code>.</li></ul>'
+            . '<h2>Contas e acesso</h2>'
+            . '<ul><li>Papéis por seção do site (leitor, autor e editor) e administrador geral, com registro de quem fez o quê.</li>'
+            . '<li>Ações sensíveis do painel pedem a senha de novo.</li>'
+            . '<li>Recuperação de acesso por e-mail (esqueci a senha e esqueci o usuário) e convite de usuário por link.</li></ul>'
+            . '<h2>Migração</h2>'
+            . '<ul><li>Importador de um site feito no Publicare 3: conteúdo, arquivos, contas e tags. As senhas precisam ser redefinidas.</li>'
+            . '<li>Conversor de moldes do Publicare 3 para o novo, com relatório do que precisa de revisão manual.</li></ul>';
+    }
+
+    private static function comoFacilita(): string
+    {
+        return '<h2>Para quem edita</h2>'
+            . '<ul><li>Depois de gravar, o painel mostra a página renderizada com uma faixa dizendo o que aconteceu.</li>'
+            . '<li>Se outra pessoa salvou o mesmo conteúdo enquanto você mexia, aparece um aviso e nada é sobrescrito sem você decidir.</li>'
+            . '<li>Colar do Word ou do Google Docs funciona: o editor limpa o que vem de lá.</li>'
+            . '<li>Você pode voltar a uma versão antiga: isso cria uma versão nova, e nada se perde.</li>'
+            . '<li>A ajuda do painel fica atrás de um botão &quot;?&quot;, acessível por teclado e leitor de tela.</li></ul>'
+            . '<h2>Para quem administra</h2>'
+            . '<ul><li>Instalação pelo navegador, com um assistente que confere os requisitos do servidor.</li>'
+            . '<li>Funciona em servidores Apache e nginx, e há um guia para hospedagens com painel Hestia ou VestaCP.</li>'
+            . '<li>Cópias de segurança e atualização pelo painel, sem abrir terminal.</li>'
+            . '<li>Contas, papéis e domínios pelo navegador, com a tela de tarefas agendadas mostrando se o cron está rodando.</li>'
+            . '<li>Se o acesso se perder, a pessoa que cuida do servidor resolve pela linha de comando (<code>bin/pbl conta-senha</code> e <code>bin/pbl conta-destravar</code>).</li></ul>'
+            . '<h2>Para quem desenvolve moldes</h2>'
+            . '<ul><li>Uma linguagem própria, em português, com listas, menus, busca e herança de layout (<code>estende</code> e <code>bloco</code>).</li>'
+            . '<li>Moldes que não executam PHP cru, então um erro de molde não abre brecha no servidor.</li>'
+            . '<li>Conferência de sintaxe antes de salvar, histórico de cada molde e pré-visualização do rascunho sem afetar o que está no ar.</li>'
+            . '<li>Conversor de moldes do Publicare 3 (<code>bin/pbl converter-moldes</code>) com relatório.</li>'
+            . '<li>A pele deste site, a <strong>publicare</strong>, é um exemplo completo: moldes, CSS próprio, tema claro e escuro, sem JavaScript.</li></ul>'
+            . '<p>A documentação da linguagem está em <a href="' . self::REPOSITORIO . '/blob/main/docs/linguagem-pbl4.md">docs/linguagem-pbl4.md</a>.</p>';
+    }
+
+    private static function oQueInova(): string
+    {
+        return '<p>Estas são as escolhas de projeto que diferenciam o Publicare 4. Cada uma pode ser conferida no código ou nas decisões registradas (ADRs) do repositório. Não fazemos comparações com outros sistemas.</p>'
+            . '<h2>Moldes de baixo código, em linguagem segura</h2>'
+            . '<p>Os moldes são arquivos .pbl, escritos numa linguagem de moldes própria que o Publicare compila. Ela não aceita PHP cru e não dá acesso a arquivos nem a funções do PHP. O texto exibido é escapado por padrão.</p>'
+            . '<h2>Publicação em cache estático</h2>'
+            . '<p>Ao publicar, o Publicare grava as páginas prontas e as entrega a partir desse cache, sem montar a página de novo a cada visita. Publicar um site grande acontece em lotes, com barra de progresso e retomada.</p>'
+            . '<h2>Atualização assinada e com volta atrás</h2>'
+            . '<p>O atualizador só aceita pacotes com a assinatura digital da equipe do projeto. Antes de trocar o código, guarda uma cópia do banco, e se algo der errado volta sozinho para a versão anterior. Uma atualização concluída também pode ser desfeita.</p>'
+            . '<h2>Sem CDN e sem script embutido</h2>'
+            . '<p>Scripts, estilos e fontes das páginas vêm do próprio site. Nada é carregado de terceiros e nada fica embutido no HTML, o que permite uma política de segurança de conteúdo restritiva. A pele deste site nem usa JavaScript.</p>'
+            . '<h2>Acessibilidade desde o desenho</h2>'
+            . '<p>A pele deste site tem link para pular ao conteúdo, foco visível, perguntas frequentes que funcionam pelo teclado, respeito à preferência por menos movimento, tema claro e escuro e contraste conferido por teste automático. Imagens têm um campo de texto alternativo. Isso não substitui uma auditoria de acessibilidade, que o projeto ainda não fez.</p>'
+            . '<h2>SQLite, simples de operar</h2>'
+            . '<p>O banco padrão é um arquivo SQLite: não há servidor de banco para instalar nem cuidar, e a cópia de segurança copia esse arquivo. Suporte a MySQL e PostgreSQL está proposto, mas ainda não existe.</p>'
+            . '<h2>Nada do que você ajustou é sobrescrito</h2>'
+            . '<p>Ao ligar um modelo opcional ou atualizar o programa, o Publicare copia os arquivos de pele que faltam e só troca um arquivo se ele ainda for, byte a byte, uma versão distribuída antes. O que você personalizou fica como está e vira um aviso.</p>'
+            . '<h2>Endereços que não quebram</h2>'
+            . '<p>Mudar o endereço de uma página mantém o antigo funcionando, com redirecionamento permanente.</p>'
+            . '<h2>Português de ponta a ponta</h2>'
+            . '<p>Comandos, mensagens e documentação são em português.</p>';
+    }
+
+    private static function instalacao(): string
+    {
+        $extensoes = ['pdo_sqlite', 'mbstring', 'sodium', 'json', 'ctype', 'dom', 'fileinfo'];
+
+        return '<h2>Requisitos do servidor</h2>'
+            . '<ul><li>PHP ' . Requisitos::PHP_MINIMO . ' ou mais novo.</li>'
+            . '<li>Extensões do PHP: <code>' . implode('</code>, <code>', $extensoes) . '</code>.</li>'
+            . '<li>A pasta <code>dados/</code> precisa ser gravável pelo PHP: é onde ficam o banco, o cache, as peles e os arquivos enviados.</li>'
+            . '<li>Servidor Apache ou nginx, ambos testados. Não é preciso criar banco de dados: o padrão é um arquivo SQLite.</li></ul>'
+            . '<h2>Como instalar</h2>'
+            . '<ol><li><strong>Pelo navegador:</strong> um assistente confere os requisitos, cria a conta de administrador e o site.</li>'
+            . '<li><strong>Pela linha de comando:</strong> <code>php bin/pbl instalar --nome=&quot;Meu site&quot;</code> cria o banco e um site com poucas páginas de exemplo.</li>'
+            . '<li><strong>Para ver este exemplo completo:</strong> depois de instalar, rode <code>php bin/pbl demo-popular</code>, que cria estas páginas, e <code>php bin/pbl publicar</code>.</li></ol>'
+            . '<p>O guia passo a passo está em <a href="' . self::REPOSITORIO . '/blob/main/docs/usuario/instalar.md">docs/usuario/instalar.md</a>. Em hospedagem com painel Hestia ou VestaCP, siga a seção sobre <code>open_basedir</code> desse guia.</p>'
+            . '<h2>Depois de instalar</h2>'
+            . '<ul><li>Crie no painel da hospedagem uma tarefa de cron a cada minuto: <code>php bin/pbl cron</code>. Sem ela, nada agendado acontece.</li>'
+            . '<li>Ligue a cópia de segurança agendada e baixe uma cópia de vez em quando: uma cópia no mesmo servidor não protege se o servidor for perdido.</li>'
+            . '<li>Para atualizar, veja <a href="' . self::REPOSITORIO . '/blob/main/docs/usuario/atualizar.md">docs/usuario/atualizar.md</a>.</li></ul>';
+    }
+
+    private static function comunidade(): string
+    {
+        return '<h2>Se você usa, ou usaria, o Publicare</h2>'
+            . '<ul><li><strong>Conte o que você precisa.</strong> Abra uma proposta no GitHub dizendo qual problema quer resolver. Descrever a situação ajuda mais do que descrever a solução.</li>'
+            . '<li><strong>Teste e relate.</strong> Se algo não funcionar, abra um problema com os passos para repetir. Capturas de tela ajudam.</li>'
+            . '<li><strong>Tem um site no Publicare antigo?</strong> Conte como ele é. Isso orienta o importador. Não publique dados de terceiros.</li></ul>'
+            . '<h2>Se você escreve ou ensina</h2>'
+            . '<p>Melhore a documentação: erro de português, passo que faltou, explicação que ficou difícil. Pode abrir o pull request direto.</p>'
+            . '<h2>Se você programa</h2>'
+            . '<p>Leia o <a href="' . self::REPOSITORIO . '/blob/main/CONTRIBUTING.md">guia de colaboração</a>. Antes de abrir um pull request, rode <code>make qa</code>: são os testes e a análise estática que a pipeline também roda. Todo pull request atualiza o CHANGELOG.</p>'
+            . '<h2>Se você achou uma falha de segurança</h2>'
+            . '<p>Não abra uma issue pública. Use o relato privado do GitHub, descrito na <a href="' . self::REPOSITORIO . '/blob/main/SECURITY.md">política de segurança</a>.</p>'
+            . '<h2>Conduta</h2>'
+            . '<p>Ao participar, você aceita o <a href="' . self::REPOSITORIO . '/blob/main/CODE_OF_CONDUCT.md">Código de Conduta</a>.</p>';
+    }
+
+    private static function estado(): string
+    {
+        return '<h2>Resumo honesto</h2>'
+            . '<p>O Publicare 4 está em versões <code>0.x</code>, ainda sem versão estável: o projeto não promete estabilidade, e mudanças que quebram podem entrar em versões menores. A versão deste exemplo é <code>' . Versao::ATUAL . '</code>. As pré-releases (por exemplo <code>0.1.0-rc.N</code>) saem no canal beta; as versões sem sufixo saem no canal estável.</p>'
+            . '<p>Hoje ele serve a quem desenvolve e a quem quer acompanhar ou testar. Colocar um site de verdade no ar ainda exige apoio técnico.</p>'
+            . '<h2>Já funciona</h2>'
+            . '<ul><li>Instalação pelo navegador e por linha de comando.</li>'
+            . '<li>Conteúdo em árvore, tipos de conteúdo, edição, histórico de versões, fluxo de revisão e publicação agendada.</li>'
+            . '<li>Peles e moldes, vários sites e domínios, busca, formulário público simples e envio de arquivos.</li>'
+            . '<li>Contas e papéis, recuperação de acesso por e-mail, cópias de segurança e atualização assinada.</li>'
+            . '<li>Importador do Publicare 3 e conversor de moldes.</li></ul>'
+            . '<h2>Em construção</h2>'
+            . '<ul><li>Atualização automática com cópia de segurança e volta atrás: já funciona pela linha de comando e pelo painel, e segue sendo refinada.</li>'
+            . '<li>Editor de peles completo: hoje há histórico, rascunho, pré-visualização e realce de sintaxe só para leitura; faltam arquivos de CSS e imagens, importar e exportar pele e pele filha.</li></ul>'
+            . '<h2>Ainda não existe</h2>'
+            . '<ul><li>Galeria de peles prontas para instalar.</li>'
+            . '<li>Formulários com aprovação em etapas, anexos, captcha e editor visual de formulários.</li>'
+            . '<li>Busca com serviço próprio para portais muito grandes.</li>'
+            . '<li>Banco de dados MySQL ou PostgreSQL: está proposto, e hoje só o SQLite funciona.</li>'
+            . '<li>Inscrição paga e outros pagamentos, peles avançadas e comunidade de autores: ideias para depois.</li></ul>'
+            . '<p>O plano completo, por fases, está em <a href="' . self::REPOSITORIO . '/blob/main/docs/plano.md">docs/plano.md</a> e o que mudou em cada versão, no <a href="' . self::REPOSITORIO . '/blob/main/CHANGELOG.md">CHANGELOG</a>.</p>';
+    }
+
+    /**
+     * Perguntas frequentes (12), com categoria. A resposta é HTML permitido por `HtmlSeguro`.
+     *
+     * @return list<array{0: string, 1: string, 2: string}> [pergunta, resposta, categoria]
+     */
+    public static function perguntas(): array
+    {
+        return [
+            ['O que é o Publicare 4?', '<p>Uma plataforma livre para montar sites e pequenos sistemas sem programar, em hospedagem comum. É a reconstrução do Publicare, que nasceu no Brasil em 2003. <a href="/o-que-e">Saiba mais</a>.</p>', 'Primeiros passos'],
+            ['Preciso saber programar?', '<p>Para editar conteúdo, não. Criar páginas, tipos de conteúdo, menus e formulários é feito por telas. Para mudar a aparência além da pele pronta, é preciso ajustar moldes, o que exige um pouco de conhecimento técnico. E, por enquanto, instalar e manter o servidor ainda pede apoio técnico: veja o <a href="/estado-do-projeto">estado do projeto</a>.</p>', 'Primeiros passos'],
+            ['É grátis? Qual é a licença?', '<p>Sim. O Publicare 4 é software livre, com licença Apache-2.0: você pode usar, estudar, modificar e distribuir sem pagar. Você só paga o que for seu, como hospedagem e domínio. A marca &quot;Publicare&quot; não é licenciada.</p>', 'Primeiros passos'],
+            ['Quais são os requisitos para instalar?', '<p>PHP ' . Requisitos::PHP_MINIMO . ' ou mais novo, as extensões pdo_sqlite, mbstring, sodium, json, ctype, dom e fileinfo, e a pasta <code>dados/</code> gravável. Não é preciso criar banco de dados. Veja <a href="/instalacao-e-requisitos">Instalação e requisitos</a>.</p>', 'Instalação e operação'],
+            ['Como instalo?', '<p>Pelo navegador, com um assistente que confere o servidor, ou pela linha de comando com <code>php bin/pbl instalar</code>. O guia está em <a href="/instalacao-e-requisitos">Instalação e requisitos</a>.</p>', 'Instalação e operação'],
+            ['Como atualizo?', '<p>Pelo painel, na tela Atualização (só administrador, com a senha de novo), ou por <code>php bin/pbl atualizar</code>. O Publicare só aceita pacotes assinados pela equipe do projeto, guarda uma cópia do banco antes e volta sozinho à versão anterior se a atualização falhar. O conteúdo, as contas e as peles ficam na pasta <code>dados/</code>, que a atualização não toca.</p>', 'Instalação e operação'],
+            ['Como faço cópia de segurança?', '<p>Pela tela Cópias de segurança do painel, que também agenda cópias automáticas, ou por <code>php bin/pbl backup criar</code>. Baixe uma cópia de vez em quando e guarde fora do servidor: a cópia no mesmo servidor não protege se o servidor for perdido.</p>', 'Instalação e operação'],
+            ['Posso migrar do Publicare 3?', '<p>Há dois caminhos. O importador (<code>php bin/pbl importar-pbl3</code>) leva conteúdo, arquivos, contas e tags; as senhas precisam ser redefinidas. O conversor (<code>php bin/pbl converter-moldes</code>) traduz os moldes e gera um relatório do que precisa de revisão manual, porque moldes antigos costumam misturar código PHP, que o novo não aceita.</p>', 'Instalação e operação'],
+            ['Quantos sites cabem em uma instalação?', '<p>Um mesmo programa serve vários sites, cada um com seus domínios, e um site pode ter mais de um domínio. O projeto não publica um limite nem números de desempenho.</p>', 'Instalação e operação'],
+            ['O Publicare 4 é acessível?', '<p>A pele deste site foi feita para ser: link para pular ao conteúdo, foco visível, uso por teclado, contraste conferido por teste automático, tema claro e escuro, respeito à preferência por menos movimento e campo de texto alternativo nas imagens. O painel tem ajuda acessível por teclado e leitor de tela. Não houve ainda uma auditoria externa de acessibilidade.</p>', 'Segurança e acessibilidade'],
+            ['O Publicare 4 é seguro?', '<p>As proteções de base são: moldes sem PHP cru, saída escapada, HTML limpo ao salvar, senhas guardadas de forma que nem a equipe consegue ler, sessões com validade, espera crescente depois de senhas erradas e formulários protegidos contra pedidos forjados. Isso não substitui a revisão de quem instala. Para relatar uma falha, siga a <a href="/comunidade">política de segurança</a>.</p>', 'Segurança e acessibilidade'],
+            ['Como posso contribuir? E o que são os canais beta e estável?', '<p>Veja <a href="/comunidade">Comunidade e contribuição</a>: dá para propor, testar, escrever documentação ou programar. Sobre os canais: versões com sufixo, como <code>0.1.0-rc.N</code>, saem no canal beta e como pré-lançamento no GitHub; as versões sem sufixo saem no canal estável.</p>', 'Projeto'],
+        ];
+    }
+
+    /**
+     * Novidades: as versões publicadas no CHANGELOG (fonte), com a data real.
+     *
+     * @return list<array{url: string, titulo: string, resumo: string, corpo: string, data: string}>
+     */
+    public static function novidades(): array
+    {
+        return [
+            ['url' => 'versao-0-1-0-rc-10', 'titulo' => 'Versão 0.1.0-rc.10: recuperação de acesso por e-mail', 'data' => '2026-11-24 09:00:00',
+                'resumo' => 'Esqueci a senha, esqueci o usuário, convite de usuário por link e perfil com lista de sessões.',
+                'corpo' => '<p>Recuperação de acesso por e-mail (esqueci a senha e esqueci o usuário), convite de usuário por link, perfil com troca de senha e e-mail e lista de sessões, mais controles de contas para o administrador.</p><p>A versão também corrige o cache de moldes compilados, que mostrava a base velha depois de instalar uma pele nova.</p><p>Veja o <a href="' . self::REPOSITORIO . '/blob/main/CHANGELOG.md">CHANGELOG</a>.</p>'],
+            ['url' => 'versao-0-1-0-rc-9', 'titulo' => 'Versão 0.1.0-rc.9: novo painel, fase 2', 'data' => '2026-11-23 09:00:00',
+                'resumo' => 'Atualização, Cópias de segurança, Tarefas agendadas, Contas, Tipos, Modelos, Domínios e Revisão ganham abas e seções.',
+                'corpo' => '<p>As telas de Atualização, Cópias de segurança, Tarefas agendadas, Contas, Tipos, Modelos, Domínios e Revisão ganham cabeçalho de estado, abas e seções, com aprovação em lote na Revisão. A listagem nova de conteúdo foi preservada.</p><p>Veja o <a href="' . self::REPOSITORIO . '/blob/main/CHANGELOG.md">CHANGELOG</a>.</p>'],
+            ['url' => 'versao-0-1-0-rc-8', 'titulo' => 'Versão 0.1.0-rc.8: nova listagem de conteúdo', 'data' => '2026-11-22 09:00:00',
+                'resumo' => 'Ícone do tipo, título em destaque, metadados em linha e menu de ações, com texto mais enxuto no painel.',
+                'corpo' => '<p>Nova listagem de conteúdo, com o ícone do tipo, o título em destaque, os metadados em linha e o menu de ações. O painel ganhou texto mais enxuto e a ajuda &quot;?&quot; ficou menor, com a linha de ações em grade de botões iguais no celular.</p><p>Veja o <a href="' . self::REPOSITORIO . '/blob/main/CHANGELOG.md">CHANGELOG</a>.</p>'],
+        ];
+    }
+
+    /**
+     * Marcos do projeto, na agenda (modelo `evento`): datas das pré-releases do CHANGELOG. Todos já passaram.
+     *
+     * @return list<array{url: string, titulo: string, inicio: string, resumo: string, corpo: string}>
+     */
+    public static function marcos(): array
+    {
+        return [
+            ['url' => 'marco-rc-1', 'titulo' => 'Versão 0.1.0-rc.1', 'inicio' => '2026-11-16 09:00:00', 'resumo' => 'Primeira candidata à 0.1.0: núcleo mínimo com dados, linguagem de moldes, segurança básica, instalador e atualizador.', 'corpo' => '<p>Primeira candidata à versão 0.1.0, com o núcleo mínimo: dados, linguagem de moldes, segurança básica, instalador e atualizador.</p>'],
+            ['url' => 'marco-rc-2', 'titulo' => 'Versão 0.1.0-rc.2', 'inicio' => '2026-11-16 18:00:00', 'resumo' => 'Instalação mais fácil e segura, alvo do primeiro teste de atualização.', 'corpo' => '<p>Segunda candidata, no canal beta, alvo do teste de atualização a partir da rc.1. O instalador para hospedagem comum e o de terminal conferem a assinatura do pacote antes de instalar, e o assistente de instalação passou a ter 6 passos.</p>'],
+            ['url' => 'marco-rc-8', 'titulo' => 'Versão 0.1.0-rc.8', 'inicio' => '2026-11-22 09:00:00', 'resumo' => 'Nova listagem de conteúdo e painel com texto mais enxuto.', 'corpo' => '<p>Nova listagem de conteúdo e painel com texto mais enxuto.</p>'],
+            ['url' => 'marco-rc-9', 'titulo' => 'Versão 0.1.0-rc.9', 'inicio' => '2026-11-23 09:00:00', 'resumo' => 'Novo painel, fase 2: abas e seções nas telas de administração.', 'corpo' => '<p>Novo painel, fase 2: abas e seções nas telas de administração.</p>'],
+            ['url' => 'marco-rc-10', 'titulo' => 'Versão 0.1.0-rc.10', 'inicio' => '2026-11-24 09:00:00', 'resumo' => 'Recuperação de acesso por e-mail e convite de usuário.', 'corpo' => '<p>Recuperação de acesso por e-mail e convite de usuário por link.</p>'],
+        ];
+    }
+
+    /**
+     * Textos da versão onepage (`/onepage`) e da versão portal (`/portal`): as mesmas ideias, em outras peles.
+     *
+     * @return array{sobre: string, servicos: array<string, string>, contato: string}
+     */
+    public static function vitrine(): array
+    {
+        return [
+            'sobre' => 'O Publicare 4 reúne conteúdo em árvore, peles e moldes, edição com revisão e histórico, vários sites e atualização assinada.',
+            'servicos' => [
+                'Para quem edita' => 'Editor de texto rico, histórico de versões e fluxo de revisão.',
+                'Para quem administra' => 'Instalação pelo navegador, cópias de segurança e atualização assinada.',
+                'Para quem desenvolve moldes' => 'Linguagem de moldes própria, segura e em português.',
+            ],
+            'contato' => 'Código, propostas e problemas em ' . self::REPOSITORIO . '. Ou use o formulário de contato.',
+        ];
+    }
+
+    /**
+     * As afirmações do texto sobre o produto, cada uma com a fonte e a forma de conferir que o recurso existe.
+     * `texto` aparece literalmente no conteúdo; a verificação é uma entre:
+     * `comando` (subcomando de bin/pbl), `classe` (nome completo), `arquivo` (caminho no repositório) ou
+     * `contem` ([arquivo, trecho]: o arquivo tem o trecho).
+     *
+     * @return list<array{texto: string, fonte: string, verificacao: array<string, string|list<string>>}>
+     */
+    public static function afirmacoes(): array
+    {
+        return [
+            ['texto' => 'licença Apache-2.0', 'fonte' => 'LICENSE', 'verificacao' => ['contem' => ['LICENSE', 'Apache License']]],
+            ['texto' => 'o Publicare 3 e o anterior continuam sob a licença MIT', 'fonte' => 'README.md', 'verificacao' => ['contem' => ['README.md', 'continuam MIT']]],
+            ['texto' => 'Nasceu no Brasil em 2003', 'fonte' => 'docs/usuario/o-que-e.md', 'verificacao' => ['contem' => ['docs/usuario/o-que-e.md', 'nasceu no Brasil em 2003']]],
+            ['texto' => 'PHP 8.2.0 ou mais novo', 'fonte' => 'app/src/Instalacao/Requisitos.php', 'verificacao' => ['contem' => ['app/src/Instalacao/Requisitos.php', "PHP_MINIMO = '8.2.0'"]]],
+            ['texto' => 'pdo_sqlite', 'fonte' => 'app/src/Instalacao/Requisitos.php', 'verificacao' => ['contem' => ['app/src/Instalacao/Requisitos.php', "'pdo_sqlite'"]]],
+            ['texto' => 'fileinfo', 'fonte' => 'app/src/Instalacao/Requisitos.php', 'verificacao' => ['contem' => ['app/src/Instalacao/Requisitos.php', "'fileinfo'"]]],
+            ['texto' => 'Servidor Apache ou nginx, ambos testados', 'fonte' => 'docs/usuario/perguntas-frequentes.md', 'verificacao' => ['contem' => ['docs/usuario/perguntas-frequentes.md', 'Apache** (a maioria das hospedagens compartilhadas) e **nginx**, ambos testados']]],
+            ['texto' => 'Conteúdo em árvore de objetos', 'fonte' => 'docs/usuario/o-que-e.md', 'verificacao' => ['classe' => 'Pbl\\Conteudo\\ObjetoRepositorio']],
+            ['texto' => 'Tipos de conteúdo criados pelo navegador', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['contem' => ['app/src/Admin/Pagina.php', '/_pbl/classes']]],
+            ['texto' => 'Um campo com dados nunca é apagado nem muda de tipo', 'fonte' => 'docs/usuario/perguntas-frequentes.md', 'verificacao' => ['contem' => ['docs/usuario/perguntas-frequentes.md', 'não deixa apagar nem trocar o tipo']]],
+            ['texto' => 'lixeira que permite restaurar', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['arquivo' => 'app/src/Admin/TelasDeLixeira.php']],
+            ['texto' => 'Tags nos conteúdos', 'fonte' => 'docs/adr/0024-tags-nos-objetos.md', 'verificacao' => ['arquivo' => 'docs/adr/0024-tags-nos-objetos.md']],
+            ['texto' => 'A edição de um conteúdo tem três abas: Conteúdo, Publicação e Avançado', 'fonte' => 'docs/usuario/painel.md', 'verificacao' => ['contem' => ['docs/usuario/painel.md', 'A edição tem três abas']]],
+            ['texto' => 'Editor de texto rico', 'fonte' => 'docs/adr/0020-editor-de-texto-rico.md', 'verificacao' => ['arquivo' => 'docs/adr/0020-editor-de-texto-rico.md']],
+            ['texto' => 'HTML é limpo ao salvar', 'fonte' => 'app/src/Conteudo/HtmlSeguro.php', 'verificacao' => ['classe' => 'Pbl\\Conteudo\\HtmlSeguro']],
+            ['texto' => 'Barra de edição nas páginas do site', 'fonte' => 'docs/usuario/barra-de-edicao.md', 'verificacao' => ['arquivo' => 'docs/usuario/barra-de-edicao.md']],
+            ['texto' => 'Todo conteúdo novo começa fora do ar', 'fonte' => 'docs/usuario/perguntas-frequentes.md', 'verificacao' => ['contem' => ['docs/usuario/perguntas-frequentes.md', 'o conteúdo novo começa fora do ar']]],
+            ['texto' => 'Publicação agendada', 'fonte' => 'docs/usuario/perguntas-frequentes.md', 'verificacao' => ['comando' => 'agendados']],
+            ['texto' => 'Fluxo de revisão', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['classe' => 'Pbl\\Conteudo\\FluxoDeRevisao']],
+            ['texto' => 'Histórico de versões de cada conteúdo', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['contem' => ['docs/usuario/estado-do-projeto.md', 'Histórico de versões de cada conteúdo, com restaurar e proteção contra edição simultânea']]],
+            ['texto' => 'linguagem de moldes do PBL4', 'fonte' => 'docs/linguagem-pbl4.md', 'verificacao' => ['arquivo' => 'docs/linguagem-pbl4.md']],
+            ['texto' => 'Editor de moldes no navegador', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['contem' => ['docs/usuario/estado-do-projeto.md', 'editar o texto dos moldes de uma pele, com conferência da sintaxe antes de salvar']]],
+            ['texto' => 'Peles prontas: básica, publicare', 'fonte' => 'app/recursos/peles', 'verificacao' => ['arquivo' => 'app/recursos/peles/publicare/padrao.pbl']],
+            ['texto' => 'Vários sites e vários domínios no mesmo programa', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['classe' => 'Pbl\\Conteudo\\DominioRepositorio']],
+            ['texto' => 'Mudar o endereço de uma página sem quebrar o antigo', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['classe' => 'Pbl\\Conteudo\\RedirecionamentoRepositorio']],
+            ['texto' => 'Busca que ignora maiúsculas e acentos', 'fonte' => 'docs/linguagem-pbl4.md', 'verificacao' => ['classe' => 'Pbl\\Busca\\BuscaSql']],
+            ['texto' => 'Formulário público simples', 'fonte' => 'docs/adr/0013-formularios-publicos.md', 'verificacao' => ['classe' => 'Pbl\\Formularios\\FormularioHtml']],
+            ['texto' => 'texto alternativo para leitores de tela', 'fonte' => 'app/src/Conteudo/ClassesPadrao.php', 'verificacao' => ['contem' => ['app/src/Conteudo/ClassesPadrao.php', 'Texto alternativo (para leitores de tela)']]],
+            ['texto' => 'Feed RSS, sitemap.xml e robots.txt automáticos', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['classe' => 'Pbl\\Publicacao\\SitemapERobots']],
+            ['texto' => 'Cópias de segurança agendadas', 'fonte' => 'docs/usuario/copias-de-seguranca.md', 'verificacao' => ['comando' => 'backup']],
+            ['texto' => 'Atualização assinada, com cópia do banco antes e volta atrás', 'fonte' => 'docs/usuario/atualizar.md', 'verificacao' => ['comando' => 'atualizar']],
+            ['texto' => 'Uma atualização concluída também pode ser desfeita', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['comando' => 'reverter']],
+            ['texto' => 'Cron central', 'fonte' => 'docs/adr/0023-cron-central-e-republicacao-em-lotes.md', 'verificacao' => ['comando' => 'cron']],
+            ['texto' => 'Linha de comando em português', 'fonte' => 'docs/tecnica/cli.md', 'verificacao' => ['arquivo' => 'bin/pbl']],
+            ['texto' => 'Papéis por seção do site (leitor, autor e editor)', 'fonte' => 'docs/usuario/perguntas-frequentes.md', 'verificacao' => ['classe' => 'Pbl\\Acesso\\Perfil']],
+            ['texto' => 'Recuperação de acesso por e-mail', 'fonte' => 'docs/usuario/recuperar-acesso.md', 'verificacao' => ['classe' => 'Pbl\\Acesso\\RecuperacaoDeAcesso']],
+            ['texto' => 'convite de usuário por link', 'fonte' => 'CHANGELOG.md', 'verificacao' => ['classe' => 'Pbl\\Acesso\\ConviteDeUsuario']],
+            ['texto' => 'Importador de um site feito no Publicare 3', 'fonte' => 'docs/tecnica/migrar-do-pbl3.md', 'verificacao' => ['comando' => 'importar-pbl3']],
+            ['texto' => 'Conversor de moldes do Publicare 3', 'fonte' => 'docs/tecnica/migrar-do-pbl3.md', 'verificacao' => ['comando' => 'converter-moldes']],
+            ['texto' => 'bin/pbl conta-senha', 'fonte' => 'docs/usuario/perguntas-frequentes.md', 'verificacao' => ['comando' => 'conta-senha']],
+            ['texto' => 'bin/pbl conta-destravar', 'fonte' => 'docs/usuario/perguntas-frequentes.md', 'verificacao' => ['comando' => 'conta-destravar']],
+            ['texto' => 'php bin/pbl demo-popular', 'fonte' => 'docs/tecnica/cli.md', 'verificacao' => ['comando' => 'demo-popular']],
+            ['texto' => 'php bin/pbl publicar', 'fonte' => 'docs/tecnica/cli.md', 'verificacao' => ['comando' => 'publicar']],
+            ['texto' => 'php bin/pbl instalar', 'fonte' => 'docs/tecnica/cli.md', 'verificacao' => ['comando' => 'instalar']],
+            ['texto' => 'php bin/pbl cron', 'fonte' => 'docs/tecnica/cron.md', 'verificacao' => ['comando' => 'cron']],
+            ['texto' => 'não aceita PHP cru', 'fonte' => 'SECURITY.md', 'verificacao' => ['contem' => ['SECURITY.md', 'sem PHP cru']]],
+            ['texto' => 'Publicar um site grande acontece em lotes, com barra de progresso e retomada', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['contem' => ['docs/usuario/estado-do-projeto.md', 'em lotes, retomável']]],
+            ['texto' => 'atualizador só aceita pacotes com a assinatura digital', 'fonte' => 'docs/usuario/atualizar.md', 'verificacao' => ['classe' => 'Pbl\\Atualizacao\\Assinatura']],
+            ['texto' => 'política de segurança de conteúdo restritiva', 'fonte' => 'docs/adr/0022-pele-e-molde-por-objeto.md', 'verificacao' => ['contem' => ['app/src/Http/CabecalhosDeSeguranca.php', 'Content-Security-Policy']]],
+            ['texto' => 'Suporte a MySQL e PostgreSQL está proposto, mas ainda não existe', 'fonte' => 'docs/adr/0028-suporte-mysql-postgresql.md', 'verificacao' => ['contem' => ['docs/adr/0028-suporte-mysql-postgresql.md', 'Status: Proposto']]],
+            ['texto' => 'só troca um arquivo se ele ainda for, byte a byte, uma versão distribuída antes', 'fonte' => 'app/src/Instalacao/PelesDistribuidas.php', 'verificacao' => ['contem' => ['app/src/Instalacao/PelesDistribuidas.php', 'byte a byte']]],
+            ['texto' => 'Português de ponta a ponta', 'fonte' => 'docs/usuario/o-que-e.md', 'verificacao' => ['contem' => ['docs/usuario/o-que-e.md', 'Português de ponta a ponta']]],
+            ['texto' => 'Galeria de peles prontas para instalar', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['contem' => ['docs/usuario/estado-do-projeto.md', 'Galeria de peles prontas para instalar']]],
+            ['texto' => 'Colocar um site de verdade no ar ainda exige apoio técnico', 'fonte' => 'docs/usuario/estado-do-projeto.md', 'verificacao' => ['contem' => ['docs/usuario/estado-do-projeto.md', 'Ainda não** sem apoio técnico']]],
+            ['texto' => 'saem no canal beta', 'fonte' => 'docs/releases.md', 'verificacao' => ['contem' => ['docs/releases.md', 'Tags com `-`']]],
+            ['texto' => 'Todo pull request atualiza o CHANGELOG', 'fonte' => 'AGENTS.md', 'verificacao' => ['contem' => ['AGENTS.md', 'Todo PR atualiza o `CHANGELOG.md`']]],
+            ['texto' => 'make qa', 'fonte' => 'CONTRIBUTING.md', 'verificacao' => ['contem' => ['CONTRIBUTING.md', 'make qa']]],
+            ['texto' => 'espera crescente depois de senhas erradas', 'fonte' => 'docs/usuario/perguntas-frequentes.md', 'verificacao' => ['classe' => 'Pbl\\Acesso\\LimiteDeTentativas']],
+            ['texto' => 'contraste conferido por teste automático', 'fonte' => 'tests/PublicarePeleTest.php', 'verificacao' => ['arquivo' => 'tests/PublicarePeleTest.php']],
+            ['texto' => 'Código de Conduta', 'fonte' => 'CODE_OF_CONDUCT.md', 'verificacao' => ['arquivo' => 'CODE_OF_CONDUCT.md']],
+            ['texto' => 'relato privado do GitHub', 'fonte' => 'SECURITY.md', 'verificacao' => ['contem' => ['SECURITY.md', 'security/advisories/new']]],
+        ];
+    }
+}

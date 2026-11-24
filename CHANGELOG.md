@@ -6,7 +6,16 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Adicionado
+- **Pele `publicare`** (`app/recursos/peles/publicare/`): visual novo, moderno e acessível, com CSS próprio (sem Bootstrap, sem CDN, sem JavaScript, sem estilo nem script embutidos, [ADR 0022](docs/adr/0022-pele-e-molde-por-objeto.md)), pilha de fontes do sistema, ícones SVG locais, tema claro e escuro pela preferência do sistema, cabeçalho com menu recolhível sem JavaScript, hero, cartões, seções alternadas, rodapé, perguntas frequentes em `<details>`, foco visível, `prefers-reduced-motion` e layout para celular, tablet e desktop. Todas as cores ficam em variáveis no topo de `assets/pele.css`. Tem os mesmos nomes de molde e de campo da `basica`, então dá para trocar de pele sem perder conteúdo.
+- **Site de exemplo do Publicare 4:** `Pbl\Demo\ConteudoPublicare` traz o conteúdo (o que é, o que faz, como facilita, o que inova, perguntas frequentes, instalação e requisitos, comunidade, estado do projeto), com fonte e verificação para cada afirmação; `ConteudoPublicareTest` confere que as fontes e os recursos citados existem.
+- **Testes da pele e do exemplo:** todas as páginas publicadas respondem 200, links internos resolvem, landmarks e `alt`, sem CDN nem inline, contraste AA nos dois temas, página 404 dentro da pele, nenhum "Instituto Exemplo", e as peles `basica`, `onepage` e `portal` continuam byte a byte iguais.
+
 ### Alterado
+- **Pele padrão dos sites novos:** a instalação nova (linha de comando, assistente web e demonstração) passa a usar a pele `publicare`. A `basica` continua instalada e selecionável, e **nenhum site existente muda de pele sozinho**.
+- **Instalação limpa:** a página inicial passa a ter a promessa do Publicare e os pilares, em vez de "Tudo funcionando". Continua leve e sem modelos opcionais. A apresentação completa fica em `bin/pbl demo-popular`.
+- **`demo-popular` e prévia:** o exemplo deixa de ser o "Instituto Exemplo" e passa a ser a apresentação do Publicare 4 (contas fictícias com e-mails `@exemplo.invalid`, mesma senha de demonstração). `/onepage` e `/portal` seguem como vitrine das peles, com texto do Publicare. Veja [modelos-e-demo](docs/usuario/modelos-e-demo.md) e o adendo do [ADR 0021](docs/adr/0021-modelos-opcionais.md).
+- **Modelos opcionais** passam a preparar os moldes também na pele `publicare` (antes só na `basica`).
 - **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.10`.
 
 ## [0.1.0-rc.10] - 2026-11-24

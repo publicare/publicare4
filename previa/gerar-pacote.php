@@ -75,9 +75,9 @@ if (!is_file($raiz . '/vendor/autoload.php')) {
 require $stage . '/vendor/autoload.php';
 
 $caminhos = new Pbl\Caminhos($stage);
-(new Pbl\Instalacao\Instalador($caminhos))->instalar('Instituto Exemplo', 'previa', [
+(new Pbl\Instalacao\Instalador($caminhos))->instalar(Pbl\Demo\ConteudoPublicare::NOME_DO_SITE, 'previa', [
     'login' => 'admin', 'email' => 'admin@exemplo.invalid', 'nome' => 'Ana Admin (demonstração)', 'senha' => Pbl\Console\DemoPopularComando::SENHA_DEMO,
-], Pbl\Conteudo\Modelos::NOMES);
+], [], Pbl\Instalacao\PelesDistribuidas::PADRAO);
 
 exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($stage . '/bin/pbl') . ' demo-popular --forcar 2>&1', $saidaPopular, $codigo);
 if ($codigo !== 0) {
@@ -91,11 +91,11 @@ $siteExemplo = $servicos->sites->porHost('previa');
 if ($siteExemplo !== null && $siteExemplo->objetoRaizId !== null) {
     $raizId = (int) $siteExemplo->objetoRaizId;
     $exemplos = [
-        ['pasta', 'Acomodações e quartos da pousada, com todas as fotos e descrições', 'publicado', [], []],
-        ['pagina', 'Varanda com cadeiras junto à parede laranja, vista para o jardim e para a serra ao entardecer', 'publicado', [], []],
-        ['link', 'Reservas pelo site parceiro', 'publicado', [], ['destino_externo' => 'https://exemplo.org/reservas']],
-        ['formulario', 'Fale conosco', 'privado', [], ['destino' => $raizId]],
-        ['pagina', 'Promoção de verão (agendada)', 'publicado', ['data_publicacao' => gmdate('c', time() + 86400 * 20)], []],
+        ['pasta', 'Guia de instalação em hospedagem compartilhada com painel Hestia ou VestaCP, com todos os requisitos e avisos', 'publicado', [], []],
+        ['pagina', 'Como o fluxo de revisão funciona quando o autor envia um texto e o editor devolve com o motivo, passo a passo', 'publicado', [], []],
+        ['link', 'Versões publicadas no GitHub', 'publicado', [], ['destino_externo' => 'https://github.com/publicare/publicare4/releases']],
+        ['formulario', 'Fale com o projeto', 'privado', [], ['destino' => $raizId]],
+        ['pagina', 'Roteiro do próximo marco (agendado)', 'publicado', ['data_publicacao' => gmdate('c', time() + 86400 * 20)], []],
     ];
     foreach ($exemplos as $i => [$tipo, $titulo, $status, $meta, $dados]) {
         $classe = $servicos->classes->porNome($tipo);
@@ -131,7 +131,7 @@ $tentar(static function () use ($servicos): void {
 });
 // E-mail em modo "arquivo" (grava na caixa local, não envia nada): faz a tela de convidar mostrar o formulário em vez do aviso.
 $tentar(static function () use ($servicos): void {
-    $servicos->configDeEmail()->salvar(new Pbl\Email\ConfigDeEmail(Pbl\Email\Transporte::ARQUIVO, remetente: 'Instituto Exemplo <nao-responda@exemplo.invalid>'));
+    $servicos->configDeEmail()->salvar(new Pbl\Email\ConfigDeEmail(Pbl\Email\Transporte::ARQUIVO, remetente: Pbl\Demo\ConteudoPublicare::REMETENTE));
 });
 $tentar(static function () use ($servicos): void {
     $servicos->convites()->convidar('diego.convidado', 'Diego Almeida (convite pendente)', 'diego@exemplo.invalid', false, 'admin', false);

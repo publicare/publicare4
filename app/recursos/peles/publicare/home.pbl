@@ -1,0 +1,46 @@
+<@-- Modelo "home": página inicial. Ordem: hero (título, resumo e botões da pasta "chamadas"), pilares (os 4 primeiros links sob a página inicial), corpo, destaques, vitrine (demais links), últimas notícias e chamada final. Cada bloco só aparece se houver conteúdo; sem os modelos opcionais a página continua inteira. --@>
+<@estende "base"@>
+<@bloco corpo@>
+<@var $home = #id@>
+<section class="hero" aria-labelledby="hero-titulo"><div class="hero-in">
+<div class="hero-texto">
+<h1 id="hero-titulo"><@eco #titulo@></h1>
+<@var $slogan = #resumo@><@se $slogan == ""@><@var $slogan = %SITE.config.slogan@><@/se@>
+<@se $slogan != ""@><p class="resumo"><@eco $slogan@></p><@/se@>
+<@usarobjeto url="chamadas"@><@filhos classes="link" ordem="peso, titulo" limite=3@>
+<@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
+<@se $dest != ""@><@se %INDICE == 1@><p class="hero-botoes"><@/se@><a class="botao<@se %INDICE > 1@> botao-claro<@/se@>" href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>><@eco #titulo@></a> <@se %INDICE == %QUANTIDADE@></p><@/se@><@/se@>
+<@/filhos@><@/usarobjeto@>
+</div>
+<@se %SITE.config.imagem_hero != ""@><div class="hero-imagem"><img src="<@miniatura valor=%SITE.config.imagem_hero tamanho=800@>" alt="" fetchpriority="high"></div><@/se@>
+</div></section>
+<@var $atalhos = 0@>
+<@filhos classes="link" ordem="peso, titulo" limite=4@>
+<@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
+<@se $dest != ""@><@se $atalhos == 0@><section class="faixa pilares" aria-labelledby="pilares-titulo"><div class="contem"><h2 id="pilares-titulo" class="so-leitor">Em destaque</h2><ul class="grade">
+<@var $atalhos = 1@><@/se@><li data-pbl-objeto="<@eco #id@>"><a class="cartao-atalho" href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>><span class="icone" aria-hidden="true"></span><span class="titulo"><@eco #titulo@></span><@se #descricao != ""@><span class="texto"><@eco #descricao@></span><@/se@><span class="seta" aria-hidden="true">Abrir &rarr;</span></a><span class="pbl-acoes" hidden></span></li>
+<@/se@><@/filhos@>
+<@se $atalhos == 1@></ul></div></section>
+<@/se@><@se #corpo != ""@><section class="faixa suave" aria-label="Sobre"><div class="contem"><div class="corpo"><@ecocru #corpo@></div></div></section>
+<@/se@><@incluir arquivo="faixa_destaques"@>
+<@var $vitrine = 0@><@var $puladas = 0@>
+<@localizar classes="link" pai=$home niveis=1 ordem="peso, titulo" limite=12 expandir="destino_interno"@>
+<@var $mostrar = 1@><@se $puladas < 4@><@var $mostrar = 0@><@var $puladas = $puladas + 1@><@/se@>
+<@se $mostrar == 1@><@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@><@se $dest != ""@><@se $vitrine == 0@><section class="faixa suave vitrine" aria-labelledby="vitrine-titulo"><div class="contem"><h2 id="vitrine-titulo">Veja também</h2><ul class="grade">
+<@var $vitrine = 1@><@/se@><li data-pbl-objeto="<@eco #id@>"><a class="cartao-atalho" href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>><span class="icone" aria-hidden="true"></span><span class="titulo"><@eco #titulo@></span><@se #descricao != ""@><span class="texto"><@eco #descricao@></span><@/se@><span class="seta" aria-hidden="true">Abrir &rarr;</span></a><span class="pbl-acoes" hidden></span></li>
+<@/se@><@/se@><@/localizar@>
+<@se $vitrine == 1@></ul></div></section>
+<@/se@><@localizar classes="noticia" ordem="-data_publicacao, titulo" limite=3@>
+<@se %INDICE == 1@><section class="faixa ultimas" aria-labelledby="ultimas-titulo"><div class="contem"><h2 id="ultimas-titulo">Últimas notícias</h2><div class="lista-itens">
+<@/se@><@incluir arquivo="item"@>
+<@se %INDICE == %QUANTIDADE@></div></div></section>
+<@/se@><@/localizar@>
+<@usarobjeto url="chamadas"@><section class="faixa chamada" aria-labelledby="chamada-titulo"><div class="contem">
+<h2 id="chamada-titulo"><@eco #titulo@></h2>
+<@se #descricao != ""@><p><@eco #descricao@></p><@/se@>
+<@filhos classes="link" ordem="peso, titulo" limite=3@>
+<@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
+<@se $dest != ""@><@se %INDICE == 1@><p class="hero-botoes"><@/se@><a class="botao<@se %INDICE > 1@> botao-claro<@/se@>" href="<@ecourl $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@><@se #nova_aba@> target="_blank"<@/se@>><@eco #titulo@></a> <@se %INDICE == %QUANTIDADE@></p><@/se@><@/se@>
+<@/filhos@></div></section>
+<@/usarobjeto@>
+<@/bloco@>

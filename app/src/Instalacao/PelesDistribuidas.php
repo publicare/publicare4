@@ -14,6 +14,11 @@ use Pbl\Caminhos;
  */
 final class PelesDistribuidas
 {
+    /** Pele das instalações novas (CLI e instalador web). A `basica` continua distribuída e selecionável; sites existentes não mudam de pele sozinhos. */
+    public const PADRAO = 'publicare';
+    /** Peles distribuídas que trazem os moldes dos modelos opcionais (agenda, perguntas, destaques e blocos). */
+    public const COM_MODELOS = ['basica', 'publicare'];
+
     public function __construct(private readonly Caminhos $caminhos)
     {
     }

@@ -1,0 +1,16 @@
+<@estende "base"@>
+<@bloco corpo@>
+<header class="pagina-topo"><div class="contem">
+<@ecocru #migalhas@>
+<h1><@eco #titulo@></h1>
+<@se #resumo@><p class="resumo"><@eco #resumo@></p><@/se@>
+</div></header>
+<div class="contem miolo">
+<@se #id == #raiz@><@incluir arquivo="faixa_destaques"@><@/se@>
+<div class="corpo"><@ecocru #corpo@></div>
+<@filhos ordem="peso, titulo"@><@se %INDICE == 1@><nav class="filhos" aria-labelledby="filhos-titulo"><h2 id="filhos-titulo">Nesta seção</h2><ul>
+<@/se@><li class="cartao" data-pbl-objeto="<@eco #id@>"><@se #classe == "link"@><strong class="cartao-titulo"><@incluir arquivo="link_a"@></strong><@senao@><strong class="cartao-titulo"><a href="<@eco #url@>"><@eco #titulo@></a></strong><@/se@><@se #resumo != ""@><p><@eco #resumo@></p><@senao@><@se #descricao != ""@><p><@eco #descricao@></p><@/se@><@/se@><span class="pbl-acoes" hidden></span></li>
+<@se %INDICE == %QUANTIDADE@></ul></nav>
+<@/se@><@/filhos@>
+</div>
+<@/bloco@>

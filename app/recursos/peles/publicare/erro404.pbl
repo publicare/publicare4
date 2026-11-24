@@ -1,0 +1,13 @@
+<@estende "base"@>
+<@bloco cabeca@><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<title>Página não encontrada - <@eco #site_nome@></title>
+<link rel="icon" type="image/svg+xml" href="<@eco #pele_url@>/assets/marca.svg">
+<@/bloco@>
+<@bloco corpo@>
+<header class="pagina-topo"><div class="contem"><h1>Página não encontrada</h1>
+<p class="resumo">O endereço que você abriu não existe ou saiu do ar.</p></div></header>
+<div class="contem miolo"><p>Use o menu ou a busca no cabeçalho, ou <a href="/">volte à página inicial</a>.</p></div>
+<@/bloco@>

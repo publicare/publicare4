@@ -18,6 +18,7 @@ use Pbl\Conteudo\Dominio;
 use Pbl\Conteudo\Modelos;
 use Pbl\Conteudo\ObjetoRepositorio;
 use Pbl\Conteudo\SiteRepositorio;
+use Pbl\Demo\ConteudoPublicare;
 
 /**
  * Instalação mínima da fase 0: pastas de dados, banco SQLite, migrações, pele básica embutida e
@@ -25,6 +26,9 @@ use Pbl\Conteudo\SiteRepositorio;
  */
 final class Instalador
 {
+    /** Frase que a página inicial criada na instalação sempre traz; o `demo-popular` só reescreve a inicial enquanto ela ainda existir. */
+    public const MARCA_DO_INICIO = 'Edite este conteúdo pelo painel de administração.';
+
     public function __construct(private readonly Caminhos $caminhos)
     {
     }
@@ -37,9 +41,15 @@ final class Instalador
     /**
      * @param array{login: string, email: string, nome: string, senha: string}|null $administrador conta de administrador global criada junto
      * @param list<string> $modelos modelos opcionais a ativar já na instalação (`Modelos::NOMES`, ADR 0021)
+     * @param string $pele pele do site novo. O padrão da biblioteca segue sendo a básica (os testes e as instalações programáticas
+     *     não mudam); a linha de comando e o instalador web passam `PelesDistribuidas::PADRAO` (a `publicare`), que também traz a
+     *     página inicial curta do Publicare (promessa, quatro pilares e links para instalar e ver a demonstração)
      */
-    public function instalar(string $nomeDoSite, string $host, ?array $administrador = null, array $modelos = []): void
+    public function instalar(string $nomeDoSite, string $host, ?array $administrador = null, array $modelos = [], string $pele = 'basica'): void
     {
+        if (!in_array($pele, (new PelesDistribuidas($this->caminhos))->nomes(), true)) {
+            throw new \InvalidArgumentException("Pele desconhecida: {$pele}");
+        }
         $modelos = array_values(array_unique($modelos));
         foreach ($modelos as $modelo) {
             if (!in_array($modelo, Modelos::NOMES, true)) {
@@ -72,7 +82,7 @@ final class Instalador
         @chmod($this->caminhos->banco(), 0600);
 
         // Tudo ou nada: se algo falhar no meio, o banco volta ao estado limpo e dá para tentar de novo sem "classe já existe".
-        $conexao->transactional(function () use ($conexao, $nomeDoSite, $host, $administrador, $modelos): void {
+        $conexao->transactional(function () use ($conexao, $nomeDoSite, $host, $administrador, $modelos, $pele): void {
             $classes = new ClasseRepositorio($conexao);
             $objetos = new ObjetoRepositorio($conexao);
             $sites = new SiteRepositorio($conexao);
@@ -84,10 +94,11 @@ final class Instalador
             $noticia = $classes->porNome('noticia') ?? throw new \RuntimeException('Tipo noticia não existe');
             $formulario = $classes->porNome('formulario') ?? throw new \RuntimeException('Tipo formulario não existe');
 
-            $site = $sites->criar($nomeDoSite, $host);
-            $inicio = $objetos->criar($site->id, $pagina, null, $nomeDoSite, '', [
+            $site = $sites->criar($nomeDoSite, $host, $pele);
+            $leve = $pele === PelesDistribuidas::PADRAO;
+            $inicio = $objetos->criar($site->id, $pagina, null, $nomeDoSite, '', $leve ? ConteudoPublicare::inicioDaInstalacao() : [
                 'resumo' => 'Site instalado com o PBL4.',
-                'corpo' => '<p>Tudo funcionando. Edite este conteúdo pelo painel de administração.</p>',
+                'corpo' => '<p>Tudo funcionando. ' . self::MARCA_DO_INICIO . '</p>',
             ]);
             if ($administrador !== null) {
                 (new UsuarioRepositorio($conexao, new Auditoria($conexao)))->criar(
@@ -96,6 +107,10 @@ final class Instalador
             }
             $sites->definirRaiz($site->id, $inicio->id);
             (new ConfigDoSiteRepositorio($conexao))->definir($site->id, ['nome' => $nomeDoSite, 'idioma' => 'pt-BR']);
+
+            if ($leve) {
+                $this->homeDoPublicare($objetos, $site->id, $pasta, $inicio->id, $classes->porNome('link') ?? throw new \RuntimeException('Tipo link não existe'));
+            }
 
             // Conteúdo de exemplo: serve de modelo e se edita ou apaga pelo painel.
             $objetos->criar($site->id, $pagina, $inicio->id, 'Sobre', 'sobre', [
@@ -127,6 +142,21 @@ final class Instalador
         });
 
         file_put_contents($this->trava(), gmdate('c') . "\n");
+    }
+
+    /**
+     * Instalação leve com a pele `publicare`: os quatro pilares e os botões da home são atalhos (`link`) para a documentação
+     * oficial; a apresentação completa fica no `demo-popular`. Nenhum modelo opcional é ligado.
+     */
+    private function homeDoPublicare(ObjetoRepositorio $objetos, int $siteId, \Pbl\Conteudo\Classe $pasta, int $inicioId, \Pbl\Conteudo\Classe $link): void
+    {
+        $docs = ConteudoPublicare::REPOSITORIO . '/blob/main/';
+        foreach (ConteudoPublicare::pilares() as $i => $pilar) {
+            $objetos->criar($siteId, $link, $inicioId, $pilar['titulo'], $pilar['url'], ['destino_externo' => $docs . ConteudoPublicare::DOCUMENTO_DO_PILAR[$pilar['destino']], 'nova_aba' => true], 'publicado', ['peso' => ($i + 1) * 10, 'descricao' => $pilar['descricao']]);
+        }
+        $chamadas = $objetos->criar($siteId, $pasta, $inicioId, 'Pronto para experimentar?', 'chamadas', [], 'publicado', ['peso' => 990, 'descricao' => 'Instale em poucos minutos ou veja o Publicare 4 apresentando a si mesmo.']);
+        $objetos->criar($siteId, $link, $chamadas->id, 'Como instalar', 'chamada-instalar', ['destino_externo' => $docs . 'docs/usuario/instalar.md', 'nova_aba' => true], 'publicado', ['peso' => 10]);
+        $objetos->criar($siteId, $link, $chamadas->id, 'Ver a demonstração', 'chamada-demonstracao', ['destino_externo' => $docs . 'docs/usuario/modelos-e-demo.md', 'nova_aba' => true], 'publicado', ['peso' => 20]);
     }
 
     private function trava(): string

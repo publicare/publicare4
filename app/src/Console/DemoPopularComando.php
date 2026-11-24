@@ -10,6 +10,10 @@ use Pbl\Caminhos;
 use Pbl\Conteudo\Modelos;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\Site;
+use Pbl\Demo\ConteudoPublicare;
+use Pbl\Instalacao\Instalador;
+use Pbl\Instalacao\PelesDistribuidas;
+use Pbl\Instalacao\Requisitos;
 use Pbl\Servicos;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -19,11 +23,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
- * Popula um site com um conteúdo de demonstração rico (o "Instituto Exemplo", fictício), para desenvolvimento, demo e testes
- * de aparência (ADR 0021). Ativa os quatro modelos opcionais, cria páginas, notícias, agenda, perguntas, documentos e galeria,
- * e publica. Idempotente (cada conteúdo é identificado pelo endereço) e recusa sites que já têm conteúdo demais.
+ * Popula um site com o site de exemplo do próprio Publicare 4 (conteúdo real de `ConteudoPublicare`; só as contas e os e-mails de
+ * demonstração são fictícios), para demo, desenvolvimento e testes de aparência (ADR 0021, adendo). Ativa os quatro modelos opcionais,
+ * troca a pele do site para a `publicare` (se ainda for a básica), cria páginas, novidades, marcos, perguntas, documentos e imagens, e publica. Idempotente (cada conteúdo é identificado pelo endereço) e recusa sites que já têm conteúdo demais.
  */
-#[AsCommand(name: 'demo-popular', description: 'Popula um site com conteúdo de demonstração (Instituto Exemplo): só para desenvolvimento e demos')]
+#[AsCommand(name: 'demo-popular', description: 'Popula um site com o site de exemplo do Publicare 4 (apresentação do produto): só para desenvolvimento e demos')]
 final class DemoPopularComando extends Command
 {
     private const LIMITE = 30;
@@ -44,6 +48,7 @@ final class DemoPopularComando extends Command
     {
         $this->addOption('site', null, InputOption::VALUE_REQUIRED, 'Número do site (padrão: o primeiro)');
         $this->addOption('forcar', null, InputOption::VALUE_NONE, 'Popula mesmo que o site já tenha mais de ' . self::LIMITE . ' conteúdos');
+        $this->addOption('pele', null, InputOption::VALUE_REQUIRED, 'Pele do exemplo (padrão: a ' . PelesDistribuidas::PADRAO . ', se o site ainda usa a básica; `--pele=basica` mantém a básica)');
         $this->addOption('sem-publicar', null, InputOption::VALUE_NONE, 'Não publica o site no final');
     }
 
@@ -62,6 +67,7 @@ final class DemoPopularComando extends Command
             if ($existentes > self::LIMITE && !$input->getOption('forcar')) {
                 throw new \RuntimeException("O site {$site->id} já tem {$existentes} conteúdos: o demo é para sites novos ou de teste. Use --forcar se tem certeza.");
             }
+            $this->site = $this->usarPeleDoExemplo($site, (string) ($input->getOption('pele') ?? ''));
             $this->m = new Modelos($this->servicos->conexao(), $this->caminhos);
             foreach (Modelos::NOMES as $modelo) {
                 $this->m->ativar($modelo, $site->id, false);
@@ -72,7 +78,7 @@ final class DemoPopularComando extends Command
             $output->writeln('Demo criado: ' . $this->m->criados() . ' conteúdo(s) novo(s).');
             $output->writeln('Contas de demonstração: autor e editor (senha ' . self::SENHA_DEMO . ', só para demo; apague as contas se este site for para produção).');
             if (!$input->getOption('sem-publicar')) {
-                $n = $this->servicos->publicador->publicarSite($site);
+                $n = $this->servicos->publicador->publicarSite($this->site);
                 $output->writeln("{$site->nome}: {$n} página(s) publicada(s)");
             }
         } catch (\InvalidArgumentException | \RuntimeException $e) {
@@ -84,130 +90,156 @@ final class DemoPopularComando extends Command
         return Command::SUCCESS;
     }
 
+    /** O exemplo mostra a pele `publicare` (ou a pedida em `--pele`): copia a pele, sem sobrescrever o que foi personalizado, e a escolhe. Peles de site próprias (que não são as distribuídas) ficam como estão. */
+    private function usarPeleDoExemplo(Site $site, string $pedida): Site
+    {
+        $pele = $pedida !== '' ? $pedida : ($site->pele === 'basica' ? PelesDistribuidas::PADRAO : $site->pele);
+        if ($pedida !== '' && !in_array($pele, PelesDistribuidas::COM_MODELOS, true)) {
+            throw new \InvalidArgumentException("A pele do exemplo precisa trazer os moldes dos modelos opcionais: " . implode(' ou ', PelesDistribuidas::COM_MODELOS));
+        }
+        if (in_array($pele, PelesDistribuidas::COM_MODELOS, true)) {
+            (new PelesDistribuidas($this->caminhos))->sincronizar([$pele]);
+        }
+        if ($pele !== $site->pele && is_file($this->caminhos->peles() . '/' . $pele . '/padrao.pbl')) {
+            $this->servicos->sites->definirPele($site->id, $pele);
+        }
+
+        return $this->servicos->sites->porId($site->id) ?? $site;
+    }
+
     private function popular(): void
     {
-        $dia = static fn (int $d, string $hora = '00:00:00'): string => gmdate('Y-m-d', strtotime(sprintf('%+d days', $d)) ?: time()) . ' ' . $hora;
         $criar = fn (string $classe, ?int $pai, string $titulo, string $url, array $dados = [], string $status = 'publicado', array $meta = [], ?\Closure $apos = null): Objeto
             => $this->m->garantirObjeto($this->site, $classe, $pai, $titulo, $url, $dados, $status, $meta, $apos);
         $pagina = static fn (string $resumo, string $corpo): array => ['resumo' => $resumo, 'corpo' => $corpo];
+        $objetos = $this->servicos->objetos;
+
+        $this->servicos->configs->definir($this->site->id, ['slogan' => ConteudoPublicare::PROMESSA, 'descricao' => ConteudoPublicare::PROMESSA]);
 
         // --- Página inicial -------------------------------------------------------------------------------------------
-        $inicio = $this->servicos->objetos->porId($this->raiz);
-        if ($inicio !== null && str_contains((string) ($inicio->dados['corpo'] ?? ''), 'Tudo funcionando')) {
-            $this->servicos->objetos->atualizar($inicio->id, ['titulo' => 'Instituto Exemplo', 'dados' => [
-                'resumo' => 'Educação, cultura e cidadania para a comunidade, desde 1998.',
-                'corpo' => $this->boasVindas(),
-                'seo_titulo' => 'Instituto Exemplo: educação, cultura e cidadania',
-                'seo_descricao' => 'Organização fictícia usada para demonstrar o PBL4: notícias, agenda de eventos, perguntas frequentes e documentos.',
-            ]], 'Demo');
+        $inicio = $objetos->porId($this->raiz);
+        if ($inicio !== null && str_contains((string) ($inicio->dados['corpo'] ?? ''), Instalador::MARCA_DO_INICIO)) {
+            $objetos->atualizar($inicio->id, ['titulo' => ConteudoPublicare::NOME_DO_SITE, 'dados' => ConteudoPublicare::inicio()], 'Demo');
+        }
+
+        // --- Chamadas da home (botões do hero e da faixa final) e pilares ------------------------------------------------
+        $chamadas = $criar('pasta', $this->raiz, 'Pronto para experimentar?', 'chamadas', [], 'publicado', ['peso' => 990, 'descricao' => 'Instale em poucos minutos ou veja o que o Publicare 4 faz.']);
+        $paginas = ConteudoPublicare::paginas();
+        $ids = [];
+        foreach ($paginas as $url => $p) {
+            $ids[$url] = $criar('pagina', $this->raiz, $p['titulo'], $url, $pagina($p['resumo'], $p['corpo']), 'publicado', ['peso' => $p['peso'], 'no_menu' => true, 'rotulo_menu' => $p['rotulo'], 'descricao' => $p['descricao']]);
+        }
+        // Na instalação leve estes atalhos já existem, apontando para a documentação no GitHub: aqui passam a apontar para as páginas do exemplo.
+        $ligar = function (string $url, int $pai, string $titulo, int $destino, int $peso, string $descricao = '') use ($criar): void {
+            $dados = ['destino_interno' => $destino, 'destino_externo' => null, 'nova_aba' => false];
+            $meta = ['peso' => $peso] + ($descricao === '' ? [] : ['descricao' => $descricao]);
+            $existente = $this->servicos->objetos->porUrl($this->site->id, $url);
+            if ($existente === null) {
+                $criar('link', $pai, $titulo, $url, ['destino_interno' => $destino], 'publicado', $meta);
+            } elseif (($existente->dados['destino_externo'] ?? '') !== '') {
+                $this->servicos->objetos->atualizar($existente->id, ['titulo' => $titulo, 'dados' => $dados] + $meta, 'Demo');
+            }
+        };
+        $ligar('chamada-instalar', $chamadas->id, 'Como instalar', $ids['instalacao-e-requisitos']->id, 10);
+        $ligar('chamada-demonstracao', $chamadas->id, 'O que ele faz', $ids['o-que-ele-faz']->id, 20);
+        $criar('link', $chamadas->id, 'Código no GitHub', 'chamada-github', ['destino_externo' => ConteudoPublicare::REPOSITORIO, 'nova_aba' => true], 'publicado', ['peso' => 30]);
+        foreach (ConteudoPublicare::pilares() as $i => $pilar) {
+            $ligar($pilar['url'], $this->raiz, $pilar['titulo'], $ids[$pilar['destino']]->id, ($i + 1) * 10, $pilar['descricao']);
+        }
+
+        // --- Sobre este exemplo (página criada pela instalação) e contato -----------------------------------------------
+        $sobre = $objetos->porUrl($this->site->id, 'sobre');
+        if ($sobre !== null && str_contains((string) ($sobre->dados['corpo'] ?? ''), 'Página de exemplo')) {
+            $objetos->atualizar($sobre->id, [
+                'titulo' => 'Sobre este exemplo', 'no_menu' => false, 'peso' => 900, 'descricao' => 'Como este site foi feito',
+                'dados' => $pagina('Este site foi montado com o próprio Publicare 4.', '<p>Este é o <strong>site de exemplo</strong> do Publicare 4. Ele foi criado pelo comando <code>php bin/pbl demo-popular</code> e usa a pele <strong>publicare</strong>, que acompanha o programa.</p><p>Tudo aqui se edita pelo painel de administração: páginas, perguntas frequentes, notícias, agenda e blocos. As contas de demonstração e os e-mails <code>@exemplo.invalid</code> são fictícios.</p><p>Se este site for para produção, apague as contas de demonstração e o conteúdo de exemplo.</p>'),
+            ], 'Demo');
+        }
+        $contato = $objetos->porUrl($this->site->id, 'contato');
+        if ($contato !== null && $contato->paiId === $this->raiz && isset($ids['comunidade'])) {
+            $objetos->mover($contato->id, $ids['comunidade']->id, 'Demo');
         }
 
         // --- Destaques da página inicial (imagens geradas) -----------------------------------------------------------
-        $pastaDestaques = $criar('pasta', $this->raiz, 'Destaques', 'destaques', [], 'publicado', ['peso' => 90, 'descricao' => 'Banners da página inicial']);
-        foreach ([['oficinas', 'Oficinas de leitura', 'Inscrições abertas para crianças e adolescentes.', [34, 112, 87]], ['biblioteca', 'Biblioteca comunitária', 'Mais de cinco mil títulos para empréstimo gratuito.', [52, 95, 140]], ['voluntariado', 'Seja voluntário', 'Doe algumas horas por mês e transforme o bairro.', [150, 82, 40]]] as $i => [$u, $t, $txt, $cor]) {
-            $criar('destaque', $pastaDestaques->id, $t, 'destaque-' . $u, ['texto' => $txt, 'nova_aba' => false], 'publicado', ['peso' => ($i + 1) * 10],
+        $pastaDestaques = $criar('pasta', $this->raiz, 'Destaques', 'destaques', [], 'publicado', ['peso' => 995, 'descricao' => 'Banners da página inicial']);
+        foreach ([
+            ['conhecer', 'Veja o que ele faz', 'Conteúdo em árvore, moldes, revisão, domínios, busca e cópias de segurança.', [10, 90, 108], 'o-que-ele-faz'],
+            ['instalar', 'Instale e experimente', 'Requisitos do servidor e caminhos de instalação.', [20, 110, 130], 'instalacao-e-requisitos'],
+            ['participar', 'Participe do projeto', 'Você não precisa programar para ajudar.', [150, 100, 20], 'comunidade'],
+        ] as $i => [$u, $t, $txt, $cor, $alvo]) {
+            $criar('destaque', $pastaDestaques->id, $t, 'destaque-' . $u, ['texto' => $txt, 'nova_aba' => false, 'destino_interno' => $ids[$alvo]->id], 'publicado', ['peso' => ($i + 1) * 10],
                 $this->imagem('imagem', $t, $cor, 'destaque-' . $u . '.png', 1200, 500, $u));
         }
 
-        // --- Institucional (2 níveis) ---------------------------------------------------------------------------------
-        $inst = $criar('pagina', $this->raiz, 'Institucional', 'institucional', $pagina('Quem somos, o que fazemos e como prestamos contas.', '<p>O Instituto Exemplo é uma organização da sociedade civil, sem fins lucrativos, que atua com educação, cultura e cidadania. Nesta seção você conhece a nossa história, os nossos valores, as pessoas que fazem o instituto funcionar e os documentos de transparência.</p>'), 'publicado', ['peso' => 10, 'no_menu' => true, 'descricao' => 'Conheça o instituto']);
-        $quem = $criar('pagina', $inst->id, 'Quem somos', 'quem-somos', $pagina('Uma história de mais de duas décadas.', '<h2>Nossa história</h2><p>Fundado em 1998 por um grupo de professores e moradores, o instituto começou com uma sala emprestada e vinte livros. Hoje atende cerca de <strong>1.200 pessoas por ano</strong> em cinco programas.</p><h2>O que fazemos</h2><ul><li>Oficinas de leitura e escrita para crianças e jovens;</li><li>Biblioteca comunitária aberta a todos;</li><li>Formação para educadores da rede pública;</li><li>Apoio a pequenos produtores culturais.</li></ul>'), 'publicado', ['peso' => 10, 'no_menu' => true, 'descricao' => 'Nossa história e nossos programas'], null);
-        $criar('pagina', $quem->id, 'Linha do tempo', 'linha-do-tempo', $pagina('Os marcos de 1998 até hoje.', '<table class="table"><thead><tr><th scope="col">Ano</th><th scope="col">Marco</th></tr></thead><tbody><tr><td>1998</td><td>Fundação e primeira sala de leitura</td></tr><tr><td>2005</td><td>Inauguração da biblioteca comunitária</td></tr><tr><td>2012</td><td>Programa de formação de educadores</td></tr><tr><td>2019</td><td>Sede própria, com auditório</td></tr><tr><td>2024</td><td>Título de utilidade pública municipal</td></tr></tbody></table>'), 'publicado', ['peso' => 10, 'no_menu' => true]);
-        $criar('pagina', $quem->id, 'Parceiros', 'parceiros', $pagina('Quem caminha com a gente.', '<p>Contamos com o apoio de empresas locais, escolas públicas e doadores individuais. Todos os parceiros são listados no relatório anual.</p>'), 'publicado', ['peso' => 20, 'no_menu' => true]);
-        $criar('pagina', $inst->id, 'Missão e valores', 'missao-e-valores', $pagina('Por que existimos e como agimos.', '<h2>Missão</h2><p>Ampliar o acesso à leitura, à cultura e à participação cidadã.</p><h2>Valores</h2><ol><li>Respeito à diversidade;</li><li>Transparência em tudo o que fazemos;</li><li>Gratuidade das atividades abertas ao público;</li><li>Trabalho em rede com a comunidade.</li></ol><blockquote><p>Ler é um direito, não um privilégio.</p></blockquote>'), 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Missão e valores']);
-        $equipe = $criar('pagina', $inst->id, 'Equipe', 'equipe', $pagina('As pessoas por trás do instituto.', '<p>Somos 14 profissionais e mais de 60 voluntários. A diretoria é eleita a cada dois anos.</p><h2>Diretoria</h2><ul><li><strong>Marta Souza Lima</strong>, presidente</li><li><strong>Paulo Ribeiro Dias</strong>, vice-presidente</li><li><strong>Helena Prado</strong>, tesoureira</li><li><strong>Júlio Cardoso</strong>, secretário</li></ul>'), 'publicado', ['peso' => 30, 'no_menu' => true]);
-        $criar('pagina', $equipe->id, 'Voluntariado', 'voluntariado', $pagina('Como participar.', '<p>Basta ter 16 anos e disponibilidade de duas horas por semana. Escreva pelo formulário de <a href="/contato">contato</a>.</p>'), 'publicado', ['peso' => 10, 'no_menu' => true]);
-        $transp = $criar('pagina', $inst->id, 'Transparência', 'transparencia', $pagina('Relatórios, balanços e estatuto.', '<p>Publicamos todos os anos o relatório de atividades e o balanço financeiro. Os documentos estão em <a href="/documentos">Documentos</a>.</p><p>Dúvidas sobre as contas? Veja as <a href="/perguntas-frequentes">perguntas frequentes</a>.</p>'), 'publicado', ['peso' => 40, 'no_menu' => true], null);
-        $criar('pagina', $transp->id, 'Política de privacidade', 'politica-de-privacidade', $pagina('Como tratamos os seus dados.', '<p>Guardamos apenas os dados necessários para as inscrições e jamais os repassamos a terceiros.</p>'), 'publicado', ['peso' => 10, 'no_menu' => false, 'descricao' => 'Privacidade'] );
-
-        // --- Notícias --------------------------------------------------------------------------------------------------
-        $noticias = $criar('pasta', $this->raiz, 'Notícias', 'noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Novidades e avisos']);
-        $lista = [
-            ['abertas-inscricoes-oficinas', 'Abertas as inscrições para as oficinas de leitura', 'Há 60 vagas para o segundo semestre.', 3, [34, 112, 87]],
-            ['biblioteca-novo-horario', 'Biblioteca comunitária muda de horário', 'Agora abrimos também aos sábados.', 9, [52, 95, 140]],
-            ['feira-de-livros-2026', 'Feira de livros reúne 800 visitantes', 'Dois dias de troca de livros, música e contação de histórias.', 21, [140, 60, 90]],
-            ['formacao-de-educadores', 'Turma de formação de educadores começa em março', 'Curso gratuito de 80 horas para profissionais da rede pública.', 45, [90, 60, 130]],
-            ['relatorio-anual-publicado', 'Relatório anual de atividades já está disponível', 'Veja os números do ano e a prestação de contas.', 70, [60, 100, 100]],
-            ['campanha-do-agasalho', 'Campanha do agasalho arrecada 2 mil peças', 'Obrigado a todas as pessoas que doaram.', 110, [160, 90, 50]],
-            ['novo-conselho-eleito', 'Novo conselho é eleito em assembleia', 'A posse acontece no próximo mês.', 160, [70, 70, 70]],
-            ['dez-anos-da-biblioteca', 'Biblioteca comunitária completa vinte anos', 'Uma celebração com a presença de antigos leitores.', 240, [110, 70, 120]],
-        ];
-        $tagsDemo = ['Oficinas, Educação', 'Biblioteca', 'Eventos, Leitura', 'Educação, Formação', 'Transparência', 'Solidariedade, Eventos', 'Institucional', 'Biblioteca, Leitura'];
-        foreach ($lista as $i => [$u, $t, $r, $atras, $cor]) {
-            $criar('noticia', $noticias->id, $t, $u, [
-                'resumo' => $r,
-                'corpo' => '<p>' . $r . ' O instituto convida toda a comunidade a participar e a acompanhar as próximas novidades por aqui.</p><h2>Como participar</h2><p>As informações completas estão na <a href="/agenda">agenda</a>. Em caso de dúvida, fale conosco pelo <a href="/contato">formulário de contato</a>.</p>',
-                ...($i === 0 ? ['seo_titulo' => $t . ' | Instituto Exemplo', 'seo_descricao' => $r] : []),
-            ], 'publicado', ['peso' => 0, 'data_publicacao' => $dia(-$atras, '09:00:00'), 'tags' => $tagsDemo[$i % count($tagsDemo)]],
-                $this->imagem('imagem_destaque', $t, $cor, $u . '.png', 1200, 630, (string) $i));
+        // --- Novidades: as versões do CHANGELOG (a pasta "Notícias" vem da instalação) --------------------------------------
+        $noticias = $objetos->porUrl($this->site->id, 'noticias');
+        if ($noticias === null) {
+            $noticias = $criar('pasta', $this->raiz, 'Novidades', 'noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Versões e novidades do projeto']);
+        } elseif ($noticias->titulo === 'Notícias') {
+            $noticias = $objetos->atualizar($noticias->id, ['titulo' => 'Novidades', 'descricao' => 'Versões e novidades do projeto', 'peso' => 10], 'Demo');
         }
-        $criar('noticia', $noticias->id, 'Balanço do semestre (em breve)', 'balanco-do-semestre', ['resumo' => 'Será publicada na data programada.', 'corpo' => '<p>Esta notícia está agendada e só aparece depois da data de publicação.</p>'], 'publicado', ['data_publicacao' => $dia(20, '08:00:00')]);
-        $criar('noticia', $noticias->id, 'Rascunho: regimento interno', 'rascunho-regimento-interno', ['resumo' => 'Texto ainda em revisão.', 'corpo' => '<p>Rascunho não publicado (estado privado).</p>'], 'privado');
+        $estado = $ids['estado-do-projeto'];
+        if ($noticias->paiId === $this->raiz) {
+            $objetos->mover($noticias->id, $estado->id, 'Demo');
+        }
+        $cores = [[10, 90, 108], [20, 110, 130], [150, 100, 20]];
+        foreach (ConteudoPublicare::novidades() as $i => $n) {
+            $criar('noticia', $noticias->id, $n['titulo'], $n['url'], ['resumo' => $n['resumo'], 'corpo' => $n['corpo']], 'publicado',
+                ['peso' => 0, 'data_publicacao' => $n['data'], 'tags' => $i === 0 ? 'Acesso, Contas' : ($i === 1 ? 'Painel' : 'Painel, Edição')],
+                $this->imagem('imagem_destaque', $n['titulo'], $cores[$i % 3], $n['url'] . '.png', 1200, 630, (string) $i));
+        }
+        $bemVindo = $objetos->porUrl($this->site->id, 'bem-vindo-ao-novo-site');
+        if ($bemVindo !== null && str_contains((string) ($bemVindo->dados['corpo'] ?? ''), 'notícia de exemplo')) {
+            $objetos->atualizar($bemVindo->id, ['titulo' => 'Este site é o exemplo do Publicare 4', 'dados' => [
+                'resumo' => 'Foi montado com o próprio programa e se refaz com um comando.',
+                'corpo' => '<p>Este site foi criado pelo comando <code>php bin/pbl demo-popular</code>. Ele serve para ver o Publicare 4 funcionando e para testar a aparência das peles.</p>',
+            ]], 'Demo');
+        }
+        $criar('noticia', $noticias->id, 'Balanço do semestre (em breve)', 'balanco-do-semestre', ['resumo' => 'Será publicada na data programada.', 'corpo' => '<p>Esta notícia está agendada e só aparece depois da data de publicação: é a publicação agendada em ação.</p>'], 'publicado', ['data_publicacao' => gmdate('Y-m-d', time() + 20 * 86400) . ' 08:00:00']);
+        $criar('noticia', $noticias->id, 'Rascunho: guia de estilo', 'rascunho-guia-de-estilo', ['resumo' => 'Texto ainda em revisão.', 'corpo' => '<p>Rascunho não publicado (estado privado).</p>'], 'privado');
 
-        // --- Agenda ----------------------------------------------------------------------------------------------------
-        $agenda = $criar('agenda', $this->raiz, 'Agenda', 'agenda', [], 'publicado', ['peso' => 40, 'no_menu' => true, 'descricao' => 'Próximos eventos e eventos passados']);
-        $eventos = [
-            ['roda-de-leitura', 'Roda de leitura para famílias', 7, '15:00:00', '17:00:00', 'Biblioteca comunitária', 'https://exemplo.org/inscricao/roda', [34, 112, 87]],
-            ['oficina-de-poesia', 'Oficina de poesia', 15, '19:00:00', '21:00:00', 'Sala 2', '', [140, 60, 90]],
-            ['assembleia-geral', 'Assembleia geral ordinária', 30, '10:00:00', '12:00:00', 'Auditório', '', [70, 70, 70]],
-            ['feira-de-livros-passada', 'Feira de livros', -21, '09:00:00', '18:00:00', 'Praça central', '', [160, 90, 50]],
-            ['palestra-direitos', 'Palestra sobre direitos do consumidor', -60, '19:00:00', '20:30:00', 'Auditório', '', [52, 95, 140]],
-        ];
-        foreach ($eventos as [$u, $t, $d, $ini, $fim, $local, $link, $cor]) {
-            $criar('evento', $agenda->id, $t, $u, [
-                'resumo' => $t . ': atividade aberta ao público, com entrada gratuita.',
-                'corpo' => '<p>Participe! Leve um documento com foto. Há acessibilidade para pessoas com deficiência.</p>',
-                'inicio' => $dia($d, $ini), 'fim' => $dia($d, $fim), 'local' => $local,
-            ] + ($link === '' ? [] : ['link_inscricao' => $link]), 'publicado', [], $this->imagem('imagem', $t, $cor, $u . '.png', 1200, 630, $u));
+        // --- Marcos do projeto (agenda, modelo "evento") ----------------------------------------------------------------
+        $agenda = $criar('agenda', $estado->id, 'Marcos do projeto', 'agenda', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'As pré-releases do CHANGELOG, com as datas reais']);
+        foreach (ConteudoPublicare::marcos() as $i => $e) {
+            $criar('evento', $agenda->id, $e['titulo'], $e['url'], ['resumo' => $e['resumo'], 'corpo' => $e['corpo'], 'inicio' => $e['inicio'], 'local' => 'GitHub'], 'publicado', [],
+                $this->imagem('imagem', $e['titulo'], $cores[$i % 3], $e['url'] . '.png', 1200, 630, $e['url']));
         }
 
-        // --- Perguntas frequentes ---------------------------------------------------------------------------------------
-        $faq = $criar('perguntas', $this->raiz, 'Perguntas frequentes', 'perguntas-frequentes', [], 'publicado', ['peso' => 50, 'no_menu' => true]);
-        $perguntas = [
-            ['Quem pode usar a biblioteca?', 'Qualquer pessoa, com documento de identidade e comprovante de endereço no primeiro empréstimo.', 'Biblioteca'],
-            ['Quantos livros posso levar?', 'Até três livros por vez, por 15 dias, renováveis uma vez.', 'Biblioteca'],
-            ['A biblioteca tem acesso para cadeirantes?', 'Sim, a entrada e os banheiros são acessíveis, e há leitores de tela nos computadores.', 'Biblioteca'],
-            ['Como me inscrevo nas oficinas?', 'Pelo formulário de contato ou presencialmente, de segunda a sexta, das 9h às 17h.', 'Oficinas'],
-            ['As oficinas são gratuitas?', 'Sim. Quando há material, pedimos apenas a doação de itens de papelaria.', 'Oficinas'],
-            ['Qual a idade mínima?', 'As turmas infantis começam aos 7 anos; as de jovens e adultos, aos 14.', 'Oficinas'],
-            ['Posso doar livros?', 'Sim, aceitamos livros em bom estado. Entregue-os na recepção.', 'Biblioteca'],
-            ['Como acompanho a prestação de contas?', 'Os relatórios e balanços ficam na página de documentos.', 'Oficinas'],
-        ];
-        foreach ($perguntas as $i => [$p, $r, $cat]) {
-            $criar('faq', $faq->id, $p, 'faq-' . ($i + 1), ['resposta' => '<p>' . $r . '</p>', 'categoria' => $cat], 'publicado', ['peso' => ($i + 1) * 10]);
+        // --- Perguntas frequentes (modelo "faq") ---------------------------------------------------------------------------
+        $faq = $criar('perguntas', $this->raiz, 'Perguntas frequentes', 'perguntas-frequentes', [], 'publicado', ['peso' => 50, 'no_menu' => true, 'rotulo_menu' => 'Perguntas', 'descricao' => 'Licença, requisitos, instalação, atualização, backups, migração, acessibilidade e segurança']);
+        foreach (ConteudoPublicare::perguntas() as $i => [$p, $r, $cat]) {
+            $criar('faq', $faq->id, $p, 'faq-' . ($i + 1), ['resposta' => $r, 'categoria' => $cat], 'publicado', ['peso' => ($i + 1) * 10]);
         }
 
-        // --- Documentos e galeria --------------------------------------------------------------------------------------
-        $docs = $criar('pasta', $this->raiz, 'Documentos', 'documentos', [], 'publicado', ['peso' => 60, 'no_menu' => true, 'descricao' => 'Estatuto, relatórios e fotos']);
+        // --- Documentos e imagens (arquivos e texto alternativo) -------------------------------------------------------------
+        $comunidade = $ids['comunidade'];
+        $docs = $criar('pasta', $comunidade->id, 'Documentos', 'documentos', [], 'publicado', ['peso' => 20, 'no_menu' => false, 'descricao' => 'Arquivos para baixar e imagens de exemplo']);
+        $requisitos = "REQUISITOS DO PUBLICARE 4\n\nPHP " . Requisitos::PHP_MINIMO . " ou mais novo.\nExtensoes: pdo_sqlite, mbstring, sodium, json, ctype, dom, fileinfo.\nA pasta dados/ precisa ser gravavel pelo PHP.\n";
         foreach ([
-            ['estatuto-social', 'Estatuto social', "ESTATUTO SOCIAL DO INSTITUTO EXEMPLO\n\nArt. 1. O Instituto Exemplo e uma associacao civil sem fins lucrativos.\nArt. 2. Sao seus objetivos a educacao, a cultura e a cidadania.\n", 'txt'],
-            ['relatorio-anual', 'Relatório anual de atividades', "RELATORIO ANUAL\n\nAtendimentos: 1200 pessoas.\nOficinas realizadas: 48.\nLivros emprestados: 9300.\n", 'txt'],
-            ['balanco-financeiro', 'Balanço financeiro', $this->pdfMinimo('Balanco financeiro - Instituto Exemplo'), 'pdf'],
+            ['requisitos', 'Requisitos do servidor (texto)', $requisitos, 'txt'],
+            ['resumo-em-pdf', 'Resumo do Publicare 4 (PDF)', $this->pdfMinimo('Publicare 4 - plataforma livre para sites'), 'pdf'],
         ] as $i => [$u, $t, $conteudo, $ext]) {
-            $criar('arquivo', $docs->id, $t, $u, [], 'publicado', ['peso' => ($i + 1) * 10, 'descricao' => 'Documento de exemplo (' . strtoupper($ext) . ')'], $this->arquivo('arquivo', $conteudo, $u . '.' . $ext, $ext === 'pdf' ? 'application/pdf' : 'text/plain'));
+            $criar('arquivo', $docs->id, $t, $u, [], 'publicado', ['peso' => ($i + 1) * 10, 'descricao' => 'Arquivo de exemplo (' . strtoupper($ext) . ')'], $this->arquivo('arquivo', $conteudo, $u . '.' . $ext, $ext === 'pdf' ? 'application/pdf' : 'text/plain'));
         }
-        $galeria = $criar('pasta', $docs->id, 'Galeria de fotos', 'galeria-de-fotos', [], 'publicado', ['peso' => 40, 'descricao' => 'Fotos de atividades (imagens geradas)']);
-        foreach ([[34, 112, 87], [52, 95, 140], [150, 82, 40], [140, 60, 90], [70, 70, 70], [160, 90, 50]] as $i => $cor) {
-            $criar('imagem', $galeria->id, 'Foto ' . ($i + 1), 'galeria-foto-' . ($i + 1), ['legenda' => 'Atividade ' . ($i + 1), 'texto_alternativo' => 'Imagem ilustrativa colorida número ' . ($i + 1)], 'publicado', ['peso' => ($i + 1) * 10],
-                $this->imagem('imagem', 'Foto ' . ($i + 1), $cor, 'galeria-' . ($i + 1) . '.png', 1200, 800, 'g' . $i));
+        $galeria = $criar('pasta', $docs->id, 'Imagens de exemplo', 'galeria-de-imagens', [], 'publicado', ['peso' => 40, 'descricao' => 'Imagens geradas pelo comando, cada uma com texto alternativo']);
+        foreach ([[10, 90, 108], [20, 110, 130], [150, 100, 20]] as $i => $cor) {
+            $criar('imagem', $galeria->id, 'Imagem ' . ($i + 1), 'galeria-imagem-' . ($i + 1), ['legenda' => 'Ilustração ' . ($i + 1), 'texto_alternativo' => 'Ilustração abstrata em formas suaves e tons de azul-petróleo e âmbar, número ' . ($i + 1)], 'publicado', ['peso' => ($i + 1) * 10],
+                $this->imagem('imagem', 'Imagem ' . ($i + 1), $cor, 'galeria-' . ($i + 1) . '.png', 1200, 800, 'g' . $i));
         }
 
-        // --- Links úteis -----------------------------------------------------------------------------------------------
-        $links = $criar('pasta', $this->raiz, 'Links úteis', 'links-uteis', [], 'publicado', ['peso' => 70, 'no_menu' => true, 'descricao' => 'Atalhos internos e externos']);
-        $criar('link', $links->id, 'Agenda de eventos', 'link-agenda', ['destino_interno' => $agenda->id], 'publicado', ['peso' => 10, 'descricao' => 'Atalho interno']);
-        $criar('link', $links->id, 'Portal de dados abertos (exemplo)', 'link-dados-abertos', ['destino_externo' => 'https://dados.exemplo.org', 'nova_aba' => true], 'publicado', ['peso' => 20, 'descricao' => 'Atalho externo, abre em nova aba']);
-        $criar('link', $links->id, 'Fale com a biblioteca', 'link-email', ['destino_externo' => 'mailto:biblioteca@exemplo.org'], 'publicado', ['peso' => 30]);
+        // --- Links úteis ---------------------------------------------------------------------------------------------------
+        $links = $criar('pasta', $comunidade->id, 'Links úteis', 'links-uteis', [], 'publicado', ['peso' => 30, 'no_menu' => false, 'descricao' => 'Atalhos internos e externos']);
+        $criar('link', $links->id, 'Marcos do projeto', 'link-agenda', ['destino_interno' => $agenda->id], 'publicado', ['peso' => 10, 'descricao' => 'Atalho interno']);
+        $criar('link', $links->id, 'Código no GitHub', 'link-github', ['destino_externo' => ConteudoPublicare::REPOSITORIO, 'nova_aba' => true], 'publicado', ['peso' => 20, 'descricao' => 'Atalho externo, abre em nova aba']);
+        $criar('link', $links->id, 'CHANGELOG', 'link-changelog', ['destino_externo' => ConteudoPublicare::REPOSITORIO . '/blob/main/CHANGELOG.md'], 'publicado', ['peso' => 30, 'descricao' => 'O que mudou em cada versão']);
 
-        $this->versoesDoSite($criar, $pagina, $links->id);
-        $this->fluxoDeRevisao($inst);
+        // --- Blocos: aviso no topo e rodapé -----------------------------------------------------------------------------------
+        $blocos = $criar('pasta', $this->raiz, 'Blocos', 'blocos', [], 'publicado', ['peso' => 996, 'descricao' => 'Trechos reutilizáveis']);
+        $criar('bloco', $blocos->id, 'Aviso', 'bloco-aviso', ['corpo' => '<p>Site de exemplo do Publicare 4: o conteúdo mostra o produto, e as contas e os e-mails de demonstração são fictícios.</p>']);
+        $criar('bloco', $blocos->id, 'Rodapé', 'bloco-rodape', ['corpo' => '<p>O Publicare 4 é software livre, sob a licença Apache-2.0. <a href="' . ConteudoPublicare::REPOSITORIO . '">Código-fonte no GitHub</a> · <a href="/comunidade">Comunidade</a> · <a href="/contato">Contato</a> · <a href="/sobre">Sobre este exemplo</a></p>']);
 
-        // Os destaques apontam para páginas internas.
-        foreach (['oficinas' => $agenda->id, 'biblioteca' => $docs->id, 'voluntariado' => $this->idDe('voluntariado')] as $u => $alvo) {
-            $d = $this->servicos->objetos->porUrl($this->site->id, 'destaque-' . $u);
-            if ($d !== null && !isset($d->dados['destino_interno']) && $alvo > 0) {
-                $this->servicos->objetos->atualizar($d->id, ['dados' => ['destino_interno' => $alvo]], 'Demo');
-            }
-        }
+        $this->versoesDoSite($criar, $pagina);
+        $this->fluxoDeRevisao($comunidade);
     }
 
     /**
@@ -217,45 +249,47 @@ final class DemoPopularComando extends Command
      * @param \Closure(string, ?int, string, string, array<string, string|int|float|bool>, string, array<string, mixed>, ?\Closure=): Objeto $criar
      * @param \Closure(string, string): array{resumo: string, corpo: string} $pagina
      */
-    private function versoesDoSite(\Closure $criar, \Closure $pagina, int $pastaDeLinks): void
+    private function versoesDoSite(\Closure $criar, \Closure $pagina): void
     {
-        $this->logoEHero();
+        $vitrine = ConteudoPublicare::vitrine();
+        $cor = [[10, 90, 108], [20, 110, 130], [150, 100, 20]];
 
         // --- Onepage: uma página só, com seções vindas dos filhos --------------------------------------------------------------------
-        $op = $criar('pagina', $this->raiz, 'Instituto Exemplo (uma página)', 'onepage', $pagina('A mesma organização numa página só, com seções.', '<p>Versão <strong>onepage</strong>: tudo na mesma tela, com menu de âncoras.</p>'), 'publicado', ['peso' => 80, 'no_menu' => false, 'rotulo_menu' => 'Versão onepage', 'pele' => 'onepage']);
-        $criar('pagina', $op->id, 'Sobre', 'op-sobre', $pagina('Educação, cultura e cidadania desde 1998.', '<p>O Instituto Exemplo atende cerca de 1.200 pessoas por ano com oficinas de leitura, biblioteca comunitária e formação de educadores.</p>'), 'publicado', ['peso' => 10]);
-        $servicos = $criar('pasta', $op->id, 'Serviços', 'op-servicos', [], 'publicado', ['peso' => 20, 'descricao' => 'O que oferecemos']);
-        foreach (['Oficinas de leitura' => 'Para crianças e jovens.', 'Biblioteca comunitária' => 'Empréstimo gratuito.', 'Formação de educadores' => 'Curso de 80 horas.'] as $t => $r) {
-            $criar('pagina', $servicos->id, $t, 'op-servico-' . $this->slug($t), $pagina($r, '<p>' . $r . ' Saiba como participar falando conosco.</p>'), 'publicado', ['peso' => 10]);
+        $op = $criar('pagina', $this->raiz, 'Publicare 4 (uma página)', 'onepage', $pagina('O Publicare 4 numa página só, com seções.', '<p>Versão <strong>onepage</strong>: tudo na mesma tela, com menu de âncoras.</p>'), 'publicado', ['peso' => 80, 'no_menu' => false, 'rotulo_menu' => 'Versão onepage', 'pele' => 'onepage']);
+        $criar('pagina', $op->id, 'Sobre', 'op-sobre', $pagina('Sites e pequenos sistemas, sem programar.', '<p>' . $vitrine['sobre'] . '</p>'), 'publicado', ['peso' => 10]);
+        $servicos = $criar('pasta', $op->id, 'Para quem', 'op-servicos', [], 'publicado', ['peso' => 20, 'descricao' => 'Como facilita']);
+        foreach ($vitrine['servicos'] as $t => $r) {
+            $criar('pagina', $servicos->id, $t, 'op-servico-' . $this->slug($t), $pagina($r, '<p>' . $r . ' Veja mais em <a href="/como-facilita">Como facilita</a>.</p>'), 'publicado', ['peso' => 10]);
         }
         $destaques = $criar('pasta', $op->id, 'Destaques', 'op-destaques', [], 'publicado', ['peso' => 30, 'descricao' => 'Em evidência']);
-        foreach ([['oficinas', 'Inscrições abertas', [34, 112, 87]], ['biblioteca', 'Biblioteca aberta aos sábados', [52, 95, 140]], ['voluntario', 'Seja voluntário', [150, 82, 40]]] as $i => [$u, $t, $cor]) {
-            $criar('destaque', $destaques->id, $t, 'op-destaque-' . $u, ['texto' => 'Saiba como participar.', 'nova_aba' => false], 'publicado', ['peso' => ($i + 1) * 10],
-                $this->imagem('imagem', $t, $cor, 'op-destaque-' . $u . '.png', 1200, 500, $u));
+        foreach ([['conhecer', 'O que ele faz'], ['instalar', 'Como instalar'], ['participar', 'Como participar']] as $i => [$u, $t]) {
+            $criar('destaque', $destaques->id, $t, 'op-destaque-' . $u, ['texto' => 'Saiba mais.', 'nova_aba' => false], 'publicado', ['peso' => ($i + 1) * 10],
+                $this->imagem('imagem', $t, $cor[$i], 'op-destaque-' . $u . '.png', 1200, 500, $u));
         }
-        $criar('pagina', $op->id, 'Contato', 'op-contato', $pagina('Fale com a gente.', '<p>Rua das Letras, 100, Centro. Telefone (11) 5555-0100. Ou use o <a href="/contato">formulário de contato</a>.</p>'), 'publicado', ['peso' => 40]);
+        $criar('pagina', $op->id, 'Contato', 'op-contato', $pagina('Fale com o projeto.', '<p>' . $vitrine['contato'] . ' <a href="/contato">Formulário de contato</a>.</p>'), 'publicado', ['peso' => 40]);
 
         // --- Portal: várias páginas, com notícias --------------------------------------------------------------------------------------
-        $pt = $criar('pagina', $this->raiz, 'Instituto Exemplo (portal)', 'portal', $pagina('Notícias, serviços e institucional num portal.', '<p>Versão <strong>portal</strong>: várias páginas, hero com carrossel, listagem de notícias e rodapé.</p>'), 'publicado', ['peso' => 90, 'no_menu' => false, 'rotulo_menu' => 'Versão portal', 'pele' => 'portal']);
-        $criar('pagina', $pt->id, 'Sobre o portal', 'pt-sobre', $pagina('Quem somos.', '<p>Portal institucional de demonstração do Instituto Exemplo.</p>'), 'publicado', ['peso' => 10, 'no_menu' => true]);
-        $noticias = $criar('pasta', $pt->id, 'Notícias do portal', 'pt-noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Novidades']);
-        foreach ([['inscricoes', 'Inscrições abertas para as oficinas', 2, [34, 112, 87]], ['horario', 'Biblioteca abre aos sábados', 8, [52, 95, 140]], ['feira', 'Feira de livros reúne 800 visitantes', 20, [140, 60, 90]], ['relatorio', 'Relatório anual publicado', 40, [60, 100, 100]]] as $i => [$u, $t, $atras, $cor]) {
-            $criar('noticia', $noticias->id, $t, 'pt-noticia-' . $u, ['resumo' => $t . '.', 'corpo' => '<p>' . $t . '. Acompanhe as próximas novidades por aqui.</p>'], 'publicado',
-                ['data_publicacao' => gmdate('Y-m-d', time() - $atras * 86400) . ' 09:00:00', 'tags' => $i % 2 === 0 ? 'Eventos, Leitura' : 'Biblioteca'], $this->imagem('imagem_destaque', $t, $cor, 'pt-noticia-' . $u . '.png', 1200, 630, $u));
+        $pt = $criar('pagina', $this->raiz, 'Publicare 4 (portal)', 'portal', $pagina('Notícias, serviços e institucional num portal.', '<p>Versão <strong>portal</strong>: várias páginas, hero com carrossel, listagem de notícias e rodapé.</p>'), 'publicado', ['peso' => 90, 'no_menu' => false, 'rotulo_menu' => 'Versão portal', 'pele' => 'portal']);
+        $criar('pagina', $pt->id, 'Sobre o portal', 'pt-sobre', $pagina('O que é.', '<p>' . $vitrine['sobre'] . '</p>'), 'publicado', ['peso' => 10, 'no_menu' => true]);
+        $noticias = $criar('pasta', $pt->id, 'Novidades do portal', 'pt-noticias', [], 'publicado', ['peso' => 20, 'no_menu' => true, 'descricao' => 'Versões recentes']);
+        foreach (ConteudoPublicare::novidades() as $i => $n) {
+            $criar('noticia', $noticias->id, $n['titulo'], 'pt-' . $n['url'], ['resumo' => $n['resumo'], 'corpo' => $n['corpo']], 'publicado',
+                ['data_publicacao' => $n['data'], 'tags' => $i % 2 === 0 ? 'Acesso' : 'Painel'], $this->imagem('imagem_destaque', $n['titulo'], $cor[$i % 3], 'pt-' . $n['url'] . '.png', 1200, 630, $n['url']));
         }
-        $pts = $criar('pasta', $pt->id, 'Serviços do portal', 'pt-servicos', [], 'publicado', ['peso' => 30, 'no_menu' => true, 'descricao' => 'O que oferecemos']);
-        $criar('pagina', $pts->id, 'Biblioteca', 'pt-servico-biblioteca', $pagina('Empréstimo gratuito.', '<p>Mais de cinco mil títulos.</p>'), 'publicado', ['peso' => 10, 'no_menu' => true]);
-        $criar('pagina', $pts->id, 'Oficinas', 'pt-servico-oficinas', $pagina('Leitura e escrita.', '<p>Turmas para crianças e jovens.</p>'), 'publicado', ['peso' => 20, 'no_menu' => true]);
+        $pts = $criar('pasta', $pt->id, 'Para quem', 'pt-servicos', [], 'publicado', ['peso' => 30, 'no_menu' => true, 'descricao' => 'Como facilita']);
+        $j = 0;
+        foreach ($vitrine['servicos'] as $t => $r) {
+            $criar('pagina', $pts->id, $t, 'pt-servico-' . $this->slug($t), $pagina($r, '<p>' . $r . '</p>'), 'publicado', ['peso' => (++$j) * 10, 'no_menu' => true]);
+        }
         $ptd = $criar('pasta', $pt->id, 'Destaques do portal', 'pt-destaques', [], 'publicado', ['peso' => 40, 'descricao' => 'Em evidência']);
-        foreach ([['oficinas', 'Oficinas de leitura', [34, 112, 87]], ['biblioteca', 'Biblioteca comunitária', [52, 95, 140]]] as $i => [$u, $t, $cor]) {
+        foreach ([['conhecer', 'O que ele faz'], ['instalar', 'Como instalar']] as $i => [$u, $t]) {
             $criar('destaque', $ptd->id, $t, 'pt-destaque-' . $u, ['texto' => 'Conheça.', 'nova_aba' => false], 'publicado', ['peso' => ($i + 1) * 10],
-                $this->imagem('imagem', $t, $cor, 'pt-destaque-' . $u . '.png', 1200, 500, $u));
+                $this->imagem('imagem', $t, $cor[$i], 'pt-destaque-' . $u . '.png', 1200, 500, $u));
         }
-        $criar('pagina', $pt->id, 'Contato do portal', 'pt-contato', $pagina('Fale com a gente.', '<p>Veja o <a href="/contato">formulário de contato</a>.</p>'), 'publicado', ['peso' => 50, 'no_menu' => true]);
+        $criar('pagina', $pt->id, 'Contato do portal', 'pt-contato', $pagina('Fale com o projeto.', '<p>Veja o <a href="/contato">formulário de contato</a>.</p>'), 'publicado', ['peso' => 50, 'no_menu' => true]);
 
-        // Cartões grandes na página inicial (molde home da pele básica): links publicados direto sob a página inicial.
-        // Em demos criados antes, os dois atalhos moravam em "Links úteis" com outro título: reaproveita e reposiciona.
-        foreach ([['link-onepage', 'Ver versão Onepage', $op, 40, 'Toda a organização numa página só, com seções.'], ['link-portal', 'Ver versão Portal', $pt, 50, 'Notícias, serviços e institucional num portal.']] as [$url, $titulo, $alvo, $peso, $texto]) {
+        // Cartões na página inicial (molde home): links publicados direto sob a página inicial, depois dos quatro pilares.
+        foreach ([['link-onepage', 'Ver versão Onepage', $op, 50, 'O Publicare 4 numa página só, com seções (pele onepage).'], ['link-portal', 'Ver versão Portal', $pt, 60, 'Notícias, serviços e institucional num portal (pele portal).']] as [$url, $titulo, $alvo, $peso, $texto]) {
             $existente = $this->servicos->objetos->porUrl($this->site->id, $url);
             if ($existente === null) {
                 $criar('link', $this->raiz, $titulo, $url, ['destino_interno' => $alvo->id], 'publicado', ['peso' => $peso, 'descricao' => $texto]);
@@ -273,46 +307,26 @@ final class DemoPopularComando extends Command
         return trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($ascii)), '-');
     }
 
-    /** Logo e imagem de abertura (hero) do site, geradas, para as peles onepage e portal. Só se ainda não houver. */
-    private function logoEHero(): void
-    {
-        $gravadas = $this->servicos->configs->gravadas($this->site->id);
-        $novas = [];
-        foreach (['logo' => ['Logo', [34, 112, 87], 400, 120], 'imagem_hero' => ['Imagem de abertura', [52, 95, 140], 1200, 500]] as $chave => [$t, $cor, $l, $a]) {
-            if (isset($gravadas[$chave])) {
-                continue;
-            }
-            $o = $this->m->garantirObjeto($this->site, 'imagem', $this->raiz, $t, 'demo-' . str_replace('_', '-', $chave), ['legenda' => $t, 'texto_alternativo' => $t], 'publicado', ['peso' => 999], $this->imagem('imagem', $t, $cor, 'demo-' . $chave . '.png', $l, $a, $chave));
-            $arquivo = $o->dados['imagem'] ?? null;
-            if (is_int($arquivo) || (is_string($arquivo) && ctype_digit($arquivo))) {
-                $novas[$chave] = (int) $arquivo;
-            }
-        }
-        if ($novas !== []) {
-            $this->servicos->configs->definir($this->site->id, $novas);
-        }
-    }
-
     /**
-     * Fluxo de revisão (fase 6): duas contas, `autor` e `editor`, com acesso só à seção Institucional, e dois envios de exemplo
+     * Fluxo de revisão (fase 6): duas contas, `autor` e `editor`, com acesso só à seção Comunidade, e dois envios de exemplo
      * (um pendente na fila do editor, um devolvido com motivo). Idempotente: conta que já existe fica como está e os exemplos só
      * mudam de estado enquanto ainda não têm histórico de revisão.
      */
     private function fluxoDeRevisao(Objeto $area): void
     {
         $contas = [];
-        foreach (['autor' => ['Autora de exemplo', Perfil::Autor], 'editor' => ['Editor de exemplo', Perfil::Editor]] as $login => [$nome, $perfil]) {
+        foreach (['autor' => ['Autora de demonstração', Perfil::Autor], 'editor' => ['Editor de demonstração', Perfil::Editor]] as $login => [$nome, $perfil]) {
             $conta = $this->servicos->usuarios->porLogin($login);
             if ($conta === null) {
-                $conta = $this->servicos->usuarios->criar($login, $login . '@exemplo.org', $nome, self::SENHA_DEMO, false, 'demo');
+                $conta = $this->servicos->usuarios->criar($login, $login . '@exemplo.invalid', $nome, self::SENHA_DEMO, false, 'demo');
                 $this->servicos->usuarios->conceder($conta->id, $area->id, $perfil, 'demo');
             }
             $contas[$login] = $conta;
         }
         /** @var array{autor: Usuario, editor: Usuario} $contas */
         $exemplos = [
-            ['envio-pendente-calendario-de-visitas', 'Calendário de visitas (aguardando revisão)', 'Texto enviado pela autora de exemplo e aguardando o editor.'],
-            ['envio-devolvido-nota-de-transparencia', 'Nota de transparência (devolvida)', 'Texto devolvido pelo editor com um pedido de ajuste.'],
+            ['envio-pendente-guia-de-estilo', 'Guia de estilo da documentação (aguardando revisão)', 'Texto enviado pela autora de exemplo e aguardando o editor.'],
+            ['envio-devolvido-texto-de-contribuicao', 'Texto sobre contribuição (devolvido)', 'Texto devolvido pelo editor com um pedido de ajuste.'],
         ];
         foreach ($exemplos as $i => [$url, $titulo, $resumo]) {
             $o = $this->m->garantirObjeto($this->site, 'pagina', $area->id, $titulo, $url, ['resumo' => $resumo, 'corpo' => '<p>' . $resumo . '</p>'], 'privado', ['criado_por' => $contas['autor']->id, 'peso' => 900 + $i]);
@@ -321,26 +335,9 @@ final class DemoPopularComando extends Command
             }
             $this->servicos->revisao->enviar($contas['autor'], $o->id);
             if ($i === 1) {
-                $this->servicos->revisao->devolver($contas['editor'], $o->id, 'Faltou citar a fonte dos números e revisar o último parágrafo. Ajuste e reenvie.');
+                $this->servicos->revisao->devolver($contas['editor'], $o->id, 'Faltou citar a fonte no repositório e revisar o último parágrafo. Ajuste e reenvie.');
             }
         }
-    }
-
-    private function idDe(string $url): int
-    {
-        $o = $this->servicos->objetos->porUrl($this->site->id, $url);
-
-        return $o === null ? 0 : $o->id;
-    }
-
-    private function boasVindas(): string
-    {
-        return '<h2>Bem-vindo ao Instituto Exemplo</h2>'
-            . '<p>Somos uma organização <strong>fictícia</strong>, criada para demonstrar o PBL4. Aqui você encontra as <a href="/noticias">notícias</a>, a <a href="/agenda">agenda de eventos</a>, as <a href="/perguntas-frequentes">perguntas frequentes</a> e os <a href="/documentos">documentos</a> de transparência.</p>'
-            . '<h3>Nossos programas</h3><ul><li>Oficinas de leitura e escrita</li><li>Biblioteca comunitária</li><li>Formação de educadores</li></ul>'
-            . '<h3>Horário de atendimento</h3><table class="table"><thead><tr><th scope="col">Dia</th><th scope="col">Horário</th><th scope="col">Atividade</th></tr></thead><tbody>'
-            . '<tr><td>Segunda a sexta</td><td>9h às 17h</td><td>Biblioteca e secretaria</td></tr><tr><td>Sábado</td><td>9h às 13h</td><td>Oficinas e biblioteca</td></tr></tbody></table>'
-            . '<p>Quer ajudar? Veja como ser <a href="/voluntariado">voluntário</a> ou <a href="/contato">fale conosco</a>.</p>';
     }
 
     /**

@@ -27,15 +27,21 @@ Se o seu site usa uma pele que não é a básica, copie para ela os moldes de `a
 
 ## Site de demonstração
 
-Para ver tudo funcionando (e para testar o visual), o PBL4 traz um site fictício, o **Instituto Exemplo**:
+Para ver tudo funcionando (e para testar o visual), o PBL4 traz um site de exemplo que **apresenta o próprio Publicare 4**, escrito com o programa:
 
 ```bash
-make pbl ARGS="instalar --nome='Instituto Exemplo'"
+make pbl ARGS="instalar --nome='Publicare 4'"
 make pbl ARGS="demo-popular"                 # ativa os 4 modelos, cria o conteúdo e publica
 make pbl ARGS="demo-popular --site=2"        # outro site
 ```
 
-Ele cria página inicial com texto formatado, 3 destaques, a seção Institucional (com subpáginas), 8 notícias (uma agendada para o futuro e um rascunho), agenda, perguntas frequentes, documentos, galeria de fotos e links úteis. Também cria as contas `autor` e `editor` (senha de demonstração `demo-2026-pbl4`, **só para demo**: nunca use em site de verdade), cada uma com a seção Institucional, e dois envios de exemplo: um **em revisão** e um **devolvido com motivo**, para testar o fluxo de revisão. Pode ser repetido sem duplicar nada. **Só para desenvolvimento e demonstração**: se o site já tiver mais de 30 conteúdos, o comando recusa; `--forcar` ignora a trava, e `--sem-publicar` só cria o conteúdo.
+Ele cria a página inicial (promessa, quatro pilares e chamadas), as páginas **O que é**, **O que faz**, **Como facilita**, **O que inova**, **Instalação**, **Comunidade** e **Estado do projeto**, as perguntas frequentes (modelo `faq`), a agenda de marcos do projeto (modelo `evento`), a faixa de destaques (modelo `destaque`), blocos de rodapé e aviso (modelo `bloco`), notícias com as versões publicadas (uma agendada para o futuro e um rascunho), documentos e imagens com texto alternativo. Cada afirmação sobre o produto vem de um documento do repositório, e um teste confere que o recurso citado existe. Também cria as contas `autor` e `editor` (e-mails `@exemplo.invalid`, fictícios; senha de demonstração `demo-2026-pbl4`, **só para demo**: nunca use em site de verdade), cada uma com a seção Comunidade, e dois envios de exemplo: um **em revisão** e um **devolvido com motivo**, para testar o fluxo de revisão. Pode ser repetido sem duplicar nada. **Só para desenvolvimento e demonstração**: se o site já tiver mais de 30 conteúdos, o comando recusa; `--forcar` ignora a trava, e `--sem-publicar` só cria o conteúdo.
+
+### Instalação limpa x demonstração completa
+
+- **`bin/pbl instalar`** continua **leve**: usa a pele `publicare` (a pele padrão dos sites novos), cria uma página inicial curta com a promessa do Publicare e os pilares, mais "Sobre", "Notícias" e "Contato", e **não liga** nenhum modelo opcional.
+- **`bin/pbl demo-popular`** faz a apresentação completa descrita acima, sobre a pele `publicare`. A prévia (`previa/gerar-pacote.php`) usa a demonstração completa.
+- A pele `basica` não mudou e continua instalada. Sites que já a usam seguem com ela; só os sites novos começam na `publicare`. Os moldes das duas têm os mesmos nomes e campos, então dá para trocar de pele sem perder conteúdo.
 
 ## Peles por conteúdo e as duas versões do demo
 

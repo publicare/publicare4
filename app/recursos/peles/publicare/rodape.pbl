@@ -1,0 +1,6 @@
+<footer class="rodape"><div class="rodape-in">
+<p class="rodape-marca"><@eco #site_nome@></p>
+<@se %SITE.config.rodape != ""@><div class="rodape-texto"><@ecocru %SITE.config.rodape@></div>
+<@/se@><@incluir arquivo="bloco_rodape"@>
+<a class="rodape-topo" href="#conteudo">Voltar ao topo</a>
+</div></footer>
