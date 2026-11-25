@@ -35,6 +35,8 @@ Se o seu site usa uma pele que não é a básica, copie para ela os moldes de `a
 
 ## Site de demonstração
 
+> A demonstração é **só para desenvolvimento e testes**: cria contas com senha pública. Para o site oficial do Publicare use `publicare-oficial-carregar` ([procedimento do operador](../tecnica/site-oficial.md)).
+
 Para ver tudo funcionando (e para testar o visual), o PBL4 traz um site de exemplo que **apresenta o próprio Publicare 4**, escrito com o programa:
 
 ```bash
