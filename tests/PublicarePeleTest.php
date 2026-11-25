@@ -138,6 +138,52 @@ final class PublicarePeleTest extends TestCase
         self::assertGreaterThanOrEqual($minimo, $razao, sprintf('%s: %s sobre %s dá %.2f:1 (mínimo %.1f:1)', $tema, $a, $b, $razao, $minimo));
     }
 
+    /** Identidade (rodada 2): laranja predominante; nenhum verde-azulado (teal/petróleo) como cor da pele, nos dois temas. */
+    #[\PHPUnit\Framework\Attributes\DataProvider('temas')]
+    public function testNenhumaCorEmTealEMarcaEmLaranja(string $tema): void
+    {
+        $cores = $this->variaveis($tema);
+        foreach ($cores as $nome => $hex) {
+            [$h, $s] = self::matizESaturacao($hex);
+            self::assertFalse($s >= 0.12 && $h >= 150 && $h <= 210, "{$tema}: {$nome} {$hex} é verde-azulado (matiz {$h}°)");
+        }
+        foreach (['--cor-primaria', '--cor-acento', '--cor-link', '--cor-hero-fundo', '--cor-hero-fundo-2'] as $nome) {
+            [$h, $s] = self::matizESaturacao($cores[$nome]);
+            self::assertTrue($h >= 15 && $h <= 40 && $s >= 0.6, "{$tema}: {$nome} {$cores[$nome]} deveria ser laranja");
+        }
+        foreach (['--cor-fundo', '--cor-fundo-suave', '--cor-cartao', '--cor-rodape-fundo', '--cor-texto'] as $nome) {
+            [$h, $s] = self::matizESaturacao($cores[$nome]);
+            self::assertTrue($s < 0.08 || ($h >= 0 && $h <= 60), "{$tema}: neutro {$nome} {$cores[$nome]} deveria ser quente");
+        }
+    }
+
+    /** @return array<string, array{string}> */
+    public static function temas(): array
+    {
+        return ['claro' => ['claro'], 'escuro' => ['escuro']];
+    }
+
+    /** @return array{float, float} matiz (graus) e saturação HSL */
+    private static function matizESaturacao(string $hex): array
+    {
+        [$r, $g, $b] = array_map(static fn (string $c): float => hexdec($c) / 255, str_split(ltrim($hex, '#'), 2));
+        $max = max($r, $g, $b);
+        $min = min($r, $g, $b);
+        $d = $max - $min;
+        if ($d == 0.0) {
+            return [0.0, 0.0];
+        }
+        $l = ($max + $min) / 2;
+        $s = $d / (1 - abs(2 * $l - 1));
+        $h = match ($max) {
+            $r => fmod(($g - $b) / $d, 6),
+            $g => ($b - $r) / $d + 2,
+            default => ($r - $g) / $d + 4,
+        };
+
+        return [fmod($h * 60 + 360, 360), $s];
+    }
+
     private function bloco(string $padrao, string $css): string
     {
         if (preg_match($padrao, $css, $m) !== 1) {

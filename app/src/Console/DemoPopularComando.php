@@ -162,9 +162,9 @@ final class DemoPopularComando extends Command
         // --- Destaques da página inicial (imagens geradas) -----------------------------------------------------------
         $pastaDestaques = $criar('pasta', $this->raiz, 'Destaques', 'destaques', [], 'publicado', ['peso' => 995, 'descricao' => 'Banners da página inicial']);
         foreach ([
-            ['conhecer', 'Veja o que ele faz', 'Conteúdo em árvore, moldes, revisão, domínios, busca e cópias de segurança.', [10, 90, 108], 'o-que-ele-faz'],
-            ['instalar', 'Instale e experimente', 'Requisitos do servidor e caminhos de instalação.', [20, 110, 130], 'instalacao-e-requisitos'],
-            ['participar', 'Participe do projeto', 'Você não precisa programar para ajudar.', [150, 100, 20], 'comunidade'],
+            ['conhecer', 'Veja o que ele faz', 'Conteúdo em árvore, moldes, revisão, domínios, busca e cópias de segurança.', [194, 65, 12], 'o-que-ele-faz'],
+            ['instalar', 'Instale e experimente', 'Requisitos do servidor e caminhos de instalação.', [232, 89, 12], 'instalacao-e-requisitos'],
+            ['participar', 'Participe do projeto', 'Você não precisa programar para ajudar.', [255, 154, 60], 'comunidade'],
         ] as $i => [$u, $t, $txt, $cor, $alvo]) {
             $criar('destaque', $pastaDestaques->id, $t, 'destaque-' . $u, ['texto' => $txt, 'nova_aba' => false, 'destino_interno' => $ids[$alvo]->id], 'publicado', ['peso' => ($i + 1) * 10],
                 $this->imagem('imagem', $t, $cor, 'destaque-' . $u . '.png', 1200, 500, $u));
@@ -210,8 +210,8 @@ final class DemoPopularComando extends Command
             $criar('arquivo', $docs->id, $t, $u, [], 'publicado', ['peso' => ($i + 1) * 10, 'descricao' => 'Arquivo de exemplo (' . strtoupper($ext) . ')'], $this->arquivo('arquivo', $conteudo, $u . '.' . $ext, $ext === 'pdf' ? 'application/pdf' : 'text/plain'));
         }
         $galeria = $criar('pasta', $docs->id, 'Imagens de exemplo', 'galeria-de-imagens', [], 'publicado', ['peso' => 40, 'descricao' => 'Imagens geradas pelo comando, cada uma com texto alternativo']);
-        foreach ([[10, 90, 108], [20, 110, 130], [150, 100, 20]] as $i => $cor) {
-            $criar('imagem', $galeria->id, 'Imagem ' . ($i + 1), 'galeria-imagem-' . ($i + 1), ['legenda' => 'Ilustração ' . ($i + 1), 'texto_alternativo' => 'Ilustração abstrata em formas suaves e tons de azul-petróleo e âmbar, número ' . ($i + 1)], 'publicado', ['peso' => ($i + 1) * 10],
+        foreach ([[194, 65, 12], [232, 89, 12], [255, 154, 60]] as $i => $cor) {
+            $criar('imagem', $galeria->id, 'Imagem ' . ($i + 1), 'galeria-imagem-' . ($i + 1), ['legenda' => 'Ilustração ' . ($i + 1), 'texto_alternativo' => 'Ilustração abstrata em formas suaves e tons de laranja e âmbar, número ' . ($i + 1)], 'publicado', ['peso' => ($i + 1) * 10],
                 $this->imagem('imagem', 'Imagem ' . ($i + 1), $cor, 'galeria-' . ($i + 1) . '.png', 1200, 800, 'g' . $i));
         }
 
