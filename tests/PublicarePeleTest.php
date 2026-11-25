@@ -112,7 +112,10 @@ final class PublicarePeleTest extends TestCase
             ['--cor-rodape-texto', '--cor-rodape-fundo', $texto], ['--cor-rodape-link', '--cor-rodape-fundo', $texto],
             ['--cor-foco', '--cor-fundo', $componente], ['--cor-foco', '--cor-fundo-suave', $componente],
             ['--cor-borda-forte', '--cor-fundo', $componente], ['--cor-borda-forte', '--cor-cartao', $componente],
-            ['--cor-acento', '--cor-hero-fundo', $componente], ['--cor-acento', '--cor-rodape-fundo', $componente],
+            ['--cor-hero-sobre-botao', '--cor-hero-botao', $texto], ['--cor-hero-botao', '--cor-hero-fundo', $componente], ['--cor-hero-botao', '--cor-hero-fundo-2', $componente],
+            ['--cor-hero-borda', '--cor-hero-fundo', $componente], ['--cor-hero-borda', '--cor-hero-fundo-2', $componente],
+            ['--cor-hero-foco', '--cor-hero-fundo', $componente], ['--cor-hero-foco', '--cor-hero-fundo-2', $componente],
+            ['--cor-acento', '--cor-rodape-fundo', $componente],
         ];
         $casos = [];
         foreach (['claro', 'escuro'] as $tema) {

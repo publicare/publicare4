@@ -3,31 +3,35 @@
    TODA a paleta mora nos dois blocos de variáveis logo abaixo (claro e escuro): trocar a cara do site é trocar só estes valores.
    Contraste (WCAG 2.2 AA): texto >= 4,5:1, componentes e foco >= 3:1, nos dois temas; o teste PublicarePeleTest recalcula os pares. */
 :root{
-  --cor-texto:#13272d;
-  --cor-texto-suave:#44585e;
+  --cor-texto:#2a1d14;
+  --cor-texto-suave:#5c4a3d;
   --cor-fundo:#ffffff;
-  --cor-fundo-suave:#eef5f6;
+  --cor-fundo-suave:#fdf3ea;
   --cor-cartao:#ffffff;
-  --cor-borda:#cfdcdf;
-  --cor-borda-forte:#6b858c;
-  --cor-link:#0a5a6c;
-  --cor-link-ativo:#063b48;
-  --cor-primaria:#0a5a6c;
+  --cor-borda:#ecd9c8;
+  --cor-borda-forte:#8a6f5c;
+  --cor-link:#c2410c;
+  --cor-link-ativo:#9a3412;
+  --cor-primaria:#c2410c;
   --cor-sobre-primaria:#ffffff;
-  --cor-acento:#f5a524;
-  --cor-sobre-acento:#2a1b00;
-  --cor-foco:#0a5a6c;
-  --cor-hero-fundo:#07303a;
-  --cor-hero-fundo-2:#0b4b5a;
-  --cor-hero-texto:#f2fafc;
-  --cor-hero-suave:#b8d8df;
+  --cor-acento:#ff9a3c;
+  --cor-sobre-acento:#2b1200;
+  --cor-foco:#c2410c;
+  --cor-hero-fundo:#ff9a3c;
+  --cor-hero-fundo-2:#e8590c;
+  --cor-hero-texto:#1f0d00;
+  --cor-hero-suave:#2b1200;
+  --cor-hero-botao:#1f0d00;
+  --cor-hero-sobre-botao:#fff8f2;
+  --cor-hero-borda:#1f0d00;
+  --cor-hero-foco:#1f0d00;
   --cor-aviso:#fff1c7;
   --cor-aviso-texto:#3b2c00;
-  --cor-rodape-fundo:#0b2a31;
-  --cor-rodape-texto:#d6e6ea;
-  --cor-rodape-link:#9fdbe8;
+  --cor-rodape-fundo:#2a1a10;
+  --cor-rodape-texto:#ecdccf;
+  --cor-rodape-link:#ffb36b;
   --raio:.9rem;
-  --sombra:0 1px 2px rgba(10,40,48,.08),0 8px 24px rgba(10,40,48,.07);
+  --sombra:0 1px 2px rgba(60,30,10,.08),0 8px 24px rgba(60,30,10,.07);
   --largura:72rem;
   --largura-texto:46rem;
   --lateral:1.25rem;
@@ -37,29 +41,33 @@
 }
 @media (prefers-color-scheme:dark){
   :root{
-    --cor-texto:#e7f1f3;
-    --cor-texto-suave:#a9c0c6;
-    --cor-fundo:#0d1a1e;
-    --cor-fundo-suave:#132428;
-    --cor-cartao:#162b30;
-    --cor-borda:#2a444a;
-    --cor-borda-forte:#6f939b;
-    --cor-link:#7fd0e2;
-    --cor-link-ativo:#b4e6f1;
-    --cor-primaria:#5cc3d8;
-    --cor-sobre-primaria:#04222a;
-    --cor-acento:#ffbe4d;
-    --cor-sobre-acento:#2a1b00;
-    --cor-foco:#ffbe4d;
-    --cor-hero-fundo:#06242c;
-    --cor-hero-fundo-2:#0a3a46;
-    --cor-hero-texto:#f2fafc;
-    --cor-hero-suave:#b8d8df;
+    --cor-texto:#f6ece4;
+    --cor-texto-suave:#c9b5a5;
+    --cor-fundo:#1a120d;
+    --cor-fundo-suave:#241912;
+    --cor-cartao:#2b1d15;
+    --cor-borda:#4a3628;
+    --cor-borda-forte:#9c8574;
+    --cor-link:#ffa45c;
+    --cor-link-ativo:#ffc092;
+    --cor-primaria:#ff9a3c;
+    --cor-sobre-primaria:#2b1200;
+    --cor-acento:#ffa24d;
+    --cor-sobre-acento:#2b1200;
+    --cor-foco:#ffb36b;
+    --cor-hero-fundo:#2a150a;
+    --cor-hero-fundo-2:#5a2410;
+    --cor-hero-texto:#fff8f2;
+    --cor-hero-suave:#fcd9bd;
+    --cor-hero-botao:#ff9a3c;
+    --cor-hero-sobre-botao:#2b1200;
+    --cor-hero-borda:#fcd9bd;
+    --cor-hero-foco:#ffb36b;
     --cor-aviso:#3a3210;
     --cor-aviso-texto:#f5e6a8;
-    --cor-rodape-fundo:#081317;
-    --cor-rodape-texto:#c3d6db;
-    --cor-rodape-link:#9fdbe8;
+    --cor-rodape-fundo:#140d09;
+    --cor-rodape-texto:#d9c6b8;
+    --cor-rodape-link:#ffb36b;
     --sombra:none;
   }
 }
@@ -148,13 +156,13 @@ button:hover,.botao:hover{color:var(--cor-sobre-primaria);transform:translateY(-
 .hero-in{max-width:var(--largura);margin-inline:auto;padding-inline:var(--lateral);display:grid;gap:2rem;align-items:center}
 .hero h1{color:var(--cor-hero-texto);margin-bottom:1rem}
 .hero .resumo{font-size:clamp(1.1rem,1rem + .6vw,1.4rem);color:var(--cor-hero-suave);max-width:38rem;margin-bottom:1.5rem}
-.hero :focus-visible{outline-color:var(--cor-acento)}
-.hero .botao{background:var(--cor-acento);border-color:var(--cor-acento);color:var(--cor-sobre-acento)}
-.hero .botao:hover{color:var(--cor-sobre-acento)}
-.hero .botao-claro{background:transparent;border-color:var(--cor-hero-suave);color:var(--cor-hero-texto)}
-.hero .botao-claro:hover{background:rgba(255,255,255,.12);color:var(--cor-hero-texto)}
+.hero :focus-visible{outline-color:var(--cor-hero-foco)}
+.hero .botao{background:var(--cor-hero-botao);border-color:var(--cor-hero-botao);color:var(--cor-hero-sobre-botao)}
+.hero .botao:hover{color:var(--cor-hero-sobre-botao)}
+.hero .botao-claro{background:transparent;border-color:var(--cor-hero-borda);color:var(--cor-hero-texto)}
+.hero .botao-claro:hover{background:rgba(255,255,255,.22);color:var(--cor-hero-texto)}
 .hero-botoes{display:flex;flex-wrap:wrap;gap:.75rem;margin:0}
-.hero-imagem img{display:block;border-radius:var(--raio);box-shadow:0 20px 40px rgba(0,0,0,.35)}
+.hero-imagem img{display:block;border-radius:var(--raio);box-shadow:0 20px 40px rgba(60,20,0,.35)}
 @media (min-width:56rem){.hero{padding:5.5rem 0 6rem}.hero-in{grid-template-columns:1.15fr .85fr}}
 
 /* Seções alternadas */
@@ -165,9 +173,10 @@ button:hover,.botao:hover{color:var(--cor-sobre-primaria);transform:translateY(-
 .chamada h2{color:var(--cor-hero-texto);margin-top:0}
 .chamada p{color:var(--cor-hero-suave)}
 .chamada .hero-botoes{justify-content:center}
-.chamada :focus-visible{outline-color:var(--cor-acento)}
-.chamada .botao{background:var(--cor-acento);border-color:var(--cor-acento);color:var(--cor-sobre-acento)}
-.chamada .botao-claro{background:transparent;border-color:var(--cor-hero-suave);color:var(--cor-hero-texto)}
+.chamada :focus-visible{outline-color:var(--cor-hero-foco)}
+.chamada .botao{background:var(--cor-hero-botao);border-color:var(--cor-hero-botao);color:var(--cor-hero-sobre-botao)}
+.chamada .botao:hover{color:var(--cor-hero-sobre-botao)}
+.chamada .botao-claro{background:transparent;border-color:var(--cor-hero-borda);color:var(--cor-hero-texto)}
 
 /* Grades e cartões */
 .grade,.filhos ul{list-style:none;margin:0;padding:0;display:grid;gap:1rem;grid-template-columns:1fr}
@@ -270,7 +279,7 @@ button:hover,.botao:hover{color:var(--cor-sobre-primaria);transform:translateY(-
 .pbl-acoes[hidden]{display:none}
 
 /* Rodapé */
-.rodape{background:var(--cor-rodape-fundo);color:var(--cor-rodape-texto);padding:3rem 0 2.5rem;font-size:.97rem}
+.rodape{border-top:4px solid var(--cor-acento);background:var(--cor-rodape-fundo);color:var(--cor-rodape-texto);padding:3rem 0 2.5rem;font-size:.97rem}
 .rodape-in{max-width:var(--largura);margin-inline:auto;padding-inline:var(--lateral)}
 .rodape a{color:var(--cor-rodape-link)}
 .rodape :focus-visible{outline-color:var(--cor-acento)}
