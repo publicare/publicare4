@@ -18,6 +18,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 - **Carga do site oficial sem e-mail de contato:** `--email-contato` de `publicare-oficial-carregar` passa a ser opcional. Sem ele, a carga não cria formulário, caixa de mensagens nem grava e-mail, e `/contato` vira a página "Fale com o projeto" com links do GitHub (issues, como participar, relato privado de segurança). Com ele, nada muda; rodar sem o e-mail não apaga o que já existe.
 
+
 ## [0.1.0-rc.11] - 2026-11-25
 
 > **Em resumo:** pele `publicare` (laranja, moderna e acessível) vira a pele padrão dos sites novos, com SEO e prévias de compartilhamento prontos; site de exemplo e carga do site oficial do Publicare sem dados de demonstração; manual de uso por público (editor, administrador, desenvolvedor, contribuidor); e-mail do site por servidor local sem TLS.
