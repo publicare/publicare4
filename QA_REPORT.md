@@ -1,57 +1,42 @@
-# QA_REPORT — PBL4 novo painel, fase 1 (rodada 2)
+# QA_REPORT — Senha provisória: trocar a senha no primeiro acesso
 
-## Veredito: NO-GO para mesclar até a prévia subir e o dono responder
-O código e os testes estão em ordem. Mas **não consegui subir nem observar a prévia**: este ambiente não tem a ferramenta que envia o pedido de prévia à VSF, não tem navegador (nem Chromium nem Playwright) e não tem `curl`. Por isso as capturas (lacuna 2) não existem. A parada para o dono (lacuna 3) continua pendente: o sistema abre o marco quando a prévia sobe. Não declaro pronto.
+## Veredito: GO (com 2 pendências para o CI/operador)
+Os 5 pontos do pedido estão cobertos por código e teste. Pendências fora do meu alcance: a suíte completa (CI) e a aplicação da migração M029 num banco real (operador).
 
-## Lacuna 1 — por que a prévia não iniciou
-Só tenho a trilha como relato (`PreviaSolicitada` às 04:38, sem `PreviaIniciada`). Não vi os logs da VSF. **A causa exata não está confirmada.** O que verifiquei:
+## Cobertura por requisito
+| Pedido | Evidência | Resultado |
+|---|---|---|
+| (1) marca `senha_provisoria`, migração aditiva com rollback | `M029SenhaProvisoria` (ADD COLUMN, padrão 0, idempotente, `ROLLBACK` documentado); `testMigracaoAdicionaColuna…Rollback` | OK |
+| (1) CLI `usuario criar\|senha`, `conta-senha`, `instalar --admin-senha-provisoria` | `testCliUsuarioCriarESenha…`, `testCliContaSenhaGeradaProvisoria`, `testInstalarComAdminSenhaProvisoria`, `testInstalarExigeAdminLogin…`; `--provisoria` recusado com `--servico` e em outras ações | OK |
+| (2) qualquer rota do painel redireciona para a troca | `Painel::comSessao` barra tudo (303 para `/_pbl/trocar-senha`); `testLoginProvisorioRedireciona…`, `testPostsDoPainelSaoBarradosSemExecutar` | OK |
+| (2) API barrada | `/_pbl/api` devolve 403 `senha_provisoria`; `testApiDoPainelDevolve403…` | OK |
+| (2) logout e tela de troca permitidos | `sair` não usa `comSessao`; `testSairContinuaPermitido` | OK |
+| (2) senha atual + nova + confirmação, regras vigentes, nova ≠ atual, outras sessões expiram | `testTrocaInvalidaMantemAMarca` (provider), `testTrocaRemoveAMarcaMantemASessaoAtualEEncerraAsOutras`, CSRF recusado | OK |
+| (3) marca cai ao trocar, recuperar e convite | `testTrocarASenhaRemove…`, `testRecuperarPorLinkLimpaAMarca`, `testAceitarConviteNaoDeixaMarca` | OK |
+| (4) mensagem em português, acessível | `testTelaDeTrocaTemRotulosFocoESemMenu` (rótulos, foco, alerta ligado ao form); funciona sem JS; `Cache-Control: no-store` | OK |
+| (5) docs e CHANGELOG | `recuperar-acesso.md`, `usuarios-e-permissoes.md`, `INVENTARIO.md`, CHANGELOG `[Não lançado]` | OK |
 
-| Hipótese | Resultado |
-|---|---|
-| O gerador depende de `vendor/`, que o `.gitignore` exclui. Num clone limpo ele morria antes de gerar o pacote. | **Causa mais provável.** Corrigido: sem `vendor/`, o gerador roda `composer install --no-dev` a partir do `composer.lock` e falha com mensagem clara se não conseguir. Simulei um clone limpo (sem `vendor/`): o pacote saiu, 2,5 MB. |
-| Host `pv-…` recusado (Q6) | Já resolvido: `Aplicacao` aceita `pv-…` só com o marcador `dados/previa.flag`. Rodei o pacote com o servidor embutido do PHP e `Host: pv-abc123.previa.test`: entrada de prévia 303, `/_pbl/mais` 200 logado, `editor` e `autor` 303, host `outro.example` 404. |
-| Formato do pedido | `notas/previa-pedido.json` é v2 (`gerar_pacote`, `extrair_pacote`, docroot `pbl4/public`, `dados` gravável). 8 páginas × 2 viewports = 16, no limite que o teste assume. |
-| Pacote grande demais | 2,5 MB. Não é a causa. |
-
-Se a prévia falhar de novo, o primeiro lugar para olhar é a saída do passo `gerar_pacote`: o gerador agora escreve no stderr o código e a saída do composer.
-
-## O que mudou nesta rodada
-- `previa/gerar-pacote.php`: instala `vendor/` de produção quando falta e copia o `composer.lock`.
-- Pedido de prévia: a página `mais-escuro` virou `mais-escuro-menu-aberto` (`/_pbl/mais?menu=aberto`). O JS recolhe o menu no celular, então a captura precisava de um jeito de mantê-lo aberto. O limite de 16 capturas não deixa espaço para uma página a mais.
-- `pbl-admin.js`: `?menu=aberto` mantém o menu aberto (só no cliente, sem endpoint novo).
-- Q2 (seletor de conteúdo com busca): já estava implementado no código desta árvore. `TelasDeObjetos::controleDeReferencia` entrega um `<select data-pbl-seletor>` e o JS ganha o campo de busca. Sem JS vale a lista nativa. Sem conteúdo do tipo, ou acima do teto, volta ao campo numérico. A lista só traz o que a conta pode ver (teste de não vazamento).
-- Testes do `pbl-formulario.js`: `tests/unit/pbl-formulario.test.mjs` (37 testes) e `dom-falso.mjs`, na técnica `node:test` + `node:vm` do repositório. Cobrem abas, interruptores, contador, prévias, miniatura, aviso ao sair, validação ao vivo e seletor. Mais `pbl-admin-menu.test.mjs` (2 testes) e 2 testes novos do pedido e do gerador.
-
-## Resultado dos testes
+## Execução (neste ambiente)
 | Comando | Resultado |
 |---|---|
-| `node --test tests/unit/*.test.mjs tests/smoke/*.test.mjs tests/integration/*.test.mjs` | 68 passaram, 0 falharam, 0 ignorados (o teste do pedido de prévia roda porque `notas/previa-pedido.json` existe) |
-| `vendor/bin/phpunit tests/AdminObjetosTest.php` | passou (39 testes, 571 asserções) |
-| `vendor/bin/phpunit tests/PreviaDoPainelTest.php` | passou (12 testes, 51 asserções) |
-| `vendor/bin/phpunit tests/NovoPainelFase1Test.php` | passou (37 testes, 198 asserções) |
-| `vendor/bin/phpunit tests/AssetsAdminTest.php` | passou (11 testes, 173 asserções) |
-| Suíte PHPUnit completa e PHPStan | **não rodei nesta rodada.** Só mexi em JS, no gerador e em testes JS. A rodada anterior os registrou verdes; a CI do PR confirma. |
-| Verificação manual com servidor embutido | pacote gerado, entrada de prévia e as 4 telas do pedido respondem 200 logadas (Início, Conteúdo/1, Editar com aba Publicação e 5 interruptores ligados, Mais com `?menu=aberto`) |
+| `phpunit tests/SenhaProvisoriaTest.php` | 13 testes, 38 asserções, OK |
+| `phpunit tests/SenhaProvisoriaPainelTest.php` | 13 testes, 90 asserções, OK (1 depreciação do PHPUnit, não funcional) |
+| `phpunit tests/M021Test.php`, `tests/ClassesPadraoTest.php` (ajustados) | OK (2 e 23 testes) |
+| `phpstan analyse` | sem erros |
+| `php -l` nos arquivos PHP alterados | sem erros |
 
-## Capturas e navegador
-**Não feitas.** Sem navegador aqui não vi layout, tema escuro, JS no navegador nem o menu aberto no celular. Sem JavaScript: a aba padrão e o menu aberto são cobertos só por testes de HTML do servidor (`NovoPainelFase1Test`), não por captura. A ferramenta de captura da prévia faz só GET, então a captura sem JS depende de ela permitir desligar o JS. Não sei se permite.
+## Análise de risco
+- Contorno por outra entrada: só `Painel` usa sessões (`Aplicacao` → `Painel`); o site público não aceita a sessão. Sem rota de painel fora de `comSessao`/`api`, salvo entrar, sair e fluxos públicos de conta.
+- O estado da marca é lido do banco a cada requisição, então marcar uma conta já logada barra a sessão dela na próxima requisição.
+- Auditoria registra só o booleano, nunca a senha.
+- Contas existentes: padrão 0, sem mudança; código antigo ignora a coluna (rollback seguro).
 
-## Mantido
-Nada em `.github/` ou `deploy/` foi alterado. A CSP continua sem inline (testes verdes). As rotas antigas seguem com 303 (`NovoPainelFase1Test`).
+## Pendências / limitações
+1. Suíte completa não rodada aqui (regra da etapa): o CI deve rodá-la. Risco baixo: só os testes de `M021` e `ClassesPadrao` precisaram de ajuste.
+2. Migração M029 não aplicada em banco real (sem permissão): rodar `bin/pbl atualizar` (ou o comando de migração do projeto) no ambiente de destino; rollback: `ALTER TABLE usuario DROP COLUMN senha_provisoria; DELETE FROM schema_versao WHERE versao = 29;`.
+3. Sem navegador aqui: o E2E visual da tela fica para o QA E2E (checar foco inicial, leitor de tela e leitura do alerta de erro).
+4. `.github/` e `deploy/` não foram tocados (conferido em `git status`).
 
-## Riscos abertos
-| # | Risco | Ação |
-|---|---|---|
-| R1 | A causa da falha da prévia é hipótese. | Conferir o log do `gerar_pacote` se subir de novo sem `PreviaIniciada`. |
-| R2 | Sem captura, tema escuro e celular não foram vistos. | O dono vê na prévia. |
-| R3 | O ambiente de prévia pode não ter `composer` nem rede. | O gerador falha com mensagem clara. Alternativa: pedir um passo de preparo que instale as dependências. |
-
-## Como validar
-1. Rode `node --test tests/unit/*.test.mjs tests/smoke/*.test.mjs tests/integration/*.test.mjs`. Espere 68 passando e 0 falhas.
-2. Rode `vendor/bin/phpunit tests/PreviaDoPainelTest.php tests/NovoPainelFase1Test.php tests/AdminObjetosTest.php`. Espere OK.
-3. Num clone limpo (sem `vendor/`), na pasta de trabalho, rode `php previa/gerar-pacote.php`. Espere `pacote: …/gerado/pbl4.tar.gz`.
-4. Extraia o pacote e sirva `public/` com `php -S 127.0.0.1:8089 index.php`. Abra `http://pv-teste.localhost:8089/_pbl/previa-entrar?conta=admin&ir=/_pbl/mais?menu=aberto`. Espere o painel logado em "Mais" com o menu aberto. `conta=editor` e `conta=autor` também entram. As contas e a senha `demo-2026-pbl4` são fictícias.
-5. Na prévia da VSF, confira as 16 capturas (celular 390 px e desktop 1280 px, claro e escuro). Em Editar, a aba Publicação mostra interruptores ligados.
-6. Aceite quando: a prévia sobe e responde 200 logada; o marco do dono abre; o dono responde; a CI do PR continua verde.
-
-**Ainda não pode ser validado:** a prévia no ar, as capturas e o comportamento no navegador. Falta a prévia subir.
+## Distribuição
+- **QA Funcional:** fluxo completo login provisório → troca → painel; erros (senhas diferentes, igual à atual, curta, atual errada, bloqueio por tentativas); recuperar senha e convite; CLI nos três comandos.
+- **QA E2E:** duas abas (a outra expira ao trocar), teclado e leitor de tela na tela de troca, tela em 320 px.
