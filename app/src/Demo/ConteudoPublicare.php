@@ -17,26 +17,33 @@ final class ConteudoPublicare
 {
     public const NOME_DO_SITE = 'Publicare 4';
     public const REPOSITORIO = 'https://github.com/publicare/publicare4';
-    public const REMETENTE = 'Publicare 4 <nao-responda@exemplo.invalid>';
 
     /** Slogan: a promessa em uma frase. */
     public const PROMESSA = 'Plataforma livre para montar sites e pequenos sistemas na internet sem programar, em hospedagem comum.';
 
-    /** @return array{resumo: string, corpo: string, seo_titulo: string, seo_descricao: string} */
-    public static function inicio(): array
+    /**
+     * Página inicial. O texto é o do site oficial; só a demonstração (`demo-popular`) acrescenta o parágrafo que avisa que o site é de demonstração.
+     *
+     * @return array{resumo: string, corpo: string, seo_titulo: string, seo_descricao: string}
+     */
+    public static function inicio(bool $demonstracao = false): array
     {
+        $aviso = $demonstracao
+            ? '<p>Este site é a <strong>demonstração</strong> que acompanha o programa: foi montado com ele. Contas e e-mails de demonstração são fictícios.</p>'
+            : '';
+
         return [
             'resumo' => self::PROMESSA,
             'corpo' => '<h2>Um site feito com o próprio Publicare</h2>'
                 . '<p>O Publicare é um programa <strong>livre</strong> para montar sites e pequenos sistemas na internet. Nasceu no Brasil em 2003, para portais e intranets, e foi reconstruído como o <strong>Publicare 4</strong> (também chamado PBL4).</p>'
-                . '<p>Este site é o <strong>exemplo</strong> que acompanha o programa: foi montado com ele e apresenta, com conteúdo real, o que ele faz. Contas e e-mails de demonstração são fictícios.</p>'
+                . '<p>Este site foi montado com o próprio programa e apresenta, com conteúdo real, o que ele faz.</p>' . $aviso
                 . '<p>Comece por <a href="/o-que-e">o que é o Publicare 4</a>, veja <a href="/o-que-ele-faz">o que ele faz</a> ou vá direto às <a href="/perguntas-frequentes">perguntas frequentes</a>.</p>',
             'seo_titulo' => 'Publicare 4: sites e pequenos sistemas, sem programar',
             'seo_descricao' => self::PROMESSA,
         ];
     }
 
-    /** Documento do repositório que explica cada pilar (usado na instalação leve, que não traz as páginas do exemplo). */
+    /** Documento do repositório que explica cada pilar (usado na instalação leve, que não traz as páginas completas). */
     public const DOCUMENTO_DO_PILAR = [
         'o-que-ele-faz' => 'docs/usuario/estado-do-projeto.md',
         'como-facilita' => 'docs/linguagem-pbl4.md',
@@ -59,7 +66,24 @@ final class ConteudoPublicare
     }
 
     /**
-     * Os quatro pilares da página inicial (cartões com ícone). `destino` é o endereço de uma página do próprio exemplo.
+     * "Veja também" na página inicial: links externos para a documentação do repositório (endereços permanentes).
+     *
+     * @return list<array{url: string, titulo: string, descricao: string, destino: string, peso: int}>
+     */
+    public static function atalhosUteis(): array
+    {
+        $docs = self::REPOSITORIO . '/blob/main/';
+
+        return [
+            ['url' => 'link-atualizar', 'titulo' => 'Como atualizar', 'descricao' => 'Atualização assinada, com cópia do banco e volta atrás: o passo a passo.', 'destino' => $docs . 'docs/usuario/atualizar.md', 'peso' => 50],
+            ['url' => 'link-documentacao', 'titulo' => 'Documentação do usuário', 'descricao' => 'Guias para quem edita e para quem administra o site.', 'destino' => self::REPOSITORIO . '/tree/main/docs/usuario', 'peso' => 60],
+            ['url' => 'link-linguagem', 'titulo' => 'Linguagem de moldes', 'descricao' => 'Como escrever peles e moldes .pbl, em português.', 'destino' => $docs . 'docs/linguagem-pbl4.md', 'peso' => 70],
+            ['url' => 'link-seguranca', 'titulo' => 'Segurança', 'descricao' => 'Como relatar uma falha de segurança, em privado.', 'destino' => $docs . 'SECURITY.md', 'peso' => 100],
+        ];
+    }
+
+    /**
+     * Os quatro pilares da página inicial (cartões com ícone). `destino` é o endereço de uma página do próprio site.
      *
      * @return list<array{url: string, titulo: string, descricao: string, destino: string}>
      */
@@ -98,7 +122,7 @@ final class ConteudoPublicare
             . '<h2>Para que serve</h2>'
             . '<ul><li><strong>Sites institucionais e portais:</strong> páginas, menus, notícias e documentos.</li>'
             . '<li><strong>Pequenos sistemas do dia a dia, montados por configuração:</strong> existem a agenda de eventos, as perguntas frequentes, os destaques da página inicial, os blocos reutilizáveis e o formulário público simples.</li>'
-            . '<li><strong>Vários sites no mesmo programa:</strong> um mesmo Publicare serve mais de um endereço, por exemplo um site em português e outro em inglês.</li></ul>'
+            . '<li><strong>Vários sites no mesmo programa:</strong> um mesmo Publicare serve mais de um endereço, como um site em português e outro em inglês.</li></ul>'
             . '<h2>Como ele pensa</h2>'
             . '<ol><li>Você define <strong>tipos de conteúdo</strong> (notícia, evento, documento) dizendo quais campos cada um tem.</li>'
             . '<li>Você cria <strong>conteúdos</strong> desses tipos e os organiza em <strong>árvore</strong>: uma seção com páginas dentro.</li>'
@@ -171,7 +195,7 @@ final class ConteudoPublicare
             . '<li>Moldes que não executam PHP cru, então um erro de molde não abre brecha no servidor.</li>'
             . '<li>Conferência de sintaxe antes de salvar, histórico de cada molde e pré-visualização do rascunho sem afetar o que está no ar.</li>'
             . '<li>Conversor de moldes do Publicare 3 (<code>bin/pbl converter-moldes</code>) com relatório.</li>'
-            . '<li>A pele deste site, a <strong>publicare</strong>, é um exemplo completo: moldes, CSS próprio, tema claro e escuro, sem JavaScript.</li></ul>'
+            . '<li>A pele deste site, a <strong>publicare</strong>, traz moldes, CSS próprio, tema claro e escuro, sem JavaScript.</li></ul>'
             . '<p>A documentação da linguagem está em <a href="' . self::REPOSITORIO . '/blob/main/docs/linguagem-pbl4.md">docs/linguagem-pbl4.md</a>.</p>';
     }
 
@@ -208,8 +232,8 @@ final class ConteudoPublicare
             . '<li>Servidor Apache ou nginx, ambos testados. Não é preciso criar banco de dados: o padrão é um arquivo SQLite.</li></ul>'
             . '<h2>Como instalar</h2>'
             . '<ol><li><strong>Pelo navegador:</strong> um assistente confere os requisitos, cria a conta de administrador e o site.</li>'
-            . '<li><strong>Pela linha de comando:</strong> <code>php bin/pbl instalar --nome=&quot;Meu site&quot;</code> cria o banco e um site com poucas páginas de exemplo.</li>'
-            . '<li><strong>Para ver este exemplo completo:</strong> depois de instalar, rode <code>php bin/pbl demo-popular</code>, que cria estas páginas, e <code>php bin/pbl publicar</code>.</li></ol>'
+            . '<li><strong>Pela linha de comando:</strong> <code>php bin/pbl instalar --nome=&quot;Meu site&quot;</code> cria o banco e um site com poucas páginas iniciais.</li>'
+            . '<li><strong>Depois de instalar:</strong> publique o site com <code>php bin/pbl publicar</code>.</li></ol>'
             . '<p>O guia passo a passo está em <a href="' . $guia . '">docs/usuario/instalar.md</a>. Em hospedagem com painel Hestia ou VestaCP, siga a seção sobre <code>open_basedir</code> desse guia.</p>'
             . '<h2>Depois de instalar</h2>'
             . '<ul><li>Crie no painel da hospedagem uma tarefa de cron a cada minuto: <code>php bin/pbl cron</code>. Sem ela, nada agendado acontece.</li>'
@@ -345,7 +369,6 @@ final class ConteudoPublicare
             ['texto' => 'Conversor de moldes do Publicare 3', 'fonte' => 'docs/tecnica/migrar-do-pbl3.md', 'verificacao' => ['comando' => 'converter-moldes']],
             ['texto' => 'bin/pbl conta-senha', 'fonte' => 'docs/usuario/perguntas-frequentes.md', 'verificacao' => ['comando' => 'conta-senha']],
             ['texto' => 'bin/pbl conta-destravar', 'fonte' => 'docs/usuario/perguntas-frequentes.md', 'verificacao' => ['comando' => 'conta-destravar']],
-            ['texto' => 'php bin/pbl demo-popular', 'fonte' => 'docs/tecnica/cli.md', 'verificacao' => ['comando' => 'demo-popular']],
             ['texto' => 'php bin/pbl publicar', 'fonte' => 'docs/tecnica/cli.md', 'verificacao' => ['comando' => 'publicar']],
             ['texto' => 'php bin/pbl instalar', 'fonte' => 'docs/tecnica/cli.md', 'verificacao' => ['comando' => 'instalar']],
             ['texto' => 'php bin/pbl cron', 'fonte' => 'docs/tecnica/cron.md', 'verificacao' => ['comando' => 'cron']],

@@ -66,6 +66,7 @@ Em **Guia**, ponha o nome do arquivo em `docs/usuario/`. Para o que não é de q
 | instalar | instalar.md | |
 | limpar-uploads | arquivos-e-imagens.md | |
 | manual-gerar | fora | Gera este manual; está em docs/tecnica/manual.md. |
+| publicare-oficial-carregar | fora | Carga do conteúdo do site oficial do Publicare; uso do operador do projeto, procedimento em docs/tecnica/site-oficial.md. |
 | migrar | atualizar.md | |
 | modelos | modelos-e-demo.md | |
 | publicar | tarefas-agendadas.md | |

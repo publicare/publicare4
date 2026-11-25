@@ -10,6 +10,7 @@ Para quem **instala, opera e desenvolve** o PBL4. Se você quer entender o proje
 | [Cron central](cron.md) | a linha única `bin/pbl cron`, tarefas, pseudo-cron e como conferir |
 | [Atualização](atualizacao.md) | `bin/pbl atualizar`, pacote, assinatura e publicação de versões |
 | [Banco de dados](banco-de-dados.md) | Camada de dialeto, `banco.json` e variáveis `PBL_BANCO_*` (fundação do ADR 0028) |
+| [Site oficial publicare.org](site-oficial.md) | Procedimento do operador: Hestia, banco, domínio, HTTPS na Cloudflare, backup, carga e atualização do conteúdo oficial |
 | [Linha de comando](cli.md) | Comandos de `bin/pbl` |
 | [Manual de uso: geração e publicação](manual.md) | Como `docs/usuario` vira o manual (`bin/pbl manual-gerar`), edições, capturas e o passo da release |
 | [CLI de conteúdo](cli-conteudo.md) | `bin/pbl conteudo`: editar conteúdo por agentes e scripts, contrato JSON, códigos de saída, conta de serviço |

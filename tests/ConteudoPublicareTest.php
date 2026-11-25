@@ -193,7 +193,5 @@ final class ConteudoPublicareTest extends TestCase
     public function testIdentidadeDoPublicare(): void
     {
         self::assertSame('Publicare 4', ConteudoPublicare::NOME_DO_SITE);
-        self::assertStringEndsWith('@exemplo.invalid>', ConteudoPublicare::REMETENTE);
-        self::assertStringStartsWith('Publicare 4 <', ConteudoPublicare::REMETENTE);
     }
 }
