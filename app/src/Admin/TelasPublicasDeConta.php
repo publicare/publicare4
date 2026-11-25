@@ -132,7 +132,7 @@ final class TelasPublicasDeConta
             return $this->linkInvalido();
         }
         $rota = Painel::PREFIXO . ($convite ? '/convite/' : '/redefinir-senha/') . $token;
-        $ajuda = 'No mínimo 10 caracteres, nada óbvio (como "senha123456"). Tamanho vale mais que símbolos.';
+        $ajuda = Pagina::AJUDA_DE_SENHA;
 
         return Pagina::resposta($convite ? 'Aceitar o convite' : 'Nova senha',
             ($erro === null ? '' : Pagina::alerta('danger', $erro, 'erro-formulario'))

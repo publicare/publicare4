@@ -44,6 +44,12 @@ final class ApiDeAcoes
         return self::json(['erro' => 'sem_sessao'], Response::HTTP_UNAUTHORIZED);
     }
 
+    /** Conta com senha provisória: a API fica barrada até a troca (ADR 0047). */
+    public static function senhaProvisoria(string $trocarSenha): JsonResponse
+    {
+        return self::json(['erro' => 'senha_provisoria', 'trocar_senha' => $trocarSenha], Response::HTTP_FORBIDDEN);
+    }
+
     public function tratar(SessaoAtiva $sessao, string $caminho, Request $r): JsonResponse
     {
         return $caminho === self::ROTA_ACOES ? $this->acoes($sessao, $r) : $this->estado($sessao, $r);

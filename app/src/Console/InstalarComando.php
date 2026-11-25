@@ -29,6 +29,7 @@ final class InstalarComando extends Command
         $this->addOption('nome', null, InputOption::VALUE_REQUIRED, 'Nome do site', 'Meu site PBL4');
         $this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Domínio principal', 'localhost');
         $this->addOption('admin-login', null, InputOption::VALUE_REQUIRED, 'Cria um administrador com esse login (a senha é pedida de forma oculta)');
+        $this->addOption('admin-senha-provisoria', null, InputOption::VALUE_NONE, 'A senha do administrador é provisória: a pessoa precisa trocá-la no primeiro acesso (exige --admin-login)');
         $this->addOption('admin-email', null, InputOption::VALUE_REQUIRED, 'E-mail do administrador');
         $this->addOption('modelos', null, InputOption::VALUE_REQUIRED, 'Modelos opcionais a ativar, separados por vírgula (' . implode(', ', Modelos::NOMES) . ' ou todos)');
         $this->addOption('admin-nome', null, InputOption::VALUE_REQUIRED, 'Nome do administrador');
@@ -38,6 +39,9 @@ final class InstalarComando extends Command
     {
         try {
             $admin = null;
+            if ((bool) $input->getOption('admin-senha-provisoria') && $input->getOption('admin-login') === null) {
+                throw new \InvalidArgumentException('--admin-senha-provisoria só vale junto com --admin-login');
+            }
             if ($input->getOption('admin-login') !== null) {
                 $ajudante = new QuestionHelper();
                 $pergunta = static fn (string $texto): Question => (new Question($texto))->setHidden(true)->setHiddenFallback(true);
@@ -50,6 +54,7 @@ final class InstalarComando extends Command
                     'email' => (string) $input->getOption('admin-email'),
                     'nome' => (string) ($input->getOption('admin-nome') ?? $input->getOption('admin-login')),
                     'senha' => $senha,
+                    'provisoria' => (bool) $input->getOption('admin-senha-provisoria'),
                 ];
             }
             $escolhidos = array_values(array_filter(array_map('trim', explode(',', strtolower((string) $input->getOption('modelos')))), static fn (string $m): bool => $m !== ''));
@@ -62,7 +67,7 @@ final class InstalarComando extends Command
 
             return Command::FAILURE;
         }
-        $output->writeln('PBL4 instalado. Publique as páginas com: bin/pbl publicar' . ($admin === null ? '. Crie uma conta com: bin/pbl usuario criar' : '. Entre em /_pbl/entrar'));
+        $output->writeln('PBL4 instalado. Publique as páginas com: bin/pbl publicar' . ($admin === null ? '. Crie uma conta com: bin/pbl usuario criar' : '. Entre em /_pbl/entrar' . ($admin['provisoria'] ? ' (a senha é provisória: será pedida a troca no primeiro acesso)' : '')));
 
         return Command::SUCCESS;
     }

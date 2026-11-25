@@ -98,6 +98,13 @@ php bin/pbl usuario desativar bia
 php bin/pbl usuario ativar bia
 ```
 
+Para entregar uma senha provisória, que a pessoa precisa trocar no primeiro acesso, acrescente `--provisoria` em `usuario criar` ou `usuario senha` (também em `conta-senha`, com `--gerar`, e na instalação com `--admin-login` e `--admin-senha-provisoria`):
+
+```bash
+php bin/pbl usuario criar bia --email=bia@exemplo.org --provisoria
+php bin/pbl usuario senha bia --provisoria
+```
+
 Em `conceder` o último número é o do conteúdo (a seção). A senha nunca vai na linha de comando: o terminal a pergunta. Para esquecimentos, veja [Recuperar o acesso](recuperar-acesso.md).
 
 ## Veja também

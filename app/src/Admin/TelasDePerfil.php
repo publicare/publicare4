@@ -72,7 +72,7 @@ final class TelasDePerfil
     {
         $u = $sessao->usuario;
         $csrf = $this->campoCsrf($sessao);
-        $ajuda = 'No mínimo 10 caracteres, nada óbvio (como "senha123456"). Tamanho vale mais que símbolos.';
+        $ajuda = Pagina::AJUDA_DE_SENHA;
         $corpo = $aviso . $this->erro($erro)
             . '<p>Login: <code>' . Pagina::h($u->login) . '</code> · E-mail: ' . Pagina::h($u->email) . '</p>'
             . '<h2 class="h5">Nome</h2><form method="post" action="' . Painel::PREFIXO . '/perfil/nome">' . $csrf

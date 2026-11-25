@@ -22,6 +22,8 @@ final class Usuario
         public readonly bool $ativo,
         /** `pessoa` (entra pelo painel) ou `servico` (agente via CLI, sem senha; ADR 0031). */
         public readonly string $tipo = self::PESSOA,
+        /** Senha definida pelo operador: a pessoa precisa trocá-la no primeiro acesso (ADR 0046). */
+        public readonly bool $senhaProvisoria = false,
     ) {
     }
 

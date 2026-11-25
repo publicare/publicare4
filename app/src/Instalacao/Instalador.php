@@ -39,7 +39,7 @@ final class Instalador
     }
 
     /**
-     * @param array{login: string, email: string, nome: string, senha: string}|null $administrador conta de administrador global criada junto
+     * @param array{login: string, email: string, nome: string, senha: string, provisoria?: bool}|null $administrador conta de administrador global criada junto
      * @param list<string> $modelos modelos opcionais a ativar já na instalação (`Modelos::NOMES`, ADR 0021)
      * @param string $pele pele do site novo. O padrão da biblioteca segue sendo a básica (os testes e as instalações programáticas
      *     não mudam); a linha de comando e o instalador web passam `PelesDistribuidas::PADRAO` (a `publicare`), que também traz a
@@ -102,7 +102,7 @@ final class Instalador
             ]);
             if ($administrador !== null) {
                 (new UsuarioRepositorio($conexao, new Auditoria($conexao)))->criar(
-                    $administrador['login'], $administrador['email'], $administrador['nome'], $administrador['senha'], true, 'instalador',
+                    $administrador['login'], $administrador['email'], $administrador['nome'], $administrador['senha'], true, 'instalador', $administrador['provisoria'] ?? false,
                 );
             }
             $sites->definirRaiz($site->id, $inicio->id);

@@ -20,6 +20,9 @@ O administrador usa Contas › Convidar por e-mail (login, nome, e-mail); a cont
 ## Trocar a própria senha
 Mais › Meu perfil: informe a senha atual e a nova. As outras sessões da conta são encerradas e a atual continua.
 
+## Senha provisória
+Quando quem administra o servidor cria a conta (ou redefine a senha) com a opção `--provisoria`, a senha é só de passagem. Ao entrar, qualquer tela do painel leva à tela **Defina sua nova senha**: informe a senha provisória, a nova (mesmas regras de sempre, e diferente da atual) e repita. Até trocar, só essa tela e o botão **Sair** funcionam; as outras sessões da conta são encerradas ao trocar e a atual continua. A marca também cai se a pessoa usar **Esqueci a senha**, aceitar um convite ou se a senha for redefinida pela linha de comando sem `--provisoria`.
+
 ## Sem e-mail
 Peça a quem opera o servidor, que usa `bin/pbl`:
 
