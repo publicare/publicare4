@@ -95,3 +95,13 @@ O formulário grava cada mensagem como conteúdo privado em **Mensagens recebida
 - **Programa:** `php bin/pbl atualizar` (pacote assinado, com cópia do banco e volta atrás; [atualizacao.md](atualizacao.md)). O canal de atualização é um serviço separado e não faz parte deste roteiro.
 - **Conteúdo:** uma versão nova do programa pode trazer texto novo. Depois de atualizar, rode de novo `php bin/pbl publicare-oficial-carregar --email-contato=ENDERECO_REAL`. Repetir é seguro (regras acima).
 - **Mudar de domínio:** `php bin/pbl dominio principal NOVO` e `php bin/pbl publicar`.
+
+## Roteiro de publicação (resumo e reversão)
+
+1. **Backup:** `php bin/pbl backup criar`; copie o arquivo para fora do servidor.
+2. **Simular:** em cópia local ou banco temporário, rode `publicare-oficial-carregar --sem-publicar` e confira os totais.
+3. **Aplicar:** `php bin/pbl publicare-oficial-carregar --host=publicare.org --email-contato=ENDERECO_REAL`.
+4. **Verificar:** `canonical`, `og:url`, `og:image`, `robots.txt` e `sitemap.xml` com `https://publicare.org/`; `usuario listar` só com o administrador; nenhuma página publicada com a palavra "exemplo"; links internos do menu abrindo.
+5. **Reverter:** restaure a cópia do passo 1 (`php bin/pbl backup restaurar`, conforme [backup.md](backup.md)) ou, em atualização do programa, use a volta atrás de `php bin/pbl atualizar`. Se preciso, recoloque a página "em construção" do Hestia.
+
+Este procedimento não toca `atualizacoes.publicare.org`, `.github/` nem `deploy/`.
