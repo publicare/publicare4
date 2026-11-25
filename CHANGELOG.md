@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Adicionado
+- **Senha provisória**: conta criada pelo operador com `bin/pbl usuario criar|senha --provisoria` (também `conta-senha --provisoria` e `instalar --admin-senha-provisoria`) obriga a trocar a senha no primeiro acesso. Todas as telas e a API do painel levam à tela "Defina sua nova senha" (senha atual, nova e confirmação; nova diferente da atual) até a troca; só ela e o "Sair" funcionam. Ao trocar, as outras sessões caem. A marca também cai pela recuperação de senha, convite e qualquer redefinição sem `--provisoria`. Migração aditiva M029 (`usuario.senha_provisoria`, padrão 0), com rollback manual documentado na classe.
+
 ## [0.1.0-rc.12] - 2026-11-25
 
 > **Em resumo:** o site oficial do Publicare pode ser carregado sem e-mail de contato: o contato com o projeto passa a ser pelo GitHub, sem formulário nem caixa de mensagens.
@@ -14,8 +17,6 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.11`.
 
 - **Carga do site oficial sem e-mail de contato:** `--email-contato` de `publicare-oficial-carregar` passa a ser opcional. Sem ele, a carga não cria formulário, caixa de mensagens nem grava e-mail, e `/contato` vira a página "Fale com o projeto" com links do GitHub (issues, como participar, relato privado de segurança). Com ele, nada muda; rodar sem o e-mail não apaga o que já existe.
-### Adicionado
-- **Senha provisória**: conta criada pelo operador com `bin/pbl usuario criar|senha --provisoria` (também `conta-senha --provisoria` e `instalar --admin-senha-provisoria`) obriga a trocar a senha no primeiro acesso. Todas as telas e a API do painel levam à tela "Defina sua nova senha" (senha atual, nova e confirmação; nova diferente da atual) até a troca; só ela e o "Sair" funcionam. Ao trocar, as outras sessões caem. A marca também cai pela recuperação de senha, convite e qualquer redefinição sem `--provisoria`. Migração aditiva M029 (`usuario.senha_provisoria`, padrão 0), com rollback manual documentado na classe.
 
 ## [0.1.0-rc.11] - 2026-11-25
 
