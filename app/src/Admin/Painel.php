@@ -75,11 +75,12 @@ final class Painel
         $rotaDeEmail = TelasDeEmail::rota(self::PREFIXO, $caminho, $metodo);
         $resposta = match (true) {
             $rotaPublicaDeConta !== null => (new TelasPublicasDeConta($this->servicos, $this->rede, $this->csrf))->tratar($rotaPublicaDeConta, $requisicao),
+            TelasDeSenhaProvisoria::atende($caminho, $metodo) => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeSenhaProvisoria($this->servicos, $this->rede, $this->csrf))->tratar($s, $requisicao)),
             $rotaDeConvite !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeConvite($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeConvite, $requisicao)),
             $rotaDePerfil !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDePerfil($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDePerfil, $requisicao)),
             $rotaDeEmail !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeEmail($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeEmail, $requisicao)),
             $caminho === self::PREFIXO . '/mais' && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeMais($this->servicos, $this->csrf))->exibir($s)),
-            $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s)),
+            $caminho === self::PREFIXO && $metodo === 'GET' => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->telas()->inicio($s, $requisicao)),
             ApiDeAcoes::atende($caminho, $metodo) => $this->api($requisicao, $caminho),
             $objeto !== null && TelasDeObjetos::atende($subrota, $metodo) => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => $this->objetos()->tratar($s, $objeto, $subrota, $requisicao)),
             $rotaDeClasse !== null => $this->comSessao($requisicao, fn (SessaoAtiva $s): Response => (new TelasDeClasses($this->servicos, $this->rede, $this->csrf))->tratar($s, $rotaDeClasse, $requisicao)),
@@ -123,12 +124,28 @@ final class Painel
         if ($sessao === null) {
             return new RedirectResponse(self::PREFIXO . '/entrar', Response::HTTP_SEE_OTHER);
         }
+        if ($this->barradaPorSenhaProvisoria($requisicao, $sessao)) {
+            return new RedirectResponse(TelasDeSenhaProvisoria::ROTA, Response::HTTP_SEE_OTHER);
+        }
         $this->prepararBarra($sessao);
         if ($requisicao->getMethod() === 'GET') {
             PseudoCron::talvez($this->servicos); // hospedagem sem cron: só no painel, só GET, nunca lança
         }
 
         return $tela($sessao);
+    }
+
+    /**
+     * Senha provisória (ADR 0047): enquanto a marca existir, toda tela e a API ficam barradas. As únicas exceções são a própria tela
+     * de troca (que passa por aqui) e o "Sair" (que não usa `comSessao`). O estado vem do banco a cada requisição.
+     */
+    private function barradaPorSenhaProvisoria(Request $requisicao, SessaoAtiva $sessao): bool
+    {
+        if (!$sessao->usuario->senhaProvisoria) {
+            return false;
+        }
+
+        return !TelasDeSenhaProvisoria::atende(rtrim($requisicao->getPathInfo(), '/'), $requisicao->getMethod());
     }
 
     /** Contador de pendências e links de revisão da barra; uma falha aqui nunca derruba a tela. */
@@ -170,6 +187,10 @@ final class Painel
     private function api(Request $requisicao, string $caminho): Response
     {
         $sessao = $this->sessaoDe($requisicao);
+
+        if ($sessao !== null && $this->barradaPorSenhaProvisoria($requisicao, $sessao)) {
+            return ApiDeAcoes::senhaProvisoria(TelasDeSenhaProvisoria::ROTA);
+        }
 
         return $sessao === null ? ApiDeAcoes::semSessao() : (new ApiDeAcoes($this->servicos, $this->rede, $this->csrf))->tratar($sessao, $caminho, $requisicao);
     }

@@ -30,6 +30,7 @@ final class ContaSenhaComando extends Command
     {
         $this->addArgument('login', InputArgument::REQUIRED, 'Login da conta');
         $this->addOption('gerar', null, InputOption::VALUE_NONE, 'Gera uma senha aleatória e a mostra uma única vez');
+        $this->addOption('provisoria', null, InputOption::VALUE_NONE, 'Marca a senha como provisória: a pessoa precisa trocá-la no primeiro acesso');
         $this->addOption('senha-stdin', null, InputOption::VALUE_NONE, 'Lê a senha da entrada padrão (para scripts). A senha nunca vai na linha de comando.');
     }
 
@@ -39,9 +40,10 @@ final class ContaSenhaComando extends Command
             $s = Servicos::doBancoInstalado($this->caminhos);
             $login = (string) $input->getArgument('login');
             $usuario = $s->usuarios->porLogin($login) ?? throw new \InvalidArgumentException("Usuário não encontrado: {$login}");
+            $provisoria = (bool) $input->getOption('provisoria');
             $gerada = (bool) $input->getOption('gerar');
             $senha = $gerada ? SenhaNoTerminal::gerar() : SenhaNoTerminal::ler($input, $output);
-            $s->usuarios->definirSenha($usuario->id, $senha, 'cli');
+            $s->usuarios->definirSenha($usuario->id, $senha, 'cli', null, $provisoria);
             $s->limiteDeTentativas()->liberarLogin($usuario->login);
         } catch (\InvalidArgumentException | \RuntimeException $e) {
             $output->writeln('<error>' . $e->getMessage() . '</error>');
@@ -49,6 +51,9 @@ final class ContaSenhaComando extends Command
             return Command::FAILURE;
         }
         $output->writeln("Senha de {$usuario->login} redefinida; as sessões abertas foram encerradas e o login foi destravado.");
+        if ($provisoria) {
+            $output->writeln('A senha é provisória: a pessoa precisará trocá-la no primeiro acesso.');
+        }
         if ($gerada) {
             $output->writeln('Senha gerada (aparece só agora; anote em lugar seguro): ' . $senha);
         }

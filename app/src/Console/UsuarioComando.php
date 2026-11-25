@@ -34,6 +34,7 @@ final class UsuarioComando extends Command
         $this->addOption('nome', null, InputOption::VALUE_REQUIRED, 'Nome (criar)');
         $this->addOption('admin', null, InputOption::VALUE_NONE, 'Administrador global (criar)');
         $this->addOption('servico', null, InputOption::VALUE_NONE, 'Conta de serviço para agentes e scripts (criar): sem senha, sem e-mail, sem login pelo navegador');
+        $this->addOption('provisoria', null, InputOption::VALUE_NONE, 'Senha provisória (criar, senha): a pessoa precisa trocá-la no primeiro acesso');
         $this->addOption('senha-stdin', null, InputOption::VALUE_NONE, 'Lê a senha da entrada padrão (para scripts). A senha nunca vai na linha de comando.');
     }
 
@@ -57,6 +58,13 @@ final class UsuarioComando extends Command
 
                 return Command::SUCCESS;
             }
+            $provisoria = (bool) $input->getOption('provisoria');
+            if ($provisoria && (bool) $input->getOption('servico')) {
+                throw new \InvalidArgumentException('Conta de serviço não tem senha; --provisoria não vale com --servico');
+            }
+            if ($provisoria && !in_array($acao, ['criar', 'senha'], true)) {
+                throw new \InvalidArgumentException('--provisoria só vale em criar e senha');
+            }
             if ($acao === 'criar' && (bool) $input->getOption('servico')) {
                 if ((bool) $input->getOption('admin') || $input->getOption('email') !== null || (bool) $input->getOption('senha-stdin')) {
                     throw new \InvalidArgumentException('Conta de serviço não é administradora e não tem e-mail nem senha (--admin, --email e --senha-stdin não valem com --servico)');
@@ -68,16 +76,19 @@ final class UsuarioComando extends Command
             }
             if ($acao === 'criar') {
                 $senha = $this->senha($input, $output);
-                $u = $s->usuarios->criar($login, (string) $input->getOption('email'), (string) ($input->getOption('nome') ?? $login), $senha, (bool) $input->getOption('admin'), self::ATOR);
+                $u = $s->usuarios->criar($login, (string) $input->getOption('email'), (string) ($input->getOption('nome') ?? $login), $senha, (bool) $input->getOption('admin'), self::ATOR, $provisoria);
                 $output->writeln("Usuário {$u->login} criado" . ($u->administrador ? ' (administrador global).' : '.'));
+                if ($provisoria) {
+                    $output->writeln('Senha provisória: a pessoa precisará trocá-la no primeiro acesso.');
+                }
 
                 return Command::SUCCESS;
             }
             $usuario = $s->usuarios->porLogin($login) ?? throw new \InvalidArgumentException("Usuário não encontrado: {$login}");
             switch ($acao) {
                 case 'senha':
-                    $s->usuarios->definirSenha($usuario->id, $this->senha($input, $output), self::ATOR);
-                    $output->writeln('Senha trocada.');
+                    $s->usuarios->definirSenha($usuario->id, $this->senha($input, $output), self::ATOR, null, $provisoria);
+                    $output->writeln($provisoria ? 'Senha provisória definida; a troca será exigida no próximo acesso e as sessões abertas foram encerradas.' : 'Senha trocada.');
                     break;
                 case 'ativar':
                 case 'desativar':

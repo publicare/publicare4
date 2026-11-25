@@ -32,6 +32,7 @@ Em **Guia**, ponha o nome do arquivo em `docs/usuario/`. Para o que não é de q
 | TelasDeNavegacao | painel.md | |
 | TelasDeObjetos | escrever-e-publicar.md | |
 | TelasDePerfil | usuarios-e-permissoes.md | |
+| TelasDeSenhaProvisoria | recuperar-acesso.md | |
 | TelasDePilha | escrever-e-publicar.md | Copiar, recortar e colar. |
 | TelasDePublicacao | escrever-e-publicar.md | |
 | TelasDeRevisao | revisao-e-historico.md | |

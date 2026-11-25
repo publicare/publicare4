@@ -23,7 +23,7 @@ final class TelasDeConteudo
     }
 
     /** Painel inicial: sites e seções que a pessoa pode ver. */
-    public function inicio(SessaoAtiva $sessao): Response
+    public function inicio(SessaoAtiva $sessao, ?\Symfony\Component\HttpFoundation\Request $requisicao = null): Response
     {
         $u = $sessao->usuario;
         $entradas = []; // siteId => list<array{0: Objeto, 1: string}>
@@ -99,7 +99,7 @@ final class TelasDeConteudo
         }
         $avisoDeVersao = TelasDeAtualizacao::avisoHomePage($this->servicos, $u) . TelasDeCron::avisoDaHome($this->servicos, $u);
 
-        return Pagina::resposta('Início', $this->avisosDeRevisao($sessao) . $this->acaoPrincipal($sessao, $primeiro) . $avisoDeVersao . $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Olá, <strong>' . Pagina::h($u->nome) . '</strong>.' . ($entradas === [] ? ' Assim que você receber acesso a uma seção, ela aparece aqui.' : ''));
+        return Pagina::resposta('Início', (($requisicao?->query->all()['ok'] ?? null) === 'senha-nova' ? Pagina::alerta('success', TelasDeSenhaProvisoria::AVISO_TROCADA) : '') . $this->avisosDeRevisao($sessao) . $this->acaoPrincipal($sessao, $primeiro) . $avisoDeVersao . $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], 'Olá, <strong>' . Pagina::h($u->nome) . '</strong>.' . ($entradas === [] ? ' Assim que você receber acesso a uma seção, ela aparece aqui.' : ''));
     }
 
     /**

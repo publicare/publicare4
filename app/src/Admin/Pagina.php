@@ -193,6 +193,9 @@ final class Pagina
         return '<a class="pbl-ajuda" href="' . self::h(self::$manualUrl) . '" target="_blank" rel="noopener noreferrer">Ajuda (manual)<span class="visually-hidden"> (abre em nova aba)</span></a>';
     }
 
+    /** Ajuda do campo de nova senha (perfil, recuperação e troca da senha provisória). */
+    public const AJUDA_DE_SENHA = 'No mínimo 10 caracteres, nada óbvio (como "senha123456"). Tamanho vale mais que símbolos.';
+
     /**
      * `$navegacao` (HTML já escapado, em geral uma `<nav>`) vai num `<header>` antes do `<main>`; o título vira o `<h1>`.
      * `$migalhas` (lista de `[rótulo, href|null]`, o último sem href = tela atual) vira o caminho de volta acima do título;

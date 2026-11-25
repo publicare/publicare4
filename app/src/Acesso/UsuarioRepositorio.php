@@ -34,7 +34,7 @@ final class UsuarioRepositorio implements Autenticador
         $this->algoritmo = $algoritmo ?? (defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT);
     }
 
-    public function criar(string $login, string $email, string $nome, string $senha, bool $administrador = false, string $ator = 'sistema'): Usuario
+    public function criar(string $login, string $email, string $nome, string $senha, bool $administrador = false, string $ator = 'sistema', bool $provisoria = false): Usuario
     {
         $login = mb_strtolower(trim($login));
         $email = trim($email);
@@ -56,12 +56,12 @@ final class UsuarioRepositorio implements Autenticador
         }
         $this->conexao->insert('usuario', [
             'login' => $login, 'email' => $email, 'nome' => trim($nome), 'senha_hash' => $this->hash($senha),
-            'administrador' => $administrador ? 1 : 0, 'ativo' => 1, 'criado_em' => gmdate('c'),
+            'administrador' => $administrador ? 1 : 0, 'ativo' => 1, 'criado_em' => gmdate('c'), 'senha_provisoria' => $provisoria ? 1 : 0,
         ]);
         $id = (int) $this->conexao->lastInsertId();
-        $this->auditoria?->registrar('usuario.criar', $ator, null, null, ['usuario' => $login, 'administrador' => $administrador]);
+        $this->auditoria?->registrar('usuario.criar', $ator, null, null, ['usuario' => $login, 'administrador' => $administrador, 'provisoria' => $provisoria]);
 
-        return new Usuario($id, $login, $email, trim($nome), $administrador, true);
+        return new Usuario($id, $login, $email, trim($nome), $administrador, true, Usuario::PESSOA, $provisoria);
     }
 
     /**
@@ -281,8 +281,12 @@ final class UsuarioRepositorio implements Autenticador
         return (int) $this->conexao->fetchOne('SELECT COUNT(*) FROM usuario WHERE administrador = 1 AND ativo = 1') <= 1;
     }
 
-    /** @param string|null $manterSessao `id_hash` da sessão que continua aberta (troca da própria senha); as demais caem */
-    public function definirSenha(int $id, string $senha, string $ator = 'sistema', ?string $manterSessao = null): void
+    /**
+     * Toda definição de senha grava também a marca de provisória (sempre o valor pedido): sem `$provisoria`, a marca cai.
+     *
+     * @param string|null $manterSessao `id_hash` da sessão que continua aberta (troca da própria senha); as demais caem
+     */
+    public function definirSenha(int $id, string $senha, string $ator = 'sistema', ?string $manterSessao = null, bool $provisoria = false): void
     {
         $u = $this->porId($id) ?? throw new \InvalidArgumentException("Usuário {$id} não existe");
         if ($u->ehServico()) {
@@ -292,9 +296,9 @@ final class UsuarioRepositorio implements Autenticador
         if ($problema !== null) {
             throw new \InvalidArgumentException($problema);
         }
-        $this->conexao->update('usuario', ['senha_hash' => $this->hash($senha)], ['id' => $id]);
+        $this->conexao->update('usuario', ['senha_hash' => $this->hash($senha), 'senha_provisoria' => $provisoria ? 1 : 0], ['id' => $id]);
         $this->encerrarSessoes($id, $manterSessao); // trocar a senha derruba quem estiver logado com a antiga
-        $this->auditoria?->registrar('senha.trocar', $ator, $id);
+        $this->auditoria?->registrar('senha.trocar', $ator, $id, null, ['provisoria' => $provisoria]);
     }
 
     public function definirAtivo(int $id, bool $ativo, string $ator = 'sistema'): void
@@ -400,6 +404,6 @@ final class UsuarioRepositorio implements Autenticador
     /** @param array<string, mixed> $l */
     private function hidratar(array $l): Usuario
     {
-        return new Usuario((int) $l['id'], (string) $l['login'], (string) $l['email'], (string) $l['nome'], (int) $l['administrador'] === 1, (int) $l['ativo'] === 1, (string) ($l['tipo'] ?? Usuario::PESSOA));
+        return new Usuario((int) $l['id'], (string) $l['login'], (string) $l['email'], (string) $l['nome'], (int) $l['administrador'] === 1, (int) $l['ativo'] === 1, (string) ($l['tipo'] ?? Usuario::PESSOA), (int) ($l['senha_provisoria'] ?? 0) === 1);
     }
 }
