@@ -6,11 +6,11 @@ O conteúdo oficial **não** é a demonstração. O `demo-popular` cria contas c
 
 ## O que a carga faz
 
-`php bin/pbl publicare-oficial-carregar` cria ou atualiza só o conteúdo público: página inicial (promessa, pilares e chamadas), O que é, O que faz, Como facilita, O que inova, Instalação e requisitos, Perguntas frequentes, Conceitos e guias, Comunidade (com links úteis reais), Como acompanhar o projeto, Contato (formulário real) e rodapé com a licença e o GitHub. Não cria contas, rascunhos, envios em revisão, aviso de demonstração nem páginas de manual (o manual terá subdomínio próprio).
+`php bin/pbl publicare-oficial-carregar` cria ou atualiza só o conteúdo público: página inicial (promessa, pilares e chamadas), O que é, O que faz, Como facilita, O que inova, Instalação e requisitos, Perguntas frequentes, Conceitos e guias, Comunidade (com links úteis reais), Como acompanhar o projeto, Fale com o projeto (links do GitHub; com `--email-contato`, Contato com formulário real) e rodapé com a licença e o GitHub. Não cria contas, rascunhos, envios em revisão, aviso de demonstração nem páginas de manual (o manual terá subdomínio próprio).
 
 | Opção | Efeito |
 |---|---|
-| `--email-contato=ENDERECO` | **Obrigatória.** E-mail real do site (grava `email_contato`). |
+| `--email-contato=ENDERECO` | **Opcional.** Sem ele, o contato é só pelo GitHub: a carga não cria formulário, caixa "Mensagens recebidas" nem grava `email_contato`, e nenhum e-mail aparece no site. Com ele, cria o formulário e a caixa e grava `email_contato`. |
 | `--host=publicare.org` | Garante o domínio e o torna o principal. Sem ela, o site já precisa ter um domínio principal real (nunca `localhost`, IP ou `.invalid`, `.test`, `.local`). |
 | `--site=ID` | Site (padrão: o primeiro). |
 | `--sem-publicar` | Não publica ao final. |
@@ -56,7 +56,7 @@ SQLite, em `dados/`, arquivo de acesso restrito. Não há banco a criar no Hesti
 ### 5. Carregar o conteúdo
 
 ```
-php bin/pbl publicare-oficial-carregar --host=publicare.org --email-contato=ENDERECO_REAL
+php bin/pbl publicare-oficial-carregar --host=publicare.org
 ```
 
 A saída traz os totais (criados, atualizados, inalterados) e o número de páginas publicadas. Confira:
@@ -88,19 +88,21 @@ Agende em Cópias de segurança (painel) e rode `php bin/pbl backup criar` antes
 
 ### 9. Contato
 
-O formulário grava cada mensagem como conteúdo privado em **Mensagens recebidas**, que se lê no painel. **Não há e-mail automático** a cada mensagem; `email_contato` é o endereço exibido no site. Envie uma mensagem de teste e confira a caixa. Notificação por e-mail seria uma funcionalidade nova.
+**Sem e-mail (decisão do dono para o publicare.org):** o contato é só pelo GitHub. `/contato` é a página "Fale com o projeto", com links para Issues, Como participar e o relato privado de falha de segurança (SECURITY.md); não há formulário, caixa nem e-mail. O instalador cria um formulário em `/contato`; se ele ainda tem o texto da instalação, a carga o manda para a lixeira (endereço `contato-inicial`) e cria a página. Um formulário com outro texto (de carga anterior com e-mail, ou editado) **não é tocado**: a carga avisa e cria a página em `/fale-com-o-projeto`. Rodar sem e-mail nunca apaga a caixa nem o `email_contato` já gravado. Discussions está desabilitado no repositório, então não há link para ele.
+
+**Com `--email-contato`:** o formulário grava cada mensagem como conteúdo privado em **Mensagens recebidas**, que se lê no painel. **Não há e-mail automático** a cada mensagem; `email_contato` é o endereço exibido no site. Envie uma mensagem de teste e confira a caixa. Notificação por e-mail seria uma funcionalidade nova.
 
 ## Atualizar
 
 - **Programa:** `php bin/pbl atualizar` (pacote assinado, com cópia do banco e volta atrás; [atualizacao.md](atualizacao.md)). O canal de atualização é um serviço separado e não faz parte deste roteiro.
-- **Conteúdo:** uma versão nova do programa pode trazer texto novo. Depois de atualizar, rode de novo `php bin/pbl publicare-oficial-carregar --email-contato=ENDERECO_REAL`. Repetir é seguro (regras acima).
+- **Conteúdo:** uma versão nova do programa pode trazer texto novo. Depois de atualizar, rode de novo `php bin/pbl publicare-oficial-carregar`. Repetir é seguro (regras acima).
 - **Mudar de domínio:** `php bin/pbl dominio principal NOVO` e `php bin/pbl publicar`.
 
 ## Roteiro de publicação (resumo e reversão)
 
 1. **Backup:** `php bin/pbl backup criar`; copie o arquivo para fora do servidor.
 2. **Simular:** em cópia local ou banco temporário, rode `publicare-oficial-carregar --sem-publicar` e confira os totais.
-3. **Aplicar:** `php bin/pbl publicare-oficial-carregar --host=publicare.org --email-contato=ENDERECO_REAL`.
+3. **Aplicar:** `php bin/pbl publicare-oficial-carregar --host=publicare.org`.
 4. **Verificar:** `canonical`, `og:url`, `og:image`, `robots.txt` e `sitemap.xml` com `https://publicare.org/`; `usuario listar` só com o administrador; nenhuma página publicada com a palavra "exemplo"; links internos do menu abrindo.
 5. **Reverter:** restaure a cópia do passo 1 (`php bin/pbl backup restaurar`, conforme [backup.md](backup.md)) ou, em atualização do programa, use a volta atrás de `php bin/pbl atualizar`. Se preciso, recoloque a página "em construção" do Hestia.
 

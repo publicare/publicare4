@@ -43,6 +43,8 @@ final class CargaOficial
     private int $removidos = 0;
     /** @var list<string> */
     private array $avisos = [];
+    private bool $comEmail = false;
+    private string $urlContato = '/contato';
 
     public function __construct(private readonly Caminhos $caminhos, Servicos $servicos)
     {
@@ -55,13 +57,14 @@ final class CargaOficial
      * @throws \InvalidArgumentException opção inválida
      * @throws \RuntimeException site sem domínio principal real
      */
-    public function carregar(int $siteId, string $emailContato, ?string $host = null, bool $publicar = true): array
+    public function carregar(int $siteId, ?string $emailContato = null, ?string $host = null, bool $publicar = true): array
     {
         $site = $this->servicos->sites->porId($siteId);
         if ($site === null || $site->objetoRaizId === null) {
             throw new \InvalidArgumentException('Site não encontrado');
         }
-        $email = $this->validarEmail($emailContato);
+        $email = $emailContato === null || trim($emailContato) === '' ? null : $this->validarEmail($emailContato);
+        $this->comEmail = $email !== null;
         $this->site = $site;
         $this->raiz = $site->objetoRaizId;
         $this->criados = $this->atualizados = $this->inalterados = $this->removidos = 0;
@@ -127,9 +130,9 @@ final class CargaOficial
         }
     }
 
-    private function configurar(string $email): void
+    private function configurar(?string $email): void
     {
-        $this->servicos->configs->definir($this->site->id, [
+        $this->servicos->configs->definir($this->site->id, array_filter([
             'nome' => ConteudoPublicare::NOME_DO_SITE,
             'idioma' => 'pt-BR',
             'slogan' => ConteudoPublicare::PROMESSA,
@@ -138,7 +141,7 @@ final class CargaOficial
             'email_contato' => $email,
             'robots_indexar' => true,
             'rss_ligado' => true,
-        ]);
+        ], static fn ($v): bool => $v !== null));
     }
 
     private function usarPeleOficial(Site $site): Site
@@ -175,8 +178,8 @@ final class CargaOficial
         $this->perguntas();
         $this->linksUteis($paginas['comunidade'], $paginas['como-acompanhar']);
         $this->atalhosUteis();
-        $this->blocos();
         $this->contato();
+        $this->blocos();
     }
 
     /** A home é da carga enquanto ainda traz o texto da instalação ou o oficial; se o editor a reescreveu, fica como está. */
@@ -280,12 +283,17 @@ final class CargaOficial
     private function blocos(): void
     {
         $blocos = $this->objeto('pasta', $this->raiz, 'Blocos', 'blocos', [], ['peso' => 996, 'descricao' => 'Trechos reutilizáveis']);
-        $this->objeto('bloco', $blocos->id, 'Rodapé', 'bloco-rodape', ['corpo' => '<p>O Publicare 4 é software livre, sob a licença Apache-2.0. <a href="' . ConteudoPublicare::REPOSITORIO . '">Código-fonte no GitHub</a> · <a href="/comunidade">Comunidade</a> · <a href="/contato">Contato</a></p>']);
+        $this->objeto('bloco', $blocos->id, 'Rodapé', 'bloco-rodape', ['corpo' => '<p>O Publicare 4 é software livre, sob a licença Apache-2.0. <a href="' . ConteudoPublicare::REPOSITORIO . '">Código-fonte no GitHub</a> · <a href="/comunidade">Comunidade</a> · <a href="' . $this->urlContato . '">' . ($this->comEmail ? 'Contato' : 'Fale com o projeto') . '</a></p>']);
     }
 
     /** Formulário real de contato: as mensagens chegam como conteúdo privado na caixa "Mensagens recebidas" (lida pelo painel). */
     private function contato(): void
     {
+        if (!$this->comEmail) {
+            $this->faleComOProjeto();
+
+            return;
+        }
         $caixa = $this->objeto('pasta', $this->raiz, 'Mensagens recebidas', self::CAIXA, [], ['descricao' => 'Mensagens enviadas pelo formulário de contato'], null, 'privado');
         $this->objeto('formulario', $this->raiz, 'Contato', 'contato', [
             'corpo' => '<p>Escreva para o projeto: dúvidas, sugestões ou parcerias. Respondemos assim que possível.</p><p>Para relatar uma falha de segurança, use o canal privado descrito na página de <a href="' . ConteudoPublicare::REPOSITORIO . '/blob/main/SECURITY.md">segurança</a>.</p>',
@@ -295,6 +303,37 @@ final class CargaOficial
             'mensagem' => 'Recebemos a sua mensagem. Obrigado!',
             'botao' => 'Enviar mensagem',
         ], ['peso' => 90, 'no_menu' => true]);
+    }
+
+    /**
+     * Sem e-mail: página de contato só com os caminhos do GitHub. Um formulário já existente em /contato com texto próprio
+     * (carga anterior com e-mail, ou editado) não é tocado; só o formulário cru da instalação é aposentado.
+     */
+    private function faleComOProjeto(): void
+    {
+        $dados = ['resumo' => 'O contato com o projeto é pelo GitHub.', 'corpo' => ConteudoPublicare::faleComOProjeto()];
+        $meta = ['peso' => 90, 'no_menu' => true, 'rotulo_menu' => 'Fale com o projeto', 'descricao' => 'Como falar com o projeto: issues, como participar e relato de segurança, tudo pelo GitHub.'];
+        $atual = $this->servicos->objetos->porUrl($this->site->id, 'contato');
+        $classe = $atual === null ? null : $this->servicos->classes->porId($atual->classeId);
+        if ($atual !== null && $classe?->nome === 'formulario') {
+            $resto = $atual->status === 'apagado' || str_contains((string) ($atual->dados['corpo'] ?? ''), 'Escreva para nós. Respondemos assim que possível.');
+            if (!$resto) {
+                $this->avisos[] = 'Contato: formulário mantido. Para trocar pela página do GitHub, apague-o no painel e rode a carga de novo.';
+                $this->objeto('pagina', $this->raiz, 'Fale com o projeto', 'fale-com-o-projeto', $dados, $meta);
+                $this->urlContato = '/fale-com-o-projeto';
+
+                return;
+            }
+            // Resto da instalação: sai do endereço (vai para a lixeira) e libera /contato para a página.
+            $this->servicos->objetos->atualizar($atual->id, ['url_amigavel' => 'contato-inicial', 'status' => 'apagado'], self::MOTIVO, $atual->versao);
+            ++$this->removidos;
+            $c = $this->servicos->classes->porNome('pagina') ?? throw new \RuntimeException('Tipo pagina não existe');
+            ++$this->criados;
+            $this->servicos->objetos->criar($this->site->id, $c, $this->raiz, 'Fale com o projeto', 'contato', $dados, 'publicado', $meta, true);
+
+            return;
+        }
+        $this->objeto('pagina', $this->raiz, 'Fale com o projeto', 'contato', $dados, $meta);
     }
 
     /**

@@ -323,18 +323,90 @@ final class CargaOficialTest extends TestCase
         }
     }
 
-    public function testComandoExigeEmailDeContatoEValida(): void
+    public function testComandoValidaOEmailQuandoInformado(): void
     {
         [$raiz, $c] = self::instalar();
         try {
             $t = new CommandTester(new PublicareOficialCarregarComando($c));
-            self::assertSame(1, $t->execute([]));
-            self::assertStringContainsString('--email-contato', $t->getDisplay());
             self::assertSame(1, $t->execute(['--email-contato' => 'nao-responda@' . self::PALAVRA . '.invalid']));
             self::assertSame(0, $t->execute(['--email-contato' => self::EMAIL, '--sem-publicar' => true]), $t->getDisplay());
             self::assertStringContainsString('criado(s)', $t->getDisplay());
             self::assertSame(0, $t->execute(['--email-contato' => self::EMAIL]), $t->getDisplay());
             self::assertStringContainsString('0 criado(s), 0 atualizado(s)', $t->getDisplay());
+        } finally {
+            Ajuda::apagar($raiz);
+        }
+    }
+
+    public function testSemEmailNaoCriaFormularioCaixaNemEmailEOContatoViraPagina(): void
+    {
+        [$raiz, $c, $s, $siteId] = self::instalar();
+        try {
+            $r = (new CargaOficial($c, $s))->carregar($siteId);
+            self::assertSame([], $r['avisos']);
+            $contato = $s->objetos->porUrl($siteId, 'contato');
+            self::assertSame('Fale com o projeto', $contato?->titulo);
+            self::assertSame('publicado', $contato->status);
+            self::assertSame('pagina', $s->classes->porId($contato->classeId)?->nome);
+            self::assertEmpty($s->configs->valor($siteId, 'email_contato'));
+            $formularios = (int) $s->conexao()->fetchOne("SELECT COUNT(*) FROM objeto o JOIN classe c ON c.id = o.classe_id WHERE c.nome = 'formulario' AND o.status <> 'apagado'");
+            self::assertSame(0, $formularios);
+
+            $todo = '';
+            foreach (self::paginas($c, $siteId) as $nome) {
+                $todo .= (string) file_get_contents($c->dados() . '/cache/paginas/' . $siteId . '/' . $nome . '.html');
+            }
+            self::assertSame(0, preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', $todo), 'nenhum e-mail publicado');
+            self::assertStringNotContainsString('mailto:', $todo);
+            $contatoHtml = (string) file_get_contents($c->dados() . '/cache/paginas/' . $siteId . '/contato.html');
+            self::assertStringNotContainsString('name="mensagem"', $contatoHtml, 'sem formulário de contato');
+            foreach (['/issues', 'SECURITY.md', '/comunidade', 'security/advisories/new', 'github.com/publicare/publicare4'] as $trecho) {
+                self::assertStringContainsString($trecho, $contatoHtml);
+            }
+            self::assertStringNotContainsString('discussions', strtolower($contatoHtml));
+            self::assertStringNotContainsString(self::PALAVRA, strtolower($contatoHtml));
+            self::assertStringContainsString('Fale com o projeto', (string) $s->objetos->porUrl($siteId, 'bloco-rodape')?->dados['corpo']);
+
+            $de_novo = (new CargaOficial($c, $s))->carregar($siteId);
+            self::assertSame(0, $de_novo['criados']);
+            self::assertSame(0, $de_novo['atualizados']);
+            self::assertSame(0, $de_novo['removidos']);
+        } finally {
+            Ajuda::apagar($raiz);
+        }
+    }
+
+    public function testSemEmailNaoApagaFormularioDeCargaAnterior(): void
+    {
+        [$raiz, $c, $s, $siteId] = self::instalar();
+        try {
+            $carga = new CargaOficial($c, $s);
+            $carga->carregar($siteId, self::EMAIL);
+            $r = $carga->carregar($siteId);
+            self::assertNotSame([], $r['avisos']);
+            $form = $s->objetos->porUrl($siteId, 'contato');
+            self::assertNotNull($form);
+            self::assertSame('formulario', $s->classes->porId($form->classeId)?->nome);
+            self::assertNotNull($s->objetos->porUrl($siteId, 'mensagens-recebidas'));
+            self::assertSame(self::EMAIL, $s->configs->valor($siteId, 'email_contato'));
+            $pag = $s->objetos->porUrl($siteId, 'fale-com-o-projeto');
+            self::assertNotNull($pag);
+            self::assertSame('pagina', $s->classes->porId($pag->classeId)?->nome);
+            $de_novo = $carga->carregar($siteId);
+            self::assertSame(0, $de_novo['criados']);
+            self::assertSame(0, $de_novo['atualizados']);
+        } finally {
+            Ajuda::apagar($raiz);
+        }
+    }
+
+    public function testComandoSemEmailRetorna0(): void
+    {
+        [$raiz, $c] = self::instalar();
+        try {
+            $t = new CommandTester(new PublicareOficialCarregarComando($c));
+            self::assertSame(0, $t->execute(['--sem-publicar' => true]), $t->getDisplay());
+            self::assertStringContainsString('só pelo GitHub', $t->getDisplay());
         } finally {
             Ajuda::apagar($raiz);
         }

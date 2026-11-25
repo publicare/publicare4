@@ -257,6 +257,20 @@ final class ConteudoPublicare
             . '<p>Ao participar, você aceita o <a href="' . self::REPOSITORIO . '/blob/main/CODE_OF_CONDUCT.md">Código de Conduta</a>.</p>';
     }
 
+    /** Corpo da página "Fale com o projeto": usada quando o site não tem e-mail de contato (o contato é só pelo GitHub). */
+    public static function faleComOProjeto(): string
+    {
+        $r = self::REPOSITORIO;
+
+        return '<p>O contato com o Publicare 4 é pelo GitHub, o mesmo lugar onde o projeto é feito. Não usamos e-mail por enquanto.</p>'
+            . '<h2>O que você quer fazer?</h2>'
+            . '<ul><li><strong>Reportar um problema ou pedir um recurso:</strong> <a href="' . $r . '/issues/new/choose">abra uma issue</a>.</li>'
+            . '<li><strong>Ver o que já foi relatado:</strong> as <a href="' . $r . '/issues">issues do projeto</a>.</li>'
+            . '<li><strong>Quer ajudar?</strong> Veja <a href="/comunidade">Como participar</a>.</li>'
+            . '<li><strong>Achou uma falha de segurança?</strong> <a href="' . $r . '/security/advisories/new">Relate em privado</a>, como descreve a <a href="' . $r . '/blob/main/SECURITY.md">política de segurança</a>.</li></ul>'
+            . '<p>Ao participar, você aceita o <a href="' . $r . '/blob/main/CODE_OF_CONDUCT.md">Código de Conduta</a>.</p>';
+    }
+
     private static function acompanhar(): string
     {
         $r = self::REPOSITORIO;
