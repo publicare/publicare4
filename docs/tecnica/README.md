@@ -11,6 +11,7 @@ Para quem **instala, opera e desenvolve** o PBL4. Se você quer entender o proje
 | [Atualização](atualizacao.md) | `bin/pbl atualizar`, pacote, assinatura e publicação de versões |
 | [Banco de dados](banco-de-dados.md) | Camada de dialeto, `banco.json` e variáveis `PBL_BANCO_*` (fundação do ADR 0028) |
 | [Linha de comando](cli.md) | Comandos de `bin/pbl` |
+| [Manual de uso: geração e publicação](manual.md) | Como `docs/usuario` vira o manual (`bin/pbl manual-gerar`), edições, capturas e o passo da release |
 | [CLI de conteúdo](cli-conteudo.md) | `bin/pbl conteudo`: editar conteúdo por agentes e scripts, contrato JSON, códigos de saída, conta de serviço |
 | [Como migrar um site do PBL3](migrar-do-pbl3.md) | Importar conteúdo, arquivos e contas de uma base do PBL3 |
 | [Linguagem de moldes PBL4](../linguagem-pbl4.md) | Gramática, comandos, ordenação e conversão do PBL3 |

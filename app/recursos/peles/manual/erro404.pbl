@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="<@eco %SITE.config.idioma@>">
+<head>
+<@incluir arquivo="cabeca"@>
+<meta name="robots" content="noindex">
+</head>
+<body>
+<@incluir arquivo="topo"@>
+<div class="estrutura sem-lateral">
+<main id="conteudo" tabindex="-1">
+<h1>Página não encontrada</h1>
+<p>Este endereço não existe nesta edição do manual. Use a busca acima ou <a href="/">volte à página inicial</a>.</p>
+</main>
+</div>
+</body>
+</html>

@@ -38,7 +38,10 @@ final class PaginasDinamicas
         }
         $q = $req->query->all()['q'] ?? null;
         $q = is_string($q) && mb_check_encoding($q, 'UTF-8') ? mb_substr(trim($q), 0, self::MAX_TERMO) : '';
-        $html = $this->servicos->renderizador->renderizar($site, $raiz, 'busca', ['q' => $q, 'pagina' => $this->pagina($req)]);
+        // `ed`: recorte opcional da busca (ex.: a edição do manual); só slug curto, qualquer outra coisa vira vazio.
+        $ed = $req->query->all()['ed'] ?? null;
+        $ed = is_string($ed) && preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/D', $ed) === 1 && strlen($ed) <= 40 ? $ed : '';
+        $html = $this->servicos->renderizador->renderizar($site, $raiz, 'busca', ['q' => $q, 'ed' => $ed, 'pagina' => $this->pagina($req)]);
 
         return $this->html($html, Response::HTTP_OK);
     }

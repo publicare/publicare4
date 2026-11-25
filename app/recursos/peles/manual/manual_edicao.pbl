@@ -1,0 +1,7 @@
+<@estende "layout"@>
+<@bloco miolo@>
+<h1>Manual, edição <@eco #titulo@></h1>
+<@se #resumo@><p class="resumo"><@eco #resumo@></p><@/se@>
+<p class="aviso" role="note">Esta é uma edição guardada do manual. A edição estável fica em <a href="/">manual principal</a>.</p>
+<@incluir arquivo="capitulos"@>
+<@/bloco@>

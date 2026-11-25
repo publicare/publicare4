@@ -1,3 +1,11 @@
+---
+titulo: O que é o Publicare
+resumo: Para que serve o Publicare, como ele pensa e o que você pode montar com ele.
+capitulo: comecar
+ordem: 10
+publico: editor, administrador, desenvolvedor, contribuidor
+---
+
 # O que é o Publicare
 
 O **Publicare** é um programa **livre** (você pode usar, estudar e adaptar, sem pagar licença) para montar **sites e pequenos sistemas na internet** sem precisar programar. Ele nasceu no Brasil em 2003, para portais e intranets, e agora está sendo reconstruído como o **Publicare 4** (também chamado **PBL4**).
@@ -30,4 +38,4 @@ O Publicare **não** pretende ser uma loja virtual completa, uma rede social nem
 
 ## Quem mantém
 
-É um projeto aberto, mantido por voluntários, com código público em <https://github.com/publicare/publicare4>. Próximo passo: o [estado do projeto](estado-do-projeto.md).
+É um projeto aberto, mantido por voluntários, com código público em <https://github.com/publicare/publicare4>. Próximo passo: [instalar](instalar.md) e fazer os [primeiros passos](primeiros-passos.md).

@@ -1,6 +1,16 @@
+---
+titulo: Usar o painel
+resumo: Onde fica cada coisa no painel, como ler a lista de conteúdo e como editar um conteúdo.
+capitulo: comecar
+ordem: 40
+publico: editor, administrador
+---
+
 # Usar o painel
 
 O painel fica em `/_pbl/` do seu site. Ele funciona no computador e no celular, com ou sem JavaScript.
+
+![Tela Mais, com as áreas de administração](captura:painel-mais)
 
 ## O menu
 São no máximo cinco itens, pelo que você quer fazer:

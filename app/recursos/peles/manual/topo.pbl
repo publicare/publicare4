@@ -1,0 +1,30 @@
+<@-- Cabeçalho do manual: marca, edições (estável + as que existem sob a página inicial), busca (GET, funciona sem JavaScript) e os botões de tema e impressão (só aparecem com JavaScript). --@>
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+<header class="topo">
+<a class="marca" href="/"><span><@eco #site_nome@></span></a>
+<nav class="edicoes" aria-label="Edições do manual">
+<ul>
+<li><a href="/" data-edicao="/">Estável</a></li>
+<@localizar classes="manual_edicao" pai=#raiz niveis=1 ordem="-data_publicacao, titulo" limite=30@><li><a href="<@eco #url@>/" data-edicao="<@eco #url@>/"><@eco #titulo@></a></li>
+<@/localizar@></ul>
+</nav>
+<@var $pre = "/"@><@se #classe == "manual_pagina"@><@se #edicao != "estavel"@><@var $pre = "/" . #edicao . "/"@><@/se@><@/se@><@se #classe == "manual_capitulo"@><@se #edicao != "estavel"@><@var $pre = "/" . #edicao . "/"@><@/se@><@/se@><nav class="trilhas" aria-label="Trilhas por público">
+<ul>
+<li><a href="<@eco $pre@>trilhas/quem-e-voce/">Quem é você?</a></li>
+<li><a href="<@eco $pre@>trilhas/editor/">Editor</a></li>
+<li><a href="<@eco $pre@>trilhas/administrador/">Administrador</a></li>
+<li><a href="<@eco $pre@>trilhas/desenvolvedor/">Desenvolvedor</a></li>
+<li><a href="<@eco $pre@>trilhas/contribuidor/">Contribuidor</a></li>
+</ul>
+</nav>
+<@se %SITE.config.busca_ligada == 1@><form class="busca" action="/busca" method="get" role="search">
+<label class="so-leitor" for="busca-q">Buscar no manual</label>
+<input id="busca-q" type="search" name="q" value="<@eco $q@>" maxlength="200" placeholder="Buscar no manual">
+<@se #classe == "manual_pagina"@><input type="hidden" name="ed" value="<@eco #edicao@>"><@senao@><@se #classe == "manual_capitulo"@><input type="hidden" name="ed" value="<@eco #edicao@>"><@senao@><input type="hidden" name="ed" value="<@eco $ed@>"><@/se@><@/se@>
+<button type="submit">Buscar</button>
+</form>
+<@/se@><div class="ferramentas">
+<button type="button" class="botao" data-manual-tema hidden aria-pressed="false">Tema escuro</button>
+<button type="button" class="botao" data-manual-imprimir hidden>Versão para impressão</button>
+</div>
+</header>

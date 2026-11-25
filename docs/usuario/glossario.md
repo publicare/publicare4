@@ -1,3 +1,11 @@
+---
+titulo: Glossário
+resumo: O significado, em linguagem simples, das palavras que o Publicare usa.
+capitulo: consulta
+ordem: 40
+publico: editor, administrador, desenvolvedor, contribuidor
+---
+
 # Glossário
 
 As palavras que o Publicare usa, em linguagem simples.
@@ -54,7 +62,7 @@ As palavras que o Publicare usa, em linguagem simples.
 | **Software livre / Apache-2.0** | Licença (a do Publicare 4; o Publicare 3 é MIT) que permite usar, estudar, modificar e distribuir o programa gratuitamente. |
 | **Tipo fixo** | Tipo de conteúdo de que o sistema depende (pasta, página, formulário, arquivo, imagem e link). Não se apaga nem se renomeia, e os campos básicos não saem; dá para acrescentar campos e mudar rótulos. Aparece com o selo "fixa". |
 | **Link (tipo de conteúdo)** | Atalho para outro conteúdo do site (acompanha o endereço dele se mudar) ou para um endereço externo. Só um dos dois destinos por vez. |
-| **Menu / nome no menu** | O menu principal mostra as páginas marcadas "no menu", na ordem do peso. O nome no menu é opcional; vazio, vale o título. | O painel avisa quando o menu foi cortado (muitos níveis ou mais de 50 itens num nível). O site também ganha `sitemap.xml` e `robots.txt` automáticos.
+| **Menu / nome no menu** | O menu principal mostra as páginas marcadas "no menu", na ordem do peso. O nome no menu é opcional; vazio, vale o título. O painel avisa quando o menu foi cortado (muitos níveis ou mais de 50 itens num nível). O site também ganha `sitemap.xml` e `robots.txt` automáticos.
 | **Configurações do site** | Valores que valem para o site inteiro (nome, idioma, textos para buscadores, contato, rodapé, busca ligada, itens por página, profundidade do menu). Ficam em `/_pbl/site/{id}/configuracoes`; ao salvar, o site é republicado. |
 | **Modelo opcional** | Pacote pronto de tipos de conteúdo, exemplos e aparência (agenda de eventos, perguntas frequentes, destaques, blocos) que você liga quando precisa, sem afetar o que já existe. Veja [Modelos opcionais](modelos-e-demo.md). |
 | **SEO** | Título, descrição e imagem pensados para buscadores e redes sociais; opcionais, e sem eles o site usa o título, o resumo e a imagem de destaque. |

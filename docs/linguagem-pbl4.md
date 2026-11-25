@@ -87,7 +87,7 @@ string     = '"' , {...} , '"' | "'" , {...} , "'" ;   (* escapes: \\ \" \' *)
 
 ### Menu, busca e paginação (fase 5l)
 
-- Variáveis do molde: `$q` (termo da busca, até 200 caracteres), `$q_url` (o mesmo, já codificado para URL), `$pagina` (1 por padrão; `?pagina=N` nas listagens). Variável indefinida vale vazio.
+- Variáveis do molde: `$q` (termo da busca, até 200 caracteres), `$q_url` (o mesmo, já codificado para URL), `$pagina` (1 por padrão; `?pagina=N` nas listagens), `$ed` (recorte opcional da busca: `/busca?q=…&ed=<slug>`, só minúsculas, números e hífen; a pele `manual` o usa para buscar numa edição). Variável indefinida vale vazio.
 - Propriedades do objeto corrente: `#no_menu`, `#rotulo_menu` (vazio = usa o título), `#caminho` (`/1/5/9/`, ids dos ancestrais), `#raiz` (id da página inicial do site), `#site_nome`, `#feed_url` (feed RSS da seção, vazio se não há), `#feed_site_url` (feed do site) e `#feed_titulo`.
 - Paginação sem total: `<@filhos inicio=($pagina-1)*10 limite=11@>`, mostrar os 10 primeiros e tratar o 11º como "há próxima página". `%INDICE` começa em 1.
 - Moldes especiais da pele: `busca` (servido em `/busca?q=…`, se não existir a página `busca`) e `erro404` (resposta 404 das páginas públicas, com fallback ao texto simples).

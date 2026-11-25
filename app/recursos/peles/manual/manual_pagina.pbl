@@ -1,0 +1,11 @@
+<@estende "layout"@>
+<@bloco lateral@><@ecocru #menu@><@/bloco@>
+<@bloco miolo@>
+<article>
+<h1><@eco #titulo@></h1>
+<@se #resumo@><p class="resumo"><@eco #resumo@></p><@/se@>
+<@se #toc != ""@><nav class="toc" aria-labelledby="toc-titulo"><h2 id="toc-titulo">Nesta página</h2><@ecocru #toc@></nav>
+<@/se@><div class="corpo" data-manual-corpo><@ecocru #corpo@></div>
+</article>
+<nav class="anterior-proximo" aria-label="Anterior e próximo"><@ecocru #navegacao@></nav>
+<@/bloco@>

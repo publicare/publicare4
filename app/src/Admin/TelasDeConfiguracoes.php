@@ -50,7 +50,7 @@ final class TelasDeConfiguracoes
             'busca' => ['Busca e compartilhamento', ['descricao', 'imagem_padrao', 'titulo_padrao', 'titulo_sufixo', 'robots_indexar']],
             'contato' => ['Contato', ['email_contato', 'telefone', 'endereco', 'redes_sociais']],
             'rodape' => ['Rodapé e métricas', ['rodape', 'analytics']],
-            'comportamento' => ['Comportamento', ['busca_ligada', 'itens_por_pagina', 'menu_profundidade']],
+            'comportamento' => ['Comportamento', ['busca_ligada', 'itens_por_pagina', 'menu_profundidade', 'manual_url']],
         ];
     }
 
