@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Alterado
+- **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.11`.
+
 ## [0.1.0-rc.11] - 2026-11-25
 
 > **Em resumo:** pele `publicare` (laranja, moderna e acessível) vira a pele padrão dos sites novos, com SEO e prévias de compartilhamento prontos; site de exemplo e carga do site oficial do Publicare sem dados de demonstração; manual de uso por público (editor, administrador, desenvolvedor, contribuidor); e-mail do site por servidor local sem TLS.
