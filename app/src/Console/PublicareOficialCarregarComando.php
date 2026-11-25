@@ -28,7 +28,7 @@ final class PublicareOficialCarregarComando extends Command
     protected function configure(): void
     {
         $this->addOption('site', null, InputOption::VALUE_REQUIRED, 'Número do site (padrão: o primeiro)');
-        $this->addOption('email-contato', null, InputOption::VALUE_REQUIRED, 'E-mail de contato do site (obrigatório)');
+        $this->addOption('email-contato', null, InputOption::VALUE_REQUIRED, 'E-mail de contato (opcional). Sem ele, o contato é só pelo GitHub e a carga não cria formulário');
         $this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Domínio principal do site (ex.: publicare.org); sem ele, o site já precisa ter um domínio principal real');
         $this->addOption('sem-publicar', null, InputOption::VALUE_NONE, 'Não publica o site no final');
     }
@@ -37,8 +37,9 @@ final class PublicareOficialCarregarComando extends Command
     {
         try {
             $email = $input->getOption('email-contato');
-            if (!is_string($email) || $email === '') {
-                throw new \InvalidArgumentException('Informe o e-mail de contato com --email-contato=ENDERECO');
+            $email = is_string($email) && trim($email) !== '' ? $email : null;
+            if ($email === null) {
+                $output->writeln('Sem --email-contato: o contato é só pelo GitHub (sem formulário).');
             }
             $servicos = Servicos::doBancoInstalado($this->caminhos);
             $opcao = $input->getOption('site');
