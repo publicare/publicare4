@@ -11,6 +11,7 @@ use Pbl\Conteudo\Modelos;
 use Pbl\Conteudo\Objeto;
 use Pbl\Conteudo\Site;
 use Pbl\Demo\ConteudoPublicare;
+use Pbl\Demo\ImagemDecorativa;
 use Pbl\Instalacao\Instalador;
 use Pbl\Instalacao\PelesDistribuidas;
 use Pbl\Servicos;
@@ -118,7 +119,7 @@ final class DemoPopularComando extends Command
         // --- Página inicial -------------------------------------------------------------------------------------------
         $inicio = $objetos->porId($this->raiz);
         if ($inicio !== null && str_contains((string) ($inicio->dados['corpo'] ?? ''), Instalador::MARCA_DO_INICIO)) {
-            $objetos->atualizar($inicio->id, ['titulo' => ConteudoPublicare::NOME_DO_SITE, 'dados' => ConteudoPublicare::inicio()], 'Demo');
+            $objetos->atualizar($inicio->id, ['titulo' => ConteudoPublicare::NOME_DO_SITE, 'dados' => ConteudoPublicare::inicio(true)], 'Demo');
         }
 
         // --- Chamadas da home (botões do hero e da faixa final) e pilares ------------------------------------------------
@@ -240,13 +241,10 @@ final class DemoPopularComando extends Command
     private function atalhosUteis(\Closure $criar): void
     {
         // Links publicados direto sob a página inicial (molde home), depois dos quatro pilares; a ordem dos ícones acompanha pele.css.
-        $docs = ConteudoPublicare::REPOSITORIO . '/blob/main/';
-        $uteis = [
-            ['link-atualizar', 'Como atualizar', 'Atualização assinada, com cópia do banco e volta atrás: o passo a passo.', ['destino_externo' => $docs . 'docs/usuario/atualizar.md', 'nova_aba' => true], 50],
-            ['link-documentacao', 'Documentação do usuário', 'Guias para quem edita e para quem administra o site.', ['destino_externo' => ConteudoPublicare::REPOSITORIO . '/tree/main/docs/usuario', 'nova_aba' => true], 60],
-            ['link-linguagem', 'Linguagem de moldes', 'Como escrever peles e moldes .pbl, em português.', ['destino_externo' => $docs . 'docs/linguagem-pbl4.md', 'nova_aba' => true], 70],
-            ['link-seguranca', 'Segurança', 'Como relatar uma falha de segurança, em privado.', ['destino_externo' => $docs . 'SECURITY.md', 'nova_aba' => true], 100],
-        ];
+        $uteis = array_map(
+            static fn (array $u): array => [$u['url'], $u['titulo'], $u['descricao'], ['destino_externo' => $u['destino'], 'nova_aba' => true], $u['peso']],
+            ConteudoPublicare::atalhosUteis(),
+        );
         foreach ($uteis as [$url, $titulo, $texto, $dados, $peso]) {
             $existente = $this->servicos->objetos->porUrl($this->site->id, $url);
             if ($existente === null) {
@@ -298,7 +296,7 @@ final class DemoPopularComando extends Command
      */
     private function imagem(string $campo, string $texto, array $cor, string $nome, int $largura, int $altura, string $semente = ''): \Closure
     {
-        $conteudo = $this->png($texto, $cor, $largura, $altura);
+        $conteudo = ImagemDecorativa::png($texto, $cor, $largura, $altura);
 
         return $this->arquivo($campo, $conteudo, $nome, 'image/png');
     }
@@ -320,57 +318,6 @@ final class DemoPopularComando extends Command
 
             return [$campo => $arquivo->id];
         };
-    }
-
-    /**
-     * PNG de demonstração, nítido e sem texto (a fonte embutida do GD não tem acentos): gradiente da cor dada para uma versão mais
-     * escura, mais formas translúcidas cuja posição vem do `$texto` (mesmo título, mesma imagem). Desenhada no dobro do tamanho e
-     * reduzida, para as bordas ficarem suaves.
-     *
-     * @param array{0: int, 1: int, 2: int} $cor
-     */
-    private function png(string $texto, array $cor, int $largura, int $altura): string
-    {
-        if (!function_exists('imagecreatetruecolor')) {
-            throw new \RuntimeException('A extensão GD é necessária para gerar as imagens do demo');
-        }
-        $largura = max(1, $largura);
-        $altura = max(1, $altura);
-        $esc = 2;
-        $w = $largura * $esc;
-        $h = $altura * $esc;
-        [$r, $g, $b] = [max(0, min(255, $cor[0])), max(0, min(255, $cor[1])), max(0, min(255, $cor[2]))];
-        $im = imagecreatetruecolor($w, $h);
-        imagealphablending($im, true);
-        for ($y = 0; $y < $h; ++$y) {
-            $t = $y / max(1, $h - 1);
-            $f = 1.1 - 0.5 * $t;
-            $c = imagecolorallocate($im, max(0, min(255, (int) ($r * $f))), max(0, min(255, (int) ($g * $f))), max(0, min(255, (int) ($b * $f))));
-            if ($c !== false) {
-                imageline($im, 0, $y, $w, $y, $c);
-            }
-        }
-        $estado = crc32($texto) ?: 1;
-        $prox = static function () use (&$estado): float {
-            $estado = ($estado * 1103515245 + 12345) & 0x7fffffff;
-
-            return $estado / 0x7fffffff;
-        };
-        for ($i = 0; $i < 5; ++$i) {
-            $diametro = (int) ($altura * $esc * (0.5 + 0.9 * $prox()));
-            $alfa = max(0, min(127, 95 + (int) (20 * $prox())));
-            $tom = $i % 2 === 0 ? 255 : 0;
-            $forma = imagecolorallocatealpha($im, $tom, $tom, $tom, $alfa);
-            if ($forma !== false) {
-                imagefilledellipse($im, (int) ($w * $prox()), (int) ($h * $prox()), $diametro, $diametro, $forma);
-            }
-        }
-        $final = imagecreatetruecolor($largura, $altura);
-        imagecopyresampled($final, $im, 0, 0, 0, 0, $largura, $altura, $w, $h);
-        ob_start();
-        imagepng($final);
-
-        return (string) ob_get_clean();
     }
 
     private function pdfMinimo(string $texto): string
