@@ -8,7 +8,7 @@ publico: editor, administrador, desenvolvedor, contribuidor
 
 # O que é o Publicare
 
-O **Publicare** é um programa **livre** (você pode usar, estudar e adaptar, sem pagar licença) para montar **sites e pequenos sistemas na internet** sem precisar programar. Ele nasceu no Brasil, para portais e intranets, e agora está sendo reconstruído como o **Publicare 4** (também chamado **PBL4**).
+O **Publicare** é um programa **livre** (você pode usar, estudar e adaptar, sem pagar licença) para montar **sites e pequenos sistemas na internet** sem precisar programar. Ele nasceu no Brasil em 2003, para portais e intranets, e agora está sendo reconstruído como o **Publicare 4** (também chamado **PBL4**).
 
 ## Para que serve
 
