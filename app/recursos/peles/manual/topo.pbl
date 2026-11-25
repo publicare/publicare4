@@ -8,6 +8,15 @@
 <@localizar classes="manual_edicao" pai=#raiz niveis=1 ordem="-data_publicacao, titulo" limite=30@><li><a href="<@eco #url@>/" data-edicao="<@eco #url@>/"><@eco #titulo@></a></li>
 <@/localizar@></ul>
 </nav>
+<@var $pre = "/"@><@se #classe == "manual_pagina"@><@se #edicao != "estavel"@><@var $pre = "/" . #edicao . "/"@><@/se@><@/se@><@se #classe == "manual_capitulo"@><@se #edicao != "estavel"@><@var $pre = "/" . #edicao . "/"@><@/se@><@/se@><nav class="trilhas" aria-label="Trilhas por público">
+<ul>
+<li><a href="<@eco $pre@>trilhas/quem-e-voce/">Quem é você?</a></li>
+<li><a href="<@eco $pre@>trilhas/editor/">Editor</a></li>
+<li><a href="<@eco $pre@>trilhas/administrador/">Administrador</a></li>
+<li><a href="<@eco $pre@>trilhas/desenvolvedor/">Desenvolvedor</a></li>
+<li><a href="<@eco $pre@>trilhas/contribuidor/">Contribuidor</a></li>
+</ul>
+</nav>
 <@se %SITE.config.busca_ligada == 1@><form class="busca" action="/busca" method="get" role="search">
 <label class="so-leitor" for="busca-q">Buscar no manual</label>
 <input id="busca-q" type="search" name="q" value="<@eco $q@>" maxlength="200" placeholder="Buscar no manual">

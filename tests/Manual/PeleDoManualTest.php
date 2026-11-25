@@ -65,6 +65,16 @@ final class PeleDoManualTest extends TestCase
         self::assertStringContainsString('<label class="so-leitor" for="busca-q">', $a['topo.pbl']);
     }
 
+    public function testCabecalhoLevaAsQuatroTrilhasEQuemEVoce(): void
+    {
+        $topo = $this->arquivos()['topo.pbl'];
+        self::assertStringContainsString('aria-label="Trilhas por público"', $topo);
+        foreach (['quem-e-voce', 'editor', 'administrador', 'desenvolvedor', 'contribuidor'] as $slug) {
+            self::assertStringContainsString('trilhas/' . $slug . '/"', $topo);
+        }
+        (new \Pbl\Linguagem\Parser())->analisar($topo);
+    }
+
     public function testTemaClaroEscuroImpressaoEFoco(): void
     {
         $a = $this->arquivos();

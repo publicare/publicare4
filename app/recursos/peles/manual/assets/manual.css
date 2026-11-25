@@ -28,8 +28,8 @@ a:visited { color: var(--link-visitado); }
 .topo { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--borda); background: var(--fundo-2); }
 .marca { font-weight: 700; font-size: 1.15rem; color: var(--texto); text-decoration: none; }
 .marca:visited { color: var(--texto); }
-.edicoes ul { display: flex; flex-wrap: wrap; gap: 0.25rem; list-style: none; margin: 0; padding: 0; }
-.edicoes a { display: inline-block; min-height: 2.75rem; line-height: 2.75rem; padding: 0 0.75rem; border: 1px solid var(--borda); border-radius: 0.5rem; text-decoration: none; }
+.trilhas ul, .edicoes ul { display: flex; flex-wrap: wrap; gap: 0.25rem; list-style: none; margin: 0; padding: 0; }
+.trilhas a, .edicoes a { display: inline-block; min-height: 2.75rem; line-height: 2.75rem; padding: 0 0.75rem; border: 1px solid var(--borda); border-radius: 0.5rem; text-decoration: none; }
 .edicoes a[aria-current] { background: var(--destaque); color: var(--sobre-destaque); border-color: var(--destaque); font-weight: 700; }
 .busca { display: flex; gap: 0.5rem; flex: 1 1 14rem; max-width: 28rem; }
 .busca input[type="search"] { flex: 1; min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid var(--suave); border-radius: 0.5rem; background: var(--fundo); color: var(--texto); font: inherit; }
