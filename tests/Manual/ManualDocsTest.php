@@ -55,6 +55,8 @@ final class ManualDocsTest extends TestCase
             }
             $texto = (string) file_get_contents($f);
             $texto = (string) preg_replace('/\A---\n.*?\n---\n/s', '', $texto);
+            // fato histórico que não envelhece (o exemplo do Publicare cita este trecho; ver ConteudoPublicareTest)
+            $texto = str_replace('nasceu no Brasil em 2003', 'nasceu no Brasil', $texto);
             foreach (preg_split('/\R/', $texto) ?: [] as $i => $linha) {
                 if (preg_match('/(?<![\d.])\d+\.\d+\.\d+(?![\d.])|\b20\d\d\b|\b[Vv]ersão \d|\brc\.?\d|\bphp ?8\.\d|\bPHP 8|(?<![\d.])0\.[0-9](?![\d.])/', $linha) === 1) {
                     $achados[] = basename($f) . ':' . ($i + 1) . ': ' . trim($linha);
