@@ -1,3 +1,11 @@
+---
+titulo: Modelos opcionais e site de demonstração
+resumo: Modelos opcionais (agenda, perguntas frequentes, destaques) e o site de demonstração.
+capitulo: site
+ordem: 30
+publico: administrador, desenvolvedor
+---
+
 # Modelos opcionais e site de demonstração
 
 Alguns tipos de conteúdo são comuns a quase todo site, mas nem todo site precisa deles. Por isso eles vêm como **modelos opcionais**, que você liga quando quiser.
@@ -58,3 +66,9 @@ Na pele `publicare`, a página inicial mostra só os destaques da pasta `destaqu
 ## Pele oficial: SEO, compartilhamento e logotipo
 
 A `publicare` é a pele oficial distribuída com o instalador. Desde a instalação (limpa ou com demonstração) cada página sai com `<title>`, `description`, `canonical`, `og:*` (incluindo `og:site_name`, `og:locale` e imagem com texto alternativo), `twitter:*` (cartão grande), JSON-LD básico (`WebPage`, ou `Article` para notícias), favicon SVG, `robots.txt` e `sitemap.xml` (estes dois, da plataforma). Os valores vêm da configuração do site e do conteúdo; os campos `seo_titulo`, `seo_descricao` e `seo_imagem` de cada conteúdo, e `seo_nao_indexar`, têm prioridade. Sem imagem própria, o compartilhamento usa `assets/og-publicare.png` (1200x630, original do projeto). O logotipo (`assets/marca.svg`) é um P em forma de peça de quebra-cabeça, em laranja; sites com logotipo próprio nas configurações usam o deles. Limite conhecido: o JSON-LD usa o texto já escapado para HTML; um título com barra invertida pode deixar o bloco inválido (buscadores o ignoram).
+
+## Comandos da demonstração
+
+- `bin/pbl demo-popular`: cria o conteúdo de demonstração (veja acima).
+- `bin/pbl demo-resetar`: só em instalação de demonstração; recria conteúdo, contas e arquivos de exemplo, depois de guardar uma cópia.
+- `bin/pbl demo-senha`: só em instalação de demonstração e só no terminal; mostra a senha atual do administrador da demo.

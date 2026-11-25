@@ -42,7 +42,7 @@ executar(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($raiz . '/previa/gera
 // O compilador do manual lê docs/ e manual/links-externos.json relativos à raiz da instalação.
 copiarArvore($raiz . '/docs', $stage . '/docs');
 copiarArvore($raiz . '/manual/links-externos.json', $stage . '/manual/links-externos.json');
-foreach (['SECURITY.md', 'CHANGELOG.md'] as $arquivo) {
+foreach (['SECURITY.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md', 'README.md', 'LICENSE'] as $arquivo) {
     copiarArvore($raiz . '/' . $arquivo, $stage . '/' . $arquivo);
 }
 

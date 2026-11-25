@@ -95,12 +95,12 @@ final class PeleDoManualTest extends TestCase
     {
         $css = $this->arquivos()['assets/manual.css'];
         self::assertMatchesRegularExpression('/min-height:\s*2\.75rem/', $css, 'alvo de toque de pelo menos 44 px');
-        foreach (['claro' => ['#ffffff', '#1b1d21', '#0a4fb3'], 'escuro' => ['#121418', '#e9ebef', '#8db8ff']] as $tema => [$fundo, $texto, $link]) {
+        foreach (['claro' => ['#ffffff', '#1b1d21', '#c2410c'], 'escuro' => ['#1a120d', '#f6ece4', '#ffa45c']] as $tema => [$fundo, $texto, $link]) {
             self::assertGreaterThanOrEqual(4.5, self::contraste($fundo, $texto), "texto no tema {$tema}");
             self::assertGreaterThanOrEqual(4.5, self::contraste($fundo, $link), "link no tema {$tema}");
         }
-        self::assertGreaterThanOrEqual(4.5, self::contraste('#0a4fb3', '#ffffff'), 'texto sobre o destaque claro');
-        self::assertGreaterThanOrEqual(4.5, self::contraste('#8db8ff', '#0d1117'), 'texto sobre o destaque escuro');
+        self::assertGreaterThanOrEqual(4.5, self::contraste('#c2410c', '#ffffff'), 'texto sobre o destaque claro');
+        self::assertGreaterThanOrEqual(4.5, self::contraste('#ff9a3c', '#2b1200'), 'texto sobre o destaque escuro');
     }
 
     private static function luz(string $hex): float
