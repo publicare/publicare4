@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.12] - 2026-11-25
+
+> **Em resumo:** o site oficial do Publicare pode ser carregado sem e-mail de contato: o contato com o projeto passa a ser pelo GitHub, sem formulário nem caixa de mensagens.
+
 ### Alterado
 - **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.11`.
 
