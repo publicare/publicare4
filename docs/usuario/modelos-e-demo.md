@@ -3,6 +3,7 @@ titulo: Modelos opcionais e site de demonstração
 resumo: Modelos opcionais (agenda, perguntas frequentes, destaques) e o site de demonstração.
 capitulo: site
 ordem: 30
+publico: administrador, desenvolvedor
 ---
 
 # Modelos opcionais e site de demonstração

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Pbl\Testes\Manual;
 
+use Pbl\Linguagem\ErroSintaxe;
+use Pbl\Linguagem\Parser;
 use Pbl\Manual\Compilador;
+use Pbl\Manual\FrontMatter;
 use PHPUnit\Framework\TestCase;
 
 /** O manual de verdade (docs/usuario): compila, não envelhece, tem inventário completo e as capturas apontam para telas que existem. */
@@ -38,7 +41,7 @@ final class ManualDocsTest extends TestCase
                 self::assertDoesNotMatchRegularExpression('/<img(?![^>]*\balt="[^"]+")/', $pg['html'], $pg['origem'] . ': imagem sem alt');
             }
         }
-        $publicados = array_map('basename', array_filter($this->guias(), static fn (string $f): bool => !in_array(basename($f), ['README.md', 'capitulos.md', 'INVENTARIO.md'], true) && !str_contains((string) file_get_contents($f), "\npublico: contribuicao\n")));
+        $publicados = array_map('basename', array_filter($this->guias(), static fn (string $f): bool => !in_array(basename($f), ['README.md', 'capitulos.md', 'INVENTARIO.md'], true)));
         sort($slugs);
         self::assertSame(array_values($publicados), $slugs, 'todo guia de manual está na árvore e nada além');
     }
@@ -47,7 +50,7 @@ final class ManualDocsTest extends TestCase
     {
         $achados = [];
         foreach ($this->guias() as $f) {
-            if (in_array(basename($f), ['INVENTARIO.md', 'estado-do-projeto.md', 'como-participar.md'], true)) {
+            if (basename($f) === 'INVENTARIO.md') {
                 continue;
             }
             $texto = (string) file_get_contents($f);
@@ -106,7 +109,6 @@ final class ManualDocsTest extends TestCase
                 continue;
             }
             self::assertFileExists(self::RAIZ . '/docs/usuario/' . $guia, "{$item}: guia inexistente");
-            self::assertStringNotContainsString("publico: contribuicao", (string) file_get_contents(self::RAIZ . '/docs/usuario/' . $guia));
             if (!str_starts_with($item, 'Telas')) {
                 self::assertStringContainsString($item, (string) file_get_contents(self::RAIZ . '/docs/usuario/' . $guia), "{$item}: o guia {$guia} não cita o comando");
             }
@@ -129,6 +131,119 @@ final class ManualDocsTest extends TestCase
             foreach ($partes as $parte) {
                 self::assertStringContainsString("/{$parte}", $codigo, "{$c['id']}: a rota /{$parte} não existe no painel");
             }
+        }
+    }
+
+    /** @return array<string, array<string, mixed>> arquivo => meta validada */
+    private function metas(): array
+    {
+        $saida = [];
+        foreach ($this->guias() as $f) {
+            $nome = basename($f);
+            if (in_array($nome, ['README.md', 'capitulos.md', 'INVENTARIO.md'], true)) {
+                continue;
+            }
+            $fm = FrontMatter::ler((string) file_get_contents($f), $nome);
+            $saida[$nome] = FrontMatter::validarPagina($fm['meta'], $nome, basename($nome, '.md'));
+        }
+
+        return $saida;
+    }
+
+    public function testNenhumaPaginaFicaSemPublico(): void
+    {
+        foreach ($this->metas() as $nome => $m) {
+            self::assertNotSame([], $m['publico'], "{$nome} sem público");
+            self::assertSame(1, preg_match('/^publico: .+$/m', (string) file_get_contents(self::RAIZ . '/docs/usuario/' . $nome)), "{$nome}: declare publico: no front matter");
+        }
+    }
+
+    public function testCadaTrilhaTemPaginaDeEntradaECadaPaginaApareceEmSuasTrilhas(): void
+    {
+        $pacote = $this->compilador()->compilar();
+        $trilhas = array_column($pacote['trilhas'], null, 'slug');
+        self::assertSame(FrontMatter::PUBLICOS, array_keys($trilhas));
+        $chaves = [];
+        foreach ($pacote['capitulos'] as $c) {
+            foreach ($c['paginas'] as $p) {
+                $chaves[$p['origem']] = $c['slug'] . '/' . $p['slug'];
+            }
+        }
+        foreach ($trilhas as $publico => $t) {
+            self::assertSame("trilhas/{$publico}", $t['entrada']);
+            self::assertContains($t['entrada'], $chaves);
+            self::assertNotEmpty($t['paginas'], "trilha {$publico} vazia");
+        }
+        foreach ($this->metas() as $nome => $m) {
+            if ($m['capitulo'] === Compilador::CAPITULO_TRILHAS) {
+                continue;
+            }
+            $chave = $chaves['docs/usuario/' . $nome];
+            foreach (FrontMatter::PUBLICOS as $publico) {
+                self::assertSame(in_array($publico, $m['publico'], true), in_array($chave, $trilhas[$publico]['paginas'], true), "{$nome} na trilha {$publico}");
+            }
+        }
+    }
+
+    public function testNenhumLinkQuebradoNasPaginasDeTodosOsPublicos(): void
+    {
+        // O compilador falha com link, âncora ou link para fora do manual quebrados; aqui garantimos que o texto de cada público foi convertido.
+        $pacote = $this->compilador()->compilar();
+        $total = 0;
+        foreach ($pacote['capitulos'] as $c) {
+            foreach ($c['paginas'] as $p) {
+                $total++;
+                self::assertStringNotContainsString('](', $p['html'], $p['origem'] . ': Markdown sem converter');
+            }
+        }
+        self::assertCount($total, array_unique(array_map('basename', array_keys($this->metas()))));
+    }
+
+    /** O que o manual afirma sobre a linguagem é conferido contra o parser: todo bloco ```pbl precisa ser PBL4 válido. */
+    public function testExemplosPbl4DoManualPassamNoParser(): void
+    {
+        $blocos = 0;
+        foreach ($this->guias() as $f) {
+            if (preg_match_all('/^```pbl\n(.*?)\n```$/ms', (string) file_get_contents($f), $m) < 1) {
+                continue;
+            }
+            foreach ($m[1] as $fonte) {
+                $blocos++;
+                try {
+                    (new Parser())->analisar($fonte);
+                } catch (ErroSintaxe $e) {
+                    self::fail(basename($f) . ': exemplo PBL4 inválido (' . $e->getMessage() . "):\n" . $fonte);
+                }
+            }
+        }
+        self::assertGreaterThan(15, $blocos);
+    }
+
+    /** Comandos do PBL3 que o PBL4 recusa não podem aparecer como exemplo de PBL4. */
+    public function testComandosQueNaoExistemNoPbl4SoAparecemComoNotaDeMigracao(): void
+    {
+        foreach (['ecoe', 'incluimenu'] as $comando) {
+            try {
+                (new Parser())->analisar("<@{$comando}@>");
+                self::fail("{$comando} passou a existir: atualize o capítulo da linguagem");
+            } catch (ErroSintaxe) {
+                $this->addToAssertionCount(1);
+            }
+        }
+        foreach (glob(self::RAIZ . '/docs/usuario/pbl4-*.md') ?: [] as $f) {
+            preg_match_all('/^```pbl\n(.*?)\n```$/ms', (string) file_get_contents($f), $m);
+            self::assertDoesNotMatchRegularExpression('/<@(ecoe|incluimenu)\b/', implode("\n", $m[1]), basename($f));
+        }
+    }
+
+    public function testCadaVerbeteDoPbl3TemPaginaNoCapituloDaLinguagem(): void
+    {
+        $texto = '';
+        foreach (glob(self::RAIZ . '/docs/usuario/pbl4-*.md') ?: [] as $f) {
+            $texto .= strtolower((string) file_get_contents($f));
+        }
+        foreach (['aleatorio', 'eco', 'ecoe', 'eco_limite', 'filhos', 'incluir', 'incluimenu', 'localizar', 'naolocalizado', 'repetir', 'se', 'senao', 'semfilhos', 'usarobjeto', 'var'] as $verbete) {
+            self::assertStringContainsString($verbete, $texto, "falta o verbete {$verbete}");
         }
     }
 }

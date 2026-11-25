@@ -47,16 +47,29 @@ final class FrontMatterTest extends TestCase
 
     public function testValidarPaginaCompletaPadroesEConfereLimites(): void
     {
-        $v = FrontMatter::validarPagina(['titulo' => 'T', 'resumo' => 'R', 'capitulo' => 'c', 'ordem' => 1], 'x.md', 'x');
+        $v = FrontMatter::validarPagina(['titulo' => 'T', 'resumo' => 'R', 'capitulo' => 'c', 'ordem' => 1, 'publico' => 'editor'], 'x.md', 'x');
         self::assertSame('x', $v['slug']);
-        self::assertSame('manual', $v['publico']);
-        foreach ([['resumo' => str_repeat('a', 201)], ['slug' => 'Ruim Slug'], ['publico' => 'talvez'], ['titulo' => '']] as $troca) {
+        self::assertSame(['editor'], $v['publico']);
+        foreach ([['resumo' => str_repeat('a', 201)], ['slug' => 'Ruim Slug'], ['publico' => 'talvez'], ['publico' => 'manual'], ['publico' => 'editor, editor'], ['publico' => 'editor,'], ['titulo' => '']] as $troca) {
             try {
-                FrontMatter::validarPagina($troca + ['titulo' => 'T', 'resumo' => 'R', 'capitulo' => 'c', 'ordem' => 1], 'x.md', 'x');
+                FrontMatter::validarPagina($troca + ['titulo' => 'T', 'resumo' => 'R', 'capitulo' => 'c', 'ordem' => 1, 'publico' => 'editor'], 'x.md', 'x');
                 self::fail('devia rejeitar ' . key($troca));
             } catch (ErroDeManual) {
                 $this->addToAssertionCount(1);
             }
         }
+    }
+
+    public function testPublicoEhObrigatorio(): void
+    {
+        $this->expectException(ErroDeManual::class);
+        $this->expectExceptionMessage('falta "publico"');
+        FrontMatter::validarPagina(['titulo' => 'T', 'resumo' => 'R', 'capitulo' => 'c', 'ordem' => 1], 'x.md', 'x');
+    }
+
+    public function testPublicoAceitaListaNaOrdemDasTrilhas(): void
+    {
+        $v = FrontMatter::validarPagina(['titulo' => 'T', 'resumo' => 'R', 'capitulo' => 'c', 'ordem' => 1, 'publico' => 'contribuidor,  administrador, editor'], 'x.md', 'x');
+        self::assertSame(['editor', 'administrador', 'contribuidor'], $v['publico']);
     }
 }

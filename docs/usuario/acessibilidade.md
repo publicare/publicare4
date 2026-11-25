@@ -3,6 +3,7 @@ titulo: Acessibilidade
 resumo: O que o painel e as peles do Publicare já fazem por quem usa teclado, leitor de tela ou tela pequena, e o que cabe a quem escreve o conteúdo.
 capitulo: consulta
 ordem: 10
+publico: editor, administrador, desenvolvedor
 ---
 
 # Acessibilidade

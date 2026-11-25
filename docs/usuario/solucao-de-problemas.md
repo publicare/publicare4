@@ -3,6 +3,7 @@ titulo: Solução de problemas
 resumo: Tabela de sintomas, causas prováveis e o que fazer para os problemas mais comuns, e como pedir ajuda sem expor senhas.
 capitulo: manutencao
 ordem: 40
+publico: administrador, desenvolvedor
 ---
 
 # Solução de problemas

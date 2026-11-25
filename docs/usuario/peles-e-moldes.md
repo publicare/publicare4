@@ -3,6 +3,7 @@ titulo: Peles e modelos de página
 resumo: Troque a aparência do site com uma pele, veja e edite os modelos de página e volte a uma versão anterior quando algo der errado.
 capitulo: site
 ordem: 10
+publico: administrador, desenvolvedor
 ---
 
 # Peles e modelos de página

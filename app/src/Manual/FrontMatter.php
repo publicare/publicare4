@@ -13,6 +13,8 @@ final class FrontMatter
     /** Chaves aceitas e seu tipo: s = texto, i = inteiro. */
     private const CHAVES = ['titulo' => 's', 'resumo' => 's', 'capitulo' => 's', 'ordem' => 'i', 'slug' => 's', 'publico' => 's'];
     public const MAX_RESUMO = 200;
+    /** Os públicos do manual, na ordem das trilhas. */
+    public const PUBLICOS = ['editor', 'administrador', 'desenvolvedor', 'contribuidor'];
     public const SLUG = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/D';
 
     /**
@@ -20,7 +22,7 @@ final class FrontMatter
      */
     public static function ler(string $texto, string $arquivo): array
     {
-        $linhas = preg_split('/\R/', $texto) ?: [];
+        $linhas = preg_split('/\r\n|\n|\r/', $texto) ?: [];
         if (($linhas[0] ?? '') !== '---') {
             throw ErroDeManual::em($arquivo, 1, 'falta o front matter (bloco "---" no início).');
         }
@@ -63,23 +65,20 @@ final class FrontMatter
     }
 
     /**
-     * Confere os campos de uma página do manual e devolve os valores já completos (`slug` padrão = nome do arquivo, `publico` padrão = manual).
+     * Confere os campos de uma página do manual e devolve os valores já completos (`slug` padrão = nome do arquivo, `publico` obrigatório).
      *
      * @param array<string, string|int> $meta
-     * @return array{titulo: string, resumo: string, capitulo: string, ordem: int, slug: string, publico: string}
+     * @return array{titulo: string, resumo: string, capitulo: string, ordem: int, slug: string, publico: list<string>}
      */
     public static function validarPagina(array $meta, string $arquivo, string $nomeDoArquivo): array
     {
-        foreach (['titulo', 'resumo', 'capitulo', 'ordem'] as $obrigatoria) {
+        foreach (['titulo', 'resumo', 'capitulo', 'ordem', 'publico'] as $obrigatoria) {
             if (!isset($meta[$obrigatoria]) || $meta[$obrigatoria] === '') {
                 throw ErroDeManual::em($arquivo, 1, "falta \"{$obrigatoria}\" no front matter.");
             }
         }
         $slug = (string) ($meta['slug'] ?? $nomeDoArquivo);
-        $publico = (string) ($meta['publico'] ?? 'manual');
-        if (!in_array($publico, ['manual', 'contribuicao'], true)) {
-            throw ErroDeManual::em($arquivo, 1, '"publico" é "manual" ou "contribuicao".');
-        }
+        $publico = self::publicos((string) $meta['publico'], $arquivo);
         if (preg_match(self::SLUG, $slug) !== 1 || preg_match(self::SLUG, (string) $meta['capitulo']) !== 1) {
             throw ErroDeManual::em($arquivo, 1, 'slug e capitulo usam só minúsculas sem acento, números e hífen.');
         }
@@ -88,5 +87,25 @@ final class FrontMatter
         }
 
         return ['titulo' => (string) $meta['titulo'], 'resumo' => (string) $meta['resumo'], 'capitulo' => (string) $meta['capitulo'], 'ordem' => (int) $meta['ordem'], 'slug' => $slug, 'publico' => $publico];
+    }
+
+    /**
+     * Lista de públicos (`editor, administrador`): só os quatro conhecidos, sem repetir, na ordem das trilhas.
+     *
+     * @return list<string>
+     */
+    public static function publicos(string $valor, string $arquivo): array
+    {
+        $lista = array_map('trim', explode(',', $valor));
+        foreach ($lista as $p) {
+            if (!in_array($p, self::PUBLICOS, true)) {
+                throw ErroDeManual::em($arquivo, 1, '"publico" aceita uma lista de: ' . implode(', ', self::PUBLICOS) . " (recebi \"{$p}\").");
+            }
+        }
+        if (count(array_unique($lista)) !== count($lista)) {
+            throw ErroDeManual::em($arquivo, 1, '"publico" repete um público.');
+        }
+
+        return array_values(array_intersect(self::PUBLICOS, $lista));
     }
 }

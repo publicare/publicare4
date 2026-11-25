@@ -54,7 +54,7 @@ Em **Guia**, ponha o nome do arquivo em `docs/usuario/`. Para o que não é de q
 | conta-recuperar | recuperar-acesso.md | |
 | conta-senha | recuperar-acesso.md | |
 | conteudo | agentes-e-scripts.md | |
-| converter-moldes | fora | Migração do PBL3; está na documentação técnica. |
+| converter-moldes | pbl4-migrando-do-pbl3.md | |
 | cron | tarefas-agendadas.md | |
 | demo-popular | modelos-e-demo.md | |
 | demo-resetar | modelos-e-demo.md | |

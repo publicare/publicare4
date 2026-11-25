@@ -3,6 +3,7 @@ titulo: Busca do site
 resumo: Como funciona a busca para os visitantes, como ligar ou desligar nas configurações, o que entra na busca e como ativar as sugestões de grafia.
 capitulo: conteudo
 ordem: 50
+publico: editor, administrador, desenvolvedor
 ---
 
 # Busca do site

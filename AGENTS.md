@@ -13,6 +13,7 @@ Leia antes de mexer neste repositório.
 
 ## Manual de uso (`docs/usuario`)
 - Mudou uma tela do painel ou um comando de `bin/pbl`? Atualize o guia dela **e** a linha em `docs/usuario/INVENTARIO.md` no mesmo PR (um teste reprova se faltar).
+- Toda página do manual declara `publico:` (lista de `editor`, `administrador`, `desenvolvedor`, `contribuidor`); página nova entra na trilha de cada público dela, e o índice da trilha é gerado.
 - O manual não leva data, número de versão nem requisito exato; imagens só como `![alt](captura:id)` (ids em `docs/usuario/capturas.json`). Veja `docs/tecnica/manual.md`.
 
 ## Convenções

@@ -3,6 +3,7 @@ titulo: E-mail do site
 resumo: Configure o envio de e-mail para recuperar senha e convidar pessoas, faça um teste e saiba o que fazer quando as mensagens não chegam.
 capitulo: site
 ordem: 40
+publico: administrador
 ---
 
 # E-mail do site

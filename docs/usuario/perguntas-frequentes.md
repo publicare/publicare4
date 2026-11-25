@@ -3,6 +3,7 @@ titulo: Perguntas frequentes
 resumo: Respostas curtas para as dúvidas mais comuns: custo, requisitos, formulários, busca e mais.
 capitulo: consulta
 ordem: 30
+publico: editor, administrador, desenvolvedor, contribuidor
 ---
 
 # Perguntas frequentes

@@ -130,7 +130,7 @@ final class CargaTest extends TestCase
         $html = $s->renderizador->renderizar($site, $o);
 
         self::assertSame(1, substr_count($html, '<h1'), 'um só h1');
-        foreach (['<header class="topo">', '<nav class="lateral" id="lateral" aria-label="Capítulos">', '<main id="conteudo"', 'class="pular"', 'role="search"', 'data-manual-corpo', 'aria-label="Anterior e próximo"'] as $parte) {
+        foreach (['<header class="topo">', '<nav class="lateral" id="lateral" aria-label="Trilhas do manual">', '<main id="conteudo"', 'class="pular"', 'role="search"', 'data-manual-corpo', 'aria-label="Anterior e próximo"'] as $parte) {
             self::assertStringContainsString($parte, $html);
         }
         self::assertStringContainsString('manual.css', $html);

@@ -3,6 +3,7 @@ titulo: Domínios, redirecionamentos e vários sites
 resumo: Defina o endereço principal do site, adicione outros nomes, redirecione endereços antigos e entenda como funcionam vários sites na mesma instalação.
 capitulo: site
 ordem: 20
+publico: administrador
 ---
 
 # Domínios, redirecionamentos e vários sites

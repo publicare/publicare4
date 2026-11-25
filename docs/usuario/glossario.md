@@ -3,6 +3,7 @@ titulo: Glossário
 resumo: O significado, em linguagem simples, das palavras que o Publicare usa.
 capitulo: consulta
 ordem: 40
+publico: editor, administrador, desenvolvedor, contribuidor
 ---
 
 # Glossário

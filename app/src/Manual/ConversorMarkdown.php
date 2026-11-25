@@ -41,7 +41,7 @@ final class ConversorMarkdown
         $this->ids = [];
         $this->arquivo = $arquivo;
         $this->linhaBase = $linhaBase;
-        $this->linhas = preg_split('/\R/', rtrim($markdown)) ?: [];
+        $this->linhas = preg_split('/\r\n|\n|\r/', rtrim($markdown)) ?: [];
         // Uma figura sozinha não fica dentro de <p>.
         $html = (string) preg_replace('#<p>(<figure>.*?</figure>)</p>#s', '$1', $this->blocos(0, count($this->linhas), true));
 

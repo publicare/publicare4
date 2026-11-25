@@ -3,6 +3,7 @@ titulo: Agentes e scripts editam o site
 resumo: Como um assistente automático ou um script edita o site, com as mesmas regras do painel.
 capitulo: consulta
 ordem: 20
+publico: administrador, desenvolvedor
 ---
 
 # Agentes e scripts editam o site

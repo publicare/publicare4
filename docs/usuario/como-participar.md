@@ -1,9 +1,9 @@
 ---
 titulo: Como participar
 resumo: Como testar, relatar problemas e ajudar o projeto (texto para quem contribui).
-capitulo: comecar
-ordem: 90
-publico: contribuicao
+capitulo: projeto
+ordem: 10
+publico: contribuidor
 ---
 
 # Como participar

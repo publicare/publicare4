@@ -3,6 +3,7 @@ titulo: Como instalar o Publicare
 resumo: Instalar o Publicare numa hospedagem comum, pelo navegador ou pelo terminal, e o que fazer se algo falhar.
 capitulo: comecar
 ordem: 20
+publico: administrador
 ---
 
 # Como instalar o Publicare

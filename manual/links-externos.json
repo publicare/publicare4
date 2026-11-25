@@ -1,6 +1,12 @@
 {
   "prefixos": {
     "../tecnica/": "https://github.com/publicare/publicare4/blob/main/docs/tecnica/",
+    "../fluxos/": "https://github.com/publicare/publicare4/blob/main/docs/fluxos/",
+    "../versionamento.md": "https://github.com/publicare/publicare4/blob/main/docs/versionamento.md",
+    "../releases.md": "https://github.com/publicare/publicare4/blob/main/docs/releases.md",
+    "../linguagem-pbl4.md": "https://github.com/publicare/publicare4/blob/main/docs/linguagem-pbl4.md",
+    "../plano.md": "https://github.com/publicare/publicare4/blob/main/docs/plano.md",
+    "../README.md": "https://github.com/publicare/publicare4/blob/main/docs/README.md",
     "../../": "https://github.com/publicare/publicare4/blob/main/",
     "../adr/": "https://github.com/publicare/publicare4/blob/main/docs/adr/"
   }

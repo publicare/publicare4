@@ -24,7 +24,7 @@ final class ManualGerarComandoTest extends TestCase
         foreach (glob($origem . '/docs/usuario/*') ?: [] as $f) {
             copy($f, $this->raiz . '/docs/usuario/' . basename($f));
         }
-        foreach (['tecnica', 'adr'] as $pasta) {
+        foreach (['tecnica', 'adr', 'fluxos'] as $pasta) {
             mkdir($this->raiz . '/docs/' . $pasta, 0775, true);
             foreach (glob($origem . '/docs/' . $pasta . '/*.md') ?: [] as $f) {
                 copy($f, $this->raiz . '/docs/' . $pasta . '/' . basename($f));
@@ -32,6 +32,9 @@ final class ManualGerarComandoTest extends TestCase
         }
         foreach (glob($origem . '/*.md') ?: [] as $f) {
             copy($f, $this->raiz . '/' . basename($f));
+        }
+        foreach (glob($origem . '/docs/*.md') ?: [] as $f) {
+            copy($f, $this->raiz . '/docs/' . basename($f));
         }
         copy($origem . '/manual/links-externos.json', $this->raiz . '/manual/links-externos.json');
     }
@@ -57,7 +60,7 @@ final class ManualGerarComandoTest extends TestCase
     {
         [$codigo, $saida] = $this->rodar(['--so-compilar' => true, '--sem-capturas' => true]);
         self::assertSame(0, $codigo, $saida);
-        self::assertStringContainsString('6 capítulos', $saida);
+        self::assertStringContainsString('9 capítulos', $saida);
         self::assertStringContainsString('capturas ausentes', $saida, 'o aviso do modo sem capturas');
         $a = (string) file_get_contents($this->raiz . '/manual/gerado/manual.json');
         $this->rodar(['--so-compilar' => true, '--sem-capturas' => true]);
@@ -96,10 +99,10 @@ final class ManualGerarComandoTest extends TestCase
 
     public function testManualInvalidoInterrompeComArquivoELinha(): void
     {
-        file_put_contents($this->raiz . '/docs/usuario/glossario.md', "---\ntitulo: G\nresumo: R\ncapitulo: consulta\nordem: 40\n---\n\n# G\n\n[x](nada.md)\n");
+        file_put_contents($this->raiz . '/docs/usuario/glossario.md', "---\ntitulo: G\nresumo: R\ncapitulo: consulta\nordem: 40\npublico: editor\n---\n\n# G\n\n[x](nada.md)\n");
         [$codigo, $saida] = $this->rodar(['--so-compilar' => true, '--sem-capturas' => true]);
         self::assertSame(6, $codigo);
-        self::assertStringContainsString('glossario.md:10: link quebrado: nada.md', $saida);
+        self::assertStringContainsString('glossario.md:11: link quebrado: nada.md', $saida);
     }
 
     public function testSemDocsUsoInvalido(): void

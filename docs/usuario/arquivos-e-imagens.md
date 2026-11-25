@@ -3,6 +3,7 @@ titulo: Arquivos e imagens
 resumo: Como enviar imagem e arquivo, escrever o texto alternativo, conhecer os tipos e o tamanho aceitos e limpar o que ninguém mais usa.
 capitulo: conteudo
 ordem: 40
+publico: editor
 ---
 
 # Arquivos e imagens

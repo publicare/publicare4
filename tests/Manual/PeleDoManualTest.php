@@ -58,7 +58,7 @@ final class PeleDoManualTest extends TestCase
         self::assertStringContainsString('role="search"', $a['topo.pbl']);
         self::assertStringContainsString('action="/busca" method="get"', $a['topo.pbl'], 'busca funciona sem JavaScript');
         self::assertStringContainsString('<header class="topo">', $a['topo.pbl']);
-        self::assertStringContainsString('<nav class="lateral" id="lateral" aria-label="Capítulos">', $a['layout.pbl']);
+        self::assertStringContainsString('<nav class="lateral" id="lateral" aria-label="Trilhas do manual">', $a['layout.pbl']);
         self::assertStringContainsString('<main id="conteudo"', $a['layout.pbl']);
         self::assertSame(1, substr_count($a['manual_pagina.pbl'], '<h1>'));
         self::assertStringContainsString('aria-label="Anterior e próximo"', $a['manual_pagina.pbl']);

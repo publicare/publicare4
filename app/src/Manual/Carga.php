@@ -66,7 +66,7 @@ final class Carga
         $site = $s->sites->criar('Manual do Publicare 4', $host, 'manual');
         $inicio = $s->objetos->criar($site->id, $pagina, null, 'Manual do Publicare 4', '', [
             'resumo' => 'Como usar o Publicare 4, tarefa por tarefa.',
-            'corpo' => '<p>Escolha um capítulo.</p>',
+            'corpo' => '<p>Escolha um capítulo ou comece por <a href="/trilhas/quem-e-voce/">Quem é você?</a>.</p>',
         ]);
         $s->sites->definirRaiz($site->id, $inicio->id);
         $s->configs->definir($site->id, ['nome' => 'Manual do Publicare 4', 'idioma' => 'pt-BR']);
@@ -296,14 +296,31 @@ final class Carga
         return self::hash($tipo, $o->titulo, $o->peso, $dados);
     }
 
-    /** @param array<string, mixed> $pacote */
+    /**
+     * Menu lateral por público: "Quem é você?" e, para cada trilha, a página de entrada com as páginas do público
+     * (uma página útil a mais de um público aparece em cada trilha, com o mesmo endereço).
+     *
+     * @param array<string, mixed> $pacote
+     */
     private function menu(array $pacote): string
     {
-        $html = '<ul>';
+        $h = static fn (mixed $t): string => htmlspecialchars((string) $t, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $porChave = [];
         foreach ($pacote['capitulos'] as $c) {
-            $html .= '<li><a href="' . Compilador::ED . $c['slug'] . '/">' . htmlspecialchars((string) $c['titulo'], ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</a><ul>';
             foreach ($c['paginas'] as $p) {
-                $html .= '<li><a href="' . Compilador::ED . $c['slug'] . '/' . $p['slug'] . '/">' . htmlspecialchars((string) $p['titulo'], ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</a></li>';
+                $porChave[$c['slug'] . '/' . $p['slug']] = $p['titulo'];
+            }
+        }
+        $link = static fn (string $chave, string $texto): string => '<a href="' . Compilador::ED . $chave . '/">' . $texto . '</a>';
+        $html = '<ul>';
+        if (isset($porChave[Compilador::CAPITULO_TRILHAS . '/' . Compilador::QUEM_E_VOCE])) {
+            $chave = Compilador::CAPITULO_TRILHAS . '/' . Compilador::QUEM_E_VOCE;
+            $html .= '<li>' . $link($chave, $h($porChave[$chave])) . '</li>';
+        }
+        foreach ($pacote['trilhas'] as $t) {
+            $html .= '<li>' . $link((string) $t['entrada'], $h($t['titulo'])) . '<ul>';
+            foreach ($t['paginas'] as $chave) {
+                $html .= '<li>' . $link((string) $chave, $h($porChave[$chave] ?? $chave)) . '</li>';
             }
             $html .= '</ul></li>';
         }

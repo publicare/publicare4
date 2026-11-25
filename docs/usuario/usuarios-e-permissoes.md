@@ -3,6 +3,7 @@ titulo: Usuários e permissões
 resumo: Crie contas, convide pessoas por link, dê ou tire acesso a cada seção do site e cuide do seu próprio perfil e das sessões abertas.
 capitulo: pessoas
 ordem: 10
+publico: administrador
 ---
 
 # Usuários e permissões

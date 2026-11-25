@@ -3,6 +3,7 @@ titulo: Privacidade e dados pessoais
 resumo: O que o site guarda sobre pessoas e como pedir cópia ou exclusão dos dados.
 capitulo: pessoas
 ordem: 30
+publico: administrador
 ---
 
 # Privacidade e dados pessoais

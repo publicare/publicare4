@@ -64,6 +64,13 @@ MD;
         self::assertStringContainsString('<a href="https://exemplo.org/a">https://exemplo.org/a</a>', $h);
     }
 
+    public function testEmojiNaTabelaNaoQuebraALinha(): void
+    {
+        // O byte 0x85 do "✅" não pode contar como quebra de linha (NEL): a tabela continua inteira.
+        $html = $this->html("| A | B |\n|---|---|\n| um | ✅ |\n| dois | ✅ |\n");
+        self::assertSame(2, substr_count($html, '<tr><td>'));
+    }
+
     public function testTitulosGanhamIdsUnicosEEntramNoSumario(): void
     {
         $r = $this->conversor()->converter("## Cópia de segurança\n\ntexto\n\n## Cópia de segurança\n\n### Sub *item*\n\n#### Fundo\n", 'a.md');

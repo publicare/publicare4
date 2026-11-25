@@ -3,6 +3,7 @@ titulo: Primeiros passos no painel
 resumo: Entre no painel, conheça o menu, crie a primeira página, publique e veja o resultado no site.
 capitulo: comecar
 ordem: 30
+publico: editor, administrador
 ---
 
 # Primeiros passos no painel

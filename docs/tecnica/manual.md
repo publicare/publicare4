@@ -4,10 +4,21 @@ O manual de uso é a pasta `docs/usuario/` (fonte única, [ADR 0040](../adr/0040
 
 ## Escrever
 
-- Cada guia tem front matter simples (`titulo`, `resumo` até 200 caracteres, `capitulo`, `ordem` único no capítulo; opcionais `slug` e `publico: contribuicao` para ficar fora do manual). A árvore de capítulos está em `docs/usuario/capitulos.md`.
+- Cada guia tem front matter simples (`titulo`, `resumo` até 200 caracteres, `capitulo`, `ordem` único no capítulo; `publico` obrigatório; opcional `slug`). A árvore de capítulos está em `docs/usuario/capitulos.md`.
 - Texto por tarefa, sem datas e sem número de versão: valores que mudam apontam para o instalador e o `CHANGELOG`.
 - Links entre guias: `outro-guia.md#ancora`. Imagens: só `![texto alternativo](captura:<id>)`, com o `<id>` em `docs/usuario/capturas.json`. Não há PNG no repositório.
 - Mudou uma tela ou um comando? Atualize `docs/usuario/INVENTARIO.md` e o guia (um teste cobra).
+
+## Trilhas por público
+
+`publico` é uma lista (`publico: editor, administrador`) dos quatro públicos: `editor` (quem escreve e edita), `administrador` (quem administra o site), `desenvolvedor` (peles, moldes, tipos, cargas, CLI) e `contribuidor` (arquitetura, ADRs, releases, como participar). Nenhuma página fica sem público. Uma página útil a mais de um público tem **um** arquivo e **um** endereço (`/<capítulo>/<página>/`) e aparece em cada trilha dele.
+
+- O capítulo `trilhas` guarda as entradas: `quem-e-voce` ("Quem é você?", a porta de entrada, com a lista das trilhas gerada) e uma página por público, com o slug igual ao público (`trilhas/editor`, ...), que declara o próprio público. O compilador gera no fim de cada entrada o índice "Nesta trilha", agrupado por capítulo; falha se faltar uma entrada ou se uma trilha ficar sem páginas.
+- O menu lateral é por público: "Quem é você?" e, para cada trilha, a entrada e as suas páginas. Os capítulos continuam existindo como endereço e como lista na página inicial.
+- O pacote (`formato` 2) traz `trilhas` (entrada e chaves das páginas de cada público) e o `publico` de cada página.
+- O capítulo `linguagem-pbl4` (público `desenvolvedor`) reescreve o manual do PBL3 contra [docs/linguagem-pbl4.md](../linguagem-pbl4.md) e o código; um teste passa todo bloco ```` ```pbl ```` do manual pelo `Pbl\Linguagem\Parser`.
+
+A origem do capítulo `linguagem-pbl4` são as wikis do PBL3 (`publicare/publicare3.wiki`, `publicare/publicare.wiki`); cada verbete foi reescrito e conferido contra `docs/linguagem-pbl4.md` e o código, e o que mudou ou não existe mais ficou numa seção "Migrando do PBL3" da própria página.
 
 ## Gerar
 
@@ -40,7 +51,7 @@ O operador cria a conta de serviço e guarda a credencial como segredo do workfl
 
 ## Pele do manual
 
-`app/recursos/peles/manual/`: menu lateral por capítulo, seletor de edições, busca (`/busca?q=…&ed=<edição>`, sem JavaScript), tema claro/escuro (segue o sistema; botão guarda a escolha), versão para impressão (CSS `@media print`), landmarks, foco visível, sem CDN e sem estilo ou script embutido. A pele `publicare` (atividade 63a47517) ainda não está na main; por isso o manual tem layout próprio sobre a base de moldes. **Adaptação quando ela chegar:** trocar o miolo do `layout.pbl` por `<@estende "publicare"@>` sobrescrevendo os blocos `lateral` e `miolo`, mantendo `manual_pagina.pbl`, `manual_capitulo.pbl`, `busca.pbl` e os assets do manual.
+`app/recursos/peles/manual/`: menu lateral por trilha (público), seletor de edições, busca (`/busca?q=…&ed=<edição>`, sem JavaScript), tema claro/escuro (segue o sistema; botão guarda a escolha), versão para impressão (CSS `@media print`), landmarks, foco visível, sem CDN e sem estilo ou script embutido. A pele `publicare` (atividade 63a47517) ainda não está na main; por isso o manual tem layout próprio sobre a base de moldes. **Adaptação quando ela chegar:** trocar o miolo do `layout.pbl` por `<@estende "publicare"@>` sobrescrevendo os blocos `lateral` e `miolo`, mantendo `manual_pagina.pbl`, `manual_capitulo.pbl`, `busca.pbl` e os assets do manual.
 
 ## Link Ajuda no painel
 

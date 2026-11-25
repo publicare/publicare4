@@ -3,6 +3,7 @@ titulo: Cópias de segurança
 resumo: Fazer, agendar, baixar e restaurar cópias de segurança, pela tela ou pelo terminal.
 capitulo: manutencao
 ordem: 10
+publico: administrador
 ---
 
 # Cópias de segurança

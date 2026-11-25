@@ -16,6 +16,9 @@ final class Compilador
 {
     public const ED = '~ed~';
     public const IMG = '~img~';
+    /** Capítulo das páginas de entrada: uma por público (slug = público) e a "Quem é você?". */
+    public const CAPITULO_TRILHAS = 'trilhas';
+    public const QUEM_E_VOCE = 'quem-e-voce';
     /** Arquivos de docs/usuario que não são páginas do manual. */
     private const FORA_DO_MANUAL = ['README.md', 'capitulos.md', 'INVENTARIO.md'];
 
@@ -33,6 +36,8 @@ final class Compilador
     private array $capturasFaltando = [];
     /** @var array<string, array<string, true>> arquivo => (id de âncora => true) */
     private array $idsPorArquivo = [];
+    /** @var list<array{slug: string, titulo: string, resumo: string}> */
+    private array $capitulosLidos = [];
 
     public function __construct(
         private readonly string $docs,
@@ -46,23 +51,23 @@ final class Compilador
     public function compilar(): array
     {
         $capitulos = $this->capitulos();
+        $this->capitulosLidos = $capitulos;
         $this->capturas = $this->lerCapturas();
         $this->lerPaginas($capitulos);
         $conversor = new ConversorMarkdown($this->resolverLink(...), $this->resolverImagem(...));
         foreach ($this->paginas as $arquivo => &$p) {
-            if ($p['publico'] !== 'manual') {
-                continue;
-            }
             try {
                 $r = $conversor->converter($p['corpo'], $arquivo, $p['linhaDoCorpo']);
-                $p['html'] = $r['html'];
-                $p['titulos'] = $r['titulos'];
+                $extra = $this->indiceGerado($p);
+                $p['html'] = $r['html'] . $extra['html'];
+                $p['titulos'] = array_merge($r['titulos'], $extra['titulos']);
                 $this->idsPorArquivo[$arquivo] = array_fill_keys(array_column($r['titulos'], 'id'), true);
             } catch (ErroDeManual $e) {
                 $this->problemas[] = $e->getMessage();
             }
         }
         unset($p);
+        $this->conferirTrilhas();
         $this->conferirAncoras();
         foreach (array_diff(array_keys($this->capturas), array_keys($this->capturasUsadas)) as $id) {
             $this->problemas[] = "capturas.json: a captura \"{$id}\" não é usada por nenhum guia.";
@@ -94,7 +99,7 @@ final class Compilador
         }
         $fm = FrontMatter::ler((string) file_get_contents($arquivo), 'capitulos.md');
         $lista = [];
-        foreach (preg_split('/\R/', $fm['corpo']) ?: [] as $n => $l) {
+        foreach (preg_split('/\r\n|\n|\r/', $fm['corpo']) ?: [] as $n => $l) {
             if (!str_starts_with($l, '|') || preg_match('/^\|\s*(-|slug)/i', $l) === 1) {
                 continue;
             }
@@ -157,19 +162,17 @@ final class Compilador
             try {
                 $fm = FrontMatter::ler((string) file_get_contents($caminho), $nome);
                 $v = FrontMatter::validarPagina($fm['meta'], $nome, basename($nome, '.md'));
-                if ($v['publico'] === 'manual' && !in_array($v['capitulo'], $slugs, true)) {
+                if (!in_array($v['capitulo'], $slugs, true)) {
                     throw ErroDeManual::em($nome, 1, "o capítulo \"{$v['capitulo']}\" não está em capitulos.md (página órfã).");
                 }
-                if ($v['publico'] === 'manual') {
-                    $chave = $v['capitulo'] . '#' . $v['ordem'];
-                    if (isset($ordens[$chave])) {
-                        throw ErroDeManual::em($nome, 1, "\"ordem: {$v['ordem']}\" já é de {$ordens[$chave]} neste capítulo.");
-                    }
-                    $ordens[$chave] = $nome;
-                    $chaveSlug = $v['capitulo'] . '/' . $v['slug'];
-                    if (in_array($chaveSlug, array_column($this->paginas, 'chave'), true)) {
-                        throw ErroDeManual::em($nome, 1, "o endereço \"{$chaveSlug}\" já é de outro guia.");
-                    }
+                $chave = $v['capitulo'] . '#' . $v['ordem'];
+                if (isset($ordens[$chave])) {
+                    throw ErroDeManual::em($nome, 1, "\"ordem: {$v['ordem']}\" já é de {$ordens[$chave]} neste capítulo.");
+                }
+                $ordens[$chave] = $nome;
+                $chaveSlug = $v['capitulo'] . '/' . $v['slug'];
+                if (in_array($chaveSlug, array_column($this->paginas, 'chave'), true)) {
+                    throw ErroDeManual::em($nome, 1, "o endereço \"{$chaveSlug}\" já é de outro guia.");
                 }
                 $this->paginas[$nome] = $v + ['corpo' => $fm['corpo'], 'linhaDoCorpo' => $fm['linhaDoCorpo'], 'chave' => $v['capitulo'] . '/' . $v['slug'], 'hash_origem' => hash('sha256', (string) file_get_contents($caminho)), 'arquivo' => $nome];
             } catch (ErroDeManual $e) {
@@ -177,10 +180,116 @@ final class Compilador
             }
         }
         foreach ($slugs as $s) {
-            if (!in_array($s, array_column(array_filter($this->paginas, static fn (array $p): bool => $p['publico'] === 'manual'), 'capitulo'), true)) {
+            if (!in_array($s, array_column($this->paginas, 'capitulo'), true)) {
                 $this->problemas[] = "capitulos.md: o capítulo \"{$s}\" não tem nenhuma página.";
             }
         }
+    }
+
+    /** @param array<string, mixed> $p */
+    private function ehEntradaDeTrilha(array $p): bool
+    {
+        return $p['capitulo'] === self::CAPITULO_TRILHAS && in_array($p['slug'], [...FrontMatter::PUBLICOS, self::QUEM_E_VOCE], true);
+    }
+
+    /** @return ?array<string, mixed> a página `trilhas/<slug>` */
+    private function entrada(string $slug): ?array
+    {
+        foreach ($this->paginas as $p) {
+            if ($p['chave'] === self::CAPITULO_TRILHAS . '/' . $slug) {
+                return $p;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * As páginas de um público, na ordem do manual (capítulo e depois `ordem`); a página aparece em cada público que declara, sem copiar texto.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function paginasDoPublico(string $publico): array
+    {
+        $ordemDoCapitulo = array_flip(array_column($this->capitulosLidos, 'slug'));
+        $lista = array_values(array_filter($this->paginas, fn (array $p): bool => $p['capitulo'] !== self::CAPITULO_TRILHAS && in_array($publico, $p['publico'], true)));
+        usort($lista, static fn (array $a, array $b): int => [$ordemDoCapitulo[$a['capitulo']], $a['ordem']] <=> [$ordemDoCapitulo[$b['capitulo']], $b['ordem']]);
+
+        return $lista;
+    }
+
+    /**
+     * O índice que a página de entrada ganha no fim do texto: "Nesta trilha" (páginas do público por capítulo) ou, na "Quem é você?", a lista das trilhas.
+     *
+     * @param array<string, mixed> $p
+     * @return array{html: string, titulos: list<array{nivel: int, texto: string, id: string}>}
+     */
+    private function indiceGerado(array $p): array
+    {
+        $h = static fn (string $t): string => htmlspecialchars($t, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $item = static fn (array $q): string => '<li><a href="' . self::ED . $q['chave'] . '/">' . $h((string) $q['titulo']) . '</a>: ' . $h((string) $q['resumo']) . '</li>';
+        if (!$this->ehEntradaDeTrilha($p)) {
+            return ['html' => '', 'titulos' => []];
+        }
+        if ($p['slug'] === self::QUEM_E_VOCE) {
+            $itens = '';
+            foreach (FrontMatter::PUBLICOS as $pub) {
+                $e = $this->entrada($pub);
+                $itens .= $e !== null ? $item($e) : '';
+            }
+
+            return ['html' => "\n" . '<h2 id="as-trilhas">As trilhas</h2>' . "\n<ul>{$itens}</ul>\n", 'titulos' => [['nivel' => 2, 'texto' => 'As trilhas', 'id' => 'as-trilhas']]];
+        }
+        $html = "\n" . '<h2 id="nesta-trilha">Nesta trilha</h2>' . "\n";
+        $titulos = [['nivel' => 2, 'texto' => 'Nesta trilha', 'id' => 'nesta-trilha']];
+        $porCapitulo = [];
+        foreach ($this->paginasDoPublico((string) $p['slug']) as $q) {
+            $porCapitulo[$q['capitulo']][] = $q;
+        }
+        foreach ($this->capitulosLidos as $c) {
+            if (!isset($porCapitulo[$c['slug']])) {
+                continue;
+            }
+            $id = 'trilha-' . $c['slug'];
+            $html .= '<h3 id="' . $id . '">' . $h($c['titulo']) . "</h3>\n<ul>" . implode('', array_map($item, $porCapitulo[$c['slug']])) . "</ul>\n";
+            $titulos[] = ['nivel' => 3, 'texto' => $c['titulo'], 'id' => $id];
+        }
+
+        return ['html' => $html, 'titulos' => $titulos];
+    }
+
+    /** Cada público tem a sua página de entrada (`trilhas/<público>`, que declara o próprio público) e pelo menos uma página; a "Quem é você?" existe. */
+    private function conferirTrilhas(): void
+    {
+        foreach ([self::QUEM_E_VOCE, ...FrontMatter::PUBLICOS] as $slug) {
+            $e = $this->entrada($slug);
+            if ($e === null) {
+                $this->problemas[] = "trilhas: falta a página de entrada \"{$slug}\" (capitulo: " . self::CAPITULO_TRILHAS . ", slug: {$slug}).";
+                continue;
+            }
+            if ($slug !== self::QUEM_E_VOCE && !in_array($slug, $e['publico'], true)) {
+                $this->problemas[] = "{$e['arquivo']}:1: a entrada da trilha \"{$slug}\" precisa declarar \"publico: {$slug}\".";
+            }
+            if ($slug !== self::QUEM_E_VOCE && $this->paginasDoPublico($slug) === []) {
+                $this->problemas[] = "trilhas: a trilha \"{$slug}\" não tem nenhuma página.";
+            }
+        }
+    }
+
+    /** @return list<array{slug: string, titulo: string, resumo: string, entrada: string, paginas: list<string>}> */
+    private function trilhas(): array
+    {
+        $saida = [];
+        foreach (FrontMatter::PUBLICOS as $pub) {
+            $e = $this->entrada($pub);
+            if ($e === null) {
+                continue;
+            }
+            $saida[] = ['slug' => $pub, 'titulo' => (string) $e['titulo'], 'resumo' => (string) $e['resumo'], 'entrada' => (string) $e['chave'],
+                'paginas' => array_map(static fn (array $q): string => (string) $q['chave'], $this->paginasDoPublico($pub))];
+        }
+
+        return $saida;
     }
 
     private function resolverLink(string $destino, string $arquivo, int $linha): string
@@ -210,9 +319,6 @@ final class Compilador
         $alvo = $this->paginas[$caminho] ?? null;
         if ($alvo === null || !str_ends_with($caminho, '.md')) {
             throw ErroDeManual::em($arquivo, $linha, "link quebrado: {$destino}");
-        }
-        if ($alvo['publico'] !== 'manual') {
-            throw ErroDeManual::em($arquivo, $linha, "o link leva a {$caminho}, que não faz parte do manual.");
         }
         if ($ancora !== '') {
             $this->ancoras[] = ['origem' => $arquivo, 'destino' => $caminho, 'linha' => $linha, 'ancora' => $ancora, 'de' => $arquivo];
@@ -277,7 +383,7 @@ final class Compilador
         $saida = [];
         $plano = [];
         foreach ($capitulos as $i => $c) {
-            $doCapitulo = array_values(array_filter($this->paginas, static fn (array $p): bool => $p['publico'] === 'manual' && $p['capitulo'] === $c['slug']));
+            $doCapitulo = array_values(array_filter($this->paginas, static fn (array $p): bool => $p['capitulo'] === $c['slug']));
             usort($doCapitulo, static fn (array $a, array $b): int => $a['ordem'] <=> $b['ordem']);
             $saida[$i] = $c + ['peso' => ($i + 1) * 10, 'paginas' => []];
             foreach ($doCapitulo as $j => $p) {
@@ -291,11 +397,11 @@ final class Compilador
             $saida[$i]['paginas'][$j] = [
                 'slug' => $p['slug'], 'titulo' => $p['titulo'], 'resumo' => $p['resumo'], 'peso' => ($j + 1) * 10,
                 'origem' => 'docs/usuario/' . $p['arquivo'], 'html' => $p['html'], 'toc' => self::toc($p['titulos']),
-                'navegacao' => self::navegacao($anterior, $proximo), 'hash_origem' => $p['hash_origem'],
+                'navegacao' => self::navegacao($anterior, $proximo), 'hash_origem' => $p['hash_origem'], 'publico' => $p['publico'],
             ];
         }
 
-        return ['formato' => 1, 'capitulos' => $saida, 'capturas' => array_keys($this->capturasUsadas), 'avisos' => $this->avisos()];
+        return ['formato' => 2, 'trilhas' => $this->trilhas(), 'capitulos' => $saida, 'capturas' => array_keys($this->capturasUsadas), 'avisos' => $this->avisos()];
     }
 
     /** @param list<array{nivel: int, texto: string, id: string}> $titulos */

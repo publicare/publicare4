@@ -3,6 +3,7 @@ titulo: Barra de edição nas páginas do site
 resumo: Os ícones de edição que aparecem nas páginas do site para quem está logado.
 capitulo: conteudo
 ordem: 60
+publico: editor, desenvolvedor
 ---
 
 # Barra de edição nas páginas do site

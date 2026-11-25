@@ -3,6 +3,7 @@ titulo: Tipos de conteúdo
 resumo: O que é um tipo de conteúdo, quais já vêm prontos, como criar um tipo próprio com campos, definir onde ele pode ficar e escolher o ícone.
 capitulo: conteudo
 ordem: 30
+publico: administrador, desenvolvedor
 ---
 
 # Tipos de conteúdo

@@ -3,6 +3,7 @@ titulo: O que é o Publicare
 resumo: Para que serve o Publicare, como ele pensa e o que você pode montar com ele.
 capitulo: comecar
 ordem: 10
+publico: editor, administrador, desenvolvedor, contribuidor
 ---
 
 # O que é o Publicare

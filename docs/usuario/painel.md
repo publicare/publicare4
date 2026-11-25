@@ -3,6 +3,7 @@ titulo: Usar o painel
 resumo: Onde fica cada coisa no painel, como ler a lista de conteúdo e como editar um conteúdo.
 capitulo: comecar
 ordem: 40
+publico: editor, administrador
 ---
 
 # Usar o painel

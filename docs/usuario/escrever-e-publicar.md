@@ -3,6 +3,7 @@ titulo: Escrever e publicar conteúdo
 resumo: Como criar, editar, publicar, tirar do ar, agendar, mover e apagar conteúdo, e o que fazer com a lixeira e os conteúdos vencidos.
 capitulo: conteudo
 ordem: 10
+publico: editor
 ---
 
 # Escrever e publicar conteúdo

@@ -3,6 +3,7 @@ titulo: Tarefas agendadas e o cron
 resumo: Ligue o cron na hospedagem, confira a tela Tarefas agendadas e saiba o que o Publicare faz sozinho, como publicar na data marcada.
 capitulo: manutencao
 ordem: 30
+publico: administrador
 ---
 
 # Tarefas agendadas e o cron

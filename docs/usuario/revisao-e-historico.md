@@ -3,6 +3,7 @@ titulo: Revisão e histórico de versões
 resumo: Como enviar conteúdo para revisão, aprovar ou devolver com motivo, ver as versões guardadas e voltar a uma versão antiga.
 capitulo: conteudo
 ordem: 20
+publico: editor
 ---
 
 # Revisão e histórico de versões

@@ -3,6 +3,7 @@ titulo: Como atualizar o PBL4
 resumo: Atualizar o Publicare pelo painel, pelo cron ou pelo terminal, e voltar atrás se for preciso.
 capitulo: manutencao
 ordem: 20
+publico: administrador
 ---
 
 # Como atualizar o PBL4
