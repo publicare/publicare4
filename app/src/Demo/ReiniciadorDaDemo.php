@@ -10,6 +10,7 @@ use Pbl\Caminhos;
 use Pbl\Console\DemoPopularComando;
 use Pbl\Conteudo\Modelos;
 use Pbl\Instalacao\Instalador;
+use Pbl\Instalacao\PelesDistribuidas;
 use Pbl\Servicos;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -155,8 +156,8 @@ final class ReiniciadorDaDemo
     private function reinstalar(string $nome, string $host, string $senha): void
     {
         (new Instalador($this->caminhos))->instalar($nome, $host, [
-            'login' => self::LOGIN_ADMIN, 'email' => self::LOGIN_ADMIN . '@exemplo.org', 'nome' => 'Administrador da demo', 'senha' => $senha,
-        ], Modelos::NOMES);
+            'login' => self::LOGIN_ADMIN, 'email' => self::LOGIN_ADMIN . '@exemplo.invalid', 'nome' => 'Administrador da demo', 'senha' => $senha,
+        ], [], PelesDistribuidas::PADRAO);
         $saida = new BufferedOutput();
         $codigo = (new DemoPopularComando($this->caminhos))->run(new ArrayInput(['--forcar' => true]), $saida);
         if ($codigo !== 0) {

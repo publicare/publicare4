@@ -7,6 +7,7 @@ namespace Pbl\Console;
 use Pbl\Caminhos;
 use Pbl\Conteudo\Modelos;
 use Pbl\Instalacao\Instalador;
+use Pbl\Instalacao\PelesDistribuidas;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
@@ -55,7 +56,7 @@ final class InstalarComando extends Command
             if (in_array('todos', $escolhidos, true)) {
                 $escolhidos = Modelos::NOMES;
             }
-            (new Instalador($this->caminhos))->instalar((string) $input->getOption('nome'), (string) $input->getOption('host'), $admin, $escolhidos);
+            (new Instalador($this->caminhos))->instalar((string) $input->getOption('nome'), (string) $input->getOption('host'), $admin, $escolhidos, PelesDistribuidas::PADRAO);
         } catch (\RuntimeException | \InvalidArgumentException $e) {
             $output->writeln('<error>' . $e->getMessage() . '</error>');
 

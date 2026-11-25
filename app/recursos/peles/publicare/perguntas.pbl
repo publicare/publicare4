@@ -1,0 +1,18 @@
+<@estende "base"@>
+<@bloco corpo@>
+<header class="pagina-topo"><div class="contem">
+<@ecocru #migalhas@>
+<h1><@eco #titulo@></h1>
+<@se #descricao != ""@><p class="resumo"><@eco #descricao@></p><@/se@>
+</div></header>
+<div class="contem miolo perguntas">
+<@-- Sanfona sem script: cada pergunta é um <details>; o teclado e os leitores de tela já sabem abrir e fechar. --@>
+<@var $categoria_anterior = ""@>
+<@filhos classes="faq" ordem="categoria, peso, titulo"@>
+<@se #categoria != ""@><@se #categoria != $categoria_anterior@><h2><@eco #categoria@></h2>
+<@var $categoria_anterior = #categoria@><@/se@><@/se@>
+<details class="faq-item" data-pbl-objeto="<@eco #id@>"<@se %INDICE == 1@> open<@/se@>><summary><@eco #titulo@></summary><div class="faq-resposta"><@ecocru #resposta@><span class="pbl-acoes" hidden></span></div></details>
+<@/filhos@>
+<@semfilhos@><p>Nenhuma pergunta cadastrada ainda.</p><@/semfilhos@>
+</div>
+<@/bloco@>

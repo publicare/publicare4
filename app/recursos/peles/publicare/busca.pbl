@@ -1,0 +1,28 @@
+<@estende "base"@>
+<@bloco cabeca@><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<title>Busca<@se $q != ""@>: <@eco $q@><@/se@> - <@eco #site_nome@></title>
+<link rel="icon" type="image/svg+xml" href="<@eco #pele_url@>/assets/marca.svg">
+<@/bloco@>
+<@bloco corpo@>
+<header class="pagina-topo"><div class="contem"><h1>Busca</h1>
+<@se $q == ""@><p class="resumo">Digite o que procura no campo do cabeçalho.</p><@senao@><p class="resumo">Resultados para <strong><@eco $q@></strong></p><@/se@></div></header>
+<div class="contem miolo">
+<@se $q != ""@>
+<@var $tem_mais = 0@>
+<@var $por_pagina = %SITE.config.itens_por_pagina@>
+<@var $inicio_da_pagina = ($pagina - 1) * $por_pagina@>
+<@var $limite_busca = $por_pagina + 1@>
+<div class="lista-itens">
+<@localizar busca=$q inicio=$inicio_da_pagina limite=$limite_busca@><@se %INDICE <= $por_pagina@><@incluir arquivo="item"@><@senao@><@var $tem_mais = 1@><@/se@><@/localizar@>
+</div>
+<@naolocalizado@>
+<p>Nada encontrado para <strong><@eco $q@></strong>.</p>
+<@se %SUGESTAO != ""@><p>Você quis dizer <a href="/busca?q=<@eco %SUGESTAO@>"><@eco %SUGESTAO@></a>?</p><@/se@>
+<@/naolocalizado@>
+<@incluir arquivo="paginacao"@>
+<@/se@>
+</div>
+<@/bloco@>

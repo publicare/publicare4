@@ -1,0 +1,11 @@
+<@estende "base"@>
+<@bloco corpo@>
+<header class="pagina-topo"><div class="contem">
+<@ecocru #migalhas@>
+<h1><@eco #titulo@></h1>
+</div></header>
+<div class="contem miolo">
+<div class="corpo"><@ecocru #corpo@></div>
+<@formulario@>
+</div>
+<@/bloco@>

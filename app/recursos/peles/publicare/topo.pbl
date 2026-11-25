@@ -1,0 +1,14 @@
+<@-- Cabeçalho: marca, busca e menu. O menu recolhe no celular com uma caixa de seleção (sem JavaScript); a partir de 56rem fica aberto, com submenus ao passar o mouse ou focar. --@>
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+<@incluir arquivo="bloco_aviso"@>
+<header class="topo">
+<div class="topo-in">
+<a class="marca" href="/"><@se %SITE.config.logo != ""@><img src="<@arquivo valor=%SITE.config.logo info="url"@>" alt=""><@senao@><img class="marca-icone" src="<@eco #pele_url@>/assets/marca.svg" alt="" width="32" height="32"><@/se@><span><@eco #site_nome@></span></a>
+<input class="menu-chk" type="checkbox" id="menu-chk">
+<label class="menu-botao" for="menu-chk"><span class="menu-barras" aria-hidden="true"></span><span class="menu-rotulo">Menu</span></label>
+<div class="topo-nav">
+<@se %SITE.config.busca_ligada == 1@><form class="busca" action="/busca" method="get" role="search"><label class="so-leitor" for="busca-q">Buscar no site</label><input id="busca-q" type="search" name="q" value="<@eco $q@>" maxlength="200" placeholder="Buscar no site"> <button type="submit">Buscar</button></form>
+<@/se@><@menu profundidade=3 inicio="Início"@>
+</div>
+</div>
+</header>

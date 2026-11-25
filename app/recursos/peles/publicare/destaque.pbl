@@ -1,0 +1,13 @@
+<@estende "base"@>
+<@bloco corpo@>
+<header class="pagina-topo"><div class="contem">
+<@ecocru #migalhas@>
+<h1><@eco #titulo@></h1>
+<@se #texto != ""@><p class="resumo"><@eco #texto@></p><@/se@>
+</div></header>
+<div class="contem miolo">
+<@se #imagem != ""@><p class="foto-noticia"><img src="<@miniatura valor=#imagem tamanho=800@>" alt="" width="800" height="420"></p><@/se@>
+<@var $dest = #destino_externo@><@se #destino_interno != ""@><@var $dest = #destino_interno.url@><@/se@>
+<@se $dest != ""@><p><a class="botao" href="<@eco $dest@>"<@se #destino_interno == ""@> rel="noopener noreferrer"<@/se@>>Saiba mais</a></p><@/se@>
+</div>
+<@/bloco@>

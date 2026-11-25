@@ -92,7 +92,7 @@ final class InstaladorWeb
             try {
                 (new Instalador($this->caminhos))->instalar($campos['site'], $campos['dominio'], [
                     'login' => $campos['login'], 'email' => $campos['email'], 'nome' => $campos['nome'] === '' ? $campos['login'] : $campos['nome'], 'senha' => $senha,
-                ], $modelos);
+                ], $modelos, PelesDistribuidas::PADRAO);
             } catch (\InvalidArgumentException | \RuntimeException $e) {
                 $erro = $e->getMessage();
             }
