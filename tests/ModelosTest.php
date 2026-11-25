@@ -8,6 +8,7 @@ use Pbl\Caminhos;
 use Pbl\Console\DemoPopularComando;
 use Pbl\Console\ModelosComando;
 use Pbl\Conteudo\Modelos;
+use Pbl\Demo\ConteudoPublicare;
 use Pbl\Instalacao\Instalador;
 use Pbl\Servicos;
 use PHPUnit\Framework\TestCase;
@@ -177,28 +178,29 @@ final class ModelosTest extends TestCase
     public function testDemoPopularEhIdempotentePublicaERecusaSiteCheio(): void
     {
         $t = new CommandTester(new DemoPopularComando($this->caminhos));
-        self::assertSame(0, $t->execute(['--site' => (string) $this->siteId]), $t->getDisplay());
+        self::assertSame(0, $t->execute(['--site' => (string) $this->siteId, '--pele' => 'basica']), $t->getDisplay());
         self::assertStringContainsString('página(s) publicada(s)', $t->getDisplay());
         $contar = fn (): int => (int) $this->s->conexao()->fetchOne('SELECT COUNT(*) FROM objeto');
         $antes = $contar();
         self::assertGreaterThan(40, $antes);
         // Segunda rodada: o site já está cheio (recusa) e, com --forcar, não cria nada de novo.
-        self::assertSame(1, $t->execute(['--site' => (string) $this->siteId]));
-        self::assertSame(0, $t->execute(['--site' => (string) $this->siteId, '--forcar' => true, '--sem-publicar' => true]));
+        self::assertSame(1, $t->execute(['--site' => (string) $this->siteId, '--pele' => 'basica']));
+        self::assertSame(0, $t->execute(['--site' => (string) $this->siteId, '--pele' => 'basica', '--forcar' => true, '--sem-publicar' => true]));
         self::assertSame($antes, $contar());
         $dir = $this->caminhos->dados() . '/cache/paginas/' . $this->siteId;
         self::assertFileExists($dir . '/index.html');
-        self::assertFileDoesNotExist($dir . '/rascunho-regimento-interno.html', 'rascunho (privado) não é publicado');
-        self::assertFileDoesNotExist($dir . '/balanco-do-semestre.html', 'conteúdo agendado só sai na data');
+        self::assertFileDoesNotExist($dir . '/rascunho-guia-de-estilo.html', 'rascunho (privado) não é publicado');
         self::assertFileExists($dir . '/faq-1.html');
-        self::assertStringContainsString('Instituto Exemplo', (string) file_get_contents($dir . '/index.html'));
+        self::assertStringContainsString(ConteudoPublicare::PROMESSA, (string) file_get_contents($dir . '/index.html'));
         self::assertStringContainsString('class="accordion-item"', (string) file_get_contents($dir . '/perguntas-frequentes.html'));
     }
 
-    public function testHomeDaDemoTemHierarquiaAtalhosDasVersoesEHtmlLimpo(): void
+    /** A pele básica continua funcionando com o exemplo (`--pele=basica`): mesma estrutura de antes, agora com o conteúdo do Publicare. */
+    public function testHomeDaDemoNaPeleBasicaTemHierarquiaAtalhosEHtmlLimpo(): void
     {
         $t = new CommandTester(new DemoPopularComando($this->caminhos));
-        self::assertSame(0, $t->execute(['--site' => (string) $this->siteId]), $t->getDisplay());
+        self::assertSame(0, $t->execute(['--site' => (string) $this->siteId, '--pele' => 'basica']), $t->getDisplay());
+        self::assertSame('basica', $this->s->sites->porId($this->siteId)?->pele);
         $dir = $this->caminhos->dados() . '/cache/paginas/' . $this->siteId;
         $html = (string) file_get_contents($dir . '/index.html');
         $ordem = ['class="topo"', 'class="hero"', 'class="carrossel', 'class="atalhos"', 'class="ultimas"', 'class="links-rapidos"'];
@@ -209,21 +211,25 @@ final class ModelosTest extends TestCase
             self::assertGreaterThan($ultima, $pos, "{$marca} fora de ordem");
             $ultima = $pos;
         }
-        // Dois cartões grandes para as versões, apontando para as raízes das peles.
-        self::assertMatchesRegularExpression('#<a class="cartao-atalho" href="/onepage[^"]*"[^>]*><span class="titulo">Ver versão Onepage</span>#u', $html);
-        self::assertMatchesRegularExpression('#<a class="cartao-atalho" href="/portal[^"]*"[^>]*><span class="titulo">Ver versão Portal</span>#u', $html);
-        // Os cartões não se repetem em "Links rápidos", que continua com os demais links.
+        // Os quatro pilares (os quatro primeiros links sob a página inicial) viram cartões grandes, apontando para páginas do exemplo.
+        self::assertSame(4, substr_count($html, 'class="cartao-atalho"'));
+        foreach (ConteudoPublicare::pilares() as $pilar) {
+            self::assertMatchesRegularExpression('#<a class="cartao-atalho" href="/' . preg_quote($pilar['destino'], '#') . '"[^>]*><span class="titulo">' . preg_quote($pilar['titulo'], '#') . '</span>#u', $html);
+        }
+        // Os links seguintes (documentação) ficam em "Links rápidos", que não repete os cartões; um site, uma árvore: sem versões paralelas.
         $rapidos = substr($html, (int) strpos($html, 'class="links-rapidos"'));
-        self::assertStringNotContainsString('Ver versão', $rapidos);
-        self::assertStringContainsString('Agenda de eventos', $rapidos);
+        self::assertMatchesRegularExpression('#<a href="[^"]*atualizar\.md"[^>]*>Como atualizar</a>#u', $rapidos);
+        self::assertStringNotContainsString('Pele onepage', $html);
+        self::assertStringNotContainsString('Pele portal', $html);
+        self::assertStringNotContainsString('Conteúdo em árvore', $rapidos);
         // Folha de estilos própria; nada de estilo nem script embutido (CSP rígida).
         self::assertMatchesRegularExpression('#<link rel="stylesheet" href="/_pbl/peles/basica/assets/pele\.css\?v=[0-9a-f]{8}">#', $html);
         self::assertStringNotContainsString('<style', $html);
         self::assertStringNotContainsString(' style=', $html);
         self::assertDoesNotMatchRegularExpression('#<script(?![^>]*\ssrc=)#', $html);
-        // Lista de notícias: miniatura de 400 px (nítida) dentro de moldura de proporção fixa, com data.
-        self::assertMatchesRegularExpression('#class="item-imagem"[^>]*><img src="/_pbl/arquivo/\d+/miniatura/400"#', $html);
-        self::assertMatchesRegularExpression('#<span class="data">\d{2}/\d{2}/\d{4}</span>#', $html);
+        // Lista de itens: os guias do exemplo não têm imagem, então não sobra moldura vazia. O exemplo não tem data que envelheça.
+        self::assertStringNotContainsString('class="item-imagem"', $html);
+        self::assertStringNotContainsString('class="data"', $html);
         self::assertFileExists($this->caminhos->peles() . '/basica/assets/pele.css');
         $css = (string) file_get_contents($this->caminhos->peles() . '/basica/assets/pele.css');
         self::assertStringContainsString('aspect-ratio', $css);
@@ -231,14 +237,14 @@ final class ModelosTest extends TestCase
         self::assertStringContainsString(':focus-visible', $css);
         self::assertStringContainsString('prefers-color-scheme:dark', $css);
         // Demais páginas da pele básica seguem com a folha e sem inline.
-        foreach (['noticias', 'agenda', 'perguntas-frequentes', 'contato', 'quem-somos'] as $url) {
+        foreach (['noticias', 'documentos', 'perguntas-frequentes', 'contato', 'o-que-e'] as $url) {
             $p = (string) file_get_contents($dir . '/' . $url . '.html');
             self::assertStringContainsString('assets/pele.css', $p, $url);
             self::assertStringNotContainsString('<style', $p, $url);
             self::assertStringNotContainsString(' style=', $p, $url);
         }
         // JavaScript próprio em todas as peles, sempre arquivo local versionado: nunca inline, nunca manipulador no HTML (CSP script-src 'self').
-        foreach (['index', 'noticias', 'perguntas-frequentes', 'agenda'] as $url) {
+        foreach (['index', 'noticias', 'perguntas-frequentes', 'documentos'] as $url) {
             $p = (string) file_get_contents($dir . '/' . $url . '.html');
             self::assertMatchesRegularExpression('#<script src="/_pbl/peles/basica/assets/pbl-js\.js\?v=[0-9a-f]{8}"></script>#', $p, $url);
             self::assertMatchesRegularExpression('#<script src="/_pbl/peles/basica/assets/bootstrap\.bundle\.min\.js\?v=[0-9a-f]{8}" defer></script>#', $p, $url);
@@ -259,8 +265,8 @@ final class ModelosTest extends TestCase
         self::assertSame(1, substr_count($html, 'carousel-item destaque-principal active'));
         self::assertStringContainsString('data-bs-slide="prev"', $html);
         self::assertStringContainsString('data-bs-slide="next"', $html);
-        self::assertStringContainsString('Oficinas de leitura', $html);
-        self::assertStringContainsString('Seja voluntário', $html);
+        self::assertStringContainsString('Veja o que ele faz', $html);
+        self::assertStringContainsString('Participe do projeto', $html);
         self::assertStringContainsString('data-bs-target="#links-rapidos-lista" aria-controls="links-rapidos-lista" aria-expanded="true"', $html);
         self::assertStringContainsString('class="collapse show" id="links-rapidos-lista"', $html);
         $faqHtml = (string) file_get_contents($dir . '/perguntas-frequentes.html');
@@ -278,15 +284,15 @@ final class ModelosTest extends TestCase
         self::assertStringContainsString('prefers-reduced-motion', $pele);
         self::assertStringNotContainsString('innerHTML', $pele);
         // Ações por título (barra de edição): cada item listado leva o id e um espaço vazio e oculto para os botões; o do <body> não conta.
-        foreach (['index', 'onepage', 'portal', 'noticias', 'perguntas-frequentes'] as $url) {
+        foreach (['index', 'noticias', 'perguntas-frequentes'] as $url) {
             $p = (string) file_get_contents($dir . '/' . $url . '.html');
             $marcas = preg_match_all('#\sdata-pbl-objeto="[1-9][0-9]*"#', $p);
             $espacos = substr_count($p, '<span class="pbl-acoes" hidden></span>');
             self::assertGreaterThan(1, $marcas, $url);
             self::assertSame($marcas - 1, $espacos, "{$url}: um espaço de ações por item listado");
         }
-        // Em onepage e portal, o hero usa um tamanho de miniatura que existe (antes o src saía vazio).
-        foreach (['onepage', 'portal'] as $url) {
+        // Nenhuma página sai com imagem vazia nem estilo embutido.
+        foreach (['index', 'noticias'] as $url) {
             $p = (string) file_get_contents($dir . '/' . $url . '.html');
             self::assertStringNotContainsString('src=""', $p, $url);
             self::assertStringNotContainsString(' style=', $p, $url);
@@ -297,10 +303,10 @@ final class ModelosTest extends TestCase
     {
         $t = new CommandTester(new DemoPopularComando($this->caminhos));
         self::assertSame(0, $t->execute(['--site' => (string) $this->siteId, '--sem-publicar' => true]), $t->getDisplay());
-        $linha = $this->s->conexao()->fetchAssociative("SELECT largura, altura FROM arquivo WHERE nome = 'abertas-inscricoes-oficinas.png'");
+        $linha = $this->s->conexao()->fetchAssociative("SELECT largura, altura FROM arquivo WHERE nome = 'destaque-conhecer.png'");
         self::assertIsArray($linha);
         $info = [(int) $linha['largura'], (int) $linha['altura']];
-        self::assertSame([1200, 630], $info);
+        self::assertSame([1200, 500], $info);
     }
 
     public function testHomeGenericaSemLinksNaoTemBlocoDeAtalhos(): void

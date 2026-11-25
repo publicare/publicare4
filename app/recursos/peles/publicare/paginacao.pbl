@@ -1,0 +1,6 @@
+<@se $pagina + $tem_mais > 1@>
+<nav class="paginacao" aria-label="Paginação">
+<span><@se $pagina > 1@><a rel="prev" href="<@se $q != ""@>?q=<@eco $q_url@>&amp;pagina=<@eco $pagina - 1@><@senao@>?pagina=<@eco $pagina - 1@><@/se@>">&larr; Anteriores</a><@/se@></span>
+<span><@se $tem_mais == 1@><a rel="next" href="<@se $q != ""@>?q=<@eco $q_url@>&amp;pagina=<@eco $pagina + 1@><@senao@>?pagina=<@eco $pagina + 1@><@/se@>">Próximos &rarr;</a><@/se@></span>
+</nav>
+<@/se@>

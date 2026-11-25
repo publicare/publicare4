@@ -1,0 +1,23 @@
+<@estende "base"@>
+<@bloco cabeca@><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Tag: <@eco $tag_nome@> - <@eco #site_nome@></title>
+<link rel="icon" type="image/svg+xml" href="<@eco #pele_url@>/assets/marca.svg">
+<@/bloco@>
+<@bloco corpo@>
+<header class="pagina-topo"><div class="contem"><h1>Tag: <@eco $tag_nome@></h1></div></header>
+<div class="contem miolo">
+<@var $tem_mais = 0@>
+<@var $por_pagina = %SITE.config.itens_por_pagina@>
+<@var $inicio_da_pagina = ($pagina - 1) * $por_pagina@>
+<@var $limite_tag = $por_pagina + 1@>
+<div class="lista-itens">
+<@localizar tag=$tag_slug ordem="-data_publicacao, titulo" inicio=$inicio_da_pagina limite=$limite_tag@><@se %INDICE <= $por_pagina@><@incluir arquivo="item"@><@senao@><@var $tem_mais = 1@><@/se@><@/localizar@>
+</div>
+<@naolocalizado@>
+<p>Nenhum conteúdo publicado com esta tag.</p>
+<@/naolocalizado@>
+<@incluir arquivo="paginacao"@>
+</div>
+<@/bloco@>

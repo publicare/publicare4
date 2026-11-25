@@ -136,7 +136,7 @@ final class CabecalhosDeSegurancaTest extends TestCase
         self::assertSame('no-referrer', $r->headers->get('Referrer-Policy'));
     }
 
-    /** A CSP pública é `script-src 'self'`: pele com `<script>` inline ou `on*=` quebraria. Provado em todas as peles distribuídas. */
+    /** A CSP pública é `script-src 'self'`: pele com `<script>` inline ou `on*=` quebraria (o JSON-LD, `type="application/ld+json"`, é só dado e não executa). Provado em todas as peles distribuídas. */
     public function testPelesDistribuidasNaoUsamScriptInlineNemManipuladorEmAtributo(): void
     {
         $base = dirname(__DIR__) . '/app/recursos/peles';
@@ -147,13 +147,13 @@ final class CabecalhosDeSegurancaTest extends TestCase
         self::assertNotEmpty($arquivos);
         foreach ($arquivos as $a) {
             $conteudo = (string) file_get_contents($a);
-            self::assertSame(0, preg_match('/<script(?![^>]*\ssrc=)[^>]*>/i', $conteudo), "script inline em {$a}");
+            self::assertSame(0, preg_match('/<script(?![^>]*\ssrc=)(?![^>]*type="application\/ld\+json")[^>]*>/i', $conteudo), "script inline em {$a}");
             self::assertSame(0, preg_match('/\son[a-z]+\s*=\s*["\']/i', $conteudo), "manipulador em atributo em {$a}");
             self::assertSame(0, preg_match('/javascript:/i', $conteudo), "javascript: em {$a}");
         }
         // e a página renderizada pelo site instalado também (a pele padrão)
         $html = (string) $this->pegar('/')->getContent();
-        self::assertSame(0, preg_match('/<script(?![^>]*\ssrc=)[^>]*>/i', $html));
+        self::assertSame(0, preg_match('/<script(?![^>]*\ssrc=)(?![^>]*type="application\/ld\+json")[^>]*>/i', $html));
         self::assertSame(0, preg_match('/\son[a-z]+\s*=\s*["\']/i', $html));
     }
 }

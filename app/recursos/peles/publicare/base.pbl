@@ -1,0 +1,15 @@
+<@-- Pele "publicare": layout comum a todos os moldes (cabeça, topo, conteúdo e rodapé). Os moldes filhos só preenchem o bloco "corpo". Sem JavaScript, sem estilo e sem script embutidos. --@>
+<!doctype html>
+<html lang="<@eco %SITE.config.idioma@>">
+<head>
+<@bloco cabeca@><@incluir arquivo="cabeca"@><@/bloco@>
+<@incluir arquivo="estilo"@>
+</head>
+<body data-pbl-objeto="<@eco #id@>">
+<@incluir arquivo="topo"@>
+<main id="conteudo" tabindex="-1">
+<@bloco corpo@><@/bloco@>
+</main>
+<@incluir arquivo="rodape"@>
+</body>
+</html>

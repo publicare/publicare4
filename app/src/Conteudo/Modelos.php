@@ -224,23 +224,23 @@ final class Modelos
     }
 
     /**
-     * Copia os moldes novos que faltam e atualiza os antigos que ainda estão como a distribuição. Só para a pele básica.
+     * Copia os moldes novos que faltam e atualiza os antigos que ainda estão como a distribuição. Só para as peles distribuídas com moldes de modelos (`PelesDistribuidas::COM_MODELOS`).
      *
      * @param list<string> $avisos
      * @return list<string> moldes gravados
      */
     private function prepararPele(string $pele, array &$avisos): array
     {
-        if ($pele !== 'basica') {
-            $avisos[] = "A pele do site é \"{$pele}\", não a básica: copie os moldes do modelo de app/recursos/peles/basica para a sua pele (veja docs/usuario/modelos-e-demo.md).";
+        if (!in_array($pele, \Pbl\Instalacao\PelesDistribuidas::COM_MODELOS, true)) {
+            $avisos[] = "A pele do site é \"{$pele}\", não a básica nem a publicare: copie os moldes do modelo de app/recursos/peles/publicare para a sua pele (veja docs/usuario/modelos-e-demo.md).";
 
             return [];
         }
-        $r = (new \Pbl\Instalacao\PelesDistribuidas($this->caminhos))->sincronizar(['basica']);
+        $r = (new \Pbl\Instalacao\PelesDistribuidas($this->caminhos))->sincronizar([$pele]);
         array_push($avisos, ...$r['avisos']);
         $gravados = [];
         foreach ($r['gravados'] as $chave) {
-            if (str_starts_with($chave, 'basica/') && str_ends_with($chave, '.pbl')) {
+            if (str_starts_with($chave, $pele . '/') && str_ends_with($chave, '.pbl')) {
                 $gravados[] = basename($chave, '.pbl');
             }
         }
