@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.13] - 2026-11-26
+
+> **Em resumo:** menu do painel agrupado por seção (sem o item "Mais"), abas de Conta e Configurações voltam a mostrar o conteúdo, e conta com senha provisória passa a exigir a troca da senha no primeiro acesso.
+
 ### Corrigido
 - **Abas vazias no painel** (Conta, Configurações): uma regra antiga do CSS escondia todos os painéis das abas do Bootstrap, inclusive o ativo, quando o JavaScript estava ligado. Agora ela vale só para o modo de abas do formulário.
 
