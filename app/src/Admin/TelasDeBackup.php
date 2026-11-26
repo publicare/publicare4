@@ -287,7 +287,7 @@ final class TelasDeBackup
             default => $this->secaoFazerAgora($sessao, $base, $csrf) . $this->secaoLista($copias, $espaco, $sessao, $base, $csrf),
         };
 
-        return Pagina::resposta('Cópias de segurança', $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Cópias de segurança', null]], 'Guarde o site e restaure se algo der errado.');
+        return Pagina::resposta('Cópias de segurança', $corpo, $status, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Cópias de segurança', null]], 'Guarde o site e restaure se algo der errado.');
     }
 
     /** @param list<InfoDeBackup> $copias */

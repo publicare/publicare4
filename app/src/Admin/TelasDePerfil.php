@@ -85,7 +85,7 @@ final class TelasDePerfil
             . '<div class="pbl-acoes"><button type="submit" class="btn btn-warning">Trocar senha</button></div></form>'
             . $this->blocoDeSessoes($sessao, $csrf);
 
-        return Pagina::resposta('Meu perfil', $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Meu perfil', null]]);
+        return Pagina::resposta('Meu perfil', $corpo, $status, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Meu perfil', null]]);
     }
 
     private function blocoDeSessoes(SessaoAtiva $sessao, string $csrf): string

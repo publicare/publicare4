@@ -489,7 +489,7 @@ final class TelasDeAtualizacao
             default => $this->consulta($k) . ($podeAplicar ? $this->formularioDeAplicar($k['manifesto'], $base, $csrf, $lembrarConfirmacao, $c->agendar) : ''),
         };
 
-        return Pagina::resposta('Atualização', $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Atualização', null]], 'Mantenha o PBL4 em dia e desfaça uma atualização, se precisar.');
+        return Pagina::resposta('Atualização', $corpo, $status, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Atualização', null]], 'Mantenha o PBL4 em dia e desfaça uma atualização, se precisar.');
     }
 
     /**

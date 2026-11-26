@@ -22,7 +22,7 @@ Só administradores abrem a tela. Os links usam o **domínio principal** do site
 
 ## Abrir a tela
 
-No menu, abra **Mais** e clique em **E-mail do site**.
+No menu, abra **Sistema** e clique em **E-mail do site**.
 
 ## As opções do campo Envio
 

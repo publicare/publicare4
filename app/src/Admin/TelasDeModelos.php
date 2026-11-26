@@ -109,6 +109,6 @@ final class TelasDeModelos
         }
         $corpo .= '</tbody></table></div>';
 
-        return Pagina::resposta('Modelos', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Tipos de conteúdo', Painel::PREFIXO . '/classes'], ['Modelos', null]], self::DESCRICAO);
+        return Pagina::resposta('Modelos', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Tipos de conteúdo', Painel::PREFIXO . '/classes'], ['Modelos', null]], self::DESCRICAO);
     }
 }

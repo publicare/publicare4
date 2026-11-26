@@ -99,7 +99,7 @@ final class TelasDeEmail
             . '<form method="post" action="' . Painel::PREFIXO . '/email/teste">' . $this->campoCsrf($sessao) . $this->campoSenha($sessao, 'campo-senha-teste')
             . '<button type="submit" class="btn btn-outline-primary">Enviar teste</button></form>';
 
-        return Pagina::resposta('E-mail do site', $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['E-mail', null]],
+        return Pagina::resposta('E-mail do site', $corpo, $status, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['E-mail', null]],
             'Usado para recuperar senha, convidar pessoas e avisar sobre a conta. O site precisa de um domínio principal, pois os links usam esse endereço.');
     }
 

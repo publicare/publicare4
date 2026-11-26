@@ -192,7 +192,7 @@ final class TelasDeClasses
         }
         $corpo .= '</tbody></table></div>';
 
-        return Pagina::resposta('Tipos de conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Tipos de conteúdo', null]], self::DESCRICAO_LISTA);
+        return Pagina::resposta('Tipos de conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Tipos de conteúdo', null]], self::DESCRICAO_LISTA);
     }
 
     // ---------------------------------------------------------------- criar

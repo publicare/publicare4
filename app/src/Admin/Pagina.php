@@ -286,17 +286,27 @@ final class Pagina
     }
 
     /**
-     * Item do menu principal que a rota ocupa (D7): o mapa de prefixos é o único lugar que decide, e `/objeto/…` e `/classe…`
-     * deixam de cair em "Início". Telas novas registram o prefixo aqui. Valores: inicio, conteudo, revisar, site, mais.
+     * Item do menu que a rota ocupa: o mapa de prefixos é o único lugar que decide, e `/objeto/…` e `/classe…` deixam de cair em
+     * "Início". Telas novas registram o prefixo aqui. Valores: inicio, conteudo, revisar, vencidos, lixeira, pilha, tipos, peles,
+     * site-config, site-dominios, site-redirecionamentos, site-menu, contas, perfil, email, atualizacao, copias, tarefas, mais.
      */
     public static function itemAtivo(string $caminho): string
     {
         $caminho = rtrim($caminho, '/');
+        if (preg_match('#^/_pbl/site/\d+/([a-z-]+)#', $caminho, $m) === 1) {
+            return match ($m[1]) {
+                'configuracoes' => 'site-config', 'dominios' => 'site-dominios', 'redirecionamentos' => 'site-redirecionamentos',
+                'peles' => 'peles', 'publicacao' => 'site-menu', default => 'site-config',
+            };
+        }
         $mapa = [
-            'conteudo' => ['/_pbl/conteudo', '/_pbl/objeto', '/_pbl/vencidos', '/_pbl/lixeira', '/_pbl/pilha'],
+            'conteudo' => ['/_pbl/conteudo', '/_pbl/objeto'],
+            'vencidos' => ['/_pbl/vencidos'], 'lixeira' => ['/_pbl/lixeira'], 'pilha' => ['/_pbl/pilha'],
             'revisar' => ['/_pbl/revisar', '/_pbl/pendencias', '/_pbl/meus-envios', '/_pbl/revisao'],
-            'site' => ['/_pbl/site'],
-            'mais' => ['/_pbl/mais', '/_pbl/classes', '/_pbl/classe', '/_pbl/modelos', '/_pbl/contas', '/_pbl/conta', '/_pbl/atualizacao', '/_pbl/copias', '/_pbl/tarefas'],
+            'tipos' => ['/_pbl/classes', '/_pbl/classe'], 'peles' => ['/_pbl/modelos'],
+            'contas' => ['/_pbl/contas', '/_pbl/conta'], 'perfil' => ['/_pbl/perfil'], 'email' => ['/_pbl/email'],
+            'atualizacao' => ['/_pbl/atualizacao'], 'copias' => ['/_pbl/copias'], 'tarefas' => ['/_pbl/tarefas'],
+            'mais' => ['/_pbl/mais'],
         ];
         foreach ($mapa as $item => $prefixos) {
             foreach ($prefixos as $prefixo) {
@@ -310,32 +320,72 @@ final class Pagina
     }
 
     /**
-     * Menu por tarefa (ADR 0031): no máximo cinco itens, Início, Conteúdo, Revisar (com contador, só para quem revisa ou envia), Site (só
-     * quem administra um site) e Mais (todos; dentro, cada pessoa só vê o que pode abrir). Funciona sem JavaScript: é um `<details open>` e o botão "Menu" só aparece
-     * abaixo de 1024 px; o `pbl-admin.js` recolhe o menu no celular. A tela atual leva `aria-current="page"`. `$nome` e `$tokenCsrf` chegam sem escape.
+     * Menu agrupado por seção (ADR 0031, revisado): Início e seis grupos (Conteúdo, Estrutura, Site, Pessoas, Sistema, Ajuda). Cada grupo
+     * só traz o que a pessoa pode abrir; grupo vazio some. Funciona sem JavaScript: é um `<details open>` e o botão "Menu" só aparece
+     * abaixo de 1024 px (o `pbl-admin.js` recolhe o menu no celular). Acima disso o menu é uma coluna fixa com rolagem própria. A tela
+     * atual leva `aria-current="page"`. `$nome` e `$tokenCsrf` chegam sem escape.
      */
     public static function barra(string $nome, string $tokenCsrf, bool $administrador = false): string
     {
         $administrador = $administrador || self::$administradorDoMenu;
         $ativo = self::itemAtivo(self::$caminhoAtual);
         [$pendencias, $revisor, $envia] = self::$revisao;
-        $itens = ['inicio' => ['/_pbl/', 'Início'], 'conteudo' => ['/_pbl/conteudo', 'Conteúdo']];
+        $edita = $administrador || $revisor || $envia;
+        $site = self::$siteDoMenu;
+        $base = $site === null ? null : '/_pbl/site/' . $site;
+        $revisarRotulo = 'Revisar' . ($pendencias > 0 ? ' <span class="pbl-contagem" title="Aguardando revisão">' . $pendencias . '<span class="visually-hidden"> aguardando revisão</span></span>' : '');
+
+        /** @var list<array{0: string, 1: list<array{0: string, 1: string, 2: string}>}> $grupos título => [chave, href, rótulo HTML] */
+        $grupos = [];
+        $conteudo = [['conteudo', '/_pbl/conteudo', 'Lista de conteúdo']];
         if ($revisor || $envia) {
-            $itens['revisar'] = ['/_pbl/revisar' . ($revisor ? '' : '?aba=envios'), 'Revisar' . ($pendencias > 0 ? ' <span class="pbl-contagem" title="Aguardando revisão">' . $pendencias . '<span class="visually-hidden"> aguardando revisão</span></span>' : '')];
+            $conteudo[] = ['revisar', '/_pbl/revisar' . ($revisor ? '' : '?aba=envios'), $revisarRotulo];
         }
-        if (self::$siteDoMenu !== null) {
-            $itens['site'] = ['/_pbl/site/' . self::$siteDoMenu . '/configuracoes', 'Site'];
+        if ($edita) {
+            $conteudo[] = ['vencidos', '/_pbl/vencidos', 'Vencidos'];
+            $conteudo[] = ['pilha', '/_pbl/pilha', 'Pilha'];
+            $conteudo[] = ['lixeira', '/_pbl/lixeira', 'Lixeira'];
         }
-        $itens['mais'] = ['/_pbl/mais', 'Mais'];
-        $links = '';
-        foreach ($itens as $chave => [$href, $rotulo]) {
-            $links .= '<li><a href="' . $href . '"' . ($chave === $ativo ? ' aria-current="page"' : '') . '>' . $rotulo . '</a></li>';
+        $grupos[] = ['Conteúdo', $conteudo];
+        $estrutura = [['tipos', '/_pbl/classes', 'Tipos de conteúdo']];
+        if ($administrador && $base !== null) {
+            $estrutura[] = ['peles', $base . '/peles', 'Peles e modelos de página'];
         }
+        $grupos[] = ['Estrutura', $estrutura];
+        if ($base !== null) {
+            $siteItens = [['site-config', $base . '/configuracoes', 'Configurações'], ['site-dominios', $base . '/dominios', 'Domínios']];
+            if ($administrador) {
+                $siteItens[] = ['site-redirecionamentos', $base . '/redirecionamentos', 'Redirecionamentos'];
+                $siteItens[] = ['site-menu', $base . '/publicacao', 'Menu e publicação'];
+            }
+            $grupos[] = ['Site', $siteItens];
+        }
+        $pessoas = [['perfil', '/_pbl/perfil', 'Meu perfil']];
+        if ($administrador) {
+            array_unshift($pessoas, ['contas', '/_pbl/contas', 'Contas e papéis']);
+        }
+        $grupos[] = ['Pessoas', $pessoas];
+        if ($administrador) {
+            $grupos[] = ['Sistema', [
+                ['email', '/_pbl/email', 'E-mail do site'], ['atualizacao', '/_pbl/atualizacao', 'Atualização'],
+                ['copias', '/_pbl/copias', 'Cópias de segurança'], ['tarefas', '/_pbl/tarefas', 'Tarefas agendadas'],
+            ]];
+        }
+        $link = static fn (string $chave, string $href, string $rotulo): string => '<li><a href="' . self::h($href) . '"' . ($chave === $ativo ? ' aria-current="page"' : '') . '>' . $rotulo . '</a></li>';
+        $nav = '<ul class="pbl-itens pbl-itens-topo">' . $link('inicio', '/_pbl/', 'Início') . '</ul>';
+        foreach ($grupos as $n => [$titulo, $itens]) {
+            $nav .= '<section class="pbl-grupo" aria-labelledby="pbl-grupo-' . $n . '"><h2 class="pbl-grupo-titulo" id="pbl-grupo-' . $n . '">' . self::h($titulo) . '</h2><ul class="pbl-itens">';
+            foreach ($itens as [$chave, $href, $rotulo]) {
+                $nav .= $link($chave, $href, $rotulo);
+            }
+            $nav .= '</ul></section>';
+        }
+        $nav .= '<section class="pbl-grupo" aria-labelledby="pbl-grupo-ajuda"><h2 class="pbl-grupo-titulo" id="pbl-grupo-ajuda">Ajuda</h2><ul class="pbl-itens"><li>' . self::linkDoManual() . '</li></ul></section>';
 
         return '<div class="pbl-topo"><a class="pbl-marca" href="/_pbl/">PBL4</a></div>'
             . '<details class="pbl-menu" open data-pbl-menu><summary>Menu</summary>'
-            . '<nav class="pbl-menu-nav" aria-label="Principal"><ul class="pbl-itens">' . $links . '</ul>'
-            . '<div class="pbl-pessoa"><span class="pbl-nome">' . self::h($nome) . '</span>' . self::linkDoManual()
+            . '<nav class="pbl-menu-nav" aria-label="Principal">' . $nav
+            . '<div class="pbl-pessoa"><span class="pbl-nome">' . self::h($nome) . '</span>'
             . '<button type="button" class="btn btn-sm btn-outline-secondary pbl-tema" data-pbl-tema>Tema</button>'
             . '<form method="post" action="/_pbl/sair"><input type="hidden" name="_csrf" value="' . self::h($tokenCsrf) . '">'
             . '<button type="submit" class="btn btn-sm btn-outline-secondary">Sair</button></form></div></nav></details>';

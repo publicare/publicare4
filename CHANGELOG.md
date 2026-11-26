@@ -12,6 +12,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 ### Adicionado
 - **Senha provisória**: conta criada pelo operador com `bin/pbl usuario criar|senha --provisoria` (também `conta-senha --provisoria` e `instalar --admin-senha-provisoria`) obriga a trocar a senha no primeiro acesso. Todas as telas e a API do painel levam à tela "Defina sua nova senha" (senha atual, nova e confirmação; nova diferente da atual) até a troca; só ela e o "Sair" funcionam. Ao trocar, as outras sessões caem. A marca também cai pela recuperação de senha, convite e qualquer redefinição sem `--provisoria`. Migração aditiva M029 (`usuario.senha_provisoria`, padrão 0), com rollback manual documentado na classe.
 
+### Alterado
+- **Menu do painel agrupado por seção** ([ADR 0031](docs/adr/0031-novo-painel-fase-1.md), revisão): Início e seis seções (Conteúdo, Estrutura, Site, Pessoas, Sistema, Ajuda), em coluna com rolagem própria; sai o item "Mais" e as migalhas passam a começar em "Início". Cada pessoa vê só o que pode abrir.
+
+
 ## [0.1.0-rc.12] - 2026-11-25
 
 > **Em resumo:** o site oficial do Publicare pode ser carregado sem e-mail de contato: o contato com o projeto passa a ser pelo GitHub, sem formulário nem caixa de mensagens.

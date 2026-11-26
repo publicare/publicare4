@@ -20,18 +20,18 @@ final class PainelFase2PontaAPontaTest extends TestCase
     public static function telas(): array
     {
         return [
-            'atualização' => ['/_pbl/atualizacao', 'Mais'],
-            'atualização/histórico' => ['/_pbl/atualizacao?aba=historico', 'Mais'],
-            'atualização/configuração' => ['/_pbl/atualizacao?aba=configuracao', 'Mais'],
-            'cópias' => ['/_pbl/copias', 'Mais'],
-            'cópias/agendamento' => ['/_pbl/copias?aba=agendamento', 'Mais'],
-            'cópias/destino' => ['/_pbl/copias?aba=destino', 'Mais'],
-            'tarefas' => ['/_pbl/tarefas', 'Mais'],
-            'contas' => ['/_pbl/contas', 'Mais'],
-            'tipos' => ['/_pbl/classes', 'Mais'],
-            'modelos' => ['/_pbl/modelos', 'Mais'],
-            'domínios' => ['/_pbl/site/{site}/dominios', 'Site'],
-            'configurações' => ['/_pbl/site/{site}/configuracoes', 'Site'],
+            'atualização' => ['/_pbl/atualizacao', 'Atualização'],
+            'atualização/histórico' => ['/_pbl/atualizacao?aba=historico', 'Atualização'],
+            'atualização/configuração' => ['/_pbl/atualizacao?aba=configuracao', 'Atualização'],
+            'cópias' => ['/_pbl/copias', 'Cópias de segurança'],
+            'cópias/agendamento' => ['/_pbl/copias?aba=agendamento', 'Cópias de segurança'],
+            'cópias/destino' => ['/_pbl/copias?aba=destino', 'Cópias de segurança'],
+            'tarefas' => ['/_pbl/tarefas', 'Tarefas agendadas'],
+            'contas' => ['/_pbl/contas', 'Contas e papéis'],
+            'tipos' => ['/_pbl/classes', 'Tipos de conteúdo'],
+            'modelos' => ['/_pbl/modelos', 'Peles e modelos de página'],
+            'domínios' => ['/_pbl/site/{site}/dominios', 'Domínios'],
+            'configurações' => ['/_pbl/site/{site}/configuracoes', 'Configurações'],
             'revisão' => ['/_pbl/revisar?aba=pendencias', 'Revisar'],
         ];
     }
@@ -45,17 +45,16 @@ final class PainelFase2PontaAPontaTest extends TestCase
     }
 
     #[DataProvider('telas')]
-    public function testTelaTemUmTituloMigalhasMenuDeCincoItensEItemAtivo(string $caminho, string $ativo): void
+    public function testTelaTemUmTituloMigalhasMenuAgrupadoEItemAtivo(string $caminho, string $ativo): void
     {
         $h = $this->abrir($caminho);
         self::assertSame(1, substr_count($h, '<h1'), 'um único h1');
         self::assertStringContainsString('class="pbl-migalhas"', $h, 'migalhas');
-        preg_match('~<ul class="pbl-itens">(.*?)</ul>~s', $h, $menu);
-        self::assertCount(2, $menu, 'menu principal');
+        self::assertSame(1, preg_match('~<nav class="pbl-menu-nav"[^>]*>(.*?)</nav>~s', $h, $menu), 'menu principal');
         $itens = $menu[1] ?? '';
-        self::assertLessThanOrEqual(5, substr_count($itens, '<li'), 'no máximo 5 itens');
+        self::assertStringContainsString('class="pbl-grupo-titulo"', $itens, 'menu agrupado por seção');
         self::assertSame(1, substr_count($itens, 'aria-current="page"'), 'um item ativo');
-        self::assertMatchesRegularExpression('~aria-current="page"[^>]*>\s*' . $ativo . '|' . $ativo . '[^<]*</a>~u', $itens);
+        self::assertMatchesRegularExpression('~aria-current="page"[^>]*>\s*' . preg_quote($ativo, '~') . '~u', $itens);
         self::assertStringContainsString('aria-current="page"', $h);
     }
 

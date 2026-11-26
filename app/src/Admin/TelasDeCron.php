@@ -173,7 +173,7 @@ final class TelasDeCron
             . '<div class="pbl-recolhiveis">' . Pagina::recolhivel('pseudo-cron', 'Pseudo-cron (hospedagem sem cron)', $this->cartaoPseudo($sessao))
             . Pagina::recolhivel('configurar-cron', 'Como configurar o cron', $this->cartaoDeConfiguracao(), $this->estado->ultimoCiclo('cron') === null && !$this->estado->pseudoLigado()) . '</div>';
 
-        return Pagina::resposta('Tarefas agendadas', $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Tarefas agendadas', null]], 'O que roda sozinho: publicar por data, republicar, limpar, conferir atualizações.');
+        return Pagina::resposta('Tarefas agendadas', $corpo, $status, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Tarefas agendadas', null]], 'O que roda sozinho: publicar por data, republicar, limpar, conferir atualizações.');
     }
 
     private function situacaoDoCron(): string
