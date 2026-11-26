@@ -792,17 +792,19 @@ final class TelasDeObjetos
             return Pagina::resposta('Criar conteúdo', $this->migalhas($sessao, $pai) . Pagina::alerta('info', 'O tipo de ' . $pai->titulo . ' não aceita conteúdo dentro dele (ou ainda não há tipos cadastrados).')
                 . Pagina::acoes('', [['Voltar', $this->link($pai->id)]]), Response::HTTP_OK, false, $this->barra($sessao));
         }
-        $opcoes = '';
+        $itens = '';
         foreach ($classes as $c) {
-            $opcoes .= $this->opcao((string) $c->id, $c->nome, false);
+            $rotulo = RotuloDeClasse::de($c->nome);
+            $itens .= '<li><a class="pbl-tipo-opcao" href="' . $this->link($pai->id) . '/novo?classe=' . $c->id . '">' . IconesDeClasse::marca($c, $rotulo)
+                . '<span class="pbl-tipo-texto"><strong>' . Pagina::h($rotulo) . '</strong>'
+                . (($descricao = RotuloDeClasse::descricao($c->nome, $c->descricao)) === '' ? '' : '<span>' . Pagina::h($descricao) . '</span>') . '</span></a></li>';
         }
         $corpo = $this->migalhas($sessao, $pai)
-            . '<p>O novo conteúdo vai ficar dentro de <strong>' . Pagina::h($pai->titulo) . '</strong>.</p>'
-            . '<form method="get" action="' . $this->link($pai->id) . '/novo" ' . Pagina::MARCA_FORMULARIO . '>'
-            . '<div class="mb-3"><label for="campo-tipo" class="form-label">Tipo de conteúdo</label><select id="campo-tipo" name="classe" data-pbl-seletor class="form-select" required>' . $opcoes . '</select></div>'
-            . Pagina::acoes('Continuar', [['Cancelar', $this->link($pai->id)]]) . '</form>';
+            . '<p>Vai ficar dentro de <strong>' . Pagina::h($pai->titulo) . '</strong>. Escolha o tipo:</p>'
+            . '<ul class="pbl-tipos-lista" aria-label="Tipos de conteúdo que cabem aqui">' . $itens . '</ul>'
+            . Pagina::acoes('', [['Cancelar', $this->link($pai->id)]]);
 
-        return Pagina::resposta('Criar conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', 'Primeiro escolha o tipo: os campos do formulário dependem dele.');
+        return Pagina::resposta('Novo conteúdo', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [], '', '');
     }
 
     private function criar(SessaoAtiva $sessao, int $paiId, Request $r): Response

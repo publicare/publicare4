@@ -278,3 +278,13 @@ main .form-check { flex-wrap: wrap; }
 @media (min-width: 1024px) { .js .pbl-lote { left: calc(var(--pbl-lateral) + 1.5rem); right: 1.5rem; } }
 .js .pbl-lote:not([data-ativo]) { display: none; }
 @media (max-width: 575.98px) { .pbl-lote-acoes { display: grid; grid-template-columns: 1fr 1fr; width: 100%; } .pbl-lote-acoes .btn { white-space: normal; } }
+
+/* escolha do tipo ao criar conteúdo: nome em destaque e uma linha de descrição, como uma lista de botões */
+.pbl-tipos-lista { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: .5rem; }
+.pbl-tipo-opcao { display: flex; align-items: flex-start; gap: .75rem; padding: .75rem; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: var(--bs-body-bg); color: var(--bs-body-color); text-decoration: none; }
+.pbl-tipo-opcao:hover { background: var(--bs-tertiary-bg); border-color: var(--bs-primary); }
+.pbl-tipo-opcao:focus-visible { outline: 3px solid var(--bs-primary); outline-offset: 2px; }
+.pbl-tipo-texto { display: flex; flex-direction: column; min-width: 0; }
+.pbl-tipo-texto strong { font-size: 1.0625rem; }
+.pbl-tipo-texto span { font-size: .875rem; color: var(--bs-secondary-color); }
+@media (min-width: 768px) { .pbl-tipos-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
