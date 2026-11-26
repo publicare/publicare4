@@ -160,7 +160,8 @@ trait AuxiliaresDeTela
     /**
      * Campo de senha para confirmar uma ação sensível, pronto para entrar num `<form>`; vazio (com uma nota) se a
      * sessão já está no "modo elevado" e não precisa da senha de novo por alguns minutos. `$campo` precisa ser o
-     * mesmo nome passado para `exigirReautenticacao`.
+     * mesmo nome passado para `exigirReautenticacao`. Com JavaScript o campo nasce escondido e só aparece quando a pessoa clica na ação
+     * (`data-pbl-senha`, em `pbl-admin.js`); sem JavaScript ele fica à vista.
      */
     private function campoSenha(SessaoAtiva $sessao, string $id = 'campo-senha', string $campo = 'senha'): string
     {
@@ -168,7 +169,7 @@ trait AuxiliaresDeTela
             return '<p class="small text-body-secondary">Confirmado há pouco: não precisa da senha de novo por alguns minutos.</p>';
         }
 
-        return '<div class="mb-3"><label for="' . $id . '" class="form-label">Sua senha, para confirmar</label>'
+        return '<div class="mb-3" data-pbl-senha><label for="' . $id . '" class="form-label">Sua senha, para confirmar</label>'
             . '<input id="' . $id . '" class="form-control" name="' . $campo . '" type="password" autocomplete="current-password" maxlength="1024" required></div>';
     }
 }

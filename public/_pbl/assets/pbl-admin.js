@@ -112,6 +112,28 @@
     }
   }, true);
 
+  /* Senha para confirmar (data-pbl-senha): só aparece quando a pessoa clica na ação. O primeiro envio mostra o campo e põe o foco nele;
+     o segundo envia. Sem JavaScript o campo fica à vista. */
+  document.querySelectorAll('[data-pbl-senha]').forEach(function (bloco) {
+    var formulario = bloco.closest('form');
+    var campo = bloco.querySelector('input');
+    if (!formulario || !campo) {
+      return;
+    }
+    var obrigatorio = campo.required;
+    campo.required = false;
+    bloco.hidden = true;
+    formulario.addEventListener('submit', function (e) {
+      if (!bloco.hidden) {
+        return;
+      }
+      e.preventDefault();
+      bloco.hidden = false;
+      campo.required = obrigatorio;
+      campo.focus();
+    });
+  });
+
   /* Barra de lote: aparece só com itens marcados e mostra quantos são. Sem JavaScript fica sempre à vista. */
   (function () {
     var barra = document.querySelector('[data-pbl-lote]');
