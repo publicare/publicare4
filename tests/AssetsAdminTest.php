@@ -195,4 +195,13 @@ final class AssetsAdminTest extends TestCase
             self::assertDoesNotMatchRegularExpression('/connect-src[^;]*(?:https?:|\*)/', $csp, 'connect-src só aceita o próprio site');
         }
     }
+
+    public function testCssNaoEscondeOPainelAtivoDasAbasDoBootstrap(): void
+    {
+        $css = (string) file_get_contents($this->publico(Pagina::ASSETS . '/pbl-formulario.css'));
+        // O modo de abas do formulário esconde painéis sem `data-ativa`; as abas do Bootstrap (`.tab-pane`, aba ativa com `.active`)
+        // não usam essa marca e ficariam todas escondidas (abas vazias em Conta e em Configurações).
+        self::assertStringNotContainsString('.js .pbl-aba-painel:not([data-ativa])', $css);
+        self::assertStringContainsString('.js .pbl-aba-painel:not(.tab-pane):not([data-ativa]) { display: none; }', $css);
+    }
 }

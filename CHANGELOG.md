@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Corrigido
+- **Abas vazias no painel** (Conta, Configurações): uma regra antiga do CSS escondia todos os painéis das abas do Bootstrap, inclusive o ativo, quando o JavaScript estava ligado. Agora ela vale só para o modo de abas do formulário.
+
 ### Adicionado
 - **Senha provisória**: conta criada pelo operador com `bin/pbl usuario criar|senha --provisoria` (também `conta-senha --provisoria` e `instalar --admin-senha-provisoria`) obriga a trocar a senha no primeiro acesso. Todas as telas e a API do painel levam à tela "Defina sua nova senha" (senha atual, nova e confirmação; nova diferente da atual) até a troca; só ela e o "Sair" funcionam. Ao trocar, as outras sessões caem. A marca também cai pela recuperação de senha, convite e qualquer redefinição sem `--provisoria`. Migração aditiva M029 (`usuario.senha_provisoria`, padrão 0), com rollback manual documentado na classe.
 
