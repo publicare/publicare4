@@ -6,6 +6,11 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+
+### Alterado
+- **Tipos de conteúdo mais legíveis:** nome em português com o nome técnico menor, descrição curta, colunas "Campos" e "Em uso" sem quebrar, ações lado a lado e selo "essencial" no lugar de "fixa". Em Novo tipo, o passo 1 de 2 fica explícito e o botão passa a "Criar e definir os campos".
+
+
 ## [0.1.0-rc.14] - 2026-11-26
 
 > **Em resumo:** menu do painel com títulos de seção em fundo e links em formato de botão, e lista de conteúdo mais clara (filtros em caixa, tipos em português e ações em lote só com itens marcados).
