@@ -8,7 +8,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 
 ### Alterado
-- **Menu do painel:** os títulos das seções ganham um fundo neutro, para separar os blocos.
+- **Menu do painel:** os títulos das seções ganham um fundo neutro e cada link ganha uma linha suave em volta, no formato de botão.
 
 
 ## [0.1.0-rc.13] - 2026-11-26
