@@ -159,19 +159,19 @@ final class AdminClassesTest extends TestCase
         $admin = $this->req('GET', '/_pbl/classes', $this->token('admin'));
         $html = (string) $admin->getContent();
         self::assertSame(200, $admin->getStatusCode());
-        self::assertStringContainsString('<code>pagina</code>', $html);
+        self::assertStringContainsString('<code class="small">pagina</code>', $html);
         self::assertStringContainsString('href="/_pbl/classes/nova"', $html);
         self::assertStringContainsString('href="/_pbl/classe/' . $this->pagina->id . '/editar"', $html);
-        self::assertMatchesRegularExpression('#<td data-label="Campos">2</td><td data-label="Conteúdos que usam">2</td>#', $html, '2 campos, 2 conteúdos');
+        self::assertMatchesRegularExpression('#<td class="text-nowrap" data-label="Campos">2</td><td class="text-nowrap" data-label="Em uso">2</td>#', $html, '2 campos, 2 conteúdos');
         self::assertStringContainsString("default-src 'none'", (string) $admin->headers->get('Content-Security-Policy'));
 
         $leitor = $this->req('GET', '/_pbl/classes', $this->token('leitor'));
         $html = (string) $leitor->getContent();
         self::assertSame(200, $leitor->getStatusCode());
-        self::assertStringContainsString('<code>pagina</code>', $html);
+        self::assertStringContainsString('<code class="small">pagina</code>', $html);
         self::assertStringNotContainsString('/_pbl/classes/nova', $html);
         self::assertStringNotContainsString('/editar', $html);
-        self::assertStringNotContainsString('Conteúdos que usam', $html, 'quem não modela não vê contagem (que cruza sites)');
+        self::assertStringNotContainsString('Em uso', $html, 'quem não modela não vê contagem (que cruza sites)');
         self::assertStringContainsString('Só administradores', $html);
 
         self::assertStringContainsString('href="/_pbl/classes"', (string) $this->req('GET', '/_pbl/', $this->token('leitor'))->getContent(), 'tipos de conteúdo no menu, em leitura');
