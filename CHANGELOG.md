@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.14] - 2026-11-26
+
+> **Em resumo:** menu do painel com títulos de seção em fundo e links em formato de botão, e lista de conteúdo mais clara (filtros em caixa, tipos em português e ações em lote só com itens marcados).
+
 
 ### Alterado
 - **Lista de conteúdo mais clara:** busca e filtros numa caixa de fundo claro, com rótulos simples ("Buscar por título", "Situação", "Tipo", "Ordenar por", "Mostrar"); tipos em português ("Página", "Pergunta frequente"); botões das linhas menores e sem esticar; e a barra de ações em lote só aparece com itens marcados, fixa no rodapé, com a contagem e os botões com nome (Publicar, Despublicar, Enviar para revisão, Copiar, Recortar, Mandar para a lixeira). Sai a frase "Clique no título para abrir a pasta".
