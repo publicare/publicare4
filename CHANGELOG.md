@@ -9,6 +9,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ### Alterado
 - **Lista de conteúdo mais clara:** busca e filtros numa caixa de fundo claro, com rótulos simples ("Buscar por título", "Situação", "Tipo", "Ordenar por", "Mostrar"); tipos em português ("Página", "Pergunta frequente"); botões das linhas menores e sem esticar; e a barra de ações em lote só aparece com itens marcados, fixa no rodapé, com a contagem e os botões com nome (Publicar, Despublicar, Enviar para revisão, Copiar, Recortar, Mandar para a lixeira). Sai a frase "Clique no título para abrir a pasta".
+- **Menu do painel:** os títulos das seções ganham um fundo neutro e cada link ganha uma linha suave em volta, no formato de botão.
 
 
 ## [0.1.0-rc.13] - 2026-11-26
