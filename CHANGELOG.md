@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.15] - 2026-11-26
+
+> **Em resumo:** texto do site do Publicare reescrito em linguagem direta, tela de tipos de conteúdo mais legível, e "Novo conteúdo" com a escolha do tipo em lista de botões com descrição.
+
 
 ### Alterado
 - **Texto do site do Publicare reescrito** (`ConteudoPublicare`): frases curtas, exemplo concreto, sem repetir o título e sem jargão solto (início, pilares, O que é, O que faz, Como facilita, O que inova e perguntas frequentes). As afirmações sobre o produto continuam ligadas a uma fonte e conferidas pelo teste.
