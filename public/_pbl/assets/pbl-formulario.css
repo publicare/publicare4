@@ -92,7 +92,7 @@ a { color: var(--pbl-acao); text-underline-offset: 3px; }
 .pbl-itens a[aria-current="page"] { border-left: 3px solid var(--pbl-acao); padding-left: calc(var(--pbl-e3) - 3px); background: var(--pbl-acao-suave); color: var(--pbl-acao); font-weight: 600; }
 /* menu agrupado por seção: título pequeno e discreto, itens compactos */
 .pbl-grupo { margin-top: var(--pbl-e4); }
-.pbl-grupo-titulo { margin: 0 0 var(--pbl-e1); padding: 0 var(--pbl-e3); font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--pbl-texto-2); }
+.pbl-grupo-titulo { margin: 0 0 var(--pbl-e2); padding: .35rem var(--pbl-e3); border-radius: var(--pbl-raio); background: var(--pbl-linha); font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--pbl-texto-2); }
 .pbl-itens-topo { margin-top: 0; }
 .pbl-itens a.pbl-ajuda { display: flex; }
 .pbl-menu[open] > .pbl-menu-nav { max-height: calc(100vh - 5rem); overflow-y: auto; overscroll-behavior: contain; }
