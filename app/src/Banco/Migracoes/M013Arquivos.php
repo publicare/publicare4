@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 
 /**
@@ -28,7 +28,7 @@ final class M013Arquivos implements Migracao
             // esta): nada a fazer, como o `M011ClasseFormulario` faz para a classe `formulario`.
             return;
         }
-        $e = new Schema();
+        $e = EsquemaPortavel::novo($conexao);
         $t = $e->createTable('arquivo');
         $t->addColumn('id', 'integer', ['autoincrement' => true]);
         $t->addColumn('site_id', 'integer');

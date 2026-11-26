@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 
 /**
@@ -26,7 +26,7 @@ final class M017ConfigDoSite implements Migracao
         if ($gerente->tablesExist(['site_config'])) {
             return;
         }
-        $e = new Schema();
+        $e = EsquemaPortavel::novo($conexao);
         $t = $e->createTable('site_config');
         $t->addColumn('site_id', 'integer');
         $t->addColumn('chave', 'string', ['length' => 50]);

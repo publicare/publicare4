@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 
 /**
@@ -23,7 +23,7 @@ final class M005VersoesEHistoricoDeUrls implements Migracao
     {
         $conexao->executeStatement('ALTER TABLE objeto ADD COLUMN versao INTEGER NOT NULL DEFAULT 1');
 
-        $e = new Schema();
+        $e = EsquemaPortavel::novo($conexao);
         $v = $e->createTable('objeto_versao');
         $v->addColumn('id', 'integer', ['autoincrement' => true]);
         $v->addColumn('objeto_id', 'integer');

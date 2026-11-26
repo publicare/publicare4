@@ -37,6 +37,20 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: ci-root-descartavel
+          MARIADB_DATABASE: pbl_ci
+          MARIADB_USER: pbl_ci
+          MARIADB_PASSWORD: ci-descartavel
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
       postgres:
         image: postgres:16
         env:
@@ -90,6 +104,15 @@ jobs:
           PBL_BANCO_USUARIO: pbl_ci
           PBL_BANCO_SENHA: ci-descartavel
           PBL_BANCO_TLS: exigir
+        run: vendor/bin/phpunit --group contrato-dialeto --fail-on-skipped
+      - name: Contrato de dialeto (MariaDB 10.11)
+        env:
+          PBL_BANCO_DRIVER: mysql
+          PBL_BANCO_HOST: 127.0.0.1
+          PBL_BANCO_PORTA: '3307'
+          PBL_BANCO_NOME: pbl_ci
+          PBL_BANCO_USUARIO: pbl_ci
+          PBL_BANCO_SENHA: ci-descartavel
         run: vendor/bin/phpunit --group contrato-dialeto --fail-on-skipped
       - name: Contrato de dialeto (PostgreSQL 16)
         env:
