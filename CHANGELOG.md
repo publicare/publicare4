@@ -6,6 +6,11 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+
+### Alterado
+- **Texto do site do Publicare reescrito** (`ConteudoPublicare`): frases curtas, exemplo concreto, sem repetir o título e sem jargão solto (início, pilares, O que é, O que faz, Como facilita, O que inova e perguntas frequentes). As afirmações sobre o produto continuam ligadas a uma fonte e conferidas pelo teste.
+
+
 ## [0.1.0-rc.14] - 2026-11-26
 
 > **Em resumo:** menu do painel com títulos de seção em fundo e links em formato de botão, e lista de conteúdo mais clara (filtros em caixa, tipos em português e ações em lote só com itens marcados).
