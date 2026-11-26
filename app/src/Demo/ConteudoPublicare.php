@@ -137,7 +137,7 @@ final class ConteudoPublicare
     {
         return '<h2>Conteúdo</h2>'
             . '<ul><li>Organize tudo em seções, como pastas num computador. Cada página, notícia ou evento fica no seu lugar.</li>'
-            . '<li>Crie seus próprios tipos de conteúdo pelo navegador. Uma &quot;Receita&quot;, por exemplo, com ingredientes e modo de preparo.</li>'
+            . '<li>Crie seus próprios tipos de conteúdo pelo navegador, como uma &quot;Receita&quot; com ingredientes e modo de preparo.</li>'
             . '<li>Um campo que já tem dados não é apagado nem muda de tipo: pode ser arquivado.</li>'
             . '<li>Mova, copie, recorte e cole conteúdo. A lixeira permite restaurar o que for apagado.</li>'
             . '<li>Use tags para agrupar conteúdos parecidos: cada tag ganha a sua página. Um conteúdo também pode apontar para outro.</li></ul>'
