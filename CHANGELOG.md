@@ -6,6 +6,11 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+
+### Alterado
+- **Menu do painel:** os títulos das seções ganham um fundo neutro e cada link ganha uma linha suave em volta, no formato de botão.
+
+
 ## [0.1.0-rc.13] - 2026-11-26
 
 > **Em resumo:** menu do painel agrupado por seção (sem o item "Mais"), abas de Conta e Configurações voltam a mostrar o conteúdo, e conta com senha provisória passa a exigir a troca da senha no primeiro acesso.
