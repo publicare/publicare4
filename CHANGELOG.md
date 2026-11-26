@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.14] - 2026-11-26
+
+> **Em resumo:** menu do painel com títulos de seção em fundo e links em formato de botão, e lista de conteúdo mais clara (filtros em caixa, tipos em português e ações em lote só com itens marcados).
+
 
 ### Alterado
 - **Novo conteúdo:** a escolha do tipo vira uma lista de botões, cada um com o nome do tipo e uma linha de descrição, em vez de uma caixa de seleção.
