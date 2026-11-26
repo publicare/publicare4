@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 use Pbl\Banco\ConfigBanco;
 use Pbl\Banco\ConfigDeBancoInvalida;
 
-/** MySQL 8 (MariaDB fora do alvo, ADR 0028 D1). */
+/** MySQL 8 e MariaDB 10.11 ou mais novo: o mesmo driver `pdo_mysql` (ADR 0028 D1, revista em 2026-11-26). */
 final class DialetoMysql extends DialetoBase
 {
     private const LIMITE_TRAVA = 64;
