@@ -481,10 +481,11 @@ final class TelasDeSite
             $ativa = $p === $site->pele;
             $corpo .= '<tr><td><code>' . Pagina::h($p) . '</code></td><td>' . count($this->peles->moldes($p)) . '</td><td>'
                 . ($ativa ? '<span class="badge text-bg-success">Ativa neste site</span>' : '<span class="text-body-secondary">—</span>') . '</td><td class="text-end">'
-                . '<div class="pbl-linha-acoes">' . Pagina::botaoIcone('arquivos', 'Ver arquivos', 'btn-outline-secondary', ['href' => $this->linkPeles($site) . '/' . $p, 'item' => $p])
-                . ($ativa ? '' : '<form class="d-inline-flex gap-1 align-items-end" method="post" action="' . $this->linkPeles($site) . '/ativar">' . $this->campoCsrf($sessao)
-                    . '<input type="hidden" name="pele" value="' . Pagina::h($p) . '">' . $this->campoSenha($sessao, 'campo-senha-pele-' . md5($p)) . Pagina::botaoIcone('ativar', 'Usar neste site', 'btn-success bg-gradient', ['item' => $p]) . '</form>')
-                . '</div></td></tr>';
+                . '<div class="pbl-linha-acoes">' . Pagina::botaoIcone('arquivos', 'Ver arquivos', 'btn-outline-secondary', ['href' => $this->linkPeles($site) . '/' . $p, 'item' => $p]) . '</div>'
+                . ($ativa ? '' : '<form class="pbl-ativar-pele mt-2" method="post" action="' . $this->linkPeles($site) . '/ativar">' . $this->campoCsrf($sessao)
+                    . '<input type="hidden" name="pele" value="' . Pagina::h($p) . '">' . $this->campoSenha($sessao, 'campo-senha-pele-' . md5($p))
+                    . '<button type="submit" class="btn btn-sm btn-success" aria-label="Usar a pele ' . Pagina::h($p) . ' neste site">Usar neste site</button></form>')
+                . '</td></tr>';
         }
         $corpo .= '</tbody></table></div>';
 

@@ -291,3 +291,8 @@ td > .pbl-linha-acoes { display: inline-flex; flex-wrap: nowrap; gap: .35rem; }
 .pbl-tipo-texto strong { font-size: 1.0625rem; }
 .pbl-tipo-texto span { font-size: .875rem; color: var(--bs-secondary-color); }
 @media (min-width: 768px) { .pbl-tipos-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* peles: o formulário "Usar neste site" fica empilhado e nunca espremido, em qualquer largura */
+.pbl-ativar-pele { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem; text-align: left; }
+.pbl-ativar-pele > .mb-3 { flex: 1 1 12rem; margin: 0 !important; }
+.pbl-ativar-pele .form-label { margin-bottom: .15rem; font-size: .8125rem; }

@@ -317,6 +317,9 @@ details.pbl-ajuda > .pbl-ajuda-texto { margin-top: var(--pbl-e2); padding: var(-
 .pbl-cabecalho-acao .btn { min-height: var(--pbl-toque); display: inline-flex; align-items: center; }
 .pbl-cabecalho-sec { margin: 0; }
 .pbl-estado { border: 1px solid var(--pbl-linha); border-left-width: 4px; border-radius: var(--pbl-raio); padding: var(--pbl-e4); margin-bottom: var(--pbl-e6); background: var(--pbl-superficie); color: var(--pbl-texto); }
+/* O cartão de estado (section) não é a bolinha de estado (span): sem isto ele herdava inline-flex e o conteúdo virava colunas espremidas. */
+section.pbl-estado { display: block; font-size: 1rem; }
+section.pbl-estado::before { content: none; }
 .pbl-estado-titulo { display: flex; align-items: center; gap: var(--pbl-e2); }
 .pbl-estado-texto { margin-top: var(--pbl-e2); color: var(--pbl-texto-2); }
 .pbl-estado-acao { margin-top: var(--pbl-e3); }

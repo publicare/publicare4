@@ -11,6 +11,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 - **Texto do site do Publicare reescrito** (`ConteudoPublicare`): frases curtas, exemplo concreto, sem repetir o título e sem jargão solto (início, pilares, O que é, O que faz, Como facilita, O que inova e perguntas frequentes). As afirmações sobre o produto continuam ligadas a uma fonte e conferidas pelo teste.
 - **Tipos de conteúdo mais legíveis:** nome em português com o nome técnico menor, descrição curta, colunas "Campos" e "Em uso" sem quebrar, ações lado a lado e selo "essencial" no lugar de "fixa". Em Novo tipo, o passo 1 de 2 fica explícito e o botão passa a "Criar e definir os campos".
 
+### Corrigido
+- **Telas de Peles e de Atualização no celular:** o cartão de andamento da atualização deixa de ser espremido em colunas (as letras saíam empilhadas) e, em Peles, o formulário "Usar neste site" empilha o campo de senha e o botão em vez de ficar numa coluna estreita.
+
 
 ## [0.1.0-rc.14] - 2026-11-26
 
