@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 
 /**
@@ -26,7 +26,7 @@ final class M022Tags implements Migracao
         if ($gerente->tablesExist(['tag'])) {
             return;
         }
-        $e = new Schema();
+        $e = EsquemaPortavel::novo($conexao);
         $t = $e->createTable('tag');
         $t->addColumn('id', 'integer', ['autoincrement' => true]);
         $t->addColumn('site_id', 'integer');

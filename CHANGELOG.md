@@ -15,6 +15,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 ### Corrigido
 - **Telas de Peles e de Atualização no celular:** o cartão de andamento da atualização deixa de ser espremido em colunas (as letras saíam empilhadas) e, em Peles, o formulário "Usar neste site" empilha o campo de senha e o botão em vez de ficar numa coluna estreita.
 
+### Adicionado
+- **Multibanco, etapa 1 (migrações portáveis, [ADR 0028](docs/adr/0028-suporte-mysql-postgresql.md), prevista para a 0.2):** as 28 migrações passam a aplicar em MySQL 8.4, MariaDB 10.11 e PostgreSQL 16, além do SQLite. O `Migrador` usa transação só onde o DDL é transacional, e trava a migração nos bancos de servidor; as tabelas nascem com `utf8mb4_bin` e InnoDB no MySQL e no MariaDB (`EsquemaPortavel`). O CI passa a rodar o teste de contrato também com MariaDB. O suporte a MySQL, MariaDB e PostgreSQL ainda não está disponível para uso: faltam instalador, backup e atualização nesses bancos.
+
 
 ## [0.1.0-rc.14] - 2026-11-26
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 
 /**
@@ -29,7 +29,7 @@ final class M006DominiosERedirecionamentos implements Migracao
             $conexao->executeStatement("UPDATE dominio SET modo = 'servir' WHERE site_id = ? AND host <> ?", [$s['site_id'], $s['principal']]);
         }
 
-        $e = new Schema();
+        $e = EsquemaPortavel::novo($conexao);
         $r = $e->createTable('redirecionamento');
         $r->addColumn('id', 'integer', ['autoincrement' => true]);
         $r->addColumn('site_id', 'integer');

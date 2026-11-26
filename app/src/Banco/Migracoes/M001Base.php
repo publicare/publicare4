@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 
 /** Schema inicial do PBL4 (ADR 0003): objeto com dados em JSON, caminho materializado e índice tipado. */
@@ -18,7 +18,7 @@ final class M001Base implements Migracao
 
     public function aplicar(Connection $conexao): void
     {
-        $e = new Schema();
+        $e = EsquemaPortavel::novo($conexao);
 
         $site = $e->createTable('site');
         $site->addColumn('id', 'integer', ['autoincrement' => true]);

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 
 /** Sessões da administração (só o hash do token é guardado) e as tentativas de login que falharam (ADR 0011). Só adiciona tabelas. */
@@ -18,7 +18,7 @@ final class M008Sessoes implements Migracao
 
     public function aplicar(Connection $conexao): void
     {
-        $e = new Schema();
+        $e = EsquemaPortavel::novo($conexao);
         $s = $e->createTable('sessao');
         $s->addColumn('id_hash', 'string', ['length' => 64]);
         $s->addColumn('usuario_id', 'integer');
