@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Pbl\Admin;
 
+use Pbl\Conteudo\ClassesPadrao;
+use Pbl\Conteudo\Modelos;
+
 /**
  * Nome de um tipo de conteúdo como a pessoa lê no painel ("Página", "Pergunta frequente"). O nome técnico (`pagina`, `faq`)
  * continua sendo o identificador; aqui só se apresenta. Tipos criados pelo administrador caem no nome dele, com a primeira letra
@@ -35,9 +38,37 @@ final class RotuloDeClasse
         'mensagem_contato' => 'Mensagem recebida pelo formulário de contato.',
     ];
 
+    /** @var array<string, string>|null descrição original de cada tipo padrão, como o instalador a grava */
+    private static ?array $originais = null;
+
+    /**
+     * A frase curta vale enquanto o tipo padrão estiver com a descrição original (ou sem descrição). Se o administrador editou a
+     * descrição, é a dele que aparece.
+     */
     public static function descricao(string $nome, string $doBanco = ''): string
     {
-        return self::DESCRICAO[$nome] ?? $doBanco;
+        if (!isset(self::DESCRICAO[$nome])) {
+            return $doBanco;
+        }
+
+        return $doBanco === '' || $doBanco === (self::originais()[$nome] ?? null) ? self::DESCRICAO[$nome] : $doBanco;
+    }
+
+    /** @return array<string, string> */
+    private static function originais(): array
+    {
+        if (self::$originais === null) {
+            $definicoes = ClassesPadrao::definicoes();
+            foreach (Modelos::NOMES as $modelo) {
+                $definicoes = [...$definicoes, ...Modelos::definicoes($modelo)];
+            }
+            self::$originais = [];
+            foreach ($definicoes as $d) {
+                self::$originais[$d['nome']] = $d['meta']['descricao'];
+            }
+        }
+
+        return self::$originais;
     }
 
     public static function de(string $nome): string

@@ -166,7 +166,7 @@ final class TelasDeClasses
         $usos = $modela ? $this->servicos->classes->objetosPorClasse() : [];
         $corpo = ($requisicao->query->all()['ok'] ?? null) === 'apagada' ? '<div class="alert alert-success" role="status">Tipo de conteúdo apagado.</div>' : '';
         if ($modela) {
-            $corpo .= Pagina::cabecalho(count($classes) . ' ' . (count($classes) === 1 ? 'tipo' : 'tipos') . ' de conteúdo. Cada um define os campos e onde pode ficar.', '<a class="btn btn-primary" href="' . Painel::PREFIXO . '/classes/nova">Novo tipo de conteúdo</a>', ['<a href="' . Painel::PREFIXO . '/modelos">Pacotes prontos (modelos)</a>']);
+            $corpo .= Pagina::cabecalho(count($classes) . ' ' . (count($classes) === 1 ? 'tipo' : 'tipos') . '.', '<a class="btn btn-primary" href="' . Painel::PREFIXO . '/classes/nova">Novo tipo de conteúdo</a>', ['<a href="' . Painel::PREFIXO . '/modelos">Pacotes prontos (modelos)</a>']);
         } else {
             $corpo .= Pagina::cabecalho('Só administradores criam e alteram tipos de conteúdo.');
         }
@@ -174,17 +174,19 @@ final class TelasDeClasses
             return Pagina::resposta('Tipos de conteúdo', $corpo . Pagina::vazio('Nenhum tipo de conteúdo ainda', 'Crie o primeiro com "Novo tipo de conteúdo".'), Response::HTTP_OK, false, $this->barra($sessao), [], self::DESCRICAO_LISTA);
         }
         $corpo .= '<div class="table-responsive"><table class="table table-sm table-hover align-middle"><caption class="visually-hidden">Tipos de conteúdo</caption><thead><tr>'
-            . '<th scope="col">Nome</th><th scope="col">Descrição</th><th scope="col">Campos</th>'
-            . ($modela ? '<th scope="col">Conteúdos que usam</th><th scope="col"><span class="visually-hidden">Ações</span></th>' : '') . '</tr></thead><tbody>';
+            . '<th scope="col">Tipo</th><th scope="col">Descrição</th><th scope="col" class="text-nowrap">Campos</th>'
+            . ($modela ? '<th scope="col" class="text-nowrap" title="Conteúdos que usam este tipo">Em uso</th><th scope="col"><span class="visually-hidden">Ações</span></th>' : '') . '</tr></thead><tbody>';
         foreach ($classes as $c) {
             $arquivados = count(array_filter($c->propriedades, static fn (array $p): bool => $p['arquivada'] ?? false));
             $ativos = count($c->propriedades) - $arquivados;
-            $corpo .= '<tr><td>' . IconesDeClasse::svg($c->icone) . ' <code>' . Pagina::h($c->nome) . '</code>'
-                . ($c->fixa ? ' <span class="badge text-bg-dark" title="Tipo essencial: não se apaga e mantém os campos de base">fixa</span>' : '') . '</td>'
-                . '<td>' . ($c->descricao === '' ? '<span class="text-body-secondary">—</span>' : Pagina::h(mb_strimwidth($c->descricao, 0, 160, '…'))) . '</td>'
-                . '<td>' . $ativos . ($arquivados > 0 ? ' <span class="text-body-secondary">(+' . $arquivados . ' arquivado' . ($arquivados > 1 ? 's' : '') . ')</span>' : '') . '</td>';
+            $descricao = RotuloDeClasse::descricao($c->nome, $c->descricao);
+            $corpo .= '<tr><td class="pbl-tipo-nome">' . IconesDeClasse::svg($c->icone) . ' <strong>' . Pagina::h(RotuloDeClasse::de($c->nome)) . '</strong>'
+                . ($c->fixa ? ' <span class="badge text-bg-secondary" title="Tipo essencial: não se apaga e mantém os campos de base">essencial</span>' : '')
+                . '<br><code class="small">' . Pagina::h($c->nome) . '</code></td>'
+                . '<td>' . ($descricao === '' ? '<span class="text-body-secondary">—</span>' : Pagina::h(mb_strimwidth($descricao, 0, 140, '…'))) . '</td>'
+                . '<td class="text-nowrap">' . $ativos . ($arquivados > 0 ? ' <span class="text-body-secondary">(+' . $arquivados . ' arquivado' . ($arquivados > 1 ? 's' : '') . ')</span>' : '') . '</td>';
             if ($modela) {
-                $corpo .= '<td>' . ($usos[$c->id] ?? 0) . '</td><td class="text-end text-nowrap">'
+                $corpo .= '<td class="text-nowrap">' . ($usos[$c->id] ?? 0) . '</td><td class="text-end text-nowrap">'
                     . '<div class="pbl-linha-acoes">' . Pagina::botaoIcone('editar', 'Editar', 'btn-primary bg-gradient', ['href' => $this->link($c->id) . '/editar', 'item' => $c->nome])
                     . ($c->fixa ? '' : Pagina::botaoIcone('excluir', 'Apagar', 'btn-danger bg-gradient', ['href' => $this->link($c->id) . '/apagar', 'item' => $c->nome])) . '</div></td>';
             }
@@ -207,9 +209,9 @@ final class TelasDeClasses
                 'maxlength' => ClasseRepositorio::MAX_NOME, 'obrigatorio' => true,
                 'ajuda' => 'Minúsculas, números e <code>_</code>, como <code>noticia</code>. Não muda depois.',
             ]) . $this->campoDeDescricao($descricao) . $this->camposDaClasse($aceita, $filhas, $this->servicos->classes->todas(), null))
-            . $this->acoes('Criar tipo de conteúdo', [['Cancelar', $this->linkLista()]]) . '</form>';
+            . $this->acoes('Criar e definir os campos', [['Cancelar', $this->linkLista()]]) . '</form>';
 
-        return Pagina::resposta('Novo tipo de conteúdo', $corpo, $status, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], ['Novo', null]], 'Os campos entram na tela seguinte.');
+        return Pagina::resposta('Novo tipo de conteúdo', $corpo, $status, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], ['Novo', null]], 'Passo 1 de 2: identifique o tipo; os campos vêm em seguida.');
     }
 
     private function criar(SessaoAtiva $sessao, Request $requisicao): Response
