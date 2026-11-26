@@ -278,3 +278,7 @@ main .form-check { flex-wrap: wrap; }
 @media (min-width: 1024px) { .js .pbl-lote { left: calc(var(--pbl-lateral) + 1.5rem); right: 1.5rem; } }
 .js .pbl-lote:not([data-ativo]) { display: none; }
 @media (max-width: 575.98px) { .pbl-lote-acoes { display: grid; grid-template-columns: 1fr 1fr; width: 100%; } .pbl-lote-acoes .btn { white-space: normal; } }
+
+/* tela de tipos de conteúdo: nome legível com o nome técnico menor; ações lado a lado */
+.pbl-tipo-nome { white-space: nowrap; }
+.pbl-linha-acoes { display: inline-flex; gap: .35rem; }
