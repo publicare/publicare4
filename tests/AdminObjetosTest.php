@@ -239,7 +239,8 @@ final class AdminObjetosTest extends TestCase
         $base = '/_pbl/objeto/' . $this->sobre->id . '/novo';
 
         $escolha = $this->html($this->req('GET', $base, $token));
-        self::assertStringContainsString('<option value="' . $this->evento->id . '">evento</option>', $escolha);
+        self::assertStringContainsString('href="' . $base . '?classe=' . $this->evento->id . '"', $escolha);
+        self::assertStringContainsString('<strong>Evento</strong>', $escolha);
         $form = $this->html($this->req('GET', $base . '?classe=' . $this->evento->id, $token));
         foreach (['dados[local]', 'dados[vagas]', 'dados[quando]', 'dados[aberto]', 'dados[pagina_relacionada]', 'dados[corpo]'] as $campo) {
             self::assertStringContainsString('name="' . $campo . '"', $form);
@@ -843,9 +844,9 @@ final class AdminObjetosTest extends TestCase
         $token = $this->token('editor');
 
         $escolha = $this->html($this->req('GET', '/_pbl/objeto/' . $pastaAgenda->id . '/novo', $token));
-        self::assertStringContainsString('>evento</option>', $escolha);
-        self::assertStringNotContainsString('>pagina</option>', $escolha, 'só os tipos aceitos aparecem');
-        self::assertStringContainsString('>evento</option>', $this->html($this->req('GET', '/_pbl/objeto/' . $pastaAgenda->id . '/novo?classe=' . $this->pagina->id, $token)), 'tipo não aceito volta para a escolha');
+        self::assertStringContainsString('<strong>Evento</strong>', $escolha);
+        self::assertStringNotContainsString('<strong>Página</strong>', $escolha, 'só os tipos aceitos aparecem');
+        self::assertStringContainsString('<strong>Evento</strong>', $this->html($this->req('GET', '/_pbl/objeto/' . $pastaAgenda->id . '/novo?classe=' . $this->pagina->id, $token)), 'tipo não aceito volta para a escolha');
         $recusado = $this->post($token, '/_pbl/objeto/' . $pastaAgenda->id . '/novo', ['classe' => (string) $this->pagina->id, 'titulo' => 'Página na agenda', 'descricao' => '']);
         self::assertSame(422, $recusado->getStatusCode(), 'formulário forjado com tipo não aceito');
         self::assertSame(303, $this->post($token, '/_pbl/objeto/' . $pastaAgenda->id . '/novo', $this->formEvento('Evento na agenda'))->getStatusCode());

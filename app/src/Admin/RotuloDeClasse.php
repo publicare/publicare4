@@ -17,6 +17,29 @@ final class RotuloDeClasse
         'destaque' => 'Destaque', 'bloco' => 'Bloco', 'agenda' => 'Agenda', 'evento' => 'Evento', 'mensagem_contato' => 'Mensagem de contato',
     ];
 
+    /** Frase curta de cada tipo padrão (a do banco é técnica e longa). Tipo criado pelo administrador usa a descrição dele. */
+    private const DESCRICAO = [
+        'pasta' => 'Agrupa outros conteúdos: seções, listas e caixas de entrada.',
+        'pagina' => 'Texto com título. Pode ser a página inicial do site.',
+        'link' => 'Atalho para uma página do site ou para um endereço externo.',
+        'arquivo' => 'Arquivo para baixar: PDF, planilha, documento.',
+        'imagem' => 'Imagem avulsa, para galerias ou para ilustrar outros conteúdos.',
+        'formulario' => 'Formulário público. Cada envio vira uma mensagem privada.',
+        'noticia' => 'Notícia ou artigo, com imagem de destaque.',
+        'faq' => 'Uma pergunta e a resposta, dentro de uma lista de perguntas frequentes.',
+        'perguntas' => 'Página que lista perguntas e respostas em sanfona.',
+        'destaque' => 'Banner da página inicial, com imagem, texto e link.',
+        'bloco' => 'Trecho de texto reutilizável, como o rodapé.',
+        'agenda' => 'Lista de eventos, em ordem de data.',
+        'evento' => 'Evento com data, local e inscrição.',
+        'mensagem_contato' => 'Mensagem recebida pelo formulário de contato.',
+    ];
+
+    public static function descricao(string $nome, string $doBanco = ''): string
+    {
+        return self::DESCRICAO[$nome] ?? $doBanco;
+    }
+
     public static function de(string $nome): string
     {
         if (isset(self::PADRAO[$nome])) {
