@@ -228,7 +228,8 @@ details.pbl-ajuda > .pbl-ajuda-texto { margin-top: var(--pbl-e2); padding: var(-
 .pbl-aba-painel > .pbl-aba-titulo { font-size: 1.125rem; margin: 0 0 var(--pbl-e4); }
 .js .pbl-aba-painel + .pbl-aba-painel { margin-top: 0; padding-top: 0; border-top: 0; }
 .js .pbl-aba-painel .pbl-aba-titulo { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.js .pbl-aba-painel:not([data-ativa]) { display: none; }
+/* Só o modo de abas do formulário (pbl-formulario.js, marca data-ativa). As abas do Bootstrap (.tab-pane) escondem e mostram sozinhas. */
+.js .pbl-aba-painel:not(.tab-pane):not([data-ativa]) { display: none; }
 .pbl-aba-painel:focus { outline: none; }
 
 /* resumo de erros */
