@@ -20,15 +20,18 @@ final class BackupSmokeTest extends TestCase
 
     protected function setUp(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $this->raiz = Ajuda::pastaTemporaria();
         $this->caminhos = new Caminhos($this->raiz);
         $this->caminhos->garantirDados();
-        (new Migrador(Conexao::sqlite($this->caminhos->banco())))->migrar();
+        (new Migrador(\Pbl\Testes\Ajuda::conexao($this->caminhos)))->migrar();
     }
 
     protected function tearDown(): void
     {
-        Ajuda::apagar($this->raiz);
+        if (isset($this->raiz)) {
+            Ajuda::apagar($this->raiz);
+        }
     }
 
     public function testCriarListarEEnviarFalhandoPreservaACopiaLocal(): void

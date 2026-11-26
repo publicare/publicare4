@@ -144,7 +144,7 @@ final class ClassesPadraoTest extends TestCase
 
     public function testMigracao16EIdempotenteEMarcaFixasEmBancoExistente(): void
     {
-        $conexao = Conexao::sqlite($this->caminhos->banco());
+        $conexao = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         $conexao->executeStatement("UPDATE classe SET fixa = 0 WHERE nome IN ('pasta', 'link', 'formulario')");
         // Reaplica sobre a coluna já criada: não falha e remarca.
         (new M016ClassesFixas())->aplicar($conexao);

@@ -100,7 +100,7 @@ final class ConfigDoSiteTest extends TestCase
 
     private function conexao(): Connection
     {
-        return Conexao::sqlite($this->caminhos->banco());
+        return \Pbl\Testes\Ajuda::conexao($this->caminhos);
     }
 
     public function testCatalogoValidaPorTipoERejeitaDesconhecida(): void

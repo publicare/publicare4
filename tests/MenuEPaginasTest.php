@@ -85,7 +85,7 @@ final class MenuEPaginasTest extends TestCase
 
     private function auditados(): int
     {
-        return (int) Conexao::sqlite($this->caminhos->banco())->fetchOne("SELECT COUNT(*) FROM auditoria WHERE acao = 'menu.invalidado'");
+        return (int) \Pbl\Testes\Ajuda::conexao($this->caminhos)->fetchOne("SELECT COUNT(*) FROM auditoria WHERE acao = 'menu.invalidado'");
     }
 
     public function testInstaladorMarcaSobreNoticiasEContatoNoMenuPelaOrdem(): void
@@ -232,7 +232,7 @@ final class MenuEPaginasTest extends TestCase
             $o = $this->s->objetos->criar($this->site->id, $pasta, $pai, "Nivel {$n}", "nivel-{$n}", [], 'publicado', ['no_menu' => true]);
             $pai = $o->id;
         }
-        $conexao = Conexao::sqlite($this->caminhos->banco());
+        $conexao = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         $raso = new MenuDoSite($conexao, $this->caminhos, new Auditoria($conexao), 2);
         $snap = $raso->reconstruir($this->site);
         $html = MenuHtml::gerar($snap['arvore'], $raso->profundidade(), '', 0, '', null);
@@ -264,7 +264,7 @@ final class MenuEPaginasTest extends TestCase
         foreach ([[$futuro, 'LinkFuturo'], [$vencido, 'LinkVencido'], [$ok, 'LinkVigente']] as [$alvo, $rotulo]) {
             $this->s->objetos->criar($this->site->id, $link, $raiz, $rotulo, strtolower($rotulo), ['destino_interno' => $alvo->id], 'publicado', ['no_menu' => true]);
         }
-        $con = Conexao::sqlite($this->caminhos->banco());
+        $con = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         $con->executeStatement('UPDATE objeto SET data_publicacao = ? WHERE id = ?', [gmdate('c', time() + 86400), $futuro->id]);
         $con->executeStatement('UPDATE objeto SET data_validade = ? WHERE id = ?', [gmdate('c', time() - 86400), $vencido->id]);
         $this->s->menu->reconstruir($this->site);

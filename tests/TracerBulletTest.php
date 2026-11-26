@@ -119,6 +119,7 @@ final class TracerBulletTest extends TestCase
 
     public function testSemInstalacaoRetorna503(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $vazio = Ajuda::pastaTemporaria();
         try {
             $r = (new Aplicacao(new Caminhos($vazio)))->tratar(Request::create('http://x.local/'));
@@ -130,6 +131,7 @@ final class TracerBulletTest extends TestCase
 
     public function testDadosDoSiteFicamForaDeApp(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         self::assertFileExists($this->caminhos->banco());
         self::assertFileExists($this->caminhos->peles() . '/basica/padrao.pbl');
         self::assertSame([], glob($this->raiz . '/app/*.sqlite') ?: [], 'nada é gravado em app/');
@@ -154,7 +156,7 @@ final class TracerBulletTest extends TestCase
         self::assertSame(404, $this->pegar('/edital')->getStatusCode(), 'vencida: não é servida mesmo com o arquivo ainda no cache');
 
         // próxima publicação remove do cache o que deixou de estar visível
-        $con = Conexao::sqlite($this->caminhos->banco());
+        $con = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         $con->executeStatement('UPDATE objeto SET data_validade = ? WHERE url_amigavel = ?', [gmdate('c', time() - 60), 'edital']);
         $servicos->publicador->publicarSite($site);
         self::assertFileDoesNotExist($arquivo);
@@ -167,7 +169,7 @@ final class TracerBulletTest extends TestCase
         $servicos->publicador->publicarSite($servicos->sites->todos()[0]);
         self::assertSame(200, $this->pegar('/sobre')->getStatusCode());
 
-        Conexao::sqlite($this->caminhos->banco())->executeStatement("UPDATE objeto SET status = 'privado' WHERE url_amigavel = 'sobre'");
+        \Pbl\Testes\Ajuda::conexao($this->caminhos)->executeStatement("UPDATE objeto SET status = 'privado' WHERE url_amigavel = 'sobre'");
         $servicos->publicador->publicarSite($servicos->sites->todos()[0]);
 
         self::assertSame(404, $this->pegar('/sobre')->getStatusCode());
@@ -225,7 +227,7 @@ final class TracerBulletTest extends TestCase
         $servicos = Servicos::doBancoInstalado($this->caminhos);
         $site = $servicos->sites->porHost('teste.local');
         self::assertNotNull($site);
-        $con = Conexao::sqlite($this->caminhos->banco());
+        $con = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         $classeId = (int) $con->fetchOne("SELECT id FROM classe WHERE nome = 'pagina'");
         $agora = gmdate('c');
         // dado antigo, anterior às regras de validação: a URL reservada "index" gravada direto no banco

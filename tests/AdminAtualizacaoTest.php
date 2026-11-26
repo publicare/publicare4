@@ -729,6 +729,7 @@ final class AdminAtualizacaoTest extends TestCase
 
     public function testReverterRecusaQuandoOBancoMudouDeFormaIncompativelDepoisDaAtualizacao(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $this->preparar();
         $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
         // Simula um esquema de banco diferente do registrado (migração ou alteração posterior): avaliar() deve recusar.

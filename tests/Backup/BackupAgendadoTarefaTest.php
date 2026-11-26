@@ -26,10 +26,11 @@ final class BackupAgendadoTarefaTest extends TestCase
 
     protected function setUp(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $this->raiz = Ajuda::pastaTemporaria();
         $this->caminhos = new Caminhos($this->raiz);
         $this->caminhos->garantirDados();
-        $c = Conexao::sqlite($this->caminhos->banco());
+        $c = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         (new Migrador($c))->migrar();
         $this->servicos = new Servicos($this->caminhos, $c);
         $this->agora = (new \DateTimeImmutable('2026-03-10 03:10', new \DateTimeZone('America/Sao_Paulo')))->getTimestamp();
@@ -37,7 +38,9 @@ final class BackupAgendadoTarefaTest extends TestCase
 
     protected function tearDown(): void
     {
-        Ajuda::apagar($this->raiz);
+        if (isset($this->raiz)) {
+            Ajuda::apagar($this->raiz);
+        }
     }
 
     private function tarefa(): BackupAgendadoTarefa

@@ -77,10 +77,11 @@ final class LimiteDeTentativas
     {
         $this->conexao->delete('tentativa_login', ['chave_hash' => $this->chavePar($login, $ip, $espaco)]);
         $this->conexao->delete('tentativa_login', ['chave_hash' => $this->chaveLogin($login, $espaco)]);
-        $this->conexao->executeStatement(
-            'DELETE FROM tentativa_login WHERE id = (SELECT MAX(id) FROM tentativa_login WHERE chave_hash = ?)',
-            [$this->chaveIp($ip, $espaco)],
-        );
+        // Em duas consultas: o MySQL não deixa apagar de uma tabela lendo dela na mesma instrução (erro 1093).
+        $ultima = $this->conexao->fetchOne('SELECT MAX(id) FROM tentativa_login WHERE chave_hash = ?', [$this->chaveIp($ip, $espaco)]);
+        if ($ultima !== false && $ultima !== null) {
+            $this->conexao->delete('tentativa_login', ['id' => $ultima]);
+        }
     }
 
     /**

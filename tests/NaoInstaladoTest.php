@@ -88,6 +88,7 @@ final class NaoInstaladoTest extends TestCase
 
     public function testTravaSemBancoNaoMandaInstalarPorCimaDeUmaInstalacao(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         (new Instalador($this->caminhos))->instalar('Site', 'www.exemplo.org');
         unlink($this->caminhos->banco());
         $r = $this->pegar('/');

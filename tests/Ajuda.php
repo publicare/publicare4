@@ -44,4 +44,18 @@ final class Ajuda
 
         return $raiz;
     }
+
+    /** A conexão do banco da instalação de teste: o SQLite da raiz ou o banco de servidor de `PBL_BANCO_*`. */
+    public static function conexao(\Pbl\Caminhos $caminhos): \Doctrine\DBAL\Connection
+    {
+        return \Pbl\Banco\Conexao::abrir((new \Pbl\Banco\CarregadorDeConfigBanco($caminhos))->carregar());
+    }
+
+    /** Para os testes que dependem do arquivo SQLite (cópia, restauração, demo): nos bancos de servidor eles ainda não se aplicam (plano, fase f). */
+    public static function pularSeBancoDeServidor(string $motivo = 'Depende do arquivo SQLite; cópia, restauração e atualização em bancos de servidor ficam para a fase f do plano multibanco.'): void
+    {
+        if (in_array(getenv('PBL_BANCO_DRIVER') ?: 'sqlite', ['mysql', 'pgsql'], true)) {
+            \PHPUnit\Framework\Assert::markTestSkipped($motivo);
+        }
+    }
 }

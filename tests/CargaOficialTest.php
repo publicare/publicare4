@@ -40,6 +40,9 @@ final class CargaOficialTest extends TestCase
     {
         $raiz = Ajuda::raizDeProjeto();
         $c = new Caminhos($raiz);
+        if (isset(self::$caminhos) && !(new \Pbl\Banco\CarregadorDeConfigBanco($c))->carregar()->ehSqlite()) {
+            self::markTestSkipped('Precisa de uma segunda instalação independente; num banco de servidor só há uma.');
+        }
         (new Instalador($c))->instalar(ConteudoPublicare::NOME_DO_SITE, $host, null, [], PelesDistribuidas::PADRAO);
         $s = Servicos::doBancoInstalado($c);
 
