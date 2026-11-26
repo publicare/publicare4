@@ -112,6 +112,33 @@
     }
   }, true);
 
+  /* Barra de lote: aparece só com itens marcados e mostra quantos são. Sem JavaScript fica sempre à vista. */
+  (function () {
+    var barra = document.querySelector('[data-pbl-lote]');
+    if (!barra) {
+      return;
+    }
+    var contador = barra.querySelector('[data-pbl-lote-n]');
+    function atualizar() {
+      var n = document.querySelectorAll('input[type="checkbox"][name="ids[]"]:checked').length;
+      if (contador) {
+        contador.textContent = String(n);
+      }
+      if (n > 0) {
+        barra.setAttribute('data-ativo', '');
+      } else {
+        barra.removeAttribute('data-ativo');
+      }
+    }
+    document.addEventListener('change', function (e) {
+      var alvo = e.target;
+      if (alvo && alvo.getAttribute && (alvo.getAttribute('name') === 'ids[]' || alvo.getAttribute('data-pbl-marcar-todos'))) {
+        atualizar();
+      }
+    });
+    atualizar();
+  })();
+
   /* Tela Conteúdo: a caixa do cabeçalho marca ou desmarca todas as linhas da página (data-pbl-marcar-todos="ids[]"). */
   document.addEventListener('change', function (e) {
     var alvo = e.target;

@@ -333,8 +333,8 @@ final class AdminNavegacaoTest extends TestCase
 
         self::assertStringContainsString('<ul class="pbl-lista-conteudo"', $h);
         self::assertStringNotContainsString('<table', explode('pbl-lista-conteudo', $h, 2)[1]);
-        self::assertStringContainsString('class="pbl-icone" role="img" title="pagina" aria-label="Tipo: pagina"', $h);
-        self::assertStringContainsString('<span class="pbl-lc-classe">pagina</span>', $h);
+        self::assertStringContainsString('class="pbl-icone" role="img" title="Página" aria-label="Tipo: Página"', $h);
+        self::assertStringContainsString('<span class="pbl-lc-classe">Página</span>', $h);
         self::assertStringContainsString('>privado</span>', $h);
         self::assertStringNotContainsString('Por:', $h);
         self::assertStringNotContainsString('0 filhos', $h);
@@ -429,8 +429,8 @@ final class AdminNavegacaoTest extends TestCase
         $this->filho($this->inicio, 'Linha nova', 'linha-nova', 'publicado');
         $h = $this->html($this->req('GET', '/_pbl/conteudo/' . $this->inicio->id, $this->token('admin')));
         self::assertStringContainsString('<ul class="pbl-lista-conteudo"', $h);
-        self::assertStringContainsString('class="pbl-icone" role="img" title="pagina"', $h);
-        self::assertStringContainsString('<span class="pbl-lc-classe">pagina</span>', $h);
+        self::assertStringContainsString('class="pbl-icone" role="img" title="Página"', $h);
+        self::assertStringContainsString('<span class="pbl-lc-classe">Página</span>', $h);
         self::assertMatchesRegularExpression('/class="pbl-lc-selo"><span class="badge[^>]*>publicado/', $h);
         self::assertStringContainsString('<time class="pbl-lc-data"', $h);
         self::assertStringNotContainsString('Por: —', $h);
