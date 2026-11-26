@@ -211,7 +211,7 @@ final class TelasDeClasses
             ]) . $this->campoDeDescricao($descricao) . $this->camposDaClasse($aceita, $filhas, $this->servicos->classes->todas(), null))
             . $this->acoes('Criar e definir os campos', [['Cancelar', $this->linkLista()]]) . '</form>';
 
-        return Pagina::resposta('Novo tipo de conteúdo', $corpo, $status, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], ['Novo', null]], 'Passo 1 de 2: identifique o tipo. Em seguida você define os campos dele.');
+        return Pagina::resposta('Novo tipo de conteúdo', $corpo, $status, false, $this->barra($sessao), [['Tipos de conteúdo', $this->linkLista()], ['Novo', null]], 'Passo 1 de 2: identifique o tipo; os campos vêm em seguida.');
     }
 
     private function criar(SessaoAtiva $sessao, Request $requisicao): Response

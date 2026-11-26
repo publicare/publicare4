@@ -281,7 +281,7 @@ main .form-check { flex-wrap: wrap; }
 
 /* tela de tipos de conteúdo: nome legível com o nome técnico menor; ações lado a lado */
 .pbl-tipo-nome { white-space: nowrap; }
-.pbl-linha-acoes { display: inline-flex; gap: .35rem; }
+td > .pbl-linha-acoes { display: inline-flex; flex-wrap: nowrap; gap: .35rem; }
 /* escolha do tipo ao criar conteúdo: nome em destaque e uma linha de descrição, como uma lista de botões */
 .pbl-tipos-lista { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: .5rem; }
 .pbl-tipo-opcao { display: flex; align-items: flex-start; gap: .75rem; padding: .75rem; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: var(--bs-body-bg); color: var(--bs-body-color); text-decoration: none; }
