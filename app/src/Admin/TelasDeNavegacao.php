@@ -221,7 +221,7 @@ final class TelasDeNavegacao
 
     private function ajuda(): string
     {
-        return 'Clique no título para abrir a pasta.';
+        return '';
     }
 
     private function ajudaDaTela(): string
@@ -303,13 +303,13 @@ final class TelasDeNavegacao
     /** @param array{q: string, estado: string, classe: int|null, ordem: string, inicio: int, por: int} $f */
     private function formularioDeFiltros(Objeto $o, array $f): string
     {
-        $estados = $this->opcao('', 'Todos (menos a lixeira)', $f['estado'] === '');
+        $estados = $this->opcao('', 'Todas (sem a lixeira)', $f['estado'] === '');
         foreach (self::ESTADOS as $chave => $rotulo) {
             $estados .= $this->opcao($chave, $rotulo, $f['estado'] === $chave);
         }
-        $tipos = $this->opcao('', 'Todos os tipos', $f['classe'] === null);
+        $tipos = $this->opcao('', 'Todos', $f['classe'] === null);
         foreach ($this->servicos->classes->todas() as $c) {
-            $tipos .= $this->opcao((string) $c->id, $c->nome, $f['classe'] === $c->id);
+            $tipos .= $this->opcao((string) $c->id, RotuloDeClasse::de($c->nome), $f['classe'] === $c->id);
         }
         $ordens = '';
         foreach (self::ORDENS as $chave => [$rotulo]) {
@@ -320,13 +320,13 @@ final class TelasDeNavegacao
             $por .= $this->opcao((string) $n, (string) $n, $f['por'] === $n);
         }
 
-        return '<form method="get" action="' . $this->link($o->id) . '" class="pbl-filtros-conteudo mb-3" aria-label="Busca e filtros deste nível">'
-            . '<div><label for="campo-q" class="form-label">Título contém</label><input id="campo-q" name="q" type="search" class="form-control form-control-sm" maxlength="100" value="' . Pagina::h($f['q']) . '"></div>'
-            . '<div><label for="campo-estado" class="form-label">Estado</label><select id="campo-estado" name="estado" class="form-select form-select-sm">' . $estados . '</select></div>'
+        return '<form method="get" action="' . $this->link($o->id) . '" class="pbl-filtros-conteudo" aria-label="Buscar e filtrar neste nível">'
+            . '<div class="pbl-filtro-busca"><label for="campo-q" class="form-label">Buscar por título</label><input id="campo-q" name="q" type="search" class="form-control form-control-sm" maxlength="100" value="' . Pagina::h($f['q']) . '"></div>'
+            . '<div><label for="campo-estado" class="form-label">Situação</label><select id="campo-estado" name="estado" class="form-select form-select-sm">' . $estados . '</select></div>'
             . '<div><label for="campo-classe" class="form-label">Tipo</label><select id="campo-classe" name="classe" class="form-select form-select-sm">' . $tipos . '</select></div>'
-            . '<div><label for="campo-ordem" class="form-label">Ordem</label><select id="campo-ordem" name="ordem" class="form-select form-select-sm">' . $ordens . '</select></div>'
-            . '<div><label for="campo-por" class="form-label">Por página</label><select id="campo-por" name="por" class="form-select form-select-sm">' . $por . '</select></div>'
-            . '<div class="pbl-filtros-aplicar"><button type="submit" class="btn btn-sm btn-primary">Aplicar</button>'
+            . '<div><label for="campo-ordem" class="form-label">Ordenar por</label><select id="campo-ordem" name="ordem" class="form-select form-select-sm">' . $ordens . '</select></div>'
+            . '<div><label for="campo-por" class="form-label">Mostrar</label><select id="campo-por" name="por" class="form-select form-select-sm">' . $por . '</select></div>'
+            . '<div class="pbl-filtros-aplicar"><button type="submit" class="btn btn-sm btn-primary">Filtrar</button>'
             . ($this->filtrando($f) ? ' <a class="btn btn-sm btn-outline-secondary" href="' . $this->link($o->id) . '">Limpar</a>' : '') . '</div></form>';
     }
 
@@ -361,14 +361,17 @@ final class TelasDeNavegacao
 
     private function barraDeLote(SessaoAtiva $sessao, Objeto $atual, string $volta): string
     {
-        return '<form method="post" action="' . Painel::PREFIXO . '/conteudo/acao" id="lote" class="pbl-lote d-flex flex-wrap gap-2 align-items-end mb-3">' . $this->campoCsrf($sessao)
+        $acao = static fn (string $valor, string $rotulo, string $classe = 'btn-outline-secondary'): string => '<button type="submit" name="acao" value="' . $valor . '" class="btn btn-sm ' . $classe . '">' . $rotulo . '</button>';
+
+        return '<form method="post" action="' . Painel::PREFIXO . '/conteudo/acao" id="lote" class="pbl-lote" aria-label="Ações nos itens marcados" data-pbl-lote>' . $this->campoCsrf($sessao)
             . '<input type="hidden" name="nivel" value="' . $atual->id . '"><input type="hidden" name="volta" value="' . Pagina::h($volta) . '">'
-            . '<div><label for="campo-lote" class="form-label mb-0">Com os selecionados</label><select id="campo-lote" name="acao" class="form-select form-select-sm">'
-            . '<option value="publicar">Publicar</option><option value="despublicar">Despublicar</option><option value="enviar">Enviar para revisão</option><option value="excluir">Mandar para a lixeira</option></select></div>'
-            . '<button type="submit" class="btn btn-sm btn-outline-primary">Aplicar aos selecionados</button>'
-            . Pagina::botaoIcone('copiar', 'Copiar para a pilha', 'btn-outline-secondary', ['extra' => 'name="modo" value="copiar" formaction="' . Painel::PREFIXO . '/pilha/adicionar"'])
-            . Pagina::botaoIcone('recortar', 'Recortar para a pilha', 'btn-outline-secondary', ['extra' => 'name="modo" value="recortar" formaction="' . Painel::PREFIXO . '/pilha/adicionar"'])
-            . '<span class="small text-body-secondary">Para mover, recorte para a pilha ou use o ícone de mover na linha.</span></form>';
+            . '<span class="pbl-lote-contagem" aria-live="polite"><span data-pbl-lote-n>0</span> marcados</span>'
+            . '<div class="pbl-lote-acoes">'
+            . $acao('publicar', 'Publicar', 'btn-primary') . $acao('despublicar', 'Despublicar') . $acao('enviar', 'Enviar para revisão')
+            . '<button type="submit" name="modo" value="copiar" formaction="' . Painel::PREFIXO . '/pilha/adicionar" class="btn btn-sm btn-outline-secondary">Copiar para a pilha</button>'
+            . '<button type="submit" name="modo" value="recortar" formaction="' . Painel::PREFIXO . '/pilha/adicionar" class="btn btn-sm btn-outline-secondary">Recortar para a pilha</button>'
+            . $acao('excluir', 'Mandar para a lixeira', 'btn-outline-danger')
+            . '</div></form>';
     }
 
     /** @return list<AcaoDeLinha> só 3 à vista (editar, estado, abrir no site); o resto vai para o menu "⋯ Mais" (ADR 0032) */
@@ -750,7 +753,7 @@ final class TelasDeNavegacao
 
     private function nomeDaClasse(int $classeId): string
     {
-        return $this->nomesDeClasse[$classeId] ??= $this->servicos->classes->porId($classeId)->nome ?? '?';
+        return $this->nomesDeClasse[$classeId] ??= RotuloDeClasse::de($this->servicos->classes->porId($classeId)->nome ?? '?');
     }
 
     private function pode(SessaoAtiva $sessao, Acao $acao, Objeto $o): bool

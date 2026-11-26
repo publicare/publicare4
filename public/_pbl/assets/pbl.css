@@ -172,7 +172,10 @@ main .form-check { flex-wrap: wrap; }
 /* Tela Conteúdo (navegação por níveis) */
 .pbl-barra-acoes { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
 .pbl-barra-acoes form { display: inline-flex; margin: 0; }
-.pbl-filtros-conteudo { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .5rem; align-items: end; }
+.pbl-filtros-conteudo { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .5rem .75rem; align-items: end; margin: 0 0 1rem; padding: .75rem; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: var(--bs-tertiary-bg); }
+.pbl-filtros-conteudo .form-label { margin-bottom: .15rem; font-size: .8125rem; font-weight: 600; color: var(--bs-secondary-color); }
+.pbl-filtro-busca { grid-column: 1 / -1; }
+@media (min-width: 768px) { .pbl-filtro-busca { grid-column: span 2; } }
 .pbl-filtros-conteudo > * { min-width: 0; }
 .pbl-linha-acoes { display: flex; flex-wrap: wrap; gap: .25rem; justify-content: flex-end; }
 .pbl-linha-acoes form { display: inline-flex; margin: 0; }
@@ -229,9 +232,9 @@ main .form-check { flex-wrap: wrap; }
 .pbl-lc-meta .badge::before { content: none; }
 .pbl-lc-data, .pbl-lc-filhos { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .pbl-lc-extra-bloco { grid-area: extra; min-width: 0; }
-.pbl-lc-acoes { grid-area: acoes; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: .5rem; }
+.pbl-lc-acoes { grid-area: acoes; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
 .pbl-lc-form { display: flex; margin: 0; min-width: 0; }
-.pbl-lc-acao { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; width: 100%; min-width: var(--pbl-alvo); height: var(--pbl-alvo); padding: 0; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: var(--bs-tertiary-bg); color: var(--bs-body-color); text-decoration: none; cursor: pointer; font: inherit; list-style: none; }
+.pbl-lc-acao { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; width: var(--pbl-alvo); min-width: var(--pbl-alvo); height: var(--pbl-alvo); padding: 0; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: var(--bs-tertiary-bg); color: var(--bs-body-color); text-decoration: none; cursor: pointer; font: inherit; list-style: none; }
 .pbl-lc-acao::-webkit-details-marker { display: none; }
 .pbl-lc-acao:hover { background: var(--bs-secondary-bg); }
 .pbl-lc-acao svg { width: 20px; height: 20px; flex: none; }
@@ -266,3 +269,12 @@ main .form-check { flex-wrap: wrap; }
   .pbl-lc-data::before, .pbl-lc-filhos::before { content: none; }
 }
 @media (hover: none) and (pointer: coarse) and (max-width: 991.98px) { .pbl-lista-conteudo { --pbl-alvo: 44px; } }
+
+/* barra de ações em lote: só aparece com itens marcados (com JavaScript) e fica fixa no rodapé (o body tem overflow, então sticky não serve) */
+.pbl-lote { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; margin: 0 0 1rem; padding: .75rem; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: var(--bs-tertiary-bg); }
+.pbl-lote-contagem { font-weight: 600; font-size: .9rem; }
+.pbl-lote-acoes { display: flex; flex-wrap: wrap; gap: .5rem; }
+.js .pbl-lote { position: fixed; left: .75rem; right: .75rem; bottom: .75rem; z-index: 20; margin: 0; background: var(--bs-body-bg); box-shadow: 0 4px 16px rgba(0, 0, 0, .25); }
+@media (min-width: 1024px) { .js .pbl-lote { left: calc(var(--pbl-lateral) + 1.5rem); right: 1.5rem; } }
+.js .pbl-lote:not([data-ativo]) { display: none; }
+@media (max-width: 575.98px) { .pbl-lote-acoes { display: grid; grid-template-columns: 1fr 1fr; width: 100%; } .pbl-lote-acoes .btn { white-space: normal; } }
