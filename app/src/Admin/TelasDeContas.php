@@ -143,7 +143,7 @@ final class TelasDeContas
         }
         $corpo .= '</div>' . $this->paginacao($pagina, $totalPaginas, $busca, $situacao);
 
-        return Pagina::resposta('Contas', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Contas', null]]);
+        return Pagina::resposta('Contas', $corpo, Response::HTTP_OK, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Contas', null]]);
     }
 
     /** Busca e filtro (GET, sem CSRF: não altera nada) em cima da lista de contas. */
@@ -267,7 +267,7 @@ final class TelasDeContas
             . Pagina::abas($abas, $aba, $avisos, 'Seções da conta')
             . '<p><a href="' . $this->linkLista() . '">Voltar às contas</a></p>';
 
-        return Pagina::resposta('Conta: ' . $c->login, $corpo, $status, false, $this->barra($sessao), [['Mais', Painel::PREFIXO . '/mais'], ['Contas', $this->linkLista()], [$c->login, null]]);
+        return Pagina::resposta('Conta: ' . $c->login, $corpo, $status, false, $this->barra($sessao), [['Início', Painel::PREFIXO . '/'], ['Contas', $this->linkLista()], [$c->login, null]]);
     }
 
     private function blocoDeSituacao(SessaoAtiva $sessao, string $csrf, Usuario $c, bool $eu, string $base): string

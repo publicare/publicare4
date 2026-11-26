@@ -622,7 +622,7 @@ final class AdminAtualizacaoTest extends TestCase
     {
         $this->preparar();
         $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao'));
-        self::assertStringContainsString('<a href="/_pbl/mais">Mais</a>', $h);
+        self::assertStringContainsString('<a href="/_pbl/">Início</a>', $h);
         self::assertStringContainsString('aria-current="page">Atualização</li>', $h);
     }
 

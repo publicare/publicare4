@@ -13,7 +13,7 @@ Uma cópia de segurança guarda o banco, os arquivos enviados e as peles do seu 
 ![Tela Cópias de segurança, com a lista de cópias e o botão Fazer agora](captura:painel-copias)
 
 ## Pela tela (sem terminal)
-1. Entre como administrador e abra **Mais** › **Cópias de segurança**.
+1. Entre como administrador e abra **Sistema** › **Cópias de segurança**.
 2. **Fazer agora:** digite sua senha e clique em *Fazer agora*. Espere a barra terminar; não feche a página.
 3. **Automático:** em *Cópia agendada e retenção*, marque *Fazer cópias automáticas*, escolha a frequência, a hora e (se semanal) os dias, e salve. Precisa do cron do servidor (veja [Tarefas agendadas](tarefas-agendadas.md)).
 4. **Baixar:** na lista, *Baixar* e guarde o arquivo fora do servidor. **A cópia no mesmo servidor não protege se o servidor for perdido.**

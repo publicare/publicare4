@@ -10,18 +10,20 @@ publico: editor, administrador
 
 O painel fica em `/_pbl/` do seu site. Ele funciona no computador e no celular, com ou sem JavaScript.
 
-![Tela Mais, com as áreas de administração](captura:painel-mais)
+![Painel com o menu por seção](captura:painel-conteudo)
 
 ## O menu
-São no máximo cinco itens, pelo que você quer fazer:
+O menu é uma coluna à esquerda, com rolagem própria, e os itens ficam em seções. Cada pessoa vê só o que pode abrir; seção sem item some.
 
-| Item | Para quê |
+| Seção | O que tem |
 |---|---|
 | **Início** | Uma ação principal: continuar de onde parou, ver o site ou criar a primeira página. |
-| **Conteúdo** | Navegar pelas páginas, notícias, pastas, imagens e arquivos do site. |
-| **Revisar** | Pendências (o que espera a sua revisão) e Meus envios. O número mostra quantos esperam. Só aparece para quem revisa ou envia. |
-| **Site** | Configurações, peles e modelos de página. Só para quem administra o site. |
-| **Mais** | Contas, Tipos de conteúdo, Atualização, Cópias de segurança e Tarefas agendadas (cada pessoa vê só o que pode abrir). |
+| **Conteúdo** | Lista de conteúdo, Revisar (o número mostra quantos esperam; só para quem revisa ou envia), Vencidos, Pilha e Lixeira. |
+| **Estrutura** | Tipos de conteúdo e, para o administrador, Peles e modelos de página. |
+| **Site** | Configurações e Domínios; Redirecionamentos e Menu e publicação para o administrador. Só para quem administra o site. |
+| **Pessoas** | Contas e papéis (administrador) e Meu perfil. |
+| **Sistema** | E-mail do site, Atualização, Cópias de segurança e Tarefas agendadas. Só para o administrador. |
+| **Ajuda** | Este manual. |
 
 No celular o menu fica atrás do botão **Menu**. As migalhas (Início › Conteúdo › …) mostram sempre onde você está.
 

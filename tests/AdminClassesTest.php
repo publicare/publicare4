@@ -174,8 +174,7 @@ final class AdminClassesTest extends TestCase
         self::assertStringNotContainsString('Conteúdos que usam', $html, 'quem não modela não vê contagem (que cruza sites)');
         self::assertStringContainsString('Só administradores', $html);
 
-        self::assertStringContainsString('href="/_pbl/mais"', (string) $this->req('GET', '/_pbl/', $this->token('leitor'))->getContent(), 'link na barra (Mais)');
-        self::assertStringContainsString('href="/_pbl/classes"', (string) $this->req('GET', '/_pbl/mais', $this->token('leitor'))->getContent(), 'tipos de conteúdo em Mais');
+        self::assertStringContainsString('href="/_pbl/classes"', (string) $this->req('GET', '/_pbl/', $this->token('leitor'))->getContent(), 'tipos de conteúdo no menu, em leitura');
     }
 
     public function testQuemNaoEhAdministradorNaoAbreNemGravaEATentativaFicaNaAuditoria(): void

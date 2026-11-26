@@ -31,9 +31,9 @@ final class NovoPainelFase1Test extends TestCase
     {
         return [
             'início' => ['/_pbl/', 'inicio'], 'objeto' => ['/_pbl/objeto/5/editar', 'conteudo'], 'conteúdo' => ['/_pbl/conteudo/3', 'conteudo'],
-            'vencidos' => ['/_pbl/vencidos', 'conteudo'], 'lixeira' => ['/_pbl/lixeira', 'conteudo'], 'revisar' => ['/_pbl/revisar', 'revisar'],
-            'pendências antigas' => ['/_pbl/pendencias', 'revisar'], 'site' => ['/_pbl/site/1/peles', 'site'], 'classe' => ['/_pbl/classe/4', 'mais'],
-            'classes' => ['/_pbl/classes', 'mais'], 'contas' => ['/_pbl/contas', 'mais'], 'mais' => ['/_pbl/mais', 'mais'], 'cópias' => ['/_pbl/copias', 'mais'],
+            'vencidos' => ['/_pbl/vencidos', 'vencidos'], 'lixeira' => ['/_pbl/lixeira', 'lixeira'], 'revisar' => ['/_pbl/revisar', 'revisar'],
+            'pendências antigas' => ['/_pbl/pendencias', 'revisar'], 'peles' => ['/_pbl/site/1/peles', 'peles'], 'site' => ['/_pbl/site/1/configuracoes', 'site-config'], 'domínios' => ['/_pbl/site/1/dominios', 'site-dominios'], 'classe' => ['/_pbl/classe/4', 'tipos'],
+            'classes' => ['/_pbl/classes', 'tipos'], 'contas' => ['/_pbl/contas', 'contas'], 'mais' => ['/_pbl/mais', 'mais'], 'cópias' => ['/_pbl/copias', 'copias'],
         ];
     }
 
@@ -43,14 +43,19 @@ final class NovoPainelFase1Test extends TestCase
         self::assertSame($item, Pagina::itemAtivo($caminho));
     }
 
-    public function testMenuDoAdministradorTemCincoItensEMarcaOAtivo(): void
+    public function testMenuDoAdministradorEhAgrupadoPorSecaoEMarcaOAtivo(): void
     {
         $h = $this->html($this->req('GET', '/_pbl/objeto/' . $this->inicioId . '/editar', $this->token('admin')));
         self::assertStringContainsString('<details class="pbl-menu" open', $h);
-        self::assertSame(1, preg_match('#<ul class="pbl-itens">(.*?)</ul>#s', $h, $m));
-        self::assertSame(5, substr_count($m[1] ?? '', '<li>'), 'Início, Conteúdo, Revisar, Site, Mais');
-        self::assertMatchesRegularExpression('#<a href="/_pbl/conteudo" aria-current="page">Conteúdo</a>#', $h);
+        foreach (['Conteúdo', 'Estrutura', 'Site', 'Pessoas', 'Sistema', 'Ajuda'] as $grupo) {
+            self::assertMatchesRegularExpression('#<h2 class="pbl-grupo-titulo"[^>]*>' . $grupo . '</h2>#', $h, $grupo);
+        }
+        self::assertStringNotContainsString('>Mais<', $h, 'o item "Mais" saiu do menu');
+        self::assertMatchesRegularExpression('#<a href="/_pbl/conteudo" aria-current="page">Lista de conteúdo</a>#', $h);
         self::assertStringNotContainsString('aria-current="page">Início', $h);
+        foreach (['/_pbl/classes', '/_pbl/contas', '/_pbl/atualizacao', '/_pbl/copias', '/_pbl/tarefas', '/_pbl/email', '/_pbl/lixeira', '/_pbl/perfil'] as $link) {
+            self::assertStringContainsString('href="' . $link . '"', $h, $link);
+        }
         self::assertStringNotContainsString('navbar-toggler', $h);
         self::assertStringNotContainsString('data-bs-toggle="collapse"', $h);
     }
@@ -58,14 +63,19 @@ final class NovoPainelFase1Test extends TestCase
     public function testMenuPorPapel(): void
     {
         $leitor = $this->html($this->req('GET', '/_pbl/', $this->token('leitor')));
-        self::assertStringContainsString('>Mais<', $leitor, 'Mais para todos: tipos de conteúdo continuam acessíveis em leitura');
-        self::assertStringNotContainsString('>Site<', $leitor);
+        self::assertStringContainsString('href="/_pbl/classes"', $leitor, 'tipos de conteúdo continuam acessíveis em leitura');
+        self::assertStringNotContainsString('href="/_pbl/contas"', $leitor);
+        self::assertStringNotContainsString('href="/_pbl/copias"', $leitor);
+        self::assertStringNotContainsString('>Sistema<', $leitor, 'grupo vazio some');
         self::assertStringNotContainsString('>Revisar', $leitor);
         $editor = $this->html($this->req('GET', '/_pbl/', $this->token('editor')));
         self::assertStringContainsString('>Revisar', $editor);
+        self::assertStringContainsString('href="/_pbl/lixeira"', $editor);
+        self::assertStringNotContainsString('href="/_pbl/atualizacao"', $editor);
         $admin = $this->html($this->req('GET', '/_pbl/', $this->token('admin')));
-        self::assertStringContainsString('>Mais<', $admin);
+        self::assertStringContainsString('>Sistema<', $admin);
         self::assertStringContainsString('>Site<', $admin);
+        self::assertStringContainsString('Redirecionamentos', $admin);
     }
 
     public function testContadorDeRevisaoNoMenu(): void

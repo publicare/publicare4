@@ -28,7 +28,7 @@ Nenhuma carrega arquivos de servidores de terceiros. A `basica` funciona sem Jav
 
 ## Trocar de pele
 
-1. No menu, abra **Site** e, no site desejado, clique em **Peles e modelos de página**. Também dá para chegar por **Mais**.
+1. No menu, abra **Estrutura** e clique em **Peles e modelos de página**.
 2. A tabela mostra cada pele, quantos modelos ela tem e qual está ativa (selo **Ativa neste site**). Os botões da linha são ícones: passe o mouse para ver o nome.
 3. Na linha da pele que você quer, digite a sua senha e clique no botão **Usar neste site**.
 4. A tela volta avisando que a pele foi ativada. O site é republicado em seguida; em sites grandes isso leva alguns instantes e você pode acompanhar em **Menu e publicação**.

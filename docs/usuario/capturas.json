@@ -3,7 +3,6 @@
     {"id": "painel-inicio", "pagina_do_painel": "/_pbl/", "papel": "admin", "alt_padrao": "Tela inicial do painel, com a ação principal e os atalhos do site", "largura": 1280},
     {"id": "painel-conteudo", "pagina_do_painel": "/_pbl/conteudo", "papel": "admin", "alt_padrao": "Lista de conteúdo do site, com ícone, título, estado e botões de cada item", "largura": 1280},
     {"id": "painel-revisar", "pagina_do_painel": "/_pbl/revisar", "papel": "editor", "alt_padrao": "Tela Revisar, com os envios que esperam aprovação", "largura": 1280},
-    {"id": "painel-mais", "pagina_do_painel": "/_pbl/mais", "papel": "admin", "alt_padrao": "Tela Mais, com as áreas de administração", "largura": 1280},
     {"id": "painel-tipos", "pagina_do_painel": "/_pbl/classes", "papel": "admin", "alt_padrao": "Lista de tipos de conteúdo e seus campos", "largura": 1280},
     {"id": "painel-contas", "pagina_do_painel": "/_pbl/contas", "papel": "admin", "alt_padrao": "Lista de contas, com o papel de cada pessoa", "largura": 1280},
     {"id": "painel-email", "pagina_do_painel": "/_pbl/email", "papel": "admin", "alt_padrao": "Tela E-mail do site, com o tipo de envio e o botão de teste", "largura": 1280},

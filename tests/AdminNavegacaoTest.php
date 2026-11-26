@@ -407,7 +407,7 @@ final class AdminNavegacaoTest extends TestCase
     public function testMenuETelaInicialTemEntradaParaConteudo(): void
     {
         $h = $this->html($this->req('GET', '/_pbl/', $this->token('admin')));
-        self::assertStringContainsString('<a href="/_pbl/conteudo">Conteúdo</a>', $h, 'item Conteúdo no menu');
+        self::assertStringContainsString('<a href="/_pbl/conteudo">Lista de conteúdo</a>', $h, 'item da lista de conteúdo no menu');
         self::assertMatchesRegularExpression('/Continuar de onde parou|Ver o site|Criar página/', $h, 'uma ação principal no Início');
     }
 
