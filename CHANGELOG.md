@@ -12,6 +12,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 
 ### Alterado
+- **Senha de confirmação só ao clicar na ação:** o campo "Sua senha, para confirmar" deixa de ficar à mostra no fim de cada bloco. Ao clicar na ação (Adicionar, Apagar, Usar…), o campo aparece com o foco nele, e o segundo clique confirma. Sem JavaScript o campo continua à vista.
 - **ADR 0028 revista:** o MariaDB passa a ser alvo declarado do suporte multibanco previsto para a 0.2, junto com o MySQL 8 (mesmo driver). É o banco da maioria das hospedagens compartilhadas. Só documentação: o suporte a MySQL, MariaDB e PostgreSQL ainda não está disponível.
 - **Texto do site do Publicare reescrito** (`ConteudoPublicare`): frases curtas, exemplo concreto, sem repetir o título e sem jargão solto (início, pilares, O que é, O que faz, Como facilita, O que inova e perguntas frequentes). As afirmações sobre o produto continuam ligadas a uma fonte e conferidas pelo teste.
 - **Tipos de conteúdo mais legíveis:** nome em português com o nome técnico menor, descrição curta, colunas "Campos" e "Em uso" sem quebrar, ações lado a lado e selo "essencial" no lugar de "fixa". Em Novo tipo, o passo 1 de 2 fica explícito e o botão passa a "Criar e definir os campos".
