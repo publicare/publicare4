@@ -27,7 +27,6 @@ final class BackupTest extends TestCase
 
     protected function setUp(): void
     {
-        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $this->raiz = Ajuda::pastaTemporaria();
         $this->caminhos = new Caminhos($this->raiz);
         $this->caminhos->garantirDados();
@@ -186,6 +185,7 @@ final class BackupTest extends TestCase
 
     public function testRestauraBancoEArquivosECriaCopiaPreRestauracao(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor('Cria uma tabela própria do teste (marca); a cópia de banco de servidor leva só as tabelas do Publicare e é coberta por InstantaneoDeBancoTest.');
         $c = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         $c->executeStatement('CREATE TABLE marca (v TEXT)');
         $c->executeStatement("INSERT INTO marca VALUES ('antes')");

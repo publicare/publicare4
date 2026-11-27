@@ -11,15 +11,7 @@ use PHPUnit\Framework\TestCase;
 /** Tela "Cópias de segurança" (/_pbl/copias) de ponta a ponta. */
 final class AdminBackupTest extends TestCase
 {
-    use AdminAuxiliar {
-        setUp as private setUpDoPainel;
-    }
-
-    protected function setUp(): void
-    {
-        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
-        $this->setUpDoPainel();
-    }
+    use AdminAuxiliar;
 
     private const TELA = '/_pbl/copias';
 

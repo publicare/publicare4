@@ -62,9 +62,11 @@ final class Migrador
      * mesmo tempo. Onde o DDL é transacional (SQLite e PostgreSQL) cada migração roda numa transação; onde o banco comita o DDL sozinho
      * (MySQL e MariaDB) não há como desfazer, então a migração roda direto e a versão só é registrada depois (ADR 0028 §2).
      *
+     * @param int|null $ate não aplica migrações de versão maior que esta (para recriar um banco numa versão antiga do esquema)
+     *
      * @return list<int> versões aplicadas nesta chamada
      */
-    public function migrar(): array
+    public function migrar(?int $ate = null): array
     {
         $comTrava = $this->dialeto->nome() !== 'sqlite';
         if ($comTrava && !$this->dialeto->obterTrava($this->conexao, self::TRAVA, 30)) {
@@ -74,7 +76,7 @@ final class Migrador
             $this->garantirTabelaDeVersao();
             $aplicadas = [];
             foreach ($this->migracoes as $migracao) {
-                if ($migracao->versao() <= $this->versaoAtual()) {
+                if ($migracao->versao() <= $this->versaoAtual() || ($ate !== null && $migracao->versao() > $ate)) {
                     continue;
                 }
                 $aplicar = function () use ($migracao): void {

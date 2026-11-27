@@ -20,7 +20,6 @@ final class BackupSmokeTest extends TestCase
 
     protected function setUp(): void
     {
-        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $this->raiz = Ajuda::pastaTemporaria();
         $this->caminhos = new Caminhos($this->raiz);
         $this->caminhos->garantirDados();
