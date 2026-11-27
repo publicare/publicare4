@@ -58,4 +58,21 @@ final class Ajuda
             \PHPUnit\Framework\Assert::markTestSkipped($motivo);
         }
     }
+
+    /** Apaga todas as tabelas do banco (qualquer dialeto), para começar de um banco vazio. */
+    public static function apagarTabelas(\Doctrine\DBAL\Connection $c): void
+    {
+        $plataforma = $c->getDatabasePlatform()::class;
+        $mysql = str_contains($plataforma, 'MySQL') || str_contains($plataforma, 'MariaDB');
+        $pg = str_contains($plataforma, 'PostgreSQL');
+        if ($mysql) {
+            $c->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+        }
+        foreach ($c->createSchemaManager()->listTableNames() as $tabela) {
+            $c->executeStatement('DROP TABLE ' . $c->quoteSingleIdentifier($tabela) . ($pg ? ' CASCADE' : ''));
+        }
+        if ($mysql) {
+            $c->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
+        }
+    }
 }
