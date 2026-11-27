@@ -36,6 +36,7 @@ final class ExemploPublicareTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         self::$raizLeve = Ajuda::raizDeProjeto();
         self::$leve = new Caminhos(self::$raizLeve);
         (new Instalador(self::$leve))->instalar(ConteudoPublicare::NOME_DO_SITE, self::HOST, null, [], PelesDistribuidas::PADRAO);

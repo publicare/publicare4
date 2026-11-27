@@ -7,7 +7,9 @@ namespace Pbl\Atualizacao;
 use Pbl\Acesso\Auditoria;
 use Pbl\Banco\ConfigBanco;
 use Pbl\Banco\ConfigDeBancoInvalida;
+use Pbl\Banco\CarregadorDeConfigBanco;
 use Pbl\Banco\Conexao;
+use Pbl\Banco\Copia\InstantaneoDeBanco;
 use Pbl\Banco\Copia\CopiaSqlite;
 use Pbl\Banco\Dialeto\DialetoBase;
 use Pbl\Banco\Dialeto\DialetoSqlite;
@@ -94,9 +96,9 @@ final class Reversor
                 return new Avaliacao(false, $erro);
             }
         }
-        $banco = $this->caminhos->banco();
-        if (is_file($banco)) {
-            $hoje = CopiaDeBanco::versaoDoEsquema($banco);
+        $instantaneo = new InstantaneoDeBanco($this->caminhos);
+        if ($instantaneo->existe()) {
+            $hoje = $instantaneo->versaoDoEsquema();
             if ($hoje !== $r['schema_depois']) {
                 return new Avaliacao(false, 'O banco mudou de forma incompatível depois da atualização (migração ' . ($hoje ?? 'ilegível') . ' em vez de ' . ($r['schema_depois'] ?? 'nenhuma') . '): a cópia de antes não descreve mais este banco. Voltar atrás não é seguro; restaure à mão se for mesmo preciso.');
             }
@@ -145,7 +147,7 @@ final class Reversor
         if (!@mkdir($guardadoDaNova, 0750, true) && !is_dir($guardadoDaNova)) {
             throw new ErroDeAtualizacao('Não foi possível preparar dados/atualizacao/revertida/');
         }
-        $banco = $this->caminhos->banco();
+        $instantaneo = new InstantaneoDeBanco($this->caminhos);
         $segura = '';
         $preparado = '';
         $movidos = [];
@@ -154,13 +156,13 @@ final class Reversor
         Manutencao::ligar($this->caminhos, "Voltando para {$r['de']}");
         try {
             $this->progresso->etapa(Etapa::CopiaBanco, 15);
-            if (is_file($banco)) {
+            if ($instantaneo->existe()) {
                 $backups = $dados . '/backups';
                 if (!is_dir($backups) && !@mkdir($backups, 0750, true) && !is_dir($backups)) {
                     throw new ErroDeAtualizacao('Não foi possível criar dados/backups/');
                 }
                 $segura = $backups . '/pbl4-' . $r['para'] . '-antes-de-voltar-para-' . $r['de'] . '-' . gmdate('Ymd-His', ($this->relogio)()) . '.sqlite';
-                CopiaDeBanco::copiar($banco, $segura);
+                $instantaneo->tirar($segura);
             }
             if ($a->restauraBanco) {
                 $preparado = $dados . '/pbl4.sqlite.revertendo';
@@ -174,7 +176,7 @@ final class Reversor
             $this->trocarCodigo($r['itens'], $pasta, $guardadoDaNova, $movidos);
             if ($a->restauraBanco) {
                 $bancoTrocado = true; // a partir daqui, se falhar, o banco de hoje volta da cópia de segurança
-                $this->substituirBanco($preparado);
+                $instantaneo->restaurar($preparado);
             }
             $this->progresso->etapa(Etapa::ConferindoVersao, 90);
             ($this->conferir)($this->caminhos->raiz, $r['de']);
@@ -239,21 +241,19 @@ final class Reversor
             @rename($nova, $atual);
         }
         if ($copiaSegura !== '' && is_file($copiaSegura)) {
-            $banco = $this->caminhos->banco();
-            @unlink($banco . '-wal');
-            @unlink($banco . '-shm');
-            @copy($copiaSegura, $banco);
-        }
-    }
-
-    private function substituirBanco(string $preparado): void
-    {
-        $banco = $this->caminhos->banco();
-        // Restos do modo WAL de outro processo valeriam para o banco antigo, não para o que entra.
-        @unlink($banco . '-wal');
-        @unlink($banco . '-shm');
-        if (!@rename($preparado, $banco)) {
-            throw new ErroDeAtualizacao('Não foi possível colocar o banco restaurado no lugar.');
+            try {
+                $instantaneo = new InstantaneoDeBanco($this->caminhos);
+                if ($instantaneo->config()->ehSqlite()) {
+                    $banco = $instantaneo->config()->nome;
+                    @unlink($banco . '-wal');
+                    @unlink($banco . '-shm');
+                    @copy($copiaSegura, $banco);
+                } else {
+                    $instantaneo->restaurar($copiaSegura);
+                }
+            } catch (\Throwable) {
+                // sem como devolver agora: a cópia de segurança continua em dados/backups/
+            }
         }
     }
 
@@ -300,10 +300,15 @@ final class Reversor
     private function auditar(string $ator, ?int $usuarioId, string $desfeita, string $restaurada): void
     {
         try {
-            $pdo = new \PDO('sqlite:' . $this->caminhos->banco());
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            $s = $pdo->prepare('INSERT INTO auditoria (quando, usuario_id, ator, acao, objeto_id, detalhe, ip_hash) VALUES (?, ?, ?, ?, NULL, ?, NULL)');
-            $s->execute([gmdate('c', ($this->relogio)()), $usuarioId, mb_substr($ator, 0, 100), 'atualizacao.revertida', json_encode(['de' => $desfeita, 'para' => $restaurada], JSON_UNESCAPED_UNICODE)]);
+            Conexao::abrir((new CarregadorDeConfigBanco($this->caminhos))->carregar())->insert('auditoria', [
+                'quando' => gmdate('c', ($this->relogio)()),
+                'usuario_id' => $usuarioId,
+                'ator' => mb_substr($ator, 0, 100),
+                'acao' => 'atualizacao.revertida',
+                'objeto_id' => null,
+                'detalhe' => json_encode(['de' => $desfeita, 'para' => $restaurada], JSON_UNESCAPED_UNICODE),
+                'ip_hash' => null,
+            ]);
         } catch (\Throwable) {
             // banco sem tabela de auditoria (versão muito antiga) ou travado: a volta já foi feita e a saída do comando a registra
         }
@@ -339,6 +344,11 @@ final class Reversor
     /** Carrega agora o que será usado depois da troca de pastas, quando o autoload já aponta para o código antigo. */
     private static function precarregar(): void
     {
+        // Depois da troca de pastas o autoload aponta para o código ANTIGO, que pode não ter estas classes: carrega todas agora.
+        foreach (glob(dirname(__DIR__) . '/Banco/{,*/}*.php', GLOB_BRACE) ?: [] as $arquivo) {
+            $relativo = substr($arquivo, strlen(dirname(__DIR__)) + 1, -4);
+            class_exists('Pbl\\' . str_replace('/', '\\', $relativo));
+        }
         foreach ([ErroDeAtualizacao::class, Manutencao::class, RegistroDaAtualizacao::class, Revertida::class, Avaliacao::class, Trava::class, CopiaDeBanco::class, CopiaSqlite::class, Conexao::class, ConfigBanco::class, ConfigDeBancoInvalida::class, ErroDeConexao::class, Dialetos::class, DialetoBase::class, DialetoSqlite::class, Auditoria::class, Semver::class, ResumoDeArvore::class, ProgressoEmArquivo::class, Progresso::class, ArquivoAtomico::class, SaneadorDeMensagem::class, Etapa::class] as $classe) {
             class_exists($classe);
         }

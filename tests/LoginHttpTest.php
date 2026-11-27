@@ -103,7 +103,7 @@ final class LoginHttpTest extends TestCase
         self::assertSame('/', $c->getPath());
         self::assertNull($c->getDomain(), 'o prefixo __Host- proíbe Domain');
         self::assertMatchesRegularExpression('/^[0-9a-f]{64}$/', (string) $c->getValue());
-        self::assertSame(0, (int) Conexao::sqlite($this->caminhos->banco())->fetchOne('SELECT COUNT(*) FROM sessao WHERE id_hash = ?', [$c->getValue()]), 'o token não está no banco');
+        self::assertSame(0, (int) \Pbl\Testes\Ajuda::conexao($this->caminhos)->fetchOne('SELECT COUNT(*) FROM sessao WHERE id_hash = ?', [$c->getValue()]), 'o token não está no banco');
     }
 
     public function testEmHttpPuroOCookieNaoTemPrefixoNemSecure(): void
@@ -174,7 +174,7 @@ final class LoginHttpTest extends TestCase
         self::assertCount(0, $bloqueado->headers->getCookies());
 
         // passada a janela, volta a funcionar
-        Conexao::sqlite($this->caminhos->banco())->executeStatement('UPDATE tentativa_login SET quando = quando - 1000');
+        \Pbl\Testes\Ajuda::conexao($this->caminhos)->executeStatement('UPDATE tentativa_login SET quando = quando - 1000');
         self::assertSame(303, $this->entrar('ana', self::SENHA)->getStatusCode());
     }
 
@@ -257,7 +257,7 @@ final class LoginHttpTest extends TestCase
         self::assertSame(303, $ok->getStatusCode());
         self::assertSame('/_pbl/entrar', $ok->headers->get('Location'));
         self::assertSame(303, $this->req('GET', '/_pbl/', [], ['__Host-pbl4' => $token])->getStatusCode(), 'depois de sair, não entra mais');
-        self::assertSame(0, (int) Conexao::sqlite($this->caminhos->banco())->fetchOne('SELECT COUNT(*) FROM sessao'));
+        self::assertSame(0, (int) \Pbl\Testes\Ajuda::conexao($this->caminhos)->fetchOne('SELECT COUNT(*) FROM sessao'));
     }
 
     public function testSairPorGetNaoExisteECsrfDeUmaSessaoNaoServeParaOutra(): void
@@ -311,7 +311,7 @@ final class LoginHttpTest extends TestCase
 
         $acoes = array_column($this->s->auditoria->recentes(), 'acao');
         self::assertSame(['logout', 'login.ok', 'login.falha', 'usuario.criar'], $acoes);
-        $tudo = json_encode(Conexao::sqlite($this->caminhos->banco())->fetchAllAssociative('SELECT * FROM auditoria'), JSON_THROW_ON_ERROR);
+        $tudo = json_encode(\Pbl\Testes\Ajuda::conexao($this->caminhos)->fetchAllAssociative('SELECT * FROM auditoria'), JSON_THROW_ON_ERROR);
         foreach (['fantasma', 'senha completamente errada', self::SENHA, '198.51.100.7'] as $proibido) {
             self::assertStringNotContainsString($proibido, $tudo);
         }

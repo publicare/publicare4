@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pbl\Atualizacao;
 
+use Pbl\Banco\Copia\InstantaneoDeBanco;
 use Pbl\Caminhos;
 use Pbl\Versao;
 
@@ -217,7 +218,7 @@ final class Atualizador
                 'backup_sha256' => $backup === '' ? '' : (string) hash_file('sha256', $backup),
                 'codigo_sha256' => ResumoDeArvore::dosItens("{$trabalho}/anterior", $guardados),
                 'schema_antes' => $backup === '' ? null : CopiaDeBanco::versaoDoEsquema($backup),
-                'schema_depois' => CopiaDeBanco::versaoDoEsquema($this->caminhos->banco()),
+                'schema_depois' => (new InstantaneoDeBanco($this->caminhos))->versaoDoEsquema(),
                 'itens' => $trocados,
                 'sem_anterior' => array_values(array_filter($trocados, static fn (string $i): bool => !file_exists("{$trabalho}/anterior/{$i}") && !is_link("{$trabalho}/anterior/{$i}"))),
                 'revertida' => false, 'revertida_em' => 0,
@@ -266,8 +267,8 @@ final class Atualizador
 
     private function copiarBanco(string $versao): string
     {
-        $banco = $this->caminhos->banco();
-        if (!is_file($banco)) {
+        $instantaneo = new InstantaneoDeBanco($this->caminhos);
+        if (!$instantaneo->existe()) {
             return '';
         }
         $pasta = $this->caminhos->dados() . '/backups';
@@ -276,8 +277,8 @@ final class Atualizador
         }
         $destino = $pasta . '/pbl4-' . $this->versaoAtual . '-antes-de-' . $versao . '-' . gmdate('Ymd-His') . '.sqlite';
         try {
-            CopiaDeBanco::copiar($banco, $destino);
-        } catch (ErroDeAtualizacao) {
+            $instantaneo->tirar($destino);
+        } catch (\Throwable) {
             throw new ErroDeAtualizacao('Não foi possível copiar o banco: a atualização não começou.');
         }
         return $destino;

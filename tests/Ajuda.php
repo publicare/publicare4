@@ -44,4 +44,35 @@ final class Ajuda
 
         return $raiz;
     }
+
+    /** A conexão do banco da instalação de teste: o SQLite da raiz ou o banco de servidor de `PBL_BANCO_*`. */
+    public static function conexao(\Pbl\Caminhos $caminhos): \Doctrine\DBAL\Connection
+    {
+        return \Pbl\Banco\Conexao::abrir((new \Pbl\Banco\CarregadorDeConfigBanco($caminhos))->carregar());
+    }
+
+    /** Para os testes que dependem do arquivo SQLite (cópia, restauração, demo): nos bancos de servidor eles ainda não se aplicam (plano, fase f). */
+    public static function pularSeBancoDeServidor(string $motivo = 'Depende do arquivo SQLite; cópia, restauração e atualização em bancos de servidor ficam para a fase f do plano multibanco.'): void
+    {
+        if (in_array(getenv('PBL_BANCO_DRIVER') ?: 'sqlite', ['mysql', 'pgsql'], true)) {
+            \PHPUnit\Framework\Assert::markTestSkipped($motivo);
+        }
+    }
+
+    /** Apaga todas as tabelas do banco (qualquer dialeto), para começar de um banco vazio. */
+    public static function apagarTabelas(\Doctrine\DBAL\Connection $c): void
+    {
+        $plataforma = $c->getDatabasePlatform()::class;
+        $mysql = str_contains($plataforma, 'MySQL') || str_contains($plataforma, 'MariaDB');
+        $pg = str_contains($plataforma, 'PostgreSQL');
+        if ($mysql) {
+            $c->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+        }
+        foreach ($c->createSchemaManager()->listTableNames() as $tabela) {
+            $c->executeStatement('DROP TABLE ' . $c->quoteSingleIdentifier($tabela) . ($pg ? ' CASCADE' : ''));
+        }
+        if ($mysql) {
+            $c->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
+        }
+    }
 }

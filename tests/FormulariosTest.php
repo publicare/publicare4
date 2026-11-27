@@ -212,7 +212,7 @@ final class FormulariosTest extends TestCase
         }
 
         self::assertSame(429, $this->enviar($this->valido())->getStatusCode());
-        $con = Conexao::sqlite($this->caminhos->banco());
+        $con = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         foreach ($con->fetchFirstColumn('SELECT chave_hash FROM tentativa_login') as $chave) {
             self::assertStringNotContainsString('198.51.100.7', (string) $chave);
         }
@@ -221,7 +221,7 @@ final class FormulariosTest extends TestCase
     public function testLimiteLiberaDepoisDaJanela(): void
     {
         $agora = 1_000_000;
-        $limite = new LimiteDeEnvios(Conexao::sqlite($this->caminhos->banco()), 'segredo', function () use (&$agora): int {
+        $limite = new LimiteDeEnvios(\Pbl\Testes\Ajuda::conexao($this->caminhos), 'segredo', function () use (&$agora): int {
             return $agora;
         });
         for ($i = 0; $i < LimiteDeEnvios::MAXIMO; $i++) {

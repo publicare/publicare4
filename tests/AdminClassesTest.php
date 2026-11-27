@@ -43,7 +43,7 @@ final class AdminClassesTest extends TestCase
         $this->inicioId = (int) $site->objetoRaizId;
         // Estes testes exercitam a edição de tipos sobre um `pagina` "cru" (resumo e corpo, sem descrição, apagável);
         // as regras das classes fixas e do pacote mínimo ficam em ClassesPadraoTest.
-        \Pbl\Banco\Conexao::sqlite($this->caminhos->banco())->executeStatement(
+        \Pbl\Testes\Ajuda::conexao($this->caminhos)->executeStatement(
             "UPDATE classe SET propriedades = ?, descricao = '', fixa = 0, filhas = NULL WHERE nome = 'pagina'",
             [json_encode([['nome' => 'resumo', 'tipo' => 'texto', 'indexavel' => true], ['nome' => 'corpo', 'tipo' => 'html', 'indexavel' => false]], JSON_THROW_ON_ERROR)],
         );

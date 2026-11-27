@@ -25,6 +25,7 @@ final class ReversorTest extends TestCase
 
     protected function setUp(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $this->par = \Pbl\Atualizacao\Assinatura::gerarPar();
     }
 

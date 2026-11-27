@@ -58,7 +58,7 @@ final class AgendadosTest extends TestCase
     /** Muda as datas direto no banco, como se o relógio tivesse andado (sem passar pelo repositório). */
     private function viajar(Objeto $o, ?string $publicacao, ?string $validade): void
     {
-        \Pbl\Banco\Conexao::sqlite($this->caminhos->banco())->executeStatement(
+        \Pbl\Testes\Ajuda::conexao($this->caminhos)->executeStatement(
             'UPDATE objeto SET data_publicacao = ?, data_validade = ? WHERE id = ?',
             [$publicacao, $validade, $o->id],
         );

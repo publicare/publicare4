@@ -49,7 +49,9 @@ trait AdminAuxiliar
 
     protected function tearDown(): void
     {
-        Ajuda::apagar($this->raiz);
+        if (isset($this->raiz)) {
+            Ajuda::apagar($this->raiz);
+        }
     }
 
     /**

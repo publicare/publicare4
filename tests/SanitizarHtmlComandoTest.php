@@ -50,7 +50,7 @@ final class SanitizarHtmlComandoTest extends TestCase
         // Cria limpo (a gravação normal já limparia o html sujo) e depois reescreve direto no banco, simulando conteúdo
         // gravado antes da fase 5g.
         $o = $this->s->objetos->criar($this->site->id, $classe, $this->inicio->id, ucfirst($url), $url, ['resumo' => '', 'corpo' => '<p>provisório</p>'], $status);
-        Conexao::sqlite($this->caminhos->banco())->executeStatement(
+        \Pbl\Testes\Ajuda::conexao($this->caminhos)->executeStatement(
             'UPDATE objeto SET dados = ? WHERE id = ?',
             [json_encode(['resumo' => '', 'corpo' => $corpoSujo], JSON_THROW_ON_ERROR), $o->id],
         );
@@ -188,7 +188,7 @@ final class SanitizarHtmlComandoTest extends TestCase
         $this->s->sites->definirRaiz($outro->id, $raizOutro->id);
 
         $pSite1 = $this->pagina('do-site-1', '<script>alert(1)</script><p>1</p>');
-        Conexao::sqlite($this->caminhos->banco())->executeStatement(
+        \Pbl\Testes\Ajuda::conexao($this->caminhos)->executeStatement(
             'UPDATE objeto SET dados = ? WHERE id = ?',
             [json_encode(['resumo' => '', 'corpo' => '<script>alert(2)</script><p>2</p>'], JSON_THROW_ON_ERROR), $raizOutro->id],
         );

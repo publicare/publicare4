@@ -8,6 +8,7 @@ use Pbl\Atualizacao\ErroDeAtualizacao;
 use Pbl\Atualizacao\Manutencao;
 use Pbl\Atualizacao\Trava;
 use Pbl\Banco\Conexao;
+use Pbl\Banco\Copia\InstantaneoDeBanco;
 use Pbl\Banco\Migrador;
 use Pbl\Atualizacao\CopiaDeBanco;
 use Pbl\Caminhos;
@@ -201,14 +202,23 @@ final class RestauradorDeBackup
             }
         }
         $feitos = []; // [antigo, guardado] renomeados, para desfazer
+        $instantaneo = new InstantaneoDeBanco($this->caminhos);
+        $emServidor = !$instantaneo->config()->ehSqlite();
+        $guardadoDoServidor = $trabalho . '/banco-de-antes.sqlite';
+        $bancoTrocado = false;
         try {
-            foreach (['', '-wal', '-shm', '-journal'] as $s) {
-                if (file_exists($banco . $s)) {
-                    $this->mover($banco . $s, $banco . $s . $sufixo, $feitos);
+            if ($emServidor) {
+                // Banco de servidor não se renomeia: guarda uma cópia do de hoje para devolver se algo falhar.
+                $instantaneo->tirar($guardadoDoServidor);
+            } else {
+                foreach (['', '-wal', '-shm', '-journal'] as $s) {
+                    if (file_exists($banco . $s)) {
+                        $this->mover($banco . $s, $banco . $s . $sufixo, $feitos);
+                    }
                 }
+                $this->mover($trabalho . '/banco/pbl4.sqlite', $banco, $feitos, false);
+                @chmod($banco, 0600);
             }
-            $this->mover($trabalho . '/banco/pbl4.sqlite', $banco, $feitos, false);
-            @chmod($banco, 0600);
             foreach (array_keys($topos) as $topo) {
                 if (in_array($topo, ['backups', 'backup', 'atualizacao', 'cron', 'cache'], true)) {
                     continue;
@@ -218,17 +228,28 @@ final class RestauradorDeBackup
                 }
                 $this->mover($trabalho . '/dados/' . $topo, $dados . '/' . $topo, $feitos, false);
             }
+            if ($emServidor) {
+                $bancoTrocado = true;
+                $instantaneo->restaurar($trabalho . '/banco/pbl4.sqlite');
+            }
             $schema = $m['schema'] ?? 0;
-            $conexao = Conexao::sqlite($banco);
+            $conexao = Conexao::abrir($instantaneo->config());
             if (is_int($schema) && $schema < ($this->esquemaDoCodigo ?? $this->esquemaConhecido())) {
                 (new Migrador($conexao))->migrar();
             }
             $conexao->close();
-            if (!CopiaDeBanco::integro($banco) || CopiaDeBanco::versaoDoEsquema($banco) === null) {
+            if ($emServidor ? $instantaneo->versaoDoEsquema() === null : (!CopiaDeBanco::integro($banco) || CopiaDeBanco::versaoDoEsquema($banco) === null)) {
                 throw new ErroDeBackup('A verificação depois da restauração falhou.');
             }
         } catch (\Throwable $e) {
             $this->desfazer($feitos);
+            if ($bancoTrocado && is_file($guardadoDoServidor)) {
+                try {
+                    $instantaneo->restaurar($guardadoDoServidor);
+                } catch (\Throwable) {
+                    // sem como devolver: a cópia pre-restauracao continua no catálogo
+                }
+            }
             throw $e instanceof ErroDeBackup ? $e : new ErroDeBackup('A restauração falhou e o estado anterior foi devolvido.');
         }
         foreach ($feitos as [, $guardado, $guardar]) {

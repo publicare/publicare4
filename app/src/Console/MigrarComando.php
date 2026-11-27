@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pbl\Console;
 
+use Pbl\Banco\CarregadorDeConfigBanco;
 use Pbl\Banco\Conexao;
 use Pbl\Banco\Migrador;
 use Pbl\Conteudo\ClasseRepositorio;
@@ -24,12 +25,13 @@ final class MigrarComando extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        if (!is_file($this->caminhos->banco())) {
+        $config = (new CarregadorDeConfigBanco($this->caminhos))->carregar();
+        if ($config->ehSqlite() && !is_file($config->nome)) {
             $output->writeln('<error>PBL4 não está instalado.</error>');
 
             return Command::FAILURE;
         }
-        $conexao = Conexao::sqlite($this->caminhos->banco());
+        $conexao = Conexao::abrir($config);
         $aplicadas = (new Migrador($conexao))->migrar();
         $fixas = ClassesPadrao::garantirFixas(new ClasseRepositorio($conexao));
         $output->writeln($aplicadas === [] ? 'Banco em dia.' : 'Migrações aplicadas: ' . implode(', ', $aplicadas));

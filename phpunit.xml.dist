@@ -11,6 +11,9 @@
             <directory>tests</directory>
         </testsuite>
     </testsuites>
+    <extensions>
+        <bootstrap class="Pbl\Testes\ExtensaoBancoDeServidor"/>
+    </extensions>
     <source>
         <include>
             <directory>app/src</directory>
