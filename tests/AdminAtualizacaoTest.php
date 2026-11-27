@@ -630,6 +630,7 @@ final class AdminAtualizacaoTest extends TestCase
 
     public function testBotaoDeReverterApareceEFuncionaComSenhaEConfirmacao(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $this->preparar();
         $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
         $h = $this->html($this->tela('admin', 'GET', '/_pbl/atualizacao?aba=historico'));
@@ -659,6 +660,7 @@ final class AdminAtualizacaoTest extends TestCase
 
     public function testReverterConcluidoMostraResultadoEAuditaUmaVezComPrefixoProprio(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $this->preparar();
         $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
         $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => self::SENHA, 'confirmar' => '1']);
@@ -674,6 +676,7 @@ final class AdminAtualizacaoTest extends TestCase
 
     public function testReverterSenhaErradaNaoIniciaNadaERegistraNaAuditoria(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $this->preparar();
         $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
         $r = $this->tela('admin', 'POST', '/_pbl/atualizacao/reverter', ['senha' => 'senha errada qualquer', 'confirmar' => '1']);
@@ -947,6 +950,7 @@ final class AdminAtualizacaoTest extends TestCase
 
     public function testVoltarAtrasTambemPodeSerAgendadoComAVersaoRegistrada(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $this->preparar();
         $this->fabricarAtualizacaoConcluida('0.1.0', self::VERSAO);
 

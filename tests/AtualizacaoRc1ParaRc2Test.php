@@ -228,6 +228,7 @@ final class AtualizacaoRc1ParaRc2Test extends TestCase
 
     public function testAtualizaPeloServidorLocalERegistraOsDoisHashes(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         [$raiz] = $this->atualizada();
 
         $r = RegistroDaAtualizacao::ler(new Caminhos($raiz));
@@ -243,6 +244,7 @@ final class AtualizacaoRc1ParaRc2Test extends TestCase
 
     public function testReverterDaRc2ParaRc1ConfereCodigoEBancoERestaura(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         [$raiz] = $this->atualizada();
         $rev = new Reversor(new Caminhos($raiz), self::RC2, static function (): void {
         });
