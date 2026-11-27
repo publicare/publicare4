@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 
 /**
@@ -26,7 +26,7 @@ final class M025ImportacaoPbl3 implements Migracao
         if ($gerente->tablesExist(['importacao_pbl3'])) {
             return;
         }
-        $e = new Schema();
+        $e = EsquemaPortavel::novo($conexao);
         $t = $e->createTable('importacao_pbl3');
         $t->addColumn('id', 'integer', ['autoincrement' => true]);
         $t->addColumn('fonte', 'string', ['length' => 64]);

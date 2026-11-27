@@ -294,3 +294,8 @@ td > .pbl-linha-acoes { display: inline-flex; flex-wrap: nowrap; gap: .35rem; }
 
 /* senha de confirmação escondida até a pessoa clicar na ação (pbl-admin.js) */
 [data-pbl-senha][hidden] { display: none !important; }
+
+/* peles: o formulário "Usar neste site" fica empilhado e nunca espremido, em qualquer largura */
+.pbl-ativar-pele { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem; text-align: left; }
+.pbl-ativar-pele > .mb-3 { flex: 1 1 12rem; margin: 0 !important; }
+.pbl-ativar-pele .form-label { margin-bottom: .15rem; font-size: .8125rem; }

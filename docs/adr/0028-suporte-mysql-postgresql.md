@@ -37,8 +37,8 @@ Padrões adotados enquanto o dono não confirma. D11 continua a informar.
 
 | # | Decisão | Padrão adotado | Bloqueia |
 |---|---|---|---|
-| D1 | MariaDB fica fora da 0.2? | Sim | CI e mensagens |
-| D2 | Versões mínimas | Testar MySQL 8.4 e PostgreSQL 16; 8.0 e 14 em agenda semanal | a0 |
+| D1 | MariaDB entra na 0.2? | **Sim** (revisto em 2026-11-26, a pedido do dono): é o banco da maioria das hospedagens compartilhadas, usa o mesmo driver `pdo_mysql` e o DBAL escolhe a plataforma MariaDB pela versão do servidor | CI e mensagens |
+| D2 | Versões mínimas | Testar MySQL 8.4, MariaDB 10.11 (LTS) e PostgreSQL 16; MySQL 8.0, MariaDB 11.4 e PostgreSQL 14 em agenda semanal | a0 |
 | D3 | Prefixo de tabelas e schema para banco compartilhado | Sem prefixo na 0.2; PostgreSQL com schema opcional | a1 (formato do `banco.json`) |
 | D4 | Usuário de migração separado entra na 0.2? | Depois da 0.2 | e3 |
 | D5 | Cron e atualização automática com migração | Release com migração exige humano | e2 |
@@ -60,7 +60,7 @@ Padrões adotados enquanto o dono não confirma. D11 continua a informar.
 - A ordem textual é binária, como hoje no SQLite. A ordenação linguística fica para depois.
 - Em hospedagem compartilhada, quem invadir o PHP lê o `banco.json` e só consegue DML, salvo no modo simples.
 - Há mais manutenção: três bancos na CI, mais tempo de teste e o dump lógico.
-- MariaDB não é alvo declarado.
+- MariaDB é alvo declarado na 0.2 (revisão da D1): a CI testa também uma versão LTS dele e as mensagens falam "MySQL ou MariaDB". Pontos a vigiar: colação e tamanho de índice em versões antigas; a trava de sessão (`GET_LOCK`) é a mesma.
 - Backups e a cópia da origem criam novas cópias de dados pessoais; a retenção precisa ser definida e documentada.
 
 ## Alternativas descartadas

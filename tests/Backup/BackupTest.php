@@ -30,7 +30,7 @@ final class BackupTest extends TestCase
         $this->raiz = Ajuda::pastaTemporaria();
         $this->caminhos = new Caminhos($this->raiz);
         $this->caminhos->garantirDados();
-        $c = Conexao::sqlite($this->caminhos->banco());
+        $c = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         (new Migrador($c))->migrar();
         $c->close();
         file_put_contents($this->caminhos->uploads() . '/a.txt', 'conteudo A');
@@ -39,7 +39,9 @@ final class BackupTest extends TestCase
 
     protected function tearDown(): void
     {
-        Ajuda::apagar($this->raiz);
+        if (isset($this->raiz)) {
+            Ajuda::apagar($this->raiz);
+        }
     }
 
     private function criador(?int $hora = null): CriadorDeBackup
@@ -183,12 +185,13 @@ final class BackupTest extends TestCase
 
     public function testRestauraBancoEArquivosECriaCopiaPreRestauracao(): void
     {
-        $c = Conexao::sqlite($this->caminhos->banco());
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor('Cria uma tabela própria do teste (marca); a cópia de banco de servidor leva só as tabelas do Publicare e é coberta por InstantaneoDeBancoTest.');
+        $c = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         $c->executeStatement('CREATE TABLE marca (v TEXT)');
         $c->executeStatement("INSERT INTO marca VALUES ('antes')");
         $c->close();
         $copia = $this->criador(1_700_000_000)->criar('manual');
-        $c = Conexao::sqlite($this->caminhos->banco());
+        $c = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         $c->executeStatement("UPDATE marca SET v = 'depois'");
         $c->close();
         file_put_contents($this->caminhos->uploads() . '/a.txt', 'MUDOU');
@@ -196,7 +199,7 @@ final class BackupTest extends TestCase
 
         $r = $this->restaurador()->restaurar($copia->arquivo);
 
-        self::assertSame('antes', Conexao::sqlite($this->caminhos->banco())->fetchOne('SELECT v FROM marca'));
+        self::assertSame('antes', \Pbl\Testes\Ajuda::conexao($this->caminhos)->fetchOne('SELECT v FROM marca'));
         self::assertSame('conteudo A', file_get_contents($this->caminhos->uploads() . '/a.txt'));
         self::assertFileDoesNotExist($this->caminhos->uploads() . '/nova.txt');
         self::assertStringContainsString('pre-restauracao', $r['copia_anterior']);

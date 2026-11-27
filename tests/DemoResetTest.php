@@ -21,7 +21,15 @@ use Symfony\Component\Console\Tester\CommandTester;
 /** Reinício agendado da demo (ADR 0023, adendo): só em demo, com backup, manutenção, trava e restauração se falhar. */
 final class DemoResetTest extends TestCase
 {
-    use AdminAuxiliar;
+    use AdminAuxiliar {
+        setUp as private setUpDoPainel;
+    }
+
+    protected function setUp(): void
+    {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
+        $this->setUpDoPainel();
+    }
 
     private function ligarDemo(string $extra = ''): void
     {
@@ -51,7 +59,9 @@ final class DemoResetTest extends TestCase
     protected function tearDown(): void
     {
         putenv('PBL_DEMO');
-        Ajuda::apagar($this->raiz);
+        if (isset($this->raiz)) {
+            Ajuda::apagar($this->raiz);
+        }
     }
 
     public function testForaDeDemoNadaExisteNadaRoda(): void

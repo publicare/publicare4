@@ -6,6 +6,7 @@ namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 
 /**
@@ -28,7 +29,7 @@ final class M015HistoricoDeMoldes implements Migracao
         // O `Migrador` guarda só a versão mais alta; testes que "voltam" uma versão anterior reaplicam esta
         // migração com as tabelas já presentes. Por isso cada tabela só é criada se ainda não existir.
         $gerente = $conexao->createSchemaManager();
-        $e = new Schema();
+        $e = EsquemaPortavel::novo($conexao);
 
         if (!$gerente->tablesExist(['pele_molde_versao'])) {
             $this->versoes($e);

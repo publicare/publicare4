@@ -37,6 +37,20 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: ci-root-descartavel
+          MARIADB_DATABASE: pbl_ci
+          MARIADB_USER: pbl_ci
+          MARIADB_PASSWORD: ci-descartavel
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
       postgres:
         image: postgres:16
         env:
@@ -91,6 +105,15 @@ jobs:
           PBL_BANCO_SENHA: ci-descartavel
           PBL_BANCO_TLS: exigir
         run: vendor/bin/phpunit --group contrato-dialeto --fail-on-skipped
+      - name: Contrato de dialeto (MariaDB 10.11)
+        env:
+          PBL_BANCO_DRIVER: mysql
+          PBL_BANCO_HOST: 127.0.0.1
+          PBL_BANCO_PORTA: '3307'
+          PBL_BANCO_NOME: pbl_ci
+          PBL_BANCO_USUARIO: pbl_ci
+          PBL_BANCO_SENHA: ci-descartavel
+        run: vendor/bin/phpunit --group contrato-dialeto --fail-on-skipped
       - name: Contrato de dialeto (PostgreSQL 16)
         env:
           PBL_BANCO_DRIVER: pgsql
@@ -101,6 +124,51 @@ jobs:
         run: vendor/bin/phpunit --group contrato-dialeto --fail-on-skipped
       - name: Análise estática (PHPStan nível 8)
         run: vendor/bin/phpstan analyse --memory-limit=512M --no-progress
+
+  suite-banco:
+    # A suíte inteira nos bancos de servidor (ADR 0028 §9). O banco sobe por `docker run` (e não como `services`) para aceitar
+    # `--max-connections` alto: os testes seguram muitas conexões abertas até o fim da execução. Dados em tmpfs e sem fsync: é descartável.
+    name: Suíte completa (${{ matrix.banco }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        banco: [mysql, mariadb, pgsql]
+    env:
+      PBL_BANCO_NOME: pbl_ci
+      PBL_BANCO_USUARIO: pbl_ci
+      PBL_BANCO_SENHA: ci-descartavel
+      PBL_BANCO_HOST: 127.0.0.1
+    steps:
+      - uses: actions/checkout@v7
+      - name: Subir o banco (${{ matrix.banco }})
+        run: |
+          case "${{ matrix.banco }}" in
+            mysql)
+              echo PBL_BANCO_DRIVER=mysql >> "$GITHUB_ENV"
+              docker run -d --name banco -p 3306:3306 --tmpfs /var/lib/mysql -e MYSQL_ROOT_PASSWORD=ci-root-descartavel -e MYSQL_DATABASE=pbl_ci -e MYSQL_USER=pbl_ci -e MYSQL_PASSWORD=ci-descartavel mysql:8.4 --max-connections=3000 --skip-log-bin --innodb-flush-log-at-trx-commit=0 --innodb-doublewrite=OFF
+              pronto='mysqladmin ping -uroot -pci-root-descartavel --silent' ;;
+            mariadb)
+              echo PBL_BANCO_DRIVER=mysql >> "$GITHUB_ENV"
+              docker run -d --name banco -p 3306:3306 --tmpfs /var/lib/mysql -e MARIADB_ROOT_PASSWORD=ci-root-descartavel -e MARIADB_DATABASE=pbl_ci -e MARIADB_USER=pbl_ci -e MARIADB_PASSWORD=ci-descartavel mariadb:10.11 --max-connections=3000 --skip-log-bin --innodb-flush-log-at-trx-commit=0
+              pronto='healthcheck.sh --connect --innodb_initialized' ;;
+            pgsql)
+              echo PBL_BANCO_DRIVER=pgsql >> "$GITHUB_ENV"
+              docker run -d --name banco -p 5432:5432 --tmpfs /var/lib/postgresql/data -e POSTGRES_DB=pbl_ci -e POSTGRES_USER=pbl_ci -e POSTGRES_PASSWORD=ci-descartavel postgres:16 -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=2000
+              pronto='pg_isready -U pbl_ci -d pbl_ci' ;;
+          esac
+          for i in $(seq 60); do docker exec banco sh -c "$pronto" >/dev/null 2>&1 && exit 0; sleep 2; done
+          docker logs banco; exit 1
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, pdo_mysql, pdo_pgsql, sodium, gd, zip
+          coverage: none
+          tools: composer:v2
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Testes (PHPUnit) em ${{ matrix.banco }}
+        run: vendor/bin/phpunit
 
   dependencias:
     name: Dependências (composer.json, lock e vulnerabilidades)

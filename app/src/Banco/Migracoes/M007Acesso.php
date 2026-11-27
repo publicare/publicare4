@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 
 /**
@@ -25,7 +25,7 @@ final class M007Acesso implements Migracao
         $conexao->executeStatement('ALTER TABLE objeto ADD COLUMN criado_por INTEGER NULL');
         $conexao->executeStatement('ALTER TABLE objeto_versao ADD COLUMN usuario_id INTEGER NULL');
 
-        $e = new Schema();
+        $e = EsquemaPortavel::novo($conexao);
         $u = $e->createTable('usuario');
         $u->addColumn('id', 'integer', ['autoincrement' => true]);
         $u->addColumn('login', 'string', ['length' => 64]);
