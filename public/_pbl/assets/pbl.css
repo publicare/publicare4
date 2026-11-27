@@ -292,6 +292,9 @@ td > .pbl-linha-acoes { display: inline-flex; flex-wrap: nowrap; gap: .35rem; }
 .pbl-tipo-texto span { font-size: .875rem; color: var(--bs-secondary-color); }
 @media (min-width: 768px) { .pbl-tipos-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
+/* senha de confirmação escondida até a pessoa clicar na ação (pbl-admin.js) */
+[data-pbl-senha][hidden] { display: none !important; }
+
 /* peles: o formulário "Usar neste site" fica empilhado e nunca espremido, em qualquer largura */
 .pbl-ativar-pele { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem; text-align: left; }
 .pbl-ativar-pele > .mb-3 { flex: 1 1 12rem; margin: 0 !important; }
