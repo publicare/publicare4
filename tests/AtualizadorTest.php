@@ -80,6 +80,7 @@ final class AtualizadorTest extends TestCase
 
     public function testAtualizaDeVerdadeTrocaOCodigoMantemDadosEGuardaBanco(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         [, $manifesto] = $this->publicar('0.2.0', 'codigo novo', 'estavel', null, ['resumo' => 'Novidades']);
         $raiz = $this->projeto('0.1.0', 'codigo velho');
         mkdir($raiz . '/dados', 0775, true);
@@ -131,6 +132,7 @@ final class AtualizadorTest extends TestCase
 
     public function testCopiaDoBancoSqliteEhConsistenteELegivel(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         [, $manifesto] = $this->publicar('0.2.0', 'novo');
         $raiz = $this->projeto('0.1.0', 'velho');
         mkdir($raiz . '/dados', 0775, true);
@@ -146,6 +148,7 @@ final class AtualizadorTest extends TestCase
 
     public function testFalhaAoCopiarOBancoDesligaAManutencaoENaoTrocaNada(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         [, $manifesto] = $this->publicar('0.2.0', 'novo');
         $raiz = $this->projeto('0.1.0', 'velho');
         mkdir($raiz . '/dados', 0775, true);

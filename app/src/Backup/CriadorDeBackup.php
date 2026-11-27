@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Backup;
 
 use Pbl\Atualizacao\CopiaDeBanco;
+use Pbl\Banco\Copia\InstantaneoDeBanco;
 use Pbl\Atualizacao\ErroDeAtualizacao;
 use Pbl\Atualizacao\Trava;
 use Pbl\Caminhos;
@@ -48,8 +49,9 @@ final class CriadorDeBackup
         if (!in_array($tipo, InfoDeBackup::TIPOS, true) || $tipo === 'pre-atualizacao') {
             throw new ErroDeBackup('Tipo de cópia inválido.');
         }
-        if (!is_file($this->caminhos->banco())) {
-            throw new ErroDeBackup('Não há banco SQLite para copiar (apenas SQLite é suportado nas cópias).');
+        $instantaneo = new InstantaneoDeBanco($this->caminhos);
+        if (!$instantaneo->existe()) {
+            throw new ErroDeBackup('Não há banco instalado para copiar.');
         }
         $pasta = ValidadorDePasta::resolver($this->caminhos, $this->config->pasta);
         $agora = $this->relogio === null ? time() : ($this->relogio)();
@@ -63,8 +65,8 @@ final class CriadorDeBackup
             $this->exigirEspaco($pasta);
             $banco = $trabalho . '/pbl4.sqlite';
             try {
-                CopiaDeBanco::copiar($this->caminhos->banco(), $banco);
-            } catch (ErroDeAtualizacao) {
+                $instantaneo->tirar($banco);
+            } catch (\Throwable) {
                 throw new ErroDeBackup('Não foi possível copiar o banco.');
             }
             if (!CopiaDeBanco::integro($banco)) {
@@ -84,7 +86,7 @@ final class CriadorDeBackup
             }
             $manifesto = [
                 'formato' => 1, 'id' => $id, 'tipo' => $tipo, 'criado_em' => gmdate('c', $agora), 'fuso' => $this->config->fuso,
-                'versao_pbl4' => $this->versao, 'schema' => $schema, 'driver' => 'sqlite', 'entradas' => $entradas,
+                'versao_pbl4' => $this->versao, 'schema' => $schema, 'driver' => 'sqlite', 'banco_de_origem' => $instantaneo->config()->driver, 'entradas' => $entradas,
             ];
             $zip->addFromString('manifesto.json', json_encode($manifesto, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
             if (!$zip->close()) {
@@ -147,7 +149,7 @@ final class CriadorDeBackup
     private function exigirEspaco(string $pasta): void
     {
         $livre = ValidadorDePasta::espacoLivre($pasta);
-        $banco = (int) filesize($this->caminhos->banco());
+        $banco = (new InstantaneoDeBanco($this->caminhos))->tamanhoAproximado();
         if ($livre !== null && $livre < $banco * 2 + 1048576) {
             throw new ErroDeBackup('Espaço livre insuficiente na pasta de cópias.');
         }

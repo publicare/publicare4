@@ -62,6 +62,23 @@ Sem terminal nem painel (hospedagem só com FTP)? Dá para atualizar enviando o 
 
 A verificação de novidades pode ser desligada: veja `verificar` na [configuração](../tecnica/atualizacao.md). O PBL4 não envia nenhum dado do seu site ao consultar. Quem tem acesso ao servidor pode deixar essa verificação rodando por conta própria com um agendamento (`bin/pbl verificar-atualizacao`, veja o [guia técnico](../tecnica/atualizacao.md)), para a página inicial e a tela Atualização sempre mostrarem um resultado recente sem precisar clicar em "Verificar agora".
 
+## Trocar de banco de dados
+
+Hoje o Publicare usa SQLite. Outros bancos (MySQL, MariaDB e PostgreSQL) estão previstos, mas ainda não estão liberados. Já existe o comando que passa um site instalado, com todo o conteúdo, de um banco para outro: `bin/pbl banco-trocar`. Ainda não use em site de verdade.
+
+```bash
+# 1. Só conferir: mostra o que seria copiado e não grava nada (ainda não liberado)
+php bin/pbl banco-trocar --simular --para=BANCO --host=SERVIDOR --nome=NOME --usuario=USUARIO
+# 2. Trocar de verdade (ainda não liberado; pede a senha do banco novo)
+php bin/pbl banco-trocar --para=BANCO --host=SERVIDOR --nome=NOME --usuario=USUARIO
+```
+
+O banco novo precisa existir e estar vazio. Faça antes uma cópia de segurança. Durante a cópia o site fica em manutenção. No fim, o Publicare compara cada tabela dos dois lados. Se algo não bater, não troca nada.
+
+O banco antigo não é alterado. Guarde por alguns dias. Para voltar atrás, use `bin/pbl banco-trocar --voltar`: o que foi gravado no banco novo depois da troca não volta para o antigo.
+
+Se o banco é definido por variáveis de ambiente (`PBL_BANCO_*`), o comando recusa: tire as variáveis antes.
+
 ## Outros comandos que você pode ver
 - `bin/pbl versao`: mostra a versão instalada.
 - `bin/pbl migrar`: aplica as mudanças pendentes do banco. A atualização já faz isso; use só se alguém do projeto pedir.

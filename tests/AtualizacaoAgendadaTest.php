@@ -194,6 +194,7 @@ final class AtualizacaoAgendadaTest extends TestCase
 
     public function testAgendaAtualizaPeloCronMostraOAndamentoEDepoisVoltaAtras(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $this->iniciarServidor($this->publicarRc2());
         $raiz = $this->projeto(self::RC1, 'codigo rc1', true);
         $c = new Caminhos($raiz);

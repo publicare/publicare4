@@ -207,6 +207,12 @@ final class Servicos
             throw new \RuntimeException('PBL4 não está instalado. Rode: bin/pbl instalar');
         }
 
-        return new self($caminhos, Conexao::abrir($config), $canal);
+        $conexao = Conexao::abrir($config);
+        // Banco de servidor vazio (sem a tabela de versão) = ainda não instalado, como o arquivo SQLite que não existe.
+        if (!$config->ehSqlite() && !$conexao->createSchemaManager()->tablesExist(['schema_versao'])) {
+            throw new \RuntimeException('PBL4 não está instalado. Rode: bin/pbl instalar');
+        }
+
+        return new self($caminhos, $conexao, $canal);
     }
 }

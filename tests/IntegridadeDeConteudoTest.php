@@ -178,7 +178,7 @@ final class IntegridadeDeConteudoTest extends TestCase
         $o = $this->s->objetos->atualizar($o->id, ['dados' => ['corpo' => '<img src=x onerror=alert(1)><b>ok</b>']]);
         self::assertSame('<img src="x"><b>ok</b>', $o->dados['corpo']);
         // Restaurar uma versão antiga que (por dado legado) tinha HTML perigoso também passa pela limpeza.
-        $conexao = Conexao::sqlite($this->caminhos->banco());
+        $conexao = \Pbl\Testes\Ajuda::conexao($this->caminhos);
         $conexao->executeStatement('UPDATE objeto_versao SET dados = ? WHERE objeto_id = ? AND versao = 1', [json_encode(['corpo' => '<script>alert(9)</script>velho'], JSON_THROW_ON_ERROR), $o->id]);
         $restaurado = $this->s->objetos->restaurar($o->id, 1);
         self::assertSame('velho', $restaurado->dados['corpo']);

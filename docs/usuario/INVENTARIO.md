@@ -63,6 +63,7 @@ Em **Guia**, ponha o nome do arquivo em `docs/usuario/`. Para o que não é de q
 | dominio | dominios-e-varios-sites.md | |
 | empacotar | fora | Mantenedor: monta o pacote de uma release. |
 | gerar-chaves | fora | Dono do projeto: chaves de assinatura. |
+| banco-trocar | atualizar.md | |
 | importar-pbl3 | fora | Migração do PBL3; está na documentação técnica. |
 | instalar | instalar.md | |
 | limpar-uploads | arquivos-e-imagens.md | |

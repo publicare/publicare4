@@ -814,7 +814,7 @@ final class AdminObjetosTest extends TestCase
         $hostil = '"><script>alert(1)</script><img src=x onerror=alert(2)>';
         $e = $this->evento($hostil, null, ['local' => $hostil], 'publicado', ['descricao' => $hostil]);
         // Conteúdo antigo, gravado antes da limpeza do HTML: a administração o mostra como texto, nunca interpretado.
-        Conexao::sqlite($this->caminhos->banco())->executeStatement('UPDATE objeto SET dados = ? WHERE id = ?', [json_encode(['local' => $hostil, 'corpo' => '<script>alert(3)</script>'], JSON_THROW_ON_ERROR), $e->id]);
+        \Pbl\Testes\Ajuda::conexao($this->caminhos)->executeStatement('UPDATE objeto SET dados = ? WHERE id = ?', [json_encode(['local' => $hostil, 'corpo' => '<script>alert(3)</script>'], JSON_THROW_ON_ERROR), $e->id]);
         $this->s->objetos->atualizar($e->id, ['titulo' => $hostil . ' 2'], $hostil);
         $token = $this->token('admin');
         $telas = [];
@@ -896,7 +896,10 @@ final class AdminObjetosTest extends TestCase
      */
     private function corrida(string $sql): void
     {
-        Conexao::sqlite($this->caminhos->banco())->executeStatement($sql);
+        if (!(new \Pbl\Banco\CarregadorDeConfigBanco($this->caminhos))->carregar()->ehSqlite()) {
+            self::markTestSkipped('Simula a corrida com um gatilho SQLite; nos bancos de servidor a garantia é coberta pelo teste de contrato.');
+        }
+        \Pbl\Testes\Ajuda::conexao($this->caminhos)->executeStatement($sql);
     }
 
     public function testCorridaCriarFilhoEnquantoOPaiVaiParaALixeira(): void

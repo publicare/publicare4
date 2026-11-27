@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 
 /**
@@ -23,7 +23,7 @@ final class M028TokenDeConta implements Migracao
     {
         $gerente = $conexao->createSchemaManager();
         if (!$gerente->tablesExist(['token_conta'])) {
-            $e = new Schema();
+            $e = EsquemaPortavel::novo($conexao);
             $t = $e->createTable('token_conta');
             $t->addColumn('id', 'integer', ['autoincrement' => true]);
             $t->addColumn('tipo', 'string', ['length' => 20]);

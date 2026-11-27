@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pbl\Banco\Migracoes;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\EsquemaPortavel;
 use Pbl\Banco\Migracao;
 use Pbl\Busca\BuscaSql;
 use Pbl\Busca\IndexadorDeObjeto;
@@ -24,7 +24,7 @@ final class M010IndiceDeBusca implements Migracao
 
     public function aplicar(Connection $conexao): void
     {
-        $e = new Schema();
+        $e = EsquemaPortavel::novo($conexao);
         $t = $e->createTable('objeto_termo');
         $t->addColumn('objeto_id', 'integer');
         $t->addColumn('termo', 'string', ['length' => 40]);

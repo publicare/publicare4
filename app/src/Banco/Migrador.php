@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Pbl\Banco;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
+use Pbl\Banco\Dialeto\Dialeto;
+use Pbl\Banco\Dialeto\Dialetos;
 use Pbl\Banco\Migracoes\M001Base;
 use Pbl\Banco\Migracoes\M002Metadados;
 use Pbl\Banco\Migracoes\M003TituloBusca;
@@ -42,35 +43,63 @@ use Pbl\Banco\Migracoes\M029SenhaProvisoria;
  */
 final class Migrador
 {
+    private const TRAVA = 'pbl_migracao';
+
     /** @var list<Migracao> */
     private array $migracoes;
 
+    private readonly Dialeto $dialeto;
+
     /** @param list<Migracao>|null $migracoes */
-    public function __construct(private readonly Connection $conexao, ?array $migracoes = null)
+    public function __construct(private readonly Connection $conexao, ?array $migracoes = null, ?Dialeto $dialeto = null)
     {
+        $this->dialeto = $dialeto ?? Dialetos::paraConexao($conexao);
         $this->migracoes = $migracoes ?? [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada(), new M005VersoesEHistoricoDeUrls(), new M006DominiosERedirecionamentos(), new M007Acesso(), new M008Sessoes(), new M009ClassesNaAdministracao(), new M010IndiceDeBusca(), new M011ClasseFormulario(), new M012BuscaTolerancia(), new M013Arquivos(), new M014ModoElevado(), new M015HistoricoDeMoldes(), new M016ClassesFixas(), new M017ConfigDoSite(), new M018PeleEMoldePorObjeto(), new M019FluxoDeRevisao(), new M021CompletarClassesFixas(), new M022Tags(), new M023Pilha(), new M024IconeDeClasse(), new M025ImportacaoPbl3(), new M026ContaDeServico(), new M027AltDeArquivo(), new M028TokenDeConta(), new M029SenhaProvisoria()];
     }
 
-    /** @return list<int> versões aplicadas nesta chamada */
-    public function migrar(): array
+    /**
+     * Aplica as migrações pendentes. Nos bancos de servidor (MySQL, MariaDB e PostgreSQL) uma trava nomeada impede duas migrações ao
+     * mesmo tempo. Onde o DDL é transacional (SQLite e PostgreSQL) cada migração roda numa transação; onde o banco comita o DDL sozinho
+     * (MySQL e MariaDB) não há como desfazer, então a migração roda direto e a versão só é registrada depois (ADR 0028 §2).
+     *
+     * @param int|null $ate não aplica migrações de versão maior que esta (para recriar um banco numa versão antiga do esquema)
+     *
+     * @return list<int> versões aplicadas nesta chamada
+     */
+    public function migrar(?int $ate = null): array
     {
-        $this->garantirTabelaDeVersao();
-        $aplicadas = [];
-        foreach ($this->migracoes as $migracao) {
-            if ($migracao->versao() <= $this->versaoAtual()) {
-                continue;
-            }
-            $this->conexao->transactional(function () use ($migracao): void {
-                $migracao->aplicar($this->conexao);
-                $this->conexao->insert('schema_versao', [
-                    'versao' => $migracao->versao(),
-                    'aplicada_em' => gmdate('c'),
-                ]);
-            });
-            $aplicadas[] = $migracao->versao();
+        $comTrava = $this->dialeto->nome() !== 'sqlite';
+        if ($comTrava && !$this->dialeto->obterTrava($this->conexao, self::TRAVA, 30)) {
+            throw new \RuntimeException('Outra migração está em andamento neste banco. Tente de novo em alguns minutos.');
         }
+        try {
+            $this->garantirTabelaDeVersao();
+            $aplicadas = [];
+            foreach ($this->migracoes as $migracao) {
+                if ($migracao->versao() <= $this->versaoAtual() || ($ate !== null && $migracao->versao() > $ate)) {
+                    continue;
+                }
+                $aplicar = function () use ($migracao): void {
+                    $migracao->aplicar($this->conexao);
+                    $this->conexao->insert('schema_versao', [
+                        'versao' => $migracao->versao(),
+                        'aplicada_em' => gmdate('c'),
+                    ]);
+                };
+                if ($this->dialeto->ddlTransacional()) {
+                    $this->conexao->transactional($aplicar);
+                } else {
+                    $aplicar();
+                }
+                $aplicadas[] = $migracao->versao();
+            }
 
-        return $aplicadas;
+            return $aplicadas;
+        } finally {
+            if ($comTrava) {
+                $this->dialeto->soltarTrava($this->conexao, self::TRAVA);
+            }
+        }
     }
 
     public function versaoAtual(): int
@@ -86,7 +115,7 @@ final class Migrador
         if ($gerenciador->tablesExist(['schema_versao'])) {
             return;
         }
-        $esquema = new Schema();
+        $esquema = EsquemaPortavel::novo($this->conexao);
         $tabela = $esquema->createTable('schema_versao');
         $tabela->addColumn('versao', 'integer');
         $tabela->addColumn('aplicada_em', 'string', ['length' => 32]);

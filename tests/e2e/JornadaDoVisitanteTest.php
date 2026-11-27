@@ -165,6 +165,7 @@ final class JornadaDoVisitanteTest extends TestCase
 
     public function testRegressaoSiteNaPeleBasicaNaoMudaDePeleSozinho(): void
     {
+        \Pbl\Testes\Ajuda::pularSeBancoDeServidor();
         $raiz = Ajuda::raizDeProjeto();
         try {
             $c = new Caminhos($raiz);
