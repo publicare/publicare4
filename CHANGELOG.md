@@ -6,7 +6,7 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
-## [0.1.0-rc.15] - 2026-11-26
+## [0.1.0-rc.15] - 2026-11-27
 
 > **Em resumo:** texto do site do Publicare reescrito em linguagem direta, tela de tipos de conteúdo mais legível, e "Novo conteúdo" com a escolha do tipo em lista de botões com descrição.
 
