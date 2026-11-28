@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Alterado
+- **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.15`.
+
 ## [0.1.0-rc.15] - 2026-11-27
 
 > **Em resumo:** texto do site do Publicare reescrito em linguagem direta, tela de tipos de conteúdo mais legível, e "Novo conteúdo" com a escolha do tipo em lista de botões com descrição.
