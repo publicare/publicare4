@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+### Adicionado
+- **Multibanco, etapa 5 (instalador web):** novo passo "Banco de dados" no assistente (SQLite por padrão; MySQL, MariaDB ou PostgreSQL com servidor, porta, nome, usuário e senha). A conexão é testada antes de instalar, o `banco.json` é gravado com permissão 0600 e a senha do banco nunca volta para a tela. Banco que já tem um Publicare instalado é recusado. Ainda em teste: previsto para a 0.2.
+
 ## [0.1.0-rc.15] - 2026-11-27
 
 > **Em resumo:** texto do site do Publicare reescrito em linguagem direta, tela de tipos de conteúdo mais legível, e "Novo conteúdo" com a escolha do tipo em lista de botões com descrição.

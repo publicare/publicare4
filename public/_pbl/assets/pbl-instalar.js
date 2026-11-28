@@ -24,6 +24,30 @@
     return el && 'value' in el ? el.value : '';
   }
 
+  function descreverBanco() {
+    var tipo = campo('banco_tipo') || 'sqlite';
+    if (tipo === 'sqlite') {
+      return 'SQLite (padrão)';
+    }
+    return (tipo === 'pgsql' ? 'PostgreSQL' : 'MySQL ou MariaDB') + ': ' + (campo('banco_nome') || '?') + ' em ' + (campo('banco_host') || '?') + (campo('banco_porta') ? ':' + campo('banco_porta') : '');
+  }
+
+  /* Só os bancos de servidor pedem servidor, porta, usuário e senha. */
+  var tipoBanco = form.querySelector('[data-pbl-banco-tipo]');
+  var blocoServidor = form.querySelector('[data-pbl-banco-servidor]');
+  function ajustarBanco() {
+    if (tipoBanco && blocoServidor) {
+      blocoServidor.hidden = tipoBanco.value === 'sqlite';
+      Array.prototype.forEach.call(blocoServidor.querySelectorAll('[name="banco_host"], [name="banco_nome"], [name="banco_usuario"]'), function (el) {
+        el.required = tipoBanco.value !== 'sqlite';
+      });
+    }
+  }
+  if (tipoBanco) {
+    tipoBanco.addEventListener('change', ajustarBanco);
+    ajustarBanco();
+  }
+
   function preencherRevisao() {
     var alvo = form.querySelector('[data-pbl-revisao]');
     if (!alvo) {
@@ -40,7 +64,8 @@
       ['Nome', campo('nome') || '(igual ao login)'],
       ['E-mail', campo('email')],
       ['Senha', campo('senha') ? 'definida (' + campo('senha').length + ' caracteres, não é mostrada)' : 'não preenchida'],
-      ['Modelos opcionais', modelos.length ? modelos.join(', ') : 'nenhum']
+      ['Modelos opcionais', modelos.length ? modelos.join(', ') : 'nenhum'],
+      ['Banco de dados', descreverBanco()]
     ];
     alvo.textContent = '';
     linhas.forEach(function (l) {
@@ -54,7 +79,7 @@
   }
 
   function mostrar(n, mover) {
-    atual = Math.max(1, Math.min(5, n));
+    atual = Math.max(1, Math.min(6, n));
     paineis.forEach(function (p) {
       p.hidden = parseInt(p.getAttribute('data-passo'), 10) !== atual;
     });

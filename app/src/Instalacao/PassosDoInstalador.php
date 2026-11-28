@@ -13,8 +13,9 @@ final class PassosDoInstalador
     public const SITE = 2;
     public const ADMINISTRADOR = 3;
     public const MODELOS = 4;
-    public const REVISAO = 5;
-    public const PRONTO = 6;
+    public const BANCO = 5;
+    public const REVISAO = 6;
+    public const PRONTO = 7;
 
     /** @var array<int, string> */
     public const TITULOS = [
@@ -22,6 +23,7 @@ final class PassosDoInstalador
         self::SITE => 'Site: nome e domínio',
         self::ADMINISTRADOR => 'Administrador',
         self::MODELOS => 'Modelos opcionais',
+        self::BANCO => 'Banco de dados',
         self::REVISAO => 'Revisão e instalar',
         self::PRONTO => 'Pronto',
     ];
@@ -48,6 +50,9 @@ final class PassosDoInstalador
     public static function passoDoErro(string $mensagem): int
     {
         $m = mb_strtolower($mensagem);
+        if (str_contains($m, 'banco de dados') || str_contains($m, 'servidor de banco') || str_contains($m, 'banco já')) {
+            return self::BANCO;
+        }
         foreach (['domínio', 'dominio', 'nome do site', 'site'] as $trecho) {
             if (str_contains($m, $trecho)) {
                 return self::SITE;
@@ -79,6 +84,8 @@ final class PassosDoInstalador
             str_contains($m, 'nome do site') => 'Digite o nome que aparecerá no topo do site, por exemplo "Prefeitura de Exemplo".',
             str_contains($m, 'login') => 'Use de 3 a 64 letras minúsculas, números, ponto, hífen ou sublinhado, sem espaços. Exemplo: ana.silva.',
             str_contains($m, 'e-mail') => 'Use um e-mail completo, como ana@exemplo.org.',
+            str_contains($m, 'banco já tem') => 'Use um banco vazio, ou escolha outro nome de banco. O Publicare não instala por cima de um site existente.',
+            str_contains($m, 'banco de dados'), str_contains($m, 'servidor de banco') => 'Confira servidor, porta, nome do banco, usuário e senha. O usuário precisa poder criar tabelas nesse banco.',
             str_contains($m, 'não consegue gravar') => 'Dê permissão de escrita às pastas dentro de dados/ (755 ou 775) e clique em Instalar de novo.',
             default => 'Confira os campos e tente de novo. Nada foi instalado pela metade.',
         };

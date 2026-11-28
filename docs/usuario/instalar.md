@@ -18,7 +18,7 @@ O jeito mais simples: **baixe o `instalar.php`, envie para a pasta do seu site e
 - Poder **enviar arquivos** (FTP ou gerenciador de arquivos do painel) para a pasta do site.
 - Um **endereço** (domínio) já apontando para a hospedagem. Para testar, serve `localhost`.
 
-Você não precisa criar banco de dados: o Publicare usa um arquivo (SQLite). O banco é sempre o SQLite; MySQL e PostgreSQL ainda não são suportados (estão previstos para o futuro).
+Você não precisa criar banco de dados: por padrão o Publicare usa um arquivo (SQLite). Outros bancos (MySQL, MariaDB e PostgreSQL) ainda estão em teste, previstos para uma versão futura: o assistente já oferece a escolha, mas não use em site de verdade.
 
 ## Passo a passo
 
@@ -28,7 +28,7 @@ Você não precisa criar banco de dados: o Publicare usa um arquivo (SQLite). O 
 4. **Abra no navegador** `https://seu-endereco/instalar.php`.
 5. Confira a **lista de requisitos**. Cada item com ✘ diz como corrigir; os ⚠ são só avisos.
 6. Clique em **Baixar e instalar**. Pode levar alguns minutos. O instalador confere a assinatura e o SHA-256 do pacote; **se qualquer conferência falhar, nada é instalado** e ele diz o motivo.
-7. Clique em **Continuar** para o assistente do site (etapa 2) e responda: nome e endereço do site, conta de administrador, modelos opcionais (pode pular) e uma revisão final.
+7. Clique em **Continuar** para o assistente do site (etapa 2) e responda: nome e endereço do site, conta de administrador, modelos opcionais (pode pular), o banco de dados (o SQLite já vem marcado) e uma revisão final.
 8. Na tela **Pronto** estão os próximos passos: a linha do cron, onde fica a cópia de segurança, como atualizar e como entrar.
 
 O `instalar.php` **apaga a si mesmo** no fim. Se não conseguir, a página avisa: apague-o à mão. Ele também se recusa a rodar se o site já estiver instalado.

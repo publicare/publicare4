@@ -322,4 +322,62 @@ final class InstaladorWebTest extends TestCase
         self::assertTrue((new Instalador($this->caminhos))->instalado());
         self::assertNotNull(Servicos::doBancoInstalado($this->caminhos)->usuarios->autenticar('admin', self::SENHA), 'o administrador existe');
     }
+
+    public function testOFormularioTemOPassoDoBancoComSqliteNoPadrao(): void
+    {
+        $this->darPosse();
+        $html = (string) $this->req('GET')->getContent();
+
+        self::assertStringContainsString('name="banco_tipo"', $html);
+        self::assertMatchesRegularExpression('/<option value="sqlite" selected/', $html);
+        self::assertStringContainsString('data-pbl-banco-servidor hidden', $html, 'os campos de servidor só aparecem nos outros bancos');
+        self::assertStringContainsString('Banco de dados', $html);
+    }
+
+    public function testBancoDeServidorInalcancavelVoltaAoPassoDoBancoSemGravarNemMostrarASenha(): void
+    {
+        if (!extension_loaded('pdo_mysql')) {
+            self::markTestSkipped('pdo_mysql não está carregada.');
+        }
+        $this->darPosse();
+        $r = $this->req('POST', '/_pbl/instalar', $this->formulario([
+            'banco_tipo' => 'mysql', 'banco_host' => '127.0.0.1', 'banco_porta' => '1', 'banco_nome' => 'x', 'banco_usuario' => 'u', 'banco_senha' => 'segredo-do-banco-123',
+        ]), ['HTTP_ORIGIN' => 'https://novo.exemplo.org']);
+
+        self::assertSame(422, $r->getStatusCode());
+        $html = (string) $r->getContent();
+        self::assertStringContainsString('data-passo-inicial="5"', $html, 'volta ao passo do banco');
+        self::assertStringContainsString('banco de dados', $html);
+        self::assertStringNotContainsString('segredo-do-banco-123', $html, 'a senha do banco não volta para a tela');
+        self::assertFileDoesNotExist($this->caminhos->config() . '/banco.json');
+        self::assertFalse((new Instalador($this->caminhos))->instalado());
+    }
+
+    #[\PHPUnit\Framework\Attributes\Group('contrato-dialeto')]
+    public function testInstalaEmBancoDeServidorEGravaABancoJson(): void
+    {
+        $config = (new \Pbl\Banco\CarregadorDeConfigBanco($this->caminhos))->carregar();
+        if ($config->ehSqlite()) {
+            self::markTestSkipped('Só com PBL_BANCO_* apontando para um banco de servidor.');
+        }
+        $banco = \Pbl\Banco\Conexao::abrir($config);
+        Ajuda::apagarTabelas($banco);
+        $this->darPosse();
+        try {
+            $r = $this->req('POST', '/_pbl/instalar', $this->formulario([
+                'banco_tipo' => $config->driver, 'banco_host' => $config->host, 'banco_porta' => (string) $config->porta, 'banco_nome' => $config->nome,
+                'banco_usuario' => $config->usuario, 'banco_senha' => $config->segredo(),
+            ]), ['HTTP_ORIGIN' => 'https://novo.exemplo.org']);
+
+            self::assertSame(200, $r->getStatusCode(), (string) $r->getContent());
+            self::assertTrue((new Instalador($this->caminhos))->instalado());
+            $arquivo = $this->caminhos->config() . '/banco.json';
+            self::assertFileExists($arquivo);
+            self::assertSame('0600', substr(sprintf('%o', fileperms($arquivo)), -4));
+            self::assertSame($config->driver, json_decode((string) file_get_contents($arquivo), true)['driver']);
+            self::assertGreaterThan(0, (int) $banco->fetchOne('SELECT COUNT(*) FROM objeto'));
+        } finally {
+            Ajuda::apagarTabelas($banco);
+        }
+    }
 }

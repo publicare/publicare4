@@ -67,10 +67,10 @@ final class InstaladorPassosTest extends TestCase
         foreach (['Boas-vindas e requisitos', 'Site: nome e domínio', 'Administrador', 'Modelos opcionais', 'Revisão e instalar', 'Pronto'] as $titulo) {
             self::assertStringContainsString($titulo, $html);
         }
-        self::assertStringContainsString('<progress class="pbl-progresso" max="6" value="1"', $html);
+        self::assertStringContainsString('<progress class="pbl-progresso" max="7" value="1"', $html);
         self::assertStringContainsString('aria-current="step"', $html);
         self::assertStringContainsString('aria-label="Etapas da instalação"', $html);
-        self::assertSame(5, substr_count($html, '<section class="pbl-painel"'), 'cinco painéis dentro do formulário (o sexto é a tela final)');
+        self::assertSame(6, substr_count($html, '<section class="pbl-painel"'), 'seis painéis dentro do formulário (o sétimo é a tela final)');
         self::assertStringContainsString('aria-live="polite"', $html, 'a força da senha é anunciada');
         self::assertStringContainsString('tabindex="-1"', $html, 'o título do passo recebe o foco');
         self::assertStringContainsString('autocomplete="new-password"', $html);
@@ -83,8 +83,8 @@ final class InstaladorPassosTest extends TestCase
         $html = (string) $this->req('GET')->getContent();
 
         self::assertDoesNotMatchRegularExpression('/<section class="pbl-painel"[^>]*\shidden/', $html, 'sem JS nenhum painel nasce escondido');
-        self::assertSame(4, substr_count($html, 'class="pbl-nav-js'));
-        self::assertSame(4, preg_match_all('/class="pbl-nav-js[^"]*" hidden/', $html), 'Voltar/Continuar só existem para quem tem JS');
+        self::assertSame(5, substr_count($html, 'class="pbl-nav-js'));
+        self::assertSame(5, preg_match_all('/class="pbl-nav-js[^"]*" hidden/', $html), 'Voltar/Continuar só existem para quem tem JS');
         self::assertStringContainsString('type="submit" class="btn btn-success btn-lg">Instalar', $html);
     }
 
@@ -144,7 +144,7 @@ final class InstaladorPassosTest extends TestCase
         $html = (string) $r->getContent();
 
         self::assertSame(200, $r->getStatusCode(), $html);
-        self::assertStringContainsString('<progress class="pbl-progresso" max="6" value="6"', $html);
+        self::assertStringContainsString('<progress class="pbl-progresso" max="7" value="7"', $html);
         self::assertStringContainsString('* * * * * php ' . $this->raiz . '/bin/pbl cron &gt;/dev/null 2&gt;&amp;1', $html);
         self::assertStringContainsString('dados/backups/', $html);
         self::assertStringContainsString('php bin/pbl atualizar', $html);
@@ -180,12 +180,13 @@ final class InstaladorPassosTest extends TestCase
         self::assertSame(3, PassosDoInstalador::passoDoErro('A senha é longa demais'));
         self::assertSame(3, PassosDoInstalador::passoDoErro('E-mail inválido'));
         self::assertSame(4, PassosDoInstalador::passoDoErro('Modelo desconhecido: x'));
-        self::assertSame(5, PassosDoInstalador::passoDoErro('algo inesperado'));
+        self::assertSame(6, PassosDoInstalador::passoDoErro('algo inesperado'));
+        self::assertSame(5, PassosDoInstalador::passoDoErro('Não deu para usar o banco de dados: servidor errado'));
         self::assertStringContainsString('Nada foi instalado pela metade', PassosDoInstalador::comoCorrigir('algo inesperado'));
         $barra = PassosDoInstalador::barra(3);
         self::assertSame(1, substr_count($barra, 'aria-current="step"'));
         self::assertSame(2, substr_count($barra, '(concluído)'));
-        self::assertStringContainsString('Passo <span data-pbl-passo-numero>3</span> de 6', $barra);
+        self::assertStringContainsString('Passo <span data-pbl-passo-numero>3</span> de 7', $barra);
     }
 
     public function testPaginaDeNaoInstaladoApontaOInstalarPhp(): void
