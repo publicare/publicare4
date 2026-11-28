@@ -6,6 +6,11 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+
+### Adicionado
+- **Domínio abrindo um conteúdo (migração 30):** cada domínio pode abrir direto um conteúdo em `/` (por exemplo, `faq.exemplo.org` abrindo `faq`), pela tela Domínios (seção "O que cada domínio abre") ou por `bin/pbl dominio inicio`. O resto do site continua igual naquele domínio. Se o conteúdo sair do ar, o domínio volta a abrir a página inicial.
+
+
 ## [0.1.0-rc.16] - 2026-11-28
 
 > **Em resumo:** pele do site oficial em azul-marinho (sai o preto com laranja), botão de tema claro/escuro/automático nas páginas públicas, passo "Banco de dados" no instalador web e suporte em teste a MySQL, MariaDB e PostgreSQL (trocar de banco, cópia de segurança e atualização).

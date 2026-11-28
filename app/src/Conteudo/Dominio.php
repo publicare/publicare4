@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Pbl\Conteudo;
 
-/** Um endereço (host) que leva a um site. `principal` é o canônico (um por site); `servir` mostra o mesmo conteúdo; `redirecionar` manda para o principal. */
+/**
+ * Um endereço (host) que leva a um site. `principal` é o canônico (um por site); `servir` mostra o mesmo conteúdo; `redirecionar` manda
+ * para o principal. `inicioObjetoId` (opcional) é o conteúdo que abre em `/` neste endereço; o resto do site segue igual.
+ */
 final class Dominio
 {
     public const PRINCIPAL = 'principal';
@@ -12,7 +15,7 @@ final class Dominio
     public const REDIRECIONAR = 'redirecionar';
     public const MODOS = [self::PRINCIPAL, self::SERVIR, self::REDIRECIONAR];
 
-    public function __construct(public readonly string $host, public readonly int $siteId, public readonly string $modo)
+    public function __construct(public readonly string $host, public readonly int $siteId, public readonly string $modo, public readonly ?int $inicioObjetoId = null)
     {
     }
 

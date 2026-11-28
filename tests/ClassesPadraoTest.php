@@ -152,7 +152,9 @@ final class ClassesPadraoTest extends TestCase
         self::assertSame(6, $this->fixas($conexao));
         self::assertSame(0, (int) $conexao->fetchOne("SELECT fixa FROM classe WHERE nome = 'noticia'"));
         self::assertSame([], (new Migrador($conexao))->migrar());
-        self::assertSame(29, (new Migrador($conexao))->versaoAtual());
+        $modelo = new Migrador(\Pbl\Banco\Conexao::memoria());
+        $modelo->migrar();
+        self::assertSame($modelo->versaoAtual(), (new Migrador($conexao))->versaoAtual(), 'o banco está na última migração (sem número fixo)');
     }
 
     public function testMigracao16SobreBancoAntigoSemAsColunas(): void

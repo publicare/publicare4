@@ -118,6 +118,13 @@ final class Aplicacao
             return $this->texto('Não encontrado', Response::HTTP_NOT_FOUND);
         }
         $url = trim($pedido, '/');
+        if ($url === '' && $dominio->inicioObjetoId !== null) {
+            // Este endereço abre direto um conteúdo (ex.: faq.exemplo.org mostra o FAQ). Se ele sumiu ou saiu do ar, vale a página inicial do site.
+            $inicio = $servicos->objetos->porId($dominio->inicioObjetoId);
+            if ($inicio !== null && $inicio->siteId === $site->id && $inicio->status === 'publicado') {
+                $url = $inicio->urlAmigavel;
+            }
+        }
         try {
             $arquivo = $this->caminhos->pagina($site->id, $url);
         } catch (\InvalidArgumentException) {

@@ -35,6 +35,7 @@ use Pbl\Banco\Migracoes\M026ContaDeServico;
 use Pbl\Banco\Migracoes\M027AltDeArquivo;
 use Pbl\Banco\Migracoes\M028TokenDeConta;
 use Pbl\Banco\Migracoes\M029SenhaProvisoria;
+use Pbl\Banco\Migracoes\M030InicioDoDominio;
 
 /**
  * Aplica migrações pendentes. É o único componente que cria tabelas: o usuário de banco da
@@ -54,7 +55,7 @@ final class Migrador
     public function __construct(private readonly Connection $conexao, ?array $migracoes = null, ?Dialeto $dialeto = null)
     {
         $this->dialeto = $dialeto ?? Dialetos::paraConexao($conexao);
-        $this->migracoes = $migracoes ?? [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada(), new M005VersoesEHistoricoDeUrls(), new M006DominiosERedirecionamentos(), new M007Acesso(), new M008Sessoes(), new M009ClassesNaAdministracao(), new M010IndiceDeBusca(), new M011ClasseFormulario(), new M012BuscaTolerancia(), new M013Arquivos(), new M014ModoElevado(), new M015HistoricoDeMoldes(), new M016ClassesFixas(), new M017ConfigDoSite(), new M018PeleEMoldePorObjeto(), new M019FluxoDeRevisao(), new M021CompletarClassesFixas(), new M022Tags(), new M023Pilha(), new M024IconeDeClasse(), new M025ImportacaoPbl3(), new M026ContaDeServico(), new M027AltDeArquivo(), new M028TokenDeConta(), new M029SenhaProvisoria()];
+        $this->migracoes = $migracoes ?? [new M001Base(), new M002Metadados(), new M003TituloBusca(), new M004BuscaNormalizada(), new M005VersoesEHistoricoDeUrls(), new M006DominiosERedirecionamentos(), new M007Acesso(), new M008Sessoes(), new M009ClassesNaAdministracao(), new M010IndiceDeBusca(), new M011ClasseFormulario(), new M012BuscaTolerancia(), new M013Arquivos(), new M014ModoElevado(), new M015HistoricoDeMoldes(), new M016ClassesFixas(), new M017ConfigDoSite(), new M018PeleEMoldePorObjeto(), new M019FluxoDeRevisao(), new M021CompletarClassesFixas(), new M022Tags(), new M023Pilha(), new M024IconeDeClasse(), new M025ImportacaoPbl3(), new M026ContaDeServico(), new M027AltDeArquivo(), new M028TokenDeConta(), new M029SenhaProvisoria(), new M030InicioDoDominio()];
     }
 
     /**
