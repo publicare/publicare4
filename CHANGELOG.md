@@ -6,8 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
-### Alterado
-- **Versão de desenvolvimento:** `app/src/Versao.php` volta a `0.1.0-dev` depois da pré-release `0.1.0-rc.15`.
+## [0.1.0-rc.16] - 2026-11-28
+
+> **Em resumo:** pele do site oficial em azul-marinho (sai o preto com laranja), botão de tema claro/escuro/automático nas páginas públicas, passo "Banco de dados" no instalador web e suporte em teste a MySQL, MariaDB e PostgreSQL (trocar de banco, cópia de segurança e atualização).
 
 ### Adicionado
 - **Tema claro, escuro ou automático nas páginas públicas (pele "publicare"):** novo botão no cabeçalho. A escolha fica só no navegador (localStorage) e vale já no carregamento, sem piscar; sem JavaScript o site segue o aparelho. O único JavaScript da pele é o `tema.js` (local, sem inline).
