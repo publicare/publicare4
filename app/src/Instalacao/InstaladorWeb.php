@@ -9,6 +9,11 @@ use Pbl\Acesso\Rede;
 use Pbl\Acesso\Segredo;
 use Pbl\Acesso\SenhaPolitica;
 use Pbl\Admin\Pagina;
+use Pbl\Banco\ConfigBanco;
+use Pbl\Banco\ConfigDeBancoInvalida;
+use Pbl\Banco\Conexao;
+use Pbl\Banco\ErroDeConexao;
+use Pbl\Banco\GravadorDeConfigBanco;
 use Pbl\Caminhos;
 use Pbl\Conteudo\Modelos;
 use Pbl\Servicos;
@@ -76,6 +81,14 @@ final class InstaladorWeb
             'email' => mb_substr(trim((string) $requisicao->request->get('email', '')), 0, 255),
             'nome' => mb_substr(trim((string) $requisicao->request->get('nome', '')), 0, 200),
         ];
+        $campos += [
+            'banco_tipo' => in_array((string) $requisicao->request->get('banco_tipo', 'sqlite'), ['sqlite', 'mysql', 'pgsql'], true) ? (string) $requisicao->request->get('banco_tipo', 'sqlite') : 'sqlite',
+            'banco_host' => mb_substr(trim((string) $requisicao->request->get('banco_host', '')), 0, 253),
+            'banco_porta' => mb_substr(trim((string) $requisicao->request->get('banco_porta', '')), 0, 5),
+            'banco_nome' => mb_substr(trim((string) $requisicao->request->get('banco_nome', '')), 0, 64),
+            'banco_usuario' => mb_substr(trim((string) $requisicao->request->get('banco_usuario', '')), 0, 64),
+        ];
+        $bancoSenha = mb_substr((string) $requisicao->request->get('banco_senha', ''), 0, 1024);
         $marcados = $requisicao->request->all('modelos');
         $modelos = array_values(array_filter(Modelos::NOMES, static fn (string $m): bool => in_array($m, $marcados, true)));
         $campos['modelos'] = implode(',', $modelos);
@@ -87,6 +100,9 @@ final class InstaladorWeb
             $erro = 'As duas senhas não são iguais.';
         } else {
             $erro = SenhaPolitica::problema($senha, $campos['login'], $campos['email']);
+        }
+        if ($erro === null) {
+            $erro = $this->prepararBanco($campos, $bancoSenha);
         }
         if ($erro === null) {
             try {
@@ -177,13 +193,67 @@ final class InstaladorWeb
                 . $nav())
             . $painel(4, $h2(4, 'Modelos opcionais')
                 . '<p class="text-body-secondary">Tipos de conteúdo extras, com exemplos. Pode pular: dá para ligar depois, em Modelos, na administração.</p>' . $this->caixasDeModelos($modelosMarcados) . $nav())
-            . $painel(5, $h2(5, 'Revisão e instalar')
+            . $painel(5, $h2(5, 'Banco de dados') . $this->painelDoBanco(Pagina::campo(...), $campos) . $nav())
+            . $painel(6, $h2(6, 'Revisão e instalar')
                 . '<p>Confira os dados. Se algo estiver errado, use <strong>Voltar</strong>. Ao clicar em <strong>Instalar</strong>, o Publicare cria o banco, o site e a sua conta. Se algo falhar, nada fica pela metade e você pode tentar de novo.</p>'
                 . '<dl class="pbl-revisao" data-pbl-revisao><dt>Resumo</dt><dd>Confira os campos dos passos anteriores e clique em Instalar.</dd></dl>'
                 . '<div class="pbl-acoes pbl-acoes-instalar"><button type="button" class="btn btn-outline-secondary btn-lg" data-pbl-voltar hidden>Voltar</button><button type="submit" class="btn btn-success btn-lg">Instalar</button></div>')
             . '</form><noscript><p class="text-body-secondary mt-3">Sem JavaScript, todos os passos aparecem de uma vez: preencha tudo e clique em Instalar no fim.</p></noscript>';
 
         return Pagina::resposta('Instalar o PBL4', $corpo, $status, $seguro);
+    }
+
+    /**
+     * Escolha do banco (passo 5). SQLite é o padrão e não precisa de nada. Nos outros, testa a conexão e, só então, grava o `banco.json`
+     * (0600); a senha do banco nunca volta para a tela.
+     *
+     * @param array<string, string> $c
+     * @return string|null mensagem de erro, ou null se o banco está pronto para a instalação
+     */
+    private function prepararBanco(array $c, string $senha): ?string
+    {
+        $arquivo = $this->caminhos->config() . '/banco.json';
+        if ($c['banco_tipo'] === 'sqlite') {
+            @unlink($arquivo); // uma tentativa anterior com outro banco não deve mandar nesta
+            return null;
+        }
+        try {
+            $config = new ConfigBanco($c['banco_tipo'], $c['banco_nome'], $c['banco_host'], $c['banco_porta'] === '' ? null : (int) $c['banco_porta'], $c['banco_usuario'], $senha);
+            $conexao = Conexao::abrir($config);
+            $conexao->fetchOne('SELECT 1');
+            if ($conexao->createSchemaManager()->tablesExist(['objeto'])) {
+                return 'Esse banco já tem um site do Publicare instalado.';
+            }
+        } catch (ConfigDeBancoInvalida | ErroDeConexao $e) {
+            return 'Não deu para usar o banco de dados: ' . $e->getMessage();
+        } catch (\Throwable) {
+            return 'Não deu para usar o banco de dados. Confira servidor, nome, usuário e senha.';
+        }
+        GravadorDeConfigBanco::gravar($this->caminhos, $config);
+
+        return null;
+    }
+
+    /** @param array<string, string> $v */
+    private function painelDoBanco(callable $campo, array $v): string
+    {
+        $tipo = $v['banco_tipo'] ?? 'sqlite';
+        $opcao = static fn (string $valor, string $rotulo, bool $ok): string => '<option value="' . $valor . '"' . ($tipo === $valor ? ' selected' : '') . ($ok ? '' : ' disabled') . '>' . Pagina::h($rotulo . ($ok ? '' : ' (indisponível neste servidor)')) . '</option>';
+
+        return '<p class="text-body-secondary">Onde o Publicare guarda os textos e as contas. O SQLite não precisa de servidor nem de senha: serve para a maioria dos sites. Escolha outro só se a hospedagem já oferece um banco para você.</p>'
+            . '<div class="mb-3"><label class="form-label" for="i-banco-tipo">Banco de dados</label>'
+            . '<select class="form-select" id="i-banco-tipo" name="banco_tipo" data-pbl-banco-tipo>'
+            . $opcao('sqlite', 'SQLite (padrão, sem servidor)', extension_loaded('pdo_sqlite'))
+            . $opcao('mysql', 'MySQL ou MariaDB', extension_loaded('pdo_mysql'))
+            . $opcao('pgsql', 'PostgreSQL', extension_loaded('pdo_pgsql'))
+            . '</select></div>'
+            . '<div data-pbl-banco-servidor' . ($tipo === 'sqlite' ? ' hidden' : '') . '>'
+            . $campo('i-banco-host', 'banco_host', 'Servidor', $v['banco_host'] ?? '', ['maxlength' => 253, 'ajuda' => 'Exemplo: localhost, ou o endereço que a hospedagem informou.'])
+            . $campo('i-banco-porta', 'banco_porta', 'Porta', $v['banco_porta'] ?? '', ['maxlength' => 5, 'ajuda' => 'Deixe em branco para usar a padrão (3306 no MySQL, 5432 no PostgreSQL).'])
+            . $campo('i-banco-nome', 'banco_nome', 'Nome do banco', $v['banco_nome'] ?? '', ['maxlength' => 64, 'ajuda' => 'O banco precisa existir e estar vazio.'])
+            . $campo('i-banco-usuario', 'banco_usuario', 'Usuário do banco', $v['banco_usuario'] ?? '', ['maxlength' => 64, 'autocomplete' => 'off'])
+            . $campo('i-banco-senha', 'banco_senha', 'Senha do banco', '', ['tipo' => 'password', 'autocomplete' => 'new-password', 'ajuda' => 'Fica guardada só no servidor, em dados/config/, com acesso restrito ao dono.'])
+            . '</div>';
     }
 
     /** @param list<string> $marcados */
