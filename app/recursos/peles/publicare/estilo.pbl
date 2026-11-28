@@ -1,2 +1,3 @@
-<@-- Pele publicare: só a folha de estilos do próprio site (assets/pele.css, com ?v= da pele). Nenhum JavaScript da pele (ADR 0022: JS só se a pele declarar) e nada embutido na página. --@>
+<@-- Pele publicare: a folha de estilos do próprio site (assets/pele.css, com ?v= da pele) e o tema.js (tema claro/escuro, local, sem inline; ADR 0022: JS só se a pele declarar). Nada embutido na página. --@>
 <link rel="stylesheet" href="<@eco #pele_url@>/assets/pele.css?v=<@eco #pele_v@>">
+<script src="<@eco #pele_url@>/assets/tema.js?v=<@eco #pele_v@>"></script>

@@ -156,5 +156,23 @@
  "portal/padrao.pbl": [
   "79f23c6ae8ae349380614c574642c5a0d6891b5e60db9cb9f9d274bc8afd9e2a",
   "f34cc355c983d9ba34e41348760f6f1d1edb96eadf63f7f3bff65602be57d428"
+ ],
+ "publicare/assets/LEIAME.txt": [
+  "250bf880e647f79b6321b2243bb16bcd0e8287ded99cf0a50d2167f5324025d6"
+ ],
+ "publicare/assets/marca.svg": [
+  "3b6105a23bc0cc406f750cd2d478633803de9bf56ab7975022791993e38c17b9"
+ ],
+ "publicare/assets/og-publicare.png": [
+  "d7a3a91e76887262845b41ea7a6e84b6bb5b7d82039155f5c29e187b8d6ecb9b"
+ ],
+ "publicare/assets/pele.css": [
+  "778504e4d56fa89e55eae0d9d0d478b3010ed6a6e8f9cfe50d4e48620d727903"
+ ],
+ "publicare/estilo.pbl": [
+  "138296d0de041586fc5d0f3bbb1293b93cd32fb716b5c2742beefeaf6754960f"
+ ],
+ "publicare/topo.pbl": [
+  "7c15491e09ea9170abeffc3edc9818d5c3f5828dad4697e223d7a0e33271b5b7"
  ]
 }

@@ -10,5 +10,6 @@
 <@se %SITE.config.busca_ligada == 1@><form class="busca" action="/busca" method="get" role="search"><label class="so-leitor" for="busca-q">Buscar no site</label><input id="busca-q" type="search" name="q" value="<@eco $q@>" maxlength="200" placeholder="Buscar no site"> <button type="submit">Buscar</button></form>
 <@/se@><@menu profundidade=3 inicio="Início"@>
 </div>
+<button type="button" class="tema-botao" data-pbl-tema hidden aria-label="Tema: automático. Clique para trocar."><span class="tema-icone" aria-hidden="true"></span><span data-pbl-tema-rotulo>Automático</span></button>
 </div>
 </header>
