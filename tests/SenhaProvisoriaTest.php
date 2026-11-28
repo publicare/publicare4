@@ -116,17 +116,18 @@ final class SenhaProvisoriaTest extends TestCase
     {
         $c = Conexao::memoria();
         (new Migrador($c))->migrar();
-        foreach (M029SenhaProvisoria::ROLLBACK as $sql) {
-            $c->executeStatement($sql); // o rollback documentado
+        // Desfaz do mais novo para o mais antigo (o migrador só aplica o que passa da maior versão registrada).
+        foreach ([...\Pbl\Banco\Migracoes\M030InicioDoDominio::ROLLBACK, ...M029SenhaProvisoria::ROLLBACK] as $sql) {
+            $c->executeStatement($sql); // os rollbacks documentados
         }
         self::assertArrayNotHasKey('senha_provisoria', $c->createSchemaManager()->listTableColumns('usuario'));
         $c->insert('usuario', ['login' => 'velho', 'email' => 'v@exemplo.org', 'nome' => 'V', 'senha_hash' => 'x', 'administrador' => 0, 'ativo' => 1, 'criado_em' => gmdate('c')]);
 
-        self::assertSame([29], (new Migrador($c))->migrar());
+        self::assertSame([29, 30], (new Migrador($c))->migrar());
         self::assertSame(0, (int) $c->fetchOne("SELECT senha_provisoria FROM usuario WHERE login = 'velho'"));
         (new M029SenhaProvisoria())->aplicar($c);
         (new M029SenhaProvisoria())->aplicar($c);
-        self::assertSame(29, (new Migrador($c))->versaoAtual());
+        self::assertSame(30, (new Migrador($c))->versaoAtual());
     }
 
     public function testCliUsuarioCriarESenhaComProvisoria(): void
