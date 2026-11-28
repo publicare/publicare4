@@ -52,6 +52,48 @@ final class RoteamentoTest extends TestCase
         self::assertFalse($r->headers->has('Link'));
     }
 
+    private function paginaPublicada(string $titulo, string $url): \Pbl\Conteudo\Objeto
+    {
+        $site = $this->servicos->sites->porId($this->siteId) ?? self::fail();
+        $classe = $this->servicos->classes->porNome('pagina') ?? self::fail();
+        $o = $this->servicos->objetos->criar($site->id, $classe, $site->objetoRaizId, $titulo, $url, ['resumo' => 'r', 'corpo' => '<p>c</p>']);
+        $this->servicos->publicador->publicarSite($site);
+
+        return $o;
+    }
+
+    public function testDominioComInicioAbreOConteudoEmBarraEORestoDoSiteContinuaIgual(): void
+    {
+        $o = $this->paginaPublicada('Oferta da semana', 'oferta');
+        $this->servicos->dominios->adicionar($this->siteId, 'oferta.exemplo.org', Dominio::SERVIR);
+        $this->servicos->dominios->definirInicio('oferta.exemplo.org', $o->id);
+
+        $raiz = $this->pegar('/', 'oferta.exemplo.org');
+        self::assertSame(200, $raiz->getStatusCode());
+        self::assertStringContainsString('Oferta da semana', (string) $raiz->getContent());
+        self::assertSame(200, $this->pegar('/sobre', 'oferta.exemplo.org')->getStatusCode(), 'o resto do site segue igual');
+        self::assertStringNotContainsString('Oferta da semana', (string) $this->pegar('/', 'www.exemplo.org')->getContent(), 'o principal continua com a página inicial');
+    }
+
+    public function testInicioDoDominioQueSumiuVoltaParaAPaginaInicialDoSite(): void
+    {
+        $o = $this->paginaPublicada('Temporária', 'temporaria');
+        $this->servicos->dominios->adicionar($this->siteId, 'tmp.exemplo.org', Dominio::SERVIR);
+        $this->servicos->dominios->definirInicio('tmp.exemplo.org', $o->id);
+        $this->servicos->objetos->mandarParaLixeira($o->id, $o->versao);
+        $this->servicos->publicador->publicarSite($this->servicos->sites->porId($this->siteId) ?? self::fail());
+
+        $r = $this->pegar('/', 'tmp.exemplo.org');
+        self::assertSame(200, $r->getStatusCode());
+        self::assertStringNotContainsString('Temporária', (string) $r->getContent());
+    }
+
+    public function testDefinirInicioRecusaDominioOuConteudoInvalido(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->servicos->dominios->definirInicio('www.exemplo.org', 999999);
+    }
+
     public function testDominioAntigoRedirecionaParaOPrincipalMantendoCaminhoEConsulta(): void
     {
         $this->servicos->dominios->adicionar($this->siteId, 'antigo.exemplo.org', Dominio::REDIRECIONAR);
@@ -342,5 +384,20 @@ final class RoteamentoTest extends TestCase
         $modos = $con->fetchAllKeyValue('SELECT host, modo FROM dominio');
         ksort($modos);
         self::assertSame(['a.exemplo.org' => 'principal', 'b.exemplo.org' => 'servir', 'c.exemplo.org' => 'servir', 'unico.exemplo.org' => 'principal'], $modos);
+    }
+
+    public function testMigracaoDaPaginaInicialDoDominioEIdempotenteEORollbackFunciona(): void
+    {
+        $c = \Pbl\Banco\Conexao::memoria();
+        (new \Pbl\Banco\Migrador($c))->migrar();
+        foreach (\Pbl\Banco\Migracoes\M030InicioDoDominio::ROLLBACK as $sql) {
+            $c->executeStatement($sql);
+        }
+        self::assertArrayNotHasKey('inicio_objeto_id', $c->createSchemaManager()->listTableColumns('dominio'));
+
+        self::assertSame([30], (new \Pbl\Banco\Migrador($c))->migrar());
+        (new \Pbl\Banco\Migracoes\M030InicioDoDominio())->aplicar($c);
+        self::assertArrayHasKey('inicio_objeto_id', $c->createSchemaManager()->listTableColumns('dominio'));
+        self::assertNull($c->fetchOne("SELECT inicio_objeto_id FROM dominio WHERE host = 'nenhum'") ?: null);
     }
 }

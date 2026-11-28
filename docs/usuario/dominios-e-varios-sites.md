@@ -43,6 +43,16 @@ Para mudar um domínio entre Alias e Redirecionador, clique em **Tornar alias** 
 
 Clique em **Remover** na linha do domínio, com a senha. Não dá para remover o principal, nem o endereço pelo qual você está usando o painel agora. Para isso, abra o painel por outro domínio.
 
+## Abrir um conteúdo direto em um domínio
+
+Por padrão, todo domínio do site abre a página inicial. Mas um domínio pode abrir direto um conteúdo. Por exemplo, `faq.exemplo.org` pode abrir a página de perguntas (`faq`), e `oferta.exemplo.org` uma página de promoção.
+
+Na tela **Domínios**, na seção **O que cada domínio abre**, escreva o endereço do conteúdo (como `faq`) ou o número dele na linha do domínio e clique em **Salvar**. Deixe em branco para voltar ao padrão.
+
+Só o `/` muda. Todo o resto do site continua acessível nesse domínio, com os mesmos endereços. O domínio principal também pode abrir um conteúdo no lugar da página inicial. Se o conteúdo sair do ar ou for para a lixeira, o domínio volta a abrir a página inicial do site.
+
+O domínio precisa existir antes (como alias) e apontar para a hospedagem, com DNS e HTTPS, como qualquer outro. Veja a seção abaixo.
+
 ## Cuidados com DNS e HTTPS
 
 Adicionar um domínio no painel **não** o faz funcionar sozinho. O Publicare não configura DNS nem certificado.
@@ -73,13 +83,15 @@ php bin/pbl dominio listar
 php bin/pbl dominio adicionar www.exemplo.org --modo=servir
 php bin/pbl dominio adicionar antigo.exemplo.org --modo=redirecionar
 php bin/pbl dominio principal site.exemplo.org
+php bin/pbl dominio inicio faq.exemplo.org faq
+php bin/pbl dominio inicio faq.exemplo.org
 php bin/pbl dominio remover antigo.exemplo.org
 php bin/pbl redirecionamento adicionar /antigo /novo --prefixo --codigo=301
 php bin/pbl redirecionamento listar
 php bin/pbl redirecionamento remover 3
 ```
 
-`--modo=servir` cria um alias e `--modo=redirecionar` um redirecionador. O número em `remover` é o que aparece em `listar`. Em instalações com mais de um site, acrescente `--site=2` (o número do site); sem isso vale o primeiro.
+`--modo=servir` cria um alias e `--modo=redirecionar` um redirecionador. `dominio inicio` define o conteúdo que abre em `/` no domínio (o último comando, sem conteúdo, volta ao padrão). O número em `remover` é o que aparece em `listar`. Em instalações com mais de um site, acrescente `--site=2` (o número do site); sem isso vale o primeiro.
 
 ## Mais de um site na mesma instalação
 

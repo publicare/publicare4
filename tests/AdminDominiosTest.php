@@ -31,7 +31,7 @@ final class AdminDominiosTest extends TestCase
     /** @return list<string> */
     private function posts(): array
     {
-        return array_map(fn (string $a): string => $this->lista() . '/' . $a, ['adicionar', 'principal', 'modo', 'remover']);
+        return array_map(fn (string $a): string => $this->lista() . '/' . $a, ['adicionar', 'principal', 'modo', 'remover', 'inicio']);
     }
 
     public function testSemLoginMandaParaEntrarEOPostNaoGrava(): void
@@ -59,7 +59,7 @@ final class AdminDominiosTest extends TestCase
         }
         self::assertSame(['www.exemplo.org' => 'principal'], $this->dominios());
         $negados = $this->auditoria('dominio.negado');
-        self::assertCount(4, $negados);
+        self::assertCount(5, $negados);
         self::assertSame('usuario:' . $this->ids['editor'], $negados[0]['ator']);
         self::assertStringNotContainsString('novo.exemplo.org', (string) json_encode($negados));
     }
@@ -102,9 +102,49 @@ final class AdminDominiosTest extends TestCase
         self::assertStringContainsString('Principal', $html);
         self::assertStringContainsString('Tornar redirecionador', $html);
         self::assertStringContainsString('Tornar alias', $html);
-        self::assertSame(2, substr_count($html, 'value="www.exemplo.org"') + substr_count($html, 'value="alias.exemplo.org"') - 1, 'o principal não tem botões de ação');
+        self::assertSame(4, substr_count($html, 'value="www.exemplo.org"') + substr_count($html, 'value="alias.exemplo.org"') - 1, 'o principal só tem o formulário da página inicial; o alias tem os três de ação mais esse');
         self::assertStringContainsString("default-src 'none'", (string) $r->headers->get('Content-Security-Policy'));
         self::assertStringContainsString('href="' . $this->lista() . '"', $this->html($this->req('GET', '/_pbl/', $this->token('admin'))), 'botão no painel');
+    }
+
+    private function criarPagina(string $titulo, string $url): int
+    {
+        $site = $this->s->sites->porId($this->siteId) ?? self::fail();
+        $classe = $this->s->classes->porNome('pagina') ?? self::fail();
+
+        return $this->s->objetos->criar($site->id, $classe, $site->objetoRaizId, $titulo, $url, ['resumo' => 'r', 'corpo' => '<p>c</p>'])->id;
+    }
+
+    public function testDefinirELimparOConteudoQueAbreEmBarraNoDominio(): void
+    {
+        $token = $this->token('admin');
+        $this->s->dominios->adicionar($this->siteId, 'faq.exemplo.org', Dominio::SERVIR);
+        $id = $this->criarPagina('Perguntas', 'perguntas');
+
+        $r = $this->post($token, $this->lista() . '/inicio', ['host' => 'faq.exemplo.org', 'alvo' => '/perguntas/']);
+        self::assertSame(303, $r->getStatusCode());
+        self::assertSame($this->lista() . '?ok=inicio', $r->headers->get('Location'));
+        self::assertSame($id, $this->s->dominios->porHost('faq.exemplo.org')?->inicioObjetoId);
+        self::assertCount(1, $this->auditoria('dominio.inicio'));
+        $html = $this->html($this->req('GET', $this->lista() . '?ok=inicio', $token));
+        self::assertStringContainsString('Perguntas', $html);
+        self::assertStringContainsString('Conteúdo inicial do domínio salvo', $html);
+
+        // pelo número também funciona; em branco volta ao padrão
+        self::assertSame(303, $this->post($token, $this->lista() . '/inicio', ['host' => 'faq.exemplo.org', 'alvo' => (string) $id])->getStatusCode());
+        self::assertSame(303, $this->post($token, $this->lista() . '/inicio', ['host' => 'faq.exemplo.org', 'alvo' => ''])->getStatusCode());
+        self::assertNull($this->s->dominios->porHost('faq.exemplo.org')?->inicioObjetoId);
+    }
+
+    public function testConteudoInexistenteOuDeOutroSiteNaoViraInicioDoDominio(): void
+    {
+        $token = $this->token('admin');
+        $r = $this->post($token, $this->lista() . '/inicio', ['host' => 'www.exemplo.org', 'alvo' => 'nao-existe']);
+        self::assertSame(422, $r->getStatusCode());
+        self::assertStringContainsString('Não achei esse conteúdo', $this->html($r));
+        self::assertNull($this->s->dominios->porHost('www.exemplo.org')?->inicioObjetoId);
+        $r = $this->post($token, $this->lista() . '/inicio', ['host' => 'www.exemplo.org', 'alvo' => '999999']);
+        self::assertSame(422, $r->getStatusCode());
     }
 
     public function testAdicionarAliasERedirecionador(): void

@@ -152,7 +152,9 @@ final class ClassesPadraoTest extends TestCase
         self::assertSame(6, $this->fixas($conexao));
         self::assertSame(0, (int) $conexao->fetchOne("SELECT fixa FROM classe WHERE nome = 'noticia'"));
         self::assertSame([], (new Migrador($conexao))->migrar());
-        self::assertSame(29, (new Migrador($conexao))->versaoAtual());
+        $modelo = new Migrador(\Pbl\Banco\Conexao::memoria());
+        $modelo->migrar();
+        self::assertSame($modelo->versaoAtual(), (new Migrador($conexao))->versaoAtual(), 'o banco está na última migração (sem número fixo)');
     }
 
     public function testMigracao16SobreBancoAntigoSemAsColunas(): void
@@ -163,7 +165,7 @@ final class ClassesPadraoTest extends TestCase
         $conexao->executeStatement('ALTER TABLE objeto DROP COLUMN no_menu');
         $conexao->executeStatement('ALTER TABLE objeto DROP COLUMN rotulo_menu');
         $conexao->executeStatement('DELETE FROM schema_versao WHERE versao >= 16');
-        self::assertSame([16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29], (new Migrador($conexao))->migrar());
+        self::assertSame([16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30], (new Migrador($conexao))->migrar());
         self::assertSame(1, $this->fixas($conexao), 'em banco novo só formulario existe na migração 11');
         self::assertSame(0, (int) $conexao->fetchOne('SELECT COUNT(*) FROM objeto WHERE no_menu = 1'));
     }

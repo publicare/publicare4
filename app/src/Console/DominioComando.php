@@ -14,7 +14,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'dominio', description: 'Gerencia os domínios de um site: listar, adicionar, principal, remover')]
+#[AsCommand(name: 'dominio', description: 'Gerencia os domínios de um site: listar, adicionar, principal, inicio, remover')]
 final class DominioComando extends Command
 {
     public function __construct(private readonly Caminhos $caminhos)
@@ -24,9 +24,10 @@ final class DominioComando extends Command
 
     protected function configure(): void
     {
-        $this->addArgument('acao', InputArgument::REQUIRED, 'listar | adicionar | principal | remover');
+        $this->addArgument('acao', InputArgument::REQUIRED, 'listar | adicionar | principal | inicio | remover');
         $this->addArgument('host', InputArgument::OPTIONAL, 'Domínio (para adicionar, principal e remover)');
         $this->addOption('site', null, InputOption::VALUE_REQUIRED, 'Número do site (padrão: o primeiro)');
+        $this->addArgument('alvo', InputArgument::OPTIONAL, 'inicio: conteúdo que abre em / neste domínio (endereço ou número); sem ele, volta ao padrão');
         $this->addOption('modo', null, InputOption::VALUE_REQUIRED, 'servir (mesmo conteúdo, com canônico) ou redirecionar (301 para o principal)', Dominio::SERVIR);
     }
 
@@ -56,12 +57,25 @@ final class DominioComando extends Command
                     $servicos->publicador->hostMudou($site);
                     $output->writeln("{$host} agora é o domínio principal; o anterior passou a redirecionar para ele.");
                     break;
+                case 'inicio':
+                    $alvo = trim((string) $input->getArgument('alvo'));
+                    $objetoId = null;
+                    if ($alvo !== '') {
+                        $o = ctype_digit($alvo) ? $servicos->objetos->porId((int) $alvo) : $servicos->objetos->porUrl($site->id, trim($alvo, '/'));
+                        if ($o === null || $o->siteId !== $site->id) {
+                            throw new \InvalidArgumentException('Conteúdo não encontrado neste site');
+                        }
+                        $objetoId = $o->id;
+                    }
+                    $servicos->dominios->definirInicio($host, $objetoId);
+                    $output->writeln($objetoId === null ? "{$host} volta a abrir a página inicial do site." : "{$host} agora abre o conteúdo {$objetoId} em /.");
+                    break;
                 case 'remover':
                     $servicos->dominios->remover($host);
                     $output->writeln("Domínio {$host} removido.");
                     break;
                 default:
-                    throw new \InvalidArgumentException('Ação desconhecida (use listar, adicionar, principal ou remover)');
+                    throw new \InvalidArgumentException('Ação desconhecida (use listar, adicionar, principal, inicio ou remover)');
             }
         } catch (\InvalidArgumentException | \RuntimeException $e) {
             $output->writeln('<error>' . $e->getMessage() . '</error>');

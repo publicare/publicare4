@@ -80,26 +80,54 @@ final class DominioRepositorio
         $this->conexao->delete('dominio', ['host' => $d->host]);
     }
 
+    /** @param array<string, mixed> $l */
+    private static function dePadrao(array $l): Dominio
+    {
+        return new Dominio((string) $l['host'], (int) $l['site_id'], (string) $l['modo'], isset($l['inicio_objeto_id']) ? (int) $l['inicio_objeto_id'] : null);
+    }
+
+    /**
+     * Define (ou limpa, com null) o conteúdo que abre em `/` neste domínio. O conteúdo tem de ser do mesmo site e não pode estar
+     * apagado; se depois ele sair do ar, o domínio volta a abrir a página inicial do site.
+     */
+    public function definirInicio(string $host, ?int $objetoId): void
+    {
+        $d = $this->porHost(strtolower($host));
+        if ($d === null) {
+            throw new \InvalidArgumentException("O domínio {$host} não está configurado");
+        }
+        if ($objetoId !== null) {
+            $l = $this->conexao->fetchAssociative('SELECT site_id, status FROM objeto WHERE id = ?', [$objetoId]);
+            if ($l === false || (int) $l['site_id'] !== $d->siteId) {
+                throw new \InvalidArgumentException('Esse conteúdo não existe neste site');
+            }
+            if ($l['status'] === 'apagado') {
+                throw new \InvalidArgumentException('Esse conteúdo está na lixeira');
+            }
+        }
+        $this->conexao->update('dominio', ['inicio_objeto_id' => $objetoId], ['host' => $d->host]);
+    }
+
     public function porHost(string $host): ?Dominio
     {
-        $l = $this->conexao->fetchAssociative('SELECT host, site_id, modo FROM dominio WHERE host = ?', [strtolower($host)]);
+        $l = $this->conexao->fetchAssociative('SELECT host, site_id, modo, inicio_objeto_id FROM dominio WHERE host = ?', [strtolower($host)]);
 
-        return $l === false ? null : new Dominio((string) $l['host'], (int) $l['site_id'], (string) $l['modo']);
+        return $l === false ? null : self::dePadrao($l);
     }
 
     public function principalDe(int $siteId): ?Dominio
     {
-        $l = $this->conexao->fetchAssociative('SELECT host, site_id, modo FROM dominio WHERE site_id = ? AND modo = ? ORDER BY host LIMIT 1', [$siteId, Dominio::PRINCIPAL]);
+        $l = $this->conexao->fetchAssociative('SELECT host, site_id, modo, inicio_objeto_id FROM dominio WHERE site_id = ? AND modo = ? ORDER BY host LIMIT 1', [$siteId, Dominio::PRINCIPAL]);
 
-        return $l === false ? null : new Dominio((string) $l['host'], (int) $l['site_id'], (string) $l['modo']);
+        return $l === false ? null : self::dePadrao($l);
     }
 
     /** @return list<Dominio> */
     public function doSite(int $siteId): array
     {
         return array_map(
-            static fn (array $l): Dominio => new Dominio((string) $l['host'], (int) $l['site_id'], (string) $l['modo']),
-            $this->conexao->fetchAllAssociative('SELECT host, site_id, modo FROM dominio WHERE site_id = ? ORDER BY host', [$siteId]),
+            static fn (array $l): Dominio => self::dePadrao($l),
+            $this->conexao->fetchAllAssociative('SELECT host, site_id, modo, inicio_objeto_id FROM dominio WHERE site_id = ? ORDER BY host', [$siteId]),
         );
     }
 }

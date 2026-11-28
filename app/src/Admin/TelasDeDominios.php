@@ -38,7 +38,7 @@ final class TelasDeDominios
     /** @return array{0: string, 1: int}|null */
     public static function rota(string $prefixo, string $caminho, string $metodo): ?array
     {
-        if (preg_match('#^' . preg_quote($prefixo, '#') . '/site/([1-9][0-9]{0,9})/dominios(?:/(adicionar|principal|modo|remover))?$#D', $caminho, $m) !== 1) {
+        if (preg_match('#^' . preg_quote($prefixo, '#') . '/site/([1-9][0-9]{0,9})/dominios(?:/(adicionar|principal|modo|remover|inicio))?$#D', $caminho, $m) !== 1) {
             return null;
         }
         $acao = $m[2] ?? '';
@@ -116,6 +116,20 @@ final class TelasDeDominios
             throw new \InvalidArgumentException('Esse domínio não pertence a este site');
         }
         switch ($tela) {
+            case 'inicio':
+                $alvo = trim($this->texto($requisicao, 'alvo') ?? '');
+                $objetoId = null;
+                if ($alvo !== '' && $alvo !== '-') {
+                    $objeto = ctype_digit($alvo) ? $this->servicos->objetos->porId((int) $alvo) : $this->servicos->objetos->porUrl($site->id, trim($alvo, '/'));
+                    if ($objeto === null || $objeto->siteId !== $site->id) {
+                        throw new \InvalidArgumentException('Não achei esse conteúdo neste site. Use o endereço (ex.: faq) ou o número.');
+                    }
+                    $objetoId = $objeto->id;
+                }
+                $d->definirInicio($host, $objetoId);
+                $this->servicos->auditoria->registrar('dominio.inicio', $ator, $u->id, $objetoId, ['site_id' => $site->id, 'host' => $host, 'objeto' => $objetoId]);
+
+                return $this->volta($site, 'inicio');
             case 'principal':
                 if ($atual->modo === Dominio::PRINCIPAL) {
                     throw new \InvalidArgumentException('Esse domínio já é o principal');
@@ -185,6 +199,19 @@ final class TelasDeDominios
             . '<h2 class="h5" id="titulo-dominios">Domínios</h2>'
             . ($outros['servir'] === [] ? Pagina::vazio('Nenhum alias', 'Um alias abre o mesmo site por outro nome. Adicione um abaixo, se precisar.') : $tabela($outros['servir'], 'Aliases do site'))
             . ($outros['redirecionar'] === [] ? '' : '<div class="pbl-recolhiveis">' . Pagina::recolhivel('redirecionamentos', 'Redirecionamentos (' . count($outros['redirecionar']) . ')', $tabela($outros['redirecionar'], 'Redirecionamentos do site')) . '</div>');
+        $linhasInicio = '';
+        foreach ($dominios as $d) {
+            $objeto = $d->inicioObjetoId === null ? null : $this->servicos->objetos->porId($d->inicioObjetoId);
+            $atual = $objeto === null ? '<span class="text-body-secondary">Página inicial do site</span>' : Pagina::h($objeto->titulo) . ' <code>/' . Pagina::h($objeto->urlAmigavel) . '</code>';
+            $linhasInicio .= '<tr><th scope="row"><code>' . Pagina::h($d->host) . '</code></th><td>' . $atual . '</td><td>'
+                . '<form method="post" action="' . $base . '/inicio" class="d-flex flex-wrap gap-1 align-items-end">' . $csrf . '<input type="hidden" name="host" value="' . Pagina::h($d->host) . '">'
+                . '<label class="visually-hidden" for="inicio-' . md5($d->host) . '">Conteúdo que abre em / em ' . Pagina::h($d->host) . '</label>'
+                . '<input id="inicio-' . md5($d->host) . '" class="form-control form-control-sm w-auto" name="alvo" maxlength="300" placeholder="endereço ou número" value="' . ($objeto === null ? '' : Pagina::h($objeto->urlAmigavel)) . '">'
+                . '<button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button></form></td></tr>';
+        }
+        $corpo .= '<section class="mt-4" id="inicio-por-dominio" aria-labelledby="titulo-inicio"><h2 class="h5" id="titulo-inicio">O que cada domínio abre</h2>'
+            . '<p class="text-body-secondary">Por padrão todo domínio abre a página inicial do site. Aqui um domínio pode abrir direto um conteúdo (ex.: <code>faq.exemplo.org</code> abrindo <code>faq</code>). O resto do site continua igual. Deixe em branco para voltar ao padrão.</p>'
+            . '<div class="table-responsive"><table class="table table-sm align-middle"><caption class="visually-hidden">Conteúdo que abre em / em cada domínio</caption><thead><tr><th scope="col">Domínio</th><th scope="col">Abre em /</th><th scope="col">Trocar</th></tr></thead><tbody>' . $linhasInicio . '</tbody></table></div></section>';
         $modos = '';
         foreach (self::MODOS as $valor => $rotulo) {
             $modos .= '<option value="' . $valor . '">' . Pagina::h($rotulo) . '</option>';
@@ -240,6 +267,7 @@ final class TelasDeDominios
             'principal' => 'Domínio principal trocado.',
             'modo' => 'Tipo do domínio alterado.',
             'removido' => 'Domínio removido.',
+            'inicio' => 'Conteúdo inicial do domínio salvo.',
             default => null,
         };
 
