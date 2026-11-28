@@ -234,9 +234,9 @@ final class CargaOficial
     {
         $pasta = $this->objeto('pasta', $this->raiz, 'Destaques', 'destaques', [], ['peso' => 995, 'descricao' => 'Banners da página inicial']);
         foreach ([
-            ['conhecer', 'Veja o que ele faz', 'Conteúdo em árvore, moldes, revisão, domínios, busca e cópias de segurança.', [194, 65, 12], 'o-que-ele-faz'],
-            ['instalar', 'Instale e experimente', 'Requisitos do servidor e caminhos de instalação.', [232, 89, 12], 'instalacao-e-requisitos'],
-            ['participar', 'Participe do projeto', 'Você não precisa programar para ajudar.', [255, 154, 60], 'comunidade'],
+            ['conhecer', 'Veja o que ele faz', 'Conteúdo em árvore, moldes, revisão, domínios, busca e cópias de segurança.', [16, 48, 106], 'o-que-ele-faz'],
+            ['instalar', 'Instale e experimente', 'Requisitos do servidor e caminhos de instalação.', [40, 86, 152], 'instalacao-e-requisitos'],
+            ['participar', 'Participe do projeto', 'Você não precisa programar para ajudar.', [46, 125, 91], 'comunidade'],
         ] as $i => [$u, $titulo, $texto, $cor, $alvo]) {
             $this->objeto('destaque', $pasta->id, $titulo, 'destaque-' . $u, ['texto' => $texto, 'nova_aba' => false, 'destino_interno' => $paginas[$alvo]->id], ['peso' => ($i + 1) * 10], $this->imagem($titulo, $cor, 'destaque-' . $u . '.png'));
         }

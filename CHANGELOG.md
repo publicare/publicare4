@@ -7,7 +7,12 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 ## [Não lançado]
 
 ### Adicionado
+- **Tema claro, escuro ou automático nas páginas públicas (pele "publicare"):** novo botão no cabeçalho. A escolha fica só no navegador (localStorage) e vale já no carregamento, sem piscar; sem JavaScript o site segue o aparelho. O único JavaScript da pele é o `tema.js` (local, sem inline).
 - **Multibanco, etapa 5 (instalador web):** novo passo "Banco de dados" no assistente (SQLite por padrão; MySQL, MariaDB ou PostgreSQL com servidor, porta, nome, usuário e senha). A conexão é testada antes de instalar, o `banco.json` é gravado com permissão 0600 e a senha do banco nunca volta para a tela. Banco que já tem um Publicare instalado é recusado. Ainda em teste: previsto para a 0.2.
+
+### Alterado
+- **Pele "publicare" em azul-marinho:** sai o preto com laranja. A cor forte agora é o azul-marinho, com fundos brancos e cinza-azulados, um verde-floresta e um dourado suaves só em detalhes, e tema escuro em azul quase preto. Logotipo, imagem de compartilhamento e imagens dos cartões da carga oficial foram refeitos na mesma paleta. Os testes de contraste (AA) e de identidade foram atualizados.
+
 
 ## [0.1.0-rc.15] - 2026-11-27
 

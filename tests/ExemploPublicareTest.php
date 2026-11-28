@@ -234,7 +234,7 @@ final class ExemploPublicareTest extends TestCase
             self::assertStringNotContainsString('bootstrap', $html, $nome);
             preg_match_all('#<script\b[^>]*\ssrc="([^"]+)"#', $html, $scripts);
             foreach ($scripts[1] as $src) {
-                self::assertStringStartsWith('/_pbl/assets/pbl-barra.js', $src, "{$nome}: só o script da barra de edição, que é do sistema");
+                self::assertMatchesRegularExpression('#^(/_pbl/assets/pbl-barra\.js|/_pbl/peles/publicare/assets/tema\.js\?v=[0-9a-f]+$)#', $src, "{$nome}: só a barra de edição (do sistema) e o tema.js da pele");
             }
         }
     }

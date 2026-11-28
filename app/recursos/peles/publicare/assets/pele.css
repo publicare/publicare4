@@ -1,37 +1,37 @@
-/* Pele "publicare" do PBL4: folha de estilos própria do site. Sem CDN, sem fonte externa, sem JavaScript e sem estilo embutido
+/* Pele "publicare" do PBL4: folha de estilos própria do site. Sem CDN, sem fonte externa e sem estilo embutido (o único JavaScript é o tema.js, que guarda a escolha de tema claro/escuro)
    nas páginas (ADR 0022). Mobile first: base para 360 px, ajustes a partir de 40rem (tablet) e 56rem (desktop).
-   TODA a paleta mora nos dois blocos de variáveis logo abaixo (claro e escuro): trocar a cara do site é trocar só estes valores.
+   TODA a paleta mora nos blocos de variáveis logo abaixo: o claro (:root), o escuro automático (segue o aparelho) e o escuro escolhido na página (data-tema). Trocar a cara do site é trocar só estes valores.
    Contraste (WCAG 2.2 AA): texto >= 4,5:1, componentes e foco >= 3:1, nos dois temas; o teste PublicarePeleTest recalcula os pares. */
 :root{
-  --cor-texto:#2a1d14;
-  --cor-texto-suave:#5c4a3d;
+  --cor-texto:#111b2e;
+  --cor-texto-suave:#475569;
   --cor-fundo:#ffffff;
-  --cor-fundo-suave:#fdf3ea;
+  --cor-fundo-suave:#f5f7fb;
   --cor-cartao:#ffffff;
-  --cor-borda:#ecd9c8;
-  --cor-borda-forte:#8a6f5c;
-  --cor-link:#c2410c;
-  --cor-link-ativo:#9a3412;
-  --cor-primaria:#c2410c;
+  --cor-borda:#dde3ee;
+  --cor-borda-forte:#64748b;
+  --cor-link:#1d4a99;
+  --cor-link-ativo:#10306a;
+  --cor-primaria:#16418a;
   --cor-sobre-primaria:#ffffff;
-  --cor-acento:#ff9a3c;
-  --cor-sobre-acento:#2b1200;
-  --cor-foco:#c2410c;
-  --cor-hero-fundo:#ff9a3c;
-  --cor-hero-fundo-2:#e8590c;
-  --cor-hero-texto:#1f0d00;
-  --cor-hero-suave:#2b1200;
-  --cor-hero-botao:#1f0d00;
-  --cor-hero-sobre-botao:#fff8f2;
-  --cor-hero-borda:#1f0d00;
-  --cor-hero-foco:#1f0d00;
-  --cor-aviso:#fff1c7;
-  --cor-aviso-texto:#3b2c00;
-  --cor-rodape-fundo:#2a1a10;
-  --cor-rodape-texto:#ecdccf;
-  --cor-rodape-link:#ffb36b;
+  --cor-acento:#2e7d5b;
+  --cor-sobre-acento:#ffffff;
+  --cor-foco:#16418a;
+  --cor-hero-fundo:#0e2a5c;
+  --cor-hero-fundo-2:#17407f;
+  --cor-hero-texto:#ffffff;
+  --cor-hero-suave:#dbe5f6;
+  --cor-hero-botao:#ffffff;
+  --cor-hero-sobre-botao:#0e2a5c;
+  --cor-hero-borda:#ffffff;
+  --cor-hero-foco:#f2d27a;
+  --cor-aviso:#fbf3d6;
+  --cor-aviso-texto:#3a3000;
+  --cor-rodape-fundo:#0b1f45;
+  --cor-rodape-texto:#d5deef;
+  --cor-rodape-link:#f2d27a;
   --raio:.9rem;
-  --sombra:0 1px 2px rgba(60,30,10,.08),0 8px 24px rgba(60,30,10,.07);
+  --sombra:0 1px 2px rgba(10,30,80,.08),0 8px 24px rgba(10,30,80,.07);
   --largura:72rem;
   --largura-texto:46rem;
   --lateral:1.25rem;
@@ -40,37 +40,70 @@
   color-scheme:light dark;
 }
 @media (prefers-color-scheme:dark){
-  :root{
-    --cor-texto:#f6ece4;
-    --cor-texto-suave:#c9b5a5;
-    --cor-fundo:#1a120d;
-    --cor-fundo-suave:#241912;
-    --cor-cartao:#2b1d15;
-    --cor-borda:#4a3628;
-    --cor-borda-forte:#9c8574;
-    --cor-link:#ffa45c;
-    --cor-link-ativo:#ffc092;
-    --cor-primaria:#ff9a3c;
-    --cor-sobre-primaria:#2b1200;
-    --cor-acento:#ffa24d;
-    --cor-sobre-acento:#2b1200;
-    --cor-foco:#ffb36b;
-    --cor-hero-fundo:#ff9a3c;
-    --cor-hero-fundo-2:#e8590c;
-    --cor-hero-texto:#1f0d00;
-    --cor-hero-suave:#2b1200;
-    --cor-hero-botao:#1f0d00;
-    --cor-hero-sobre-botao:#fff8f2;
-    --cor-hero-borda:#1f0d00;
-    --cor-hero-foco:#1f0d00;
-    --cor-aviso:#3a3210;
-    --cor-aviso-texto:#f5e6a8;
-    --cor-rodape-fundo:#140d09;
-    --cor-rodape-texto:#d9c6b8;
-    --cor-rodape-link:#ffb36b;
+  :root:not([data-tema="claro"]){
+    --cor-texto:#e8edf7;
+    --cor-texto-suave:#aab6cc;
+    --cor-fundo:#0b1426;
+    --cor-fundo-suave:#101b33;
+    --cor-cartao:#14213d;
+    --cor-borda:#26365a;
+    --cor-borda-forte:#7f93b8;
+    --cor-link:#9db8e6;
+    --cor-link-ativo:#c5d6f2;
+    --cor-primaria:#9db8e6;
+    --cor-sobre-primaria:#0b1426;
+    --cor-acento:#58b08a;
+    --cor-sobre-acento:#06180f;
+    --cor-foco:#f2d27a;
+    --cor-hero-fundo:#0f2147;
+    --cor-hero-fundo-2:#173468;
+    --cor-hero-texto:#ffffff;
+    --cor-hero-suave:#dbe5f6;
+    --cor-hero-botao:#ffffff;
+    --cor-hero-sobre-botao:#0e2a5c;
+    --cor-hero-borda:#ffffff;
+    --cor-hero-foco:#f2d27a;
+    --cor-aviso:#2f2a14;
+    --cor-aviso-texto:#f3e7b3;
+    --cor-rodape-fundo:#070e1c;
+    --cor-rodape-texto:#bcc8de;
+    --cor-rodape-link:#f2d27a;
     --sombra:none;
+    color-scheme:dark;
   }
 }
+:root[data-tema="escuro"]{
+  --cor-texto:#e8edf7;
+  --cor-texto-suave:#aab6cc;
+  --cor-fundo:#0b1426;
+  --cor-fundo-suave:#101b33;
+  --cor-cartao:#14213d;
+  --cor-borda:#26365a;
+  --cor-borda-forte:#7f93b8;
+  --cor-link:#9db8e6;
+  --cor-link-ativo:#c5d6f2;
+  --cor-primaria:#9db8e6;
+  --cor-sobre-primaria:#0b1426;
+  --cor-acento:#58b08a;
+  --cor-sobre-acento:#06180f;
+  --cor-foco:#f2d27a;
+  --cor-hero-fundo:#0f2147;
+  --cor-hero-fundo-2:#173468;
+  --cor-hero-texto:#ffffff;
+  --cor-hero-suave:#dbe5f6;
+  --cor-hero-botao:#ffffff;
+  --cor-hero-sobre-botao:#0e2a5c;
+  --cor-hero-borda:#ffffff;
+  --cor-hero-foco:#f2d27a;
+  --cor-aviso:#2f2a14;
+  --cor-aviso-texto:#f3e7b3;
+  --cor-rodape-fundo:#070e1c;
+  --cor-rodape-texto:#bcc8de;
+  --cor-rodape-link:#f2d27a;
+  --sombra:none;
+  color-scheme:dark;
+}
+:root[data-tema="claro"]{color-scheme:light}
 
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:5rem}
@@ -162,7 +195,7 @@ button:hover,.botao:hover{color:var(--cor-sobre-primaria);transform:translateY(-
 .hero .botao-claro{background:transparent;border-color:var(--cor-hero-borda);color:var(--cor-hero-texto)}
 .hero .botao-claro:hover{background:rgba(255,255,255,.22);color:var(--cor-hero-texto)}
 .hero-botoes{display:flex;flex-wrap:wrap;gap:.75rem;margin:0}
-.hero-imagem img{display:block;border-radius:var(--raio);box-shadow:0 20px 40px rgba(60,20,0,.35)}
+.hero-imagem img{display:block;border-radius:var(--raio);box-shadow:0 20px 40px rgba(0,20,70,.35)}
 @media (min-width:56rem){.hero{padding:5.5rem 0 6rem}.hero-in{grid-template-columns:1.15fr .85fr}}
 
 /* Seções alternadas */
@@ -295,3 +328,13 @@ button:hover,.botao:hover{color:var(--cor-sobre-primaria);transform:translateY(-
   .cartao-atalho:hover,button:hover,.botao:hover{transform:none}
 }
 @media print{.topo,.rodape-topo,.pular,.hero-imagem{display:none}.hero,.chamada{background:none;color:#000}.hero h1,.hero .resumo,.chamada h2,.chamada p{color:#000}}
+
+/* Botão de tema (claro, escuro ou automático). Só aparece com JavaScript (tema.js tira o hidden); sem ele o site segue o aparelho. */
+.tema-botao{margin-left:.25rem;display:inline-flex;align-items:center;gap:.45rem;padding:.45rem .75rem;border:1px solid var(--cor-borda-forte);border-radius:.6rem;background:transparent;color:var(--cor-texto);font:inherit;font-size:.92rem;font-weight:600;cursor:pointer}
+.tema-botao:hover{border-color:var(--cor-primaria);color:var(--cor-link)}
+.tema-botao[hidden]{display:none}
+.tema-icone{display:inline-block;width:1.05rem;height:1.05rem;border-radius:50%;border:2px solid currentColor;background:linear-gradient(90deg,currentColor 50%,transparent 50%)}
+
+/* O logotipo azul-marinho clareia no tema escuro para não sumir no fundo. */
+@media (prefers-color-scheme:dark){:root:not([data-tema="claro"]) .marca-icone{filter:brightness(1.9) saturate(.85)}}
+:root[data-tema="escuro"] .marca-icone{filter:brightness(1.9) saturate(.85)}

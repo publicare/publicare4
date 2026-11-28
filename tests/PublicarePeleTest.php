@@ -54,14 +54,16 @@ final class PublicarePeleTest extends TestCase
             self::assertDoesNotMatchRegularExpression('#@import|url\(\s*[\'"]?(?:https?:)?//#i', $t, $nome);
             self::assertStringNotContainsString('javascript:', $t, $nome);
         }
-        // O único script permitido é o da barra de edição do próprio PBL4 (local, versionado); a pele não declara nenhum.
+        // Os únicos scripts permitidos: a barra de edição do PBL4 e o tema.js da própria pele (locais, versionados, sem inline).
         foreach ($this->moldes() as $m) {
             preg_match_all('#<script[^>]*\ssrc="([^"]+)"#', (string) file_get_contents($m), $achados);
             foreach ($achados[1] as $src) {
-                self::assertStringStartsWith('/_pbl/assets/pbl-barra.js?v=', $src, basename($m));
+                self::assertMatchesRegularExpression('#^(/_pbl/assets/pbl-barra\.js\?v=|<@eco \#pele_url@>/assets/tema\.js\?v=)#', $src, basename($m));
             }
         }
-        self::assertSame([], glob($this->pasta() . '/assets/*.js') ?: [], 'a pele não traz JavaScript próprio');
+        self::assertSame(['tema.js'], array_map('basename', glob($this->pasta() . '/assets/*.js') ?: []), 'o único JavaScript da pele é o do tema');
+        $js = (string) file_get_contents($this->pasta() . '/assets/tema.js');
+        self::assertDoesNotMatchRegularExpression('#\b(eval|innerHTML|document\.write|XMLHttpRequest|fetch)\b|https?://#', $js, 'o tema.js só guarda a escolha, sem rede nem HTML dinâmico');
     }
 
     public function testCssTemFocoMovimentoReduzidoTemaEscuroEPontosDeQuebra(): void
@@ -138,23 +140,36 @@ final class PublicarePeleTest extends TestCase
         self::assertGreaterThanOrEqual($minimo, $razao, sprintf('%s: %s sobre %s dá %.2f:1 (mínimo %.1f:1)', $tema, $a, $b, $razao, $minimo));
     }
 
-    /** Identidade (rodada 2): laranja predominante; nenhum verde-azulado (teal/petróleo) como cor da pele, nos dois temas. */
+    /** Identidade: azul-marinho como cor forte, verde só em detalhes, nenhum laranja nem verde-azulado, nos dois temas. */
     #[\PHPUnit\Framework\Attributes\DataProvider('temas')]
-    public function testNenhumaCorEmTealEMarcaEmLaranja(string $tema): void
+    public function testAzulComoCorForteSemLaranjaNemVerdeAzulado(string $tema): void
     {
         $cores = $this->variaveis($tema);
         foreach ($cores as $nome => $hex) {
             [$h, $s] = self::matizESaturacao($hex);
-            self::assertFalse($s >= 0.12 && $h >= 150 && $h <= 210, "{$tema}: {$nome} {$hex} é verde-azulado (matiz {$h}°)");
+            self::assertFalse($s >= 0.12 && $h >= 168 && $h <= 205, "{$tema}: {$nome} {$hex} é verde-azulado (matiz {$h}°)");
+            self::assertFalse($s >= 0.5 && $h >= 12 && $h <= 38, "{$tema}: {$nome} {$hex} é laranja (a pele agora é azul; o dourado do foco fica acima de 38°)");
         }
-        foreach (['--cor-primaria', '--cor-acento', '--cor-link', '--cor-hero-fundo', '--cor-hero-fundo-2'] as $nome) {
+        foreach (['--cor-primaria', '--cor-link', '--cor-hero-fundo', '--cor-hero-fundo-2', '--cor-rodape-fundo'] as $nome) {
             [$h, $s] = self::matizESaturacao($cores[$nome]);
-            self::assertTrue($h >= 15 && $h <= 40 && $s >= 0.6, "{$tema}: {$nome} {$cores[$nome]} deveria ser laranja");
+            self::assertTrue($h >= 205 && $h <= 235 && $s >= 0.3, "{$tema}: {$nome} {$cores[$nome]} deveria ser azul");
         }
-        foreach (['--cor-fundo', '--cor-fundo-suave', '--cor-cartao', '--cor-rodape-fundo', '--cor-texto'] as $nome) {
+        [$h] = self::matizESaturacao($cores['--cor-acento']);
+        self::assertTrue($h >= 120 && $h <= 165, "{$tema}: o acento é um verde discreto");
+        foreach (['--cor-fundo', '--cor-fundo-suave', '--cor-cartao', '--cor-texto'] as $nome) {
             [$h, $s] = self::matizESaturacao($cores[$nome]);
-            self::assertTrue($s < 0.08 || ($h >= 0 && $h <= 60), "{$tema}: neutro {$nome} {$cores[$nome]} deveria ser quente");
+            self::assertTrue($s < 0.25 || ($h >= 205 && $h <= 235), "{$tema}: neutro {$nome} {$cores[$nome]} tem de ser cinza ou azul-acinzentado");
         }
+    }
+
+    /** O tema escolhido na página (data-tema) tem de dar as mesmas cores do escuro automático. */
+    public function testEscuroEscolhidoIgualAoEscuroAutomatico(): void
+    {
+        $css = $this->css();
+        $auto = $this->lerCores($this->bloco('#@media \(prefers-color-scheme:dark\)\{\s*:root:not\(\[data-tema="claro"\]\)\{(.*?)\}#s', $css));
+        $escolhido = $this->lerCores($this->bloco('#:root\[data-tema="escuro"\]\{(.*?)\}#s', $css));
+        self::assertNotSame([], $auto);
+        self::assertSame($auto, $escolhido);
     }
 
     /** @return array<string, array{string}> */
@@ -199,7 +214,7 @@ final class PublicarePeleTest extends TestCase
         $css = $this->css();
         $cores = $this->lerCores($this->bloco('#:root\{(.*?)\}#s', $css));
         if ($tema === 'escuro') {
-            $cores = $this->lerCores($this->bloco('#@media \(prefers-color-scheme:dark\)\{\s*:root\{(.*?)\}#s', $css)) + $cores;
+            $cores = $this->lerCores($this->bloco('#@media \(prefers-color-scheme:dark\)\{\s*:root:not\(\[data-tema="claro"\]\)\{(.*?)\}#s', $css)) + $cores;
         }
 
         return $cores;
@@ -259,6 +274,17 @@ final class PublicarePeleTest extends TestCase
             self::assertNotSame([], array_filter($r['avisos'], static fn (string $a): bool => str_contains($a, 'publicare/rodape.pbl')));
         } finally {
             Ajuda::apagar($raiz);
+        }
+    }
+
+    /** Quem instalou a versão anterior (laranja) recebe a nova na atualização: os hashes antigos têm de estar em anteriores.json. */
+    public function testVersaoLaranjaDosArquivosAlteradosEstaRegistradaEmAnteriores(): void
+    {
+        $json = json_decode((string) file_get_contents(dirname(__DIR__) . '/app/recursos/peles/anteriores.json'), true);
+        self::assertIsArray($json);
+        foreach (['assets/pele.css', 'estilo.pbl', 'topo.pbl', 'assets/marca.svg', 'assets/og-publicare.png'] as $arquivo) {
+            self::assertNotSame([], $json['publicare/' . $arquivo] ?? [], "publicare/{$arquivo}: falta o hash da versão anterior");
+            self::assertNotContains(hash_file('sha256', $this->pasta() . '/' . $arquivo), $json['publicare/' . $arquivo], "publicare/{$arquivo}: a versão atual não pode estar entre as antigas");
         }
     }
 }
