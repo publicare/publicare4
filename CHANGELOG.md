@@ -6,6 +6,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.17] - 2026-11-28
+
+> **Em resumo:** um domínio pode abrir direto um conteúdo (ex.: `faq.exemplo.org` abrindo `faq`), e o manual passa a usar a mesma paleta azul-marinho do site. Traz a migração 30 do banco.
 
 ### Adicionado
 - **Domínio abrindo um conteúdo (migração 30):** cada domínio pode abrir direto um conteúdo em `/` (por exemplo, `faq.exemplo.org` abrindo `faq`), pela tela Domínios (seção "O que cada domínio abre") ou por `bin/pbl dominio inicio`. O resto do site continua igual naquele domínio. Se o conteúdo sair do ar, o domínio volta a abrir a página inicial.
