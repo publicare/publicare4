@@ -6,6 +6,10 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 
 ## [Não lançado]
 
+## [0.1.0-rc.15] - 2026-11-27
+
+> **Em resumo:** texto do site do Publicare reescrito em linguagem direta, tela de tipos de conteúdo mais legível, e "Novo conteúdo" com a escolha do tipo em lista de botões com descrição.
+
 
 ### Alterado
 - **Senha de confirmação só ao clicar na ação:** o campo "Sua senha, para confirmar" deixa de ficar à mostra no fim de cada bloco. Ao clicar na ação (Adicionar, Apagar, Usar…), o campo aparece com o foco nele, e o segundo clique confirma. Sem JavaScript o campo continua à vista.
