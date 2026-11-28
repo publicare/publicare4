@@ -10,6 +10,9 @@ Enquanto a versão for `0.x`, o projeto ainda não promete estabilidade: mudanç
 ### Adicionado
 - **Domínio abrindo um conteúdo (migração 30):** cada domínio pode abrir direto um conteúdo em `/` (por exemplo, `faq.exemplo.org` abrindo `faq`), pela tela Domínios (seção "O que cada domínio abre") ou por `bin/pbl dominio inicio`. O resto do site continua igual naquele domínio. Se o conteúdo sair do ar, o domínio volta a abrir a página inicial.
 
+### Alterado
+- **Pele do manual na mesma paleta azul-marinho** do site do Publicare (claro e escuro), no lugar do laranja. O manual passa a ter endereço próprio, `manual.publicare.org`, como segundo site da instalação oficial.
+
 
 ## [0.1.0-rc.16] - 2026-11-28
 
